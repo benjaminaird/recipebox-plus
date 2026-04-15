@@ -1,14 +1,15 @@
 {
   "name": "recipebox-plus",
   "version": "1.0.0",
-  "type": "module",
+  "description": "RecipeBox+ recipe manager",
+  "main": "server.js",
   "scripts": {
-    "dev": "node server.js",
     "start": "node server.js"
   },
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.18.2",
-    "node-fetch": "^3.3.2"
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": "18.x"
   }
 }
