@@ -91,7 +91,8 @@
 
     // ── AI — calls our backend proxy ─────────────────────────────────────────
     async function callAI(messages, system, maxTokens) {
-      const body = { model: "claude-sonnet-4-20250514", max_tokens: maxTokens || 2000, messages };
+      const body = { model: "claude-sonnet-4-5-20250929
+", max_tokens: maxTokens || 2000, messages };
       if (system) body.system = system;
       const res = await fetch("/api/ai", {
         method: "POST",
