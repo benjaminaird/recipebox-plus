@@ -1,36 +1,41 @@
-const express = require(“express”);
-const path = require(“path”);
+const express = require("express");
+const path = require("path");
 
 const app = express();
-app.use(express.json({ limit: “10mb” }));
-app.use(express.static(path.join(__dirname, “public”)));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.static(path.join(__dirname, "Public")));
 
-app.get(”/api/health”, (req, res) => res.json({ status: “ok” }));
-
-app.post(”/api/ai”, async (req, res) => {
-const apiKey = process.env.ANTHROPIC_API_KEY;
-if (!apiKey) return res.status(500).json({ error: “ANTHROPIC_API_KEY not set in .env” });
-try {
-const response = await fetch(“https://api.anthropic.com/v1/messages”, {
-method: “POST”,
-headers: {
-“Content-Type”: “application/json”,
-“x-api-key”: apiKey,
-“anthropic-version”: “2023-06-01”,
-},
-body: JSON.stringify(req.body),
-});
-const data = await response.json();
-res.status(response.status).json(data);
-} catch (err) {
-res.status(500).json({ error: err.message });
-}
+app.get("/api/health", function(req, res) {
+  res.json({ status: "ok" });
 });
 
-app.get(”*”, (req, res) => {
-res.sendFile(path.join(__dirname, "Public", "Index.html"));
-
+app.post("/api/ai", async function(req, res) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    res.status(500).json({ error: "No API key" });
+    return;
+  }
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01"
+      },
+      body: JSON.stringify(req.body)
+    });
+    const data = await response.json();
+    res.status(response.status).json(data);
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(“RecipeBox+ running on port “ + PORT));
+app.get("*", function(req, res) {
+  res.sendFile(path.join(__dirname, "Public", "Index.html"));
+});
+
+app.listen(process.env.PORT || 3000, function() {
+  console.log("RecipeBox+ running");
+});
