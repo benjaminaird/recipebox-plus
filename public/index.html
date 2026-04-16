@@ -524,6 +524,10 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
       const [text, setText] = useState("");
       const [images, setImages] = useState([]);
       const [pdfTexts, setPdfTexts] = useState([]);
+      const [copycatRestaurant, setCopycatRestaurant] = useState("");
+      const [copycatDish, setCopycatDish] = useState("");
+      const [copycatNotes, setCopycatNotes] = useState("");
+      const [copycatImage, setCopycatImage] = useState(null);
       const [loading, setLoading] = useState(false);
       const [loadingMsg, setLoadingMsg] = useState("");
       const [error, setError] = useState("");
@@ -596,6 +600,32 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
             parsed = parseAIJson(raw);
           }
 
+          } else if (mode === "copycat") {
+            setLoadingMsg("Building copycat recipe...");
+            let prompt = "Create a detailed copycat recipe";
+            if (copycatRestaurant.trim()) prompt += " for " + copycatRestaurant.trim();
+            if (copycatDish.trim()) prompt += " dish: " + copycatDish.trim();
+            if (copycatNotes.trim()) prompt += ". Additional notes from the user: " + copycatNotes.trim();
+            prompt += ". Make it as close to the original as possible. Include all ingredients with exact measurements and detailed step-by-step instructions. Tag it as copycat.";
+            if (copycatRestaurant.trim()) prompt += " Add the restaurant name as a tag.";
+            const msgContent = [];
+            if (copycatImage) {
+              msgContent.push({ type: "image", source: { type: "base64", media_type: copycatImage.type, data: copycatImage.data } });
+              msgContent.push({ type: "text", text: prompt + " Use the photo as a visual reference for the dish." });
+            } else {
+              msgContent.push({ type: "text", text: prompt });
+            }
+            const raw = await callAI([{ role:"user", content: copycatImage ? msgContent : prompt }], EXTRACT_PROMPT, 2000);
+            parsed = parseAIJson(raw);
+            if (parsed && copycatRestaurant.trim()) {
+              parsed.tags = parsed.tags || [];
+              if (!parsed.tags.includes("copycat")) parsed.tags.push("copycat");
+              const rtag = copycatRestaurant.trim().toLowerCase().replace(/\s+/g, "-");
+              if (!parsed.tags.includes(rtag)) parsed.tags.push(rtag);
+            }
+
+          } // end copycat block
+
           if (!parsed || !parsed.title || !parsed.sections) throw new Error("Could not extract a complete recipe. Try Paste Text.");
           parsed.id = uid();
           parsed.createdAt = new Date().toISOString();
@@ -663,13 +693,15 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
         { id:"youtube", label:"▶️ YouTube" },
         { id:"text", label:"📄 Paste Text" },
         { id:"media", label:"📷 Photo / PDF" },
+        { id:"copycat", label:"🍽 Copycat" },
       ];
 
       const canSubmit = !loading && (
         (mode==="url" && url) ||
         (mode==="youtube" && ytUrl) ||
         (mode==="text" && text.trim()) ||
-        (mode==="media" && (images.length > 0 || pdfTexts.length > 0))
+        (mode==="media" && (images.length > 0 || pdfTexts.length > 0)) ||
+        (mode==="copycat" && (copycatDish.trim() || copycatRestaurant.trim()))
       );
 
       return (
@@ -738,6 +770,46 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
               style={{width:"100%",background:"linear-gradient(135deg, #1C1410, #5C3D2E)",color:C.white,border:"none",borderRadius:12,padding:15,fontWeight:700,cursor:canSubmit?"pointer":"not-allowed",fontSize:"0.95em",fontFamily:SERIF,letterSpacing:0.5,opacity:canSubmit?1:0.6,display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
               {loading ? <><Spinner /> {loadingMsg || "Extracting..."}</> : "✦ Extract & Import Recipe"}
             </button>
+
+            {mode === "copycat" && (
+              <div>
+                <input
+                  value={copycatRestaurant}
+                  onChange={(e) => setCopycatRestaurant(e.target.value)}
+                  placeholder="Restaurant name (e.g. Texas Roadhouse)"
+                  style={{width:"100%",padding:"12px 15px",border:"1.5px solid "+C.border,borderRadius:8,fontSize:"0.92em",outline:"none",marginBottom:10,boxSizing:"border-box",fontFamily:SANS}}
+                />
+                <input
+                  value={copycatDish}
+                  onChange={(e) => setCopycatDish(e.target.value)}
+                  placeholder="Dish name (e.g. Rolls with cinnamon butter)"
+                  style={{width:"100%",padding:"12px 15px",border:"1.5px solid "+C.border,borderRadius:8,fontSize:"0.92em",outline:"none",marginBottom:10,boxSizing:"border-box",fontFamily:SANS}}
+                />
+                <textarea
+                  value={copycatNotes}
+                  onChange={(e) => setCopycatNotes(e.target.value)}
+                  placeholder="Notes (optional) - e.g. extra garlicky, sauce was sweet and smoky, came with dipping sauce..."
+                  rows={3}
+                  style={{width:"100%",padding:"12px 15px",border:"1.5px solid "+C.border,borderRadius:8,fontSize:"0.9em",resize:"vertical",outline:"none",marginBottom:10,boxSizing:"border-box",fontFamily:SANS}}
+                />
+                <div style={{marginBottom:10}}>
+                  <input
+                    type="file"
+                    accept="image/*,image/heic,image/heif"
+                    onChange={async (e) => { const f=e.target.files[0]; if(!f)return; const b=await fileToBase64(f); setCopycatImage(b); }}
+                    style={{display:"none"}}
+                    id="copycat-img-input"
+                  />
+                  <label htmlFor="copycat-img-input" style={{display:"flex",alignItems:"center",gap:10,padding:"11px 15px",border:"1.5px dashed "+(copycatImage?C.green:C.border),borderRadius:8,cursor:"pointer",color:copycatImage?C.green:C.light,background:copycatImage?C.greenPale:"transparent"}}>
+                    <span style={{fontSize:"1.3em"}}>{copycatImage ? "✓" : "📷"}</span>
+                    <span style={{fontSize:"0.88em",fontWeight:600}}>{copycatImage ? "Photo attached - tap to change" : "Add a photo (optional) - great if you're at the restaurant!"}</span>
+                  </label>
+                </div>
+                <div style={{background:C.goldPale,border:"1px solid "+C.goldLight,borderRadius:8,padding:"9px 13px",fontSize:"0.78em",color:C.brown,lineHeight:1.5}}>
+                  🍽 Works best with well-known restaurant chains and dishes. The more detail you provide, the closer the recipe will be!
+                </div>
+              </div>
+            )}
 
             {error && (
               <div style={{marginTop:13,background:C.redPale,border:"1px solid "+C.red+"50",borderRadius:8,padding:"11px 15px",fontSize:"0.83em",color:C.red,lineHeight:1.6}}>{error}</div>
