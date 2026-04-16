@@ -94,7 +94,6 @@ if (captionStart !== -1) {
 
 const thumbnail = "https://img.youtube.com/vi/" + videoId + "/maxresdefault.jpg";
 res.json({ title, description, transcript, thumbnail, videoId });
-```
 
 } catch(err) {
 console.error(“Transcript error:”, err);
