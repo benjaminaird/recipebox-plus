@@ -24,7 +24,6 @@ videoId = videoUrl.split(“youtu.be/”)[1].split(”?”)[0].slice(0, 11);
 videoId = videoUrl.split(“embed/”)[1].split(”?”)[0].slice(0, 11);
 }
 
-```
 if (!videoId || videoId.length < 5) {
   return res.status(400).json({ error: "Invalid YouTube URL" });
 }
