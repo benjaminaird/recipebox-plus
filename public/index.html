@@ -1299,8 +1299,21 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
       );
     }
 
+    class ErrorBoundary extends React.Component {
+      constructor(props) { super(props); this.state = { error: null }; }
+      componentDidCatch(error, info) { this.setState({ error: error.message }); }
+      render() {
+        if (this.state.error) {
+          return React.createElement("div", {
+            style: { padding: "40px 20px", fontFamily: "sans-serif", color: "#C0392B", background: "#FDECEA", minHeight: "100vh" }
+          }, React.createElement("h2", null, "App Error"), React.createElement("pre", { style: { whiteSpace: "pre-wrap", fontSize: "0.85em" } }, this.state.error));
+        }
+        return this.props.children;
+      }
+    }
+
     const root = ReactDOM.createRoot(document.getElementById("root"));
-    root.render(<App />);
+    root.render(React.createElement(ErrorBoundary, null, React.createElement(App, null)));
   </script>
 </body>
 </html>
