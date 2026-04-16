@@ -5,24 +5,30 @@ const app = express();
 app.use(express.json({ limit: “20mb” }));
 app.use(express.static(path.join(__dirname, “Public”)));
 
-// Health check
 app.get(”/api/health”, function(req, res) {
 res.json({ status: “ok” });
 });
 
-// YouTube transcript fetcher
 app.get(”/api/transcript”, async function(req, res) {
 const videoUrl = req.query.url;
 if (!videoUrl) return res.status(400).json({ error: “No URL provided” });
 
 try {
-// Extract video ID
-const idMatch = videoUrl.match(/(?:v=|youtu.be/|embed/)([a-zA-Z0-9_-]{11})/);
-if (!idMatch) return res.status(400).json({ error: “Invalid YouTube URL” });
-const videoId = idMatch[1];
+// Extract video ID safely without complex regex
+let videoId = “”;
+if (videoUrl.includes(“v=”)) {
+videoId = videoUrl.split(“v=”)[1].split(”&”)[0].slice(0, 11);
+} else if (videoUrl.includes(“youtu.be/”)) {
+videoId = videoUrl.split(“youtu.be/”)[1].split(”?”)[0].slice(0, 11);
+} else if (videoUrl.includes(“embed/”)) {
+videoId = videoUrl.split(“embed/”)[1].split(”?”)[0].slice(0, 11);
+}
 
 ```
-// Fetch YouTube page to get transcript data
+if (!videoId || videoId.length < 5) {
+  return res.status(400).json({ error: "Invalid YouTube URL" });
+}
+
 const pageRes = await fetch("https://www.youtube.com/watch?v=" + videoId, {
   headers: {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -32,43 +38,62 @@ const pageRes = await fetch("https://www.youtube.com/watch?v=" + videoId, {
 const html = await pageRes.text();
 
 // Extract title
-const titleMatch = html.match(/<title>([^<]+)<\/title>/);
-const title = titleMatch ? titleMatch[1].replace(" - YouTube", "").trim() : "YouTube Recipe";
+let title = "YouTube Recipe";
+const titleStart = html.indexOf("<title>");
+const titleEnd = html.indexOf("</title>");
+if (titleStart !== -1 && titleEnd !== -1) {
+  title = html.slice(titleStart + 7, titleEnd).replace(" - YouTube", "").trim();
+}
 
 // Extract description
-const descMatch = html.match(/"shortDescription":"((?:[^"\\]|\\.)*)"/);
 let description = "";
-if (descMatch) {
-  description = descMatch[1]
+const descKey = '"shortDescription":"';
+const descStart = html.indexOf(descKey);
+if (descStart !== -1) {
+  let raw = html.slice(descStart + descKey.length, descStart + descKey.length + 4000);
+  let end = 0;
+  for (let i = 0; i < raw.length; i++) {
+    if (raw[i] === '"' && raw[i-1] !== '\\') { end = i; break; }
+  }
+  description = raw.slice(0, end)
     .replace(/\\n/g, "\n")
     .replace(/\\"/g, '"')
     .replace(/\\\\/g, "\\")
     .slice(0, 3000);
 }
 
-// Try to get transcript - look for timedtext URL
-const transcriptMatch = html.match(/"captionTracks":\[{"baseUrl":"([^"]+)"/);
+// Extract transcript
 let transcript = "";
-
-if (transcriptMatch) {
-  const captionUrl = transcriptMatch[1].replace(/\\u0026/g, "&");
-  try {
-    const captionRes = await fetch(captionUrl);
-    const captionXml = await captionRes.text();
-    // Extract text from XML
-    const textMatches = captionXml.match(/<text[^>]*>([^<]*)<\/text>/g) || [];
-    transcript = textMatches
-      .map(t => t.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#39;/g, "'").replace(/&quot;/g, '"'))
-      .join(" ")
-      .slice(0, 8000);
-  } catch(e) {
-    console.log("Transcript fetch failed:", e.message);
+const captionKey = '"captionTracks":[{"baseUrl":"';
+const captionStart = html.indexOf(captionKey);
+if (captionStart !== -1) {
+  const urlStart = captionStart + captionKey.length;
+  const urlEnd = html.indexOf('"', urlStart);
+  if (urlEnd !== -1) {
+    const captionUrl = html.slice(urlStart, urlEnd).replace(/\\u0026/g, "&");
+    try {
+      const captionRes = await fetch(captionUrl);
+      const captionXml = await captionRes.text();
+      const parts = captionXml.split("<text");
+      const texts = parts.slice(1).map(function(part) {
+        const textStart = part.indexOf(">") + 1;
+        const textEnd = part.indexOf("</text>");
+        if (textStart === 0 || textEnd === -1) return "";
+        return part.slice(textStart, textEnd)
+          .replace(/&amp;/g, "&")
+          .replace(/&lt;/g, "<")
+          .replace(/&gt;/g, ">")
+          .replace(/&#39;/g, "'")
+          .replace(/&quot;/g, '"');
+      });
+      transcript = texts.join(" ").slice(0, 8000);
+    } catch(e) {
+      console.log("Caption fetch failed:", e.message);
+    }
   }
 }
 
-// Try to get thumbnail
 const thumbnail = "https://img.youtube.com/vi/" + videoId + "/maxresdefault.jpg";
-
 res.json({ title, description, transcript, thumbnail, videoId });
 ```
 
@@ -78,7 +103,6 @@ res.status(500).json({ error: err.message });
 }
 });
 
-// Anthropic AI proxy
 app.post(”/api/ai”, async function(req, res) {
 const apiKey = process.env.ANTHROPIC_API_KEY;
 if (!apiKey) {
