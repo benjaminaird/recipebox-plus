@@ -11,6 +11,7 @@
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7.23.10/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: 'DM Sans', sans-serif; background: #FAF7F2; }
@@ -522,6 +523,7 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
       const [ytUrl, setYtUrl] = useState("");
       const [text, setText] = useState("");
       const [images, setImages] = useState([]);
+      const [pdfTexts, setPdfTexts] = useState([]);
       const [loading, setLoading] = useState(false);
       const [loadingMsg, setLoadingMsg] = useState("");
       const [error, setError] = useState("");
@@ -573,6 +575,16 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
             const raw = await callAI([{ role:"user", content:"Extract the recipe from this text:\n\n" + text }], EXTRACT_PROMPT, 2000);
             parsed = parseAIJson(raw);
 
+          } else if (mode === "media" && pdfTexts.length > 0) {
+            setLoadingMsg("Reading recipe from PDF...");
+            const combined = pdfTexts.join("
+
+");
+            if (!combined.trim()) throw new Error("Could not extract text from PDF. Try taking a photo of the recipe instead.");
+            const raw = await callAI([{ role:"user", content: "Extract the recipe from this PDF text:
+
+" + combined }], EXTRACT_PROMPT, 2000);
+            parsed = parseAIJson(raw);
           } else if (mode === "media" && images.length > 0) {
             setLoadingMsg("Reading recipe from image...");
             const content = images.map((img, i) => ({
@@ -610,8 +622,40 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
 
       async function handleFiles(e) {
         const files = Array.from(e.target.files).slice(0, 4);
-        const converted = await Promise.all(files.map(fileToBase64));
-        setImages(converted);
+        const pdfs = files.filter(function(f) { return f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"); });
+        const imgs = files.filter(function(f) { return f.type !== "application/pdf" && !f.name.toLowerCase().endsWith(".pdf"); });
+        if (pdfs.length > 0) {
+          setPdfTexts(await Promise.all(pdfs.map(extractPdfText)));
+          setImages([]);
+        } else {
+          const converted = await Promise.all(imgs.map(fileToBase64));
+          setImages(converted);
+          setPdfTexts([]);
+        }
+      }
+
+      async function extractPdfText(file) {
+        return new Promise(function(resolve) {
+          const reader = new FileReader();
+          reader.onload = async function(e) {
+            try {
+              const pdfjsLib = window["pdfjs-dist/build/pdf"];
+              pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+              const pdf = await pdfjsLib.getDocument({ data: e.target.result }).promise;
+              let text = "";
+              for (let i = 1; i <= Math.min(pdf.numPages, 10); i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                text += content.items.map(function(item) { return item.str; }).join(" ") + "
+";
+              }
+              resolve(text.trim());
+            } catch(err) {
+              resolve("");
+            }
+          };
+          reader.readAsArrayBuffer(file);
+        });
       }
 
       const tabs = [
@@ -625,7 +669,7 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
         (mode==="url" && url) ||
         (mode==="youtube" && ytUrl) ||
         (mode==="text" && text.trim()) ||
-        (mode==="media" && images.length > 0)
+        (mode==="media" && (images.length > 0 || pdfTexts.length > 0))
       );
 
       return (
@@ -675,10 +719,10 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
               <div>
                 <input ref={fileRef} type="file" accept="image/*,.pdf,image/heic,image/heif" multiple onChange={handleFiles} style={{display:"none"}} />
                 <div onClick={() => fileRef.current.click()}
-                  style={{border:"2px dashed "+(images.length>0?C.green:C.border),borderRadius:12,padding:36,textAlign:"center",cursor:"pointer",color:images.length>0?C.green:C.light,marginBottom:10,background:images.length>0?C.greenPale:"transparent"}}>
-                  <div style={{fontSize:"2.2em",marginBottom:6}}>{images.length>0?"✓":"📷"}</div>
+                  style={{border:"2px dashed "+((images.length>0||pdfTexts.length>0)?C.green:C.border),borderRadius:12,padding:36,textAlign:"center",cursor:"pointer",color:(images.length>0||pdfTexts.length>0)?C.green:C.light,marginBottom:10,background:(images.length>0||pdfTexts.length>0)?C.greenPale:"transparent"}}>
+                  <div style={{fontSize:"2.2em",marginBottom:6}}>{(images.length>0||pdfTexts.length>0)?"✓":"📷"}</div>
                   <div style={{fontWeight:600,fontSize:"0.88em"}}>
-                    {images.length>0 ? images.length+" file"+(images.length>1?"s":"")+" ready - tap to change" : "Upload photo, screenshot, or PDF"}
+                    {images.length>0 ? images.length+" image"+(images.length>1?"s":"")+" ready - tap to change" : pdfTexts.length>0 ? pdfTexts.length+" PDF"+(pdfTexts.length>1?"s":"")+" ready - tap to change" : "Upload photo, screenshot, or PDF"}
                   </div>
                   <div style={{fontSize:"0.75em",marginTop:4,color:C.light}}>Up to 4 images of the same recipe · HEIC, JPG, PNG, PDF</div>
                 </div>
