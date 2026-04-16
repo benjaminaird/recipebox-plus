@@ -1,133 +1,89 @@
 const express = require(“express”);
 const path = require(“path”);
-
 const app = express();
 app.use(express.json({ limit: “20mb” }));
 app.use(express.static(path.join(__dirname, “Public”)));
-
 app.get(”/api/health”, function(req, res) {
 res.json({ status: “ok” });
 });
-
 app.get(”/api/transcript”, async function(req, res) {
 const videoUrl = req.query.url;
-if (!videoUrl) return res.status(400).json({ error: “No URL provided” });
-
-try {
-// Extract video ID safely without complex regex
-let videoId = “”;
-if (videoUrl.includes(“v=”)) {
-videoId = videoUrl.split(“v=”)[1].split(”&”)[0].slice(0, 11);
-} else if (videoUrl.includes(“youtu.be/”)) {
-videoId = videoUrl.split(“youtu.be/”)[1].split(”?”)[0].slice(0, 11);
-} else if (videoUrl.includes(“embed/”)) {
-videoId = videoUrl.split(“embed/”)[1].split(”?”)[0].slice(0, 11);
-}
-
-if (!videoId || videoId.length < 5) {
-  return res.status(400).json({ error: "Invalid YouTube URL" });
-}
-
-const pageRes = await fetch("https://www.youtube.com/watch?v=" + videoId, {
-  headers: {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept-Language": "en-US,en;q=0.9",
-  }
-});
-const html = await pageRes.text();
-
-// Extract title
-let title = "YouTube Recipe";
-const titleStart = html.indexOf("<title>");
-const titleEnd = html.indexOf("</title>");
-if (titleStart !== -1 && titleEnd !== -1) {
-  title = html.slice(titleStart + 7, titleEnd).replace(" - YouTube", "").trim();
-}
-
-// Extract description
-let description = "";
-const descKey = '"shortDescription":"';
-const descStart = html.indexOf(descKey);
-if (descStart !== -1) {
-  let raw = html.slice(descStart + descKey.length, descStart + descKey.length + 4000);
-  let end = 0;
-  for (let i = 0; i < raw.length; i++) {
-    if (raw[i] === '"' && raw[i-1] !== '\\') { end = i; break; }
-  }
-  description = raw.slice(0, end)
-    .replace(/\\n/g, "\n")
-    .replace(/\\"/g, '"')
-    .replace(/\\\\/g, "\\")
-    .slice(0, 3000);
-}
-
-// Extract transcript
-let transcript = "";
-const captionKey = '"captionTracks":[{"baseUrl":"';
-const captionStart = html.indexOf(captionKey);
-if (captionStart !== -1) {
-  const urlStart = captionStart + captionKey.length;
-  const urlEnd = html.indexOf('"', urlStart);
-  if (urlEnd !== -1) {
-    const captionUrl = html.slice(urlStart, urlEnd).replace(/\\u0026/g, "&");
-    try {
-      const captionRes = await fetch(captionUrl);
-      const captionXml = await captionRes.text();
-      const parts = captionXml.split("<text");
-      const texts = parts.slice(1).map(function(part) {
-        const textStart = part.indexOf(">") + 1;
-        const textEnd = part.indexOf("</text>");
-        if (textStart === 0 || textEnd === -1) return "";
-        return part.slice(textStart, textEnd)
-          .replace(/&amp;/g, "&")
-          .replace(/&lt;/g, "<")
-          .replace(/&gt;/g, ">")
-          .replace(/&#39;/g, "'")
-          .replace(/&quot;/g, '"');
-      });
-      transcript = texts.join(" ").slice(0, 8000);
-    } catch(e) {
-      console.log("Caption fetch failed:", e.message);
-    }
-  }
-}
-
-const thumbnail = "https://img.youtube.com/vi/" + videoId + "/maxresdefault.jpg";
-res.json({ title, description, transcript, thumbnail, videoId });
-
-} catch(err) {
-console.error(“Transcript error:”, err);
-res.status(500).json({ error: err.message });
-}
-});
-
-app.post(”/api/ai”, async function(req, res) {
-const apiKey = process.env.ANTHROPIC_API_KEY;
-if (!apiKey) {
-res.status(500).json({ error: “ANTHROPIC_API_KEY not set” });
+if (!videoUrl) {
+res.status(400).json({ error: “no url” });
 return;
 }
 try {
-const response = await fetch(“https://api.anthropic.com/v1/messages”, {
-method: “POST”,
-headers: {
-“Content-Type”: “application/json”,
-“x-api-key”: apiKey,
-“anthropic-version”: “2023-06-01”
-},
-body: JSON.stringify(req.body)
+let videoId = “”;
+const parts = videoUrl.split(“v=”);
+if (parts.length > 1) {
+videoId = parts[1].split(”&”)[0].slice(0, 11);
+} else if (videoUrl.indexOf(“youtu.be/”) > -1) {
+videoId = videoUrl.split(“youtu.be/”)[1].split(”?”)[0].slice(0, 11);
+}
+if (videoId.length < 5) {
+res.status(400).json({ error: “bad url” });
+return;
+}
+const yt = await fetch(“https://www.youtube.com/watch?v=” + videoId, {
+headers: { “User-Agent”: “Mozilla/5.0”, “Accept-Language”: “en-US” }
 });
-const data = await response.json();
-res.status(response.status).json(data);
+const html = await yt.text();
+let title = “YouTube Recipe”;
+const t1 = html.indexOf(”<title>”);
+const t2 = html.indexOf(”</title>”);
+if (t1 > -1 && t2 > -1) {
+title = html.slice(t1 + 7, t2).replace(” - YouTube”, “”).trim();
+}
+let description = “”;
+const dk = ‘“shortDescription”:”’;
+const ds = html.indexOf(dk);
+if (ds > -1) {
+const raw = html.slice(ds + dk.length, ds + dk.length + 3000);
+let end = 0;
+for (let i = 0; i < raw.length; i++) {
+if (raw[i] === ‘”’ && raw[i - 1] !== “\”) { end = i; break; }
+}
+description = raw.slice(0, end).replace(/\n/g, “ “).slice(0, 2000);
+}
+let transcript = “”;
+const ck = ‘“captionTracks”:[{“baseUrl”:”’;
+const cs = html.indexOf(ck);
+if (cs > -1) {
+const cu = html.slice(cs + ck.length, cs + ck.length + 500).split(’”’)[0].replace(/\u0026/g, “&”);
+try {
+const cr = await fetch(cu);
+const cx = await cr.text();
+transcript = cx.split(”<text”).slice(1).map(function(p) {
+const s = p.indexOf(”>”) + 1;
+const e = p.indexOf(”</text>”);
+return s > 0 && e > -1 ? p.slice(s, e).replace(/&/g, “&”).replace(/'/g, “’”) : “”;
+}).join(” “).slice(0, 6000);
+} catch(e) {}
+}
+const thumbnail = “https://img.youtube.com/vi/” + videoId + “/maxresdefault.jpg”;
+res.json({ title: title, description: description, transcript: transcript, thumbnail: thumbnail });
 } catch(err) {
 res.status(500).json({ error: err.message });
 }
 });
-
+app.post(”/api/ai”, async function(req, res) {
+const key = process.env.ANTHROPIC_API_KEY;
+if (!key) { res.status(500).json({ error: “no key” }); return; }
+try {
+const r = await fetch(“https://api.anthropic.com/v1/messages”, {
+method: “POST”,
+headers: { “Content-Type”: “application/json”, “x-api-key”: key, “anthropic-version”: “2023-06-01” },
+body: JSON.stringify(req.body)
+});
+const d = await r.json();
+res.status(r.status).json(d);
+} catch(err) {
+res.status(500).json({ error: err.message });
+}
+});
 app.get(”*”, function(req, res) {
 res.sendFile(path.join(__dirname, “Public”, “Index.html”));
 });
-
 app.listen(process.env.PORT || 3000, function() {
-console.log(“RecipeBox+ running”);
+console.log(“running”);
 });
