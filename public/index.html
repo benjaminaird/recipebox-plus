@@ -11,6 +11,7 @@
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7.23.10/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: 'DM Sans', sans-serif; background: #FAF7F2; }
@@ -522,10 +523,7 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
       const [ytUrl, setYtUrl] = useState("");
       const [text, setText] = useState("");
       const [images, setImages] = useState([]);
-      const [ccRestaurant, setCcRestaurant] = useState("");
-      const [ccDish, setCcDish] = useState("");
-      const [ccNotes, setCcNotes] = useState("");
-      const [ccImage, setCcImage] = useState(null);
+      const [pdfTexts, setPdfTexts] = useState([]);
       const [loading, setLoading] = useState(false);
       const [loadingMsg, setLoadingMsg] = useState("");
       const [error, setError] = useState("");
@@ -577,39 +575,26 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
             const raw = await callAI([{ role:"user", content:"Extract the recipe from this text:\n\n" + text }], EXTRACT_PROMPT, 2000);
             parsed = parseAIJson(raw);
 
+          } else if (mode === "media" && pdfTexts.length > 0) {
+            setLoadingMsg("Reading recipe from PDF...");
+            const pdfContent = pdfTexts.join("
+
+");
+            if (!pdfContent.trim()) throw new Error("Could not read PDF text. Try a photo instead.");
+            const rawPdf = await callAI([{ role:"user", content: "Extract the recipe from this PDF:
+
+" + pdfContent }], EXTRACT_PROMPT, 2000);
+            parsed = parseAIJson(rawPdf);
           } else if (mode === "media" && images.length > 0) {
             setLoadingMsg("Reading recipe from image...");
-            const content = images.map((img, i) => ({
+            const imgArr = images.map((img, i) => ({
               type: "image",
               source: { type: "base64", media_type: img.type, data: img.data }
             }));
-            content.push({ type: "text", text: "Extract the recipe from these " + images.length + " image(s) of the same recipe. Combine all pages into one complete recipe." });
-            const raw = await callAI([{ role:"user", content }], EXTRACT_PROMPT, 2000);
+            imgArr.push({ type: "text", text: "Extract the recipe from these " + images.length + " image(s) of the same recipe." });
+            const raw = await callAI([{ role:"user", content: imgArr }], EXTRACT_PROMPT, 2000);
             parsed = parseAIJson(raw);
           }
-
-          } else if (mode === "copycat") {
-            setLoadingMsg("Building copycat recipe...");
-            let p = "Create a detailed copycat recipe";
-            if (ccRestaurant.trim()) p += " for " + ccRestaurant.trim();
-            if (ccDish.trim()) p += ", dish: " + ccDish.trim();
-            if (ccNotes.trim()) p += ". Notes: " + ccNotes.trim();
-            p += ". Include exact ingredients and detailed steps.";
-            let ccMsgs;
-            if (ccImage) {
-              ccMsgs = [{ role:"user", content:[{type:"image",source:{type:"base64",media_type:ccImage.type,data:ccImage.data}},{type:"text",text:p}] }];
-            } else {
-              ccMsgs = [{ role:"user", content: p }];
-            }
-            const ccRaw = await callAI(ccMsgs, EXTRACT_PROMPT, 2000);
-            parsed = parseAIJson(ccRaw);
-            if (parsed) {
-              parsed.tags = parsed.tags || [];
-              if (!parsed.tags.includes("copycat")) parsed.tags.push("copycat");
-              if (ccRestaurant.trim()) parsed.tags.push(ccRestaurant.trim().toLowerCase());
-            }
-
-          } // end copycat
 
           if (!parsed || !parsed.title || !parsed.sections) throw new Error("Could not extract a complete recipe. Try Paste Text.");
           parsed.id = uid();
@@ -635,26 +620,52 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
         onDone(recipe);
       }
 
+      async function extractPdfText(file) {
+        return new Promise(function(resolve) {
+          const reader = new FileReader();
+          reader.onload = async function(e) {
+            try {
+              const lib = window["pdfjs-dist/build/pdf"];
+              lib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+              const pdf = await lib.getDocument({ data: e.target.result }).promise;
+              let text = "";
+              for (let i = 1; i <= Math.min(pdf.numPages, 10); i++) {
+                const page = await pdf.getPage(i);
+                const c = await page.getTextContent();
+                text += c.items.map(function(x) { return x.str; }).join(" ") + "
+";
+              }
+              resolve(text.trim());
+            } catch(err) { resolve(""); }
+          };
+          reader.readAsArrayBuffer(file);
+        });
+      }
       async function handleFiles(e) {
         const files = Array.from(e.target.files).slice(0, 4);
-        const converted = await Promise.all(files.map(fileToBase64));
-        setImages(converted);
+        const pdfs = files.filter(function(f) { return f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"); });
+        const imgs = files.filter(function(f) { return f.type !== "application/pdf" && !f.name.toLowerCase().endsWith(".pdf"); });
+        if (pdfs.length > 0) {
+          setPdfTexts(await Promise.all(pdfs.map(extractPdfText)));
+          setImages([]);
+        } else {
+          setImages(await Promise.all(imgs.map(fileToBase64)));
+          setPdfTexts([]);
+        }
       }
 
       const tabs = [
         { id:"url", label:"🔗 URL" },
         { id:"youtube", label:"▶️ YouTube" },
         { id:"text", label:"📄 Paste Text" },
-        { id:"media", label:"📷 Photo/PDF" },
-        { id:"copycat", label:"Copycat" },
+        { id:"media", label:"📷 Photo / PDF" },
       ];
 
       const canSubmit = !loading && (
         (mode==="url" && url) ||
         (mode==="youtube" && ytUrl) ||
         (mode==="text" && text.trim()) ||
-        (mode==="media" && images.length > 0) ||
-        (mode==="copycat" && (ccDish.trim() || ccRestaurant.trim()))
+        (mode==="media" && (images.length > 0 || pdfTexts.length > 0))
       );
 
       return (
@@ -723,19 +734,6 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
               style={{width:"100%",background:"linear-gradient(135deg, #1C1410, #5C3D2E)",color:C.white,border:"none",borderRadius:12,padding:15,fontWeight:700,cursor:canSubmit?"pointer":"not-allowed",fontSize:"0.95em",fontFamily:SERIF,letterSpacing:0.5,opacity:canSubmit?1:0.6,display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
               {loading ? <><Spinner /> {loadingMsg || "Extracting..."}</> : "✦ Extract & Import Recipe"}
             </button>
-
-            {mode === "copycat" && (
-              <div>
-                <input value={ccRestaurant} onChange={(e)=>setCcRestaurant(e.target.value)} placeholder="Restaurant name (e.g. Texas Roadhouse)" style={{width:"100%",padding:"11px 14px",border:"1.5px solid "+C.border,borderRadius:8,fontSize:"0.9em",outline:"none",marginBottom:10,boxSizing:"border-box",fontFamily:SANS}} />
-                <input value={ccDish} onChange={(e)=>setCcDish(e.target.value)} placeholder="Dish name (e.g. Rolls with cinnamon butter)" style={{width:"100%",padding:"11px 14px",border:"1.5px solid "+C.border,borderRadius:8,fontSize:"0.9em",outline:"none",marginBottom:10,boxSizing:"border-box",fontFamily:SANS}} />
-                <textarea value={ccNotes} onChange={(e)=>setCcNotes(e.target.value)} placeholder="Notes (optional) - extra garlicky, sauce was sweet..." rows={3} style={{width:"100%",padding:"11px 14px",border:"1.5px solid "+C.border,borderRadius:8,fontSize:"0.88em",resize:"vertical",outline:"none",marginBottom:10,boxSizing:"border-box",fontFamily:SANS}} />
-                <input type="file" accept="image/*" onChange={async(e)=>{const f=e.target.files[0];if(!f)return;const b=await fileToBase64(f);setCcImage(b);}} style={{display:"none"}} id="cc-img" />
-                <label htmlFor="cc-img" style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",border:"1.5px dashed "+(ccImage?C.green:C.border),borderRadius:8,cursor:"pointer",color:ccImage?C.green:C.light,background:ccImage?C.greenPale:"transparent",marginBottom:10}}>
-                  <span>{ccImage?"Photo ready - tap to change":"Add a photo (optional)"}</span>
-                </label>
-                <div style={{background:C.goldPale,border:"1px solid "+C.goldLight,borderRadius:8,padding:"9px 12px",fontSize:"0.78em",color:C.brown}}>Works best with well-known chains. No photo needed - just type what you are craving!</div>
-              </div>
-            )}
 
             {error && (
               <div style={{marginTop:13,background:C.redPale,border:"1px solid "+C.red+"50",borderRadius:8,padding:"11px 15px",fontSize:"0.83em",color:C.red,lineHeight:1.6}}>{error}</div>
