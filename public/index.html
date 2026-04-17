@@ -579,9 +579,7 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
             setLoadingMsg("Reading recipe from PDF...");
             const pdfContent = pdfTexts.join(" ");
             if (!pdfContent.trim()) throw new Error("Could not read PDF text. Try a photo instead.");
-            const rawPdf = await callAI([{ role:"user", content: "Extract the recipe from this PDF:
-
-" + pdfContent }], EXTRACT_PROMPT, 2000);
+            const rawPdf = await callAI([{ role:"user", content: "Extract the recipe from this PDF: " + pdfContent }], EXTRACT_PROMPT, 2000);
             parsed = parseAIJson(rawPdf);
           } else if (mode === "media" && images.length > 0) {
             setLoadingMsg("Reading recipe from image...");
@@ -630,8 +628,7 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
               for (let i = 1; i <= Math.min(pdf.numPages, 10); i++) {
                 const page = await pdf.getPage(i);
                 const c = await page.getTextContent();
-                text += c.items.map(function(x) { return x.str; }).join(" ") + "
-";
+                text += c.items.map(function(x) { return x.str; }).join(" ") + " ";
               }
               resolve(text.trim());
             } catch(err) { resolve(""); }
