@@ -10,7 +10,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone@7.22.5/babel.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.23.10/babel.min.js"></script>
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: 'DM Sans', sans-serif; background: #FAF7F2; }
@@ -608,6 +608,8 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
               if (!parsed.tags.includes("copycat")) parsed.tags.push("copycat");
               if (ccRestaurant.trim()) parsed.tags.push(ccRestaurant.trim().toLowerCase());
             }
+
+          } // end copycat
 
           if (!parsed || !parsed.title || !parsed.sections) throw new Error("Could not extract a complete recipe. Try Paste Text.");
           parsed.id = uid();
