@@ -577,9 +577,7 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
 
           } else if (mode === "media" && pdfTexts.length > 0) {
             setLoadingMsg("Reading recipe from PDF...");
-            const pdfContent = pdfTexts.join("
-
-");
+            const pdfContent = pdfTexts.join(" ");
             if (!pdfContent.trim()) throw new Error("Could not read PDF text. Try a photo instead.");
             const rawPdf = await callAI([{ role:"user", content: "Extract the recipe from this PDF:
 
