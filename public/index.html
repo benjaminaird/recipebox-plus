@@ -577,11 +577,23 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
           let parsed;
 
           if (mode === "url") {
-            setLoadingMsg("Fetching recipe...");
-            const prompt = "Import the recipe at this URL: " + url + "\n\nReconstruct the complete accurate recipe from your training knowledge. Include heroImage URL if you know the site's image. If you truly don't recognise it, return {\"error\":\"unknown_recipe\"}.";
-            const raw = await callAI([{ role:"user", content:prompt }], EXTRACT_PROMPT, 2000);
+            setLoadingMsg("Fetching recipe page...");
+            const pageRes = await fetch("/api/fetch-url?url=" + encodeURIComponent(url));
+            const pageData = await pageRes.json();
+            if (pageData.error) throw new Error("Could not fetch recipe page: " + pageData.error);
+
+            setLoadingMsg("Extracting recipe...");
+            const prompt =
+              "Extract the recipe ONLY from the source material below. Do not use memory. Do not invent missing quantities, ingredients, steps, times, or servings. If something is missing, leave it blank. Return only valid JSON.\n\n" +
+              "Source URL: " + (pageData.finalUrl || pageData.url || url) + "\n" +
+              "Page title: " + (pageData.title || "") + "\n" +
+              "Detected hero image: " + (pageData.image || "") + "\n\n" +
+              "JSON-LD / structured data:\n" + JSON.stringify(pageData.jsonLd || []) + "\n\n" +
+              "Visible page text:\n" + (pageData.text || "");
+            const raw = await callAI([{ role:"user", content:prompt }], EXTRACT_PROMPT, 2500);
             parsed = parseAIJson(raw);
             if (parsed.error === "unknown_recipe") throw new Error("Recipe not found. Please use Paste Text instead.");
+            if (!parsed.heroImage && pageData.image) parsed.heroImage = pageData.image;
 
           } else if (mode === "youtube") {
             setLoadingMsg("Fetching YouTube transcript...");
