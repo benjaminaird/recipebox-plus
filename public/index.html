@@ -57,21 +57,110 @@
     const uid = () => Math.random().toString(36).slice(2, 9);
     const cardColor = (t) => CARD_COLORS[(t?.charCodeAt(0) || 0) % CARD_COLORS.length];
 
+    function normalizeFractions(str) {
+      return String(str || "")
+        .replace(/¼/g, "1/4")
+        .replace(/½/g, "1/2")
+        .replace(/¾/g, "3/4")
+        .replace(/⅓/g, "1/3")
+        .replace(/⅔/g, "2/3")
+        .replace(/⅛/g, "1/8")
+        .replace(/⅜/g, "3/8")
+        .replace(/⅝/g, "5/8")
+        .replace(/⅞/g, "7/8");
+    }
+
+    function amountToNumber(amount) {
+      const raw = normalizeFractions(amount).trim();
+      if (!raw) return null;
+
+      // Only scale clean numeric quantities. Do NOT scale package sizes like "1 (14-ounce)".
+      if (/[()]/.test(raw)) return null;
+
+      const mixed = raw.match(/^(\d+)\s+(\d+)\/(\d+)$/);
+      if (mixed) return parseInt(mixed[1]) + parseInt(mixed[2]) / parseInt(mixed[3]);
+
+      const frac = raw.match(/^(\d+)\/(\d+)$/);
+      if (frac) return parseInt(frac[1]) / parseInt(frac[2]);
+
+      const dec = raw.match(/^\d+(?:\.\d+)?$/);
+      if (dec) return parseFloat(raw);
+
+      return null;
+    }
+
+    function numberToFraction(n) {
+      if (!isFinite(n)) return "";
+      const whole = Math.floor(n);
+      const frac = n - whole;
+
+      const options = [
+        [1/8, "1/8"],
+        [1/4, "1/4"],
+        [1/3, "1/3"],
+        [3/8, "3/8"],
+        [1/2, "1/2"],
+        [5/8, "5/8"],
+        [2/3, "2/3"],
+        [3/4, "3/4"],
+        [7/8, "7/8"]
+      ];
+
+      let best = null;
+      for (const [val, label] of options) {
+        if (Math.abs(frac - val) < 0.035) best = label;
+      }
+
+      if (best) return whole > 0 ? whole + " " + best : best;
+
+      const rounded = Math.round(n * 100) / 100;
+      return rounded % 1 === 0 ? String(rounded) : String(rounded);
+    }
+
     function scaleAmount(amount, factor) {
-      const n = parseFloat(amount);
-      if (isNaN(n)) return amount;
-      const r = n * factor;
-      return r % 1 === 0 ? String(r) : parseFloat(r.toFixed(2)).toString();
+      const original = normalizeFractions(amount).trim();
+      const n = amountToNumber(original);
+      if (n === null) return original;
+      return numberToFraction(n * factor);
+    }
+
+    function displayAmount(amount) {
+      let raw = String(amount || "").trim();
+
+      // Repair common smashed mixed fractions from earlier imports:
+      // 11/4 => 1 1/4, 11/2 => 1 1/2, 21/2 => 2 1/2
+      const smashed = raw.match(/^(\d+)([1-7])\/(2|3|4|8)$/);
+      if (smashed && smashed[1].length >= 1) {
+        raw = smashed[1] + " " + smashed[2] + "/" + smashed[3];
+      }
+
+      const glyphs = {
+        "1/8":"⅛", "1/4":"¼", "1/3":"⅓", "3/8":"⅜",
+        "1/2":"½", "5/8":"⅝", "2/3":"⅔", "3/4":"¾", "7/8":"⅞"
+      };
+
+      const mixed = raw.match(/^(\d+)\s+(\d+\/\d+)$/);
+      if (mixed && glyphs[mixed[2]]) return mixed[1] + glyphs[mixed[2]];
+
+      if (glyphs[raw]) return glyphs[raw];
+
+      return raw;
     }
 
     const METRIC_MAP = {
-      cup:{mult:240,unit:"ml"}, tbsp:{mult:15,unit:"ml"}, tsp:{mult:5,unit:"ml"},
-      oz:{mult:28,unit:"g"}, lb:{mult:454,unit:"g"},
+      cup:{mult:240,unit:"ml"}, cups:{mult:240,unit:"ml"},
+      tbsp:{mult:15,unit:"ml"}, tablespoon:{mult:15,unit:"ml"}, tablespoons:{mult:15,unit:"ml"},
+      tsp:{mult:5,unit:"ml"}, teaspoon:{mult:5,unit:"ml"}, teaspoons:{mult:5,unit:"ml"},
+      oz:{mult:28,unit:"g"}, ounce:{mult:28,unit:"g"}, ounces:{mult:28,unit:"g"},
+      lb:{mult:454,unit:"g"}, pound:{mult:454,unit:"g"}, pounds:{mult:454,unit:"g"},
     };
+
     function convertMetric(amount, unit) {
       const c = METRIC_MAP[(unit||"").toLowerCase()];
       if (!c) return { amount, unit: unit||"" };
-      return { amount: Math.round(parseFloat(amount) * c.mult), unit: c.unit };
+      const n = amountToNumber(amount);
+      if (n === null) return { amount, unit: unit||"" };
+      return { amount: Math.round(n * c.mult), unit: c.unit };
     }
 
     function parseAIJson(raw) {
@@ -173,9 +262,18 @@ function saveMealPlan(m) {
 
     const EXTRACT_PROMPT = `You are a recipe extraction assistant. Return ONLY a raw JSON object. No markdown, no backticks, no explanation. Start with { and end with }.
 
-Structure: {"title":"string","cookTime":"string","servings":4,"description":"string","heroImage":"URL or empty string","macros":{"calories":0,"protein":0,"carbs":0,"fat":0,"fiber":0},"sections":[{"name":"Main","ingredients":[{"id":"i1","amount":"1","unit":"cup","name":"flour"}],"steps":[{"id":"s1","text":"Mix {i1} flour with water.","ingredientRefs":["i1"]}]}],"tags":["tag1"]}
+Structure: {"title":"string","cookTime":"string","servings":4,"description":"string","heroImage":"URL or empty string","macros":{"calories":0,"protein":0,"carbs":0,"fat":0,"fiber":0},"sections":[{"name":"Main","ingredients":[{"id":"i1","amount":"1","unit":"cup","name":"flour","weightAmount":"","weightUnit":""}],"steps":[{"id":"s1","text":"Mix {i1} flour with water.","ingredientRefs":["i1"]}]}],"tags":["tag1"]}
 
 For heroImage: if you can identify a direct image URL from the source, include it. Otherwise leave as empty string.
+
+For ingredient amounts:
+- Preserve the source quantity exactly as a string.
+- Use fractions and mixed numbers, not decimals. Use "1/4", "1/2", "3/4", "1 1/4", "1 1/2", etc.
+- Never collapse package sizes. "1 (14-ounce) can full-fat coconut milk" must become amount "1", unit "can", name "(14-ounce) full-fat coconut milk".
+- If the source includes a parenthetical weight like "1 cup (200g) sugar", store amount "1", unit "cup", name "sugar", weightAmount "200", weightUnit "g".
+- If no source weight is listed, leave weightAmount and weightUnit empty.
+- Do not invent weights.
+
 Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return ONLY the JSON.`;
 
     const ADJUST_PROMPT = `You are a culinary assistant. Modify the recipe JSON as requested. Return ONLY raw JSON starting with {. No markdown.`;
@@ -1157,7 +1255,7 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
                 <div style={{display:"grid",gridTemplateColumns:"1fr",gap:32}}>
                   <div>
                     <div style={{fontSize:"0.66em",letterSpacing:3,textTransform:"uppercase",fontWeight:700,color:C.brownLight,marginBottom:13}}>Ingredients</div>
-                    {sec.ingredients.map((ing,i)=>{ let a=scaleAmount(ing.amount,scale),u=ing.unit||""; if(metric){const c=convertMetric(a,u);a=c.amount;u=c.unit;} return <div key={i} style={{padding:"8px 0",borderBottom:"1px solid "+C.cream3,display:"flex",gap:9,alignItems:"baseline"}}><span style={{fontWeight:700,minWidth:66,color:C.dark,fontSize:"0.88em"}}>{a}{u?" "+u:""}</span><span style={{color:C.mid,fontSize:"0.88em"}}>{ing.name}</span></div>; })}
+                    {sec.ingredients.map((ing,i)=>{ let a=scaleAmount(ing.amount,scale),u=ing.unit||""; if(metric){const c=convertMetric(a,u);a=c.amount;u=c.unit;} return <div key={i} style={{padding:"8px 0",borderBottom:"1px solid "+C.cream3,display:"flex",gap:9,alignItems:"baseline"}}><span style={{fontWeight:700,minWidth:110,color:C.dark,fontSize:"0.98em",whiteSpace:"nowrap",letterSpacing:"0.01em"}}>{displayAmount(a)}{u?" "+u:""}</span><span style={{color:C.mid,fontSize:"0.88em"}}>{ing.name}</span></div>; })}
                   </div>
                   <div>
                     <div style={{fontSize:"0.66em",letterSpacing:3,textTransform:"uppercase",fontWeight:700,color:C.brownLight,marginBottom:13}}>Directions</div>
