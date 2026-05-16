@@ -501,7 +501,17 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
                 </div>
               </div>
             ) : filtered.length === 0 ? (
-              <div style={{textAlign:"center",padding:"60px 0",color:C.light}}>No recipes match your search</div>
+              <div style={{padding:"36px 0 60px"}}>
+                {!isDashboard && (
+                  <button onClick={() => { setCat("All"); setFilter("all"); setSearch(""); }}
+                    style={{background:C.white,border:"1px solid "+C.border,borderRadius:999,padding:"7px 13px",color:C.brown,fontWeight:700,fontSize:"0.78em",cursor:"pointer",fontFamily:SANS,marginBottom:24,boxShadow:"0 2px 8px rgba(92,61,46,0.05)"}}>
+                    ← Back to Library Dashboard
+                  </button>
+                )}
+                <div style={{textAlign:"center",padding:"36px 0",color:C.light}}>
+                  No recipes match your search
+                </div>
+              </div>
             ) : isDashboard ? (
               <div>
                 {recentRecipes.length > 0 && (
@@ -548,6 +558,11 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
               </div>
             ) : (
               <div style={{marginTop:24}}>
+                <button onClick={() => { setCat("All"); setFilter("all"); setSearch(""); }}
+                  style={{background:C.white,border:"1px solid "+C.border,borderRadius:999,padding:"7px 13px",color:C.brown,fontWeight:700,fontSize:"0.78em",cursor:"pointer",fontFamily:SANS,marginBottom:14,boxShadow:"0 2px 8px rgba(92,61,46,0.05)"}}>
+                  ← Back to Library Dashboard
+                </button>
+
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:13}}>
                   <h3 style={{margin:0,fontFamily:SERIF,fontSize:"1.25em",color:C.dark,fontWeight:400}}>
                     {cat !== "All" ? cat : filter === "favorites" ? "Favorites" : filter === "recent" ? "Recent Recipes" : "Search Results"}
