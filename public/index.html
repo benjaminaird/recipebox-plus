@@ -661,15 +661,25 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
         const ingredientsIndex = lines.findIndex(x => /^ingredients:?$/i.test(x));
         const instructionsIndex = lines.findIndex(x => /^(instructions|directions|method):?$/i.test(x));
 
-        let ingredients = [];
-        let instructions = [];
+        let ingredientLines = [];
+        let instructionLines = [];
 
         if (ingredientsIndex >= 0 && instructionsIndex > ingredientsIndex) {
-          ingredients = lines.slice(ingredientsIndex + 1, instructionsIndex);
-          instructions = lines.slice(instructionsIndex + 1);
+          ingredientLines = lines.slice(ingredientsIndex + 1, instructionsIndex);
+          instructionLines = lines.slice(instructionsIndex + 1);
         } else {
-          ingredients = lines.slice(1);
-          instructions = [];
+          ingredientLines = lines.slice(1);
+          instructionLines = ["Add instructions."];
+        }
+
+        function parseIngredient(line) {
+          const match = line.match(/^([\d\/\.\s]+)?\s*([a-zA-Z]+)?\s*(.*)$/);
+          if (!match) return { amount: "", unit: "", name: line };
+          return {
+            amount: (match[1] || "").trim(),
+            unit: (match[2] || "").trim(),
+            name: (match[3] || line).trim()
+          };
         }
 
         const parsed = {
@@ -683,13 +693,17 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
           servings: "",
           category: "",
           tags: [],
+          macros: {},
           notes: "",
           rating: 0,
           favorite: false,
           createdAt: new Date().toISOString(),
           sections: [
-            { title: "Ingredients", items: ingredients },
-            { title: "Instructions", items: instructions.length ? instructions : ["Add instructions."] }
+            {
+              name: "Main",
+              ingredients: ingredientLines.map(parseIngredient),
+              steps: instructionLines.map(x => ({ text: x.replace(/^\d+\.\s*/, "") }))
+            }
           ]
         };
 
@@ -854,8 +868,41 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
       const wtbImgRef = useRef();
       const heroImgRef = useRef();
 
-      const allSteps = recipe.sections.flatMap((s) => s.steps.map((st) => ({ ...st, secName:s.name, ingredients:s.ingredients })));
-      const allIngredients = recipe.sections.flatMap((s) => s.ingredients);
+      function normalizeViewSections(recipe) {
+        const sections = Array.isArray(recipe.sections) ? recipe.sections : [];
+
+        const oldIngredients = sections.find(sec => /^ingredients$/i.test(sec.title || sec.name || "") && Array.isArray(sec.items));
+        const oldInstructions = sections.find(sec => /^(instructions|directions|method)$/i.test(sec.title || sec.name || "") && Array.isArray(sec.items));
+
+        if (oldIngredients || oldInstructions) {
+          return [{
+            name: "Main",
+            ingredients: (oldIngredients?.items || []).map(item => {
+              if (typeof item === "object") return item;
+              return { amount: "", unit: "", name: String(item) };
+            }),
+            steps: (oldInstructions?.items || []).map(item => {
+              if (typeof item === "object" && item.text) return item;
+              return { text: String(item).replace(/^\d+\.\s*/, "") };
+            })
+          }];
+        }
+
+        return sections.map(sec => ({
+          name: sec.name || sec.title || "Main",
+          ingredients: Array.isArray(sec.ingredients)
+            ? sec.ingredients.map(ing => typeof ing === "object" ? ing : { amount: "", unit: "", name: String(ing) })
+            : [],
+          steps: Array.isArray(sec.steps)
+            ? sec.steps.map(step => typeof step === "object" && step.text ? step : { text: String(step) })
+            : []
+        }));
+      }
+
+      const displaySections = normalizeViewSections(recipe);
+
+      const allSteps = displaySections.flatMap((s) => (s.steps || []).map((st) => ({ ...st, secName:s.name, ingredients:s.ingredients || [] })));
+      const allIngredients = displaySections.flatMap((s) => s.ingredients || []);
 
       useEffect(() => {
         const iv = setInterval(() => {
@@ -1092,10 +1139,10 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
             )}
 
             {/* Recipe sections */}
-            {recipe.sections.map((sec,si)=>(
+            {displaySections.map((sec,si)=>(
               <div key={si} style={{marginBottom:44}}>
-                {recipe.sections.length>1 && <h2 style={{fontFamily:SERIF,fontSize:"1.2em",fontWeight:400,color:C.dark,borderBottom:"2px solid "+C.dark,paddingBottom:7,marginBottom:22}}>{sec.name}</h2>}
-                <div style={{display:"grid",gridTemplateColumns:"minmax(190px, 300px) 1fr",gap:44}}>
+                {displaySections.length>1 && <h2 style={{fontFamily:SERIF,fontSize:"1.2em",fontWeight:400,color:C.dark,borderBottom:"2px solid "+C.dark,paddingBottom:7,marginBottom:22}}>{sec.name}</h2>}
+                <div style={{display:"grid",gridTemplateColumns:"1fr",gap:32}}>
                   <div>
                     <div style={{fontSize:"0.66em",letterSpacing:3,textTransform:"uppercase",fontWeight:700,color:C.brownLight,marginBottom:13}}>Ingredients</div>
                     {sec.ingredients.map((ing,i)=>{ let a=scaleAmount(ing.amount,scale),u=ing.unit||""; if(metric){const c=convertMetric(a,u);a=c.amount;u=c.unit;} return <div key={i} style={{padding:"8px 0",borderBottom:"1px solid "+C.cream3,display:"flex",gap:9,alignItems:"baseline"}}><span style={{fontWeight:700,minWidth:66,color:C.dark,fontSize:"0.88em"}}>{a}{u?" "+u:""}</span><span style={{color:C.mid,fontSize:"0.88em"}}>{ing.name}</span></div>; })}
