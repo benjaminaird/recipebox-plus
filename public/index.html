@@ -326,7 +326,7 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
       return (
         <span>
           {parts.map((p, i) => p.type === "chip"
-            ? <span key={i} style={{background:C.goldPale,border:"1px solid "+C.goldLight,borderRadius:5,padding:"1px 8px",margin:"0 2px",fontSize:"0.87em",fontWeight:600,color:C.brown,whiteSpace:"nowrap",display:"inline-block"}}>{p.value}</span>
+            ? <span key={i} style={{background:C.goldPale,border:"1px solid "+C.goldLight,borderRadius:5,padding:"1px 6px",margin:"0 2px",fontSize:"0.87em",fontWeight:600,color:C.brown,whiteSpace:"normal",display:"inline",overflowWrap:"break-word",wordBreak:"normal",maxWidth:"100%"}}>{p.value}</span>
             : <span key={i}>{p.value}</span>)}
         </span>
       );
