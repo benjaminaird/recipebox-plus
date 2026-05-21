@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
+const { fetchTranscript } = require('youtube-transcript');
 
 const app = express();
 app.use(express.json({ limit: '50mb' }));
@@ -172,7 +173,18 @@ app.get('/api/transcript', async function(req, res) {
     const descMatch = html.match(/"shortDescription":"([\s\S]*?)"/);
     if (descMatch) description = descMatch[1].replace(/\\n/g, ' ').slice(0, 2000);
     let transcript = '';
-    const cap = html.match(/"captionTracks":\[\{"baseUrl":"([^"]+)/);
+
+    try {
+      const pieces = await fetchTranscript(videoId);
+      transcript = (pieces || [])
+        .map((piece) => piece.text || '')
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 12000);
+    } catch {}
+
+    const cap = transcript ? null : html.match(/"captionTracks":\[\{"baseUrl":"([^"]+)/);
     if (cap) {
       try {
         const cu = cap[1].replace(/\\u0026/g, '&');
