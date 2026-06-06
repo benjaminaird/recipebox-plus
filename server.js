@@ -162,17 +162,32 @@ app.get('/api/transcript', async function(req, res) {
   const videoUrl = req.query.url;
   if (!videoUrl) return res.status(400).json({ error: 'no url' });
   try {
+    const debug = req.query.debug === '1';
     let videoId = '';
     if (videoUrl.includes('v=')) videoId = videoUrl.split('v=')[1].split('&')[0].slice(0, 11);
     else if (videoUrl.includes('youtu.be/')) videoId = videoUrl.split('youtu.be/')[1].split('?')[0].slice(0, 11);
     if (videoId.length < 5) return res.status(400).json({ error: 'bad url' });
-    const yt = await fetch('https://www.youtube.com/watch?v=' + videoId, { headers: { 'User-Agent': 'Mozilla/5.0', 'Accept-Language': 'en-US' } });
+    const userAgent = 'Mozilla/5.0';
+    const yt = await fetch('https://www.youtube.com/watch?v=' + videoId, { headers: { 'User-Agent': userAgent, 'Accept-Language': 'en-US' } });
     const html = await yt.text();
     let title = matchAttr(html, /<title[^>]*>([\s\S]*?)<\/title>/i).replace(' - YouTube', '').trim() || 'YouTube Recipe';
     let description = '';
     const descMatch = html.match(/"shortDescription":"([\s\S]*?)"/);
     if (descMatch) description = descMatch[1].replace(/\\n/g, ' ').slice(0, 2000);
     let transcript = '';
+    const debugInfo = {
+      videoId,
+      youtubeStatus: yt.status,
+      htmlLength: html.length,
+      htmlIncludesCaptionTracks: html.includes('"captionTracks"'),
+      htmlIncludesShortDescription: html.includes('"shortDescription"'),
+      htmlTitleRaw: matchAttr(html, /<title[^>]*>([\s\S]*?)<\/title>/i),
+      transcriptErrorName: null,
+      transcriptErrorMessage: null,
+      captionErrorName: null,
+      captionErrorMessage: null,
+      userAgentUsed: userAgent,
+    };
 
     try {
       const pieces = await fetchTranscript(videoId);
@@ -182,7 +197,10 @@ app.get('/api/transcript', async function(req, res) {
         .replace(/\s+/g, ' ')
         .trim()
         .slice(0, 12000);
-    } catch {}
+    } catch (err) {
+      debugInfo.transcriptErrorName = err?.name || '';
+      debugInfo.transcriptErrorMessage = err?.message || String(err);
+    }
 
     const cap = transcript ? null : html.match(/"captionTracks":\[\{"baseUrl":"([^"]+)/);
     if (cap) {
@@ -191,9 +209,21 @@ app.get('/api/transcript', async function(req, res) {
         const cr = await fetch(cu);
         const cx = await cr.text();
         transcript = [...cx.matchAll(/<text[^>]*>([\s\S]*?)<\/text>/g)].map(m => m[1].replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&quot;/g, '"')).join(' ').slice(0, 6000);
-      } catch {}
+      } catch (err) {
+        debugInfo.captionErrorName = err?.name || '';
+        debugInfo.captionErrorMessage = err?.message || String(err);
+      }
     }
-    res.json({ title, description, transcript, thumbnail: 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg' });
+    const payload = { title, description, transcript, thumbnail: 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg' };
+    if (debug) {
+      payload.debug = {
+        ...debugInfo,
+        title,
+        descriptionLength: description.length,
+        transcriptLength: transcript.length,
+      };
+    }
+    res.json(payload);
   } catch(err) { res.status(500).json({ error: err.message }); }
 });
 
