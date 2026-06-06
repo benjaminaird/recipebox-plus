@@ -726,6 +726,7 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
       const [text, setText] = useState("");
       const [images, setImages] = useState([]);
       const [pdfTexts, setPdfTexts] = useState([]);
+      const [mediaFiles, setMediaFiles] = useState([]);
       const [loading, setLoading] = useState(false);
       const [loadingMsg, setLoadingMsg] = useState("");
       const [error, setError] = useState("");
@@ -940,6 +941,10 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
       }
       async function handleFiles(e) {
         const files = Array.from(e.target.files).slice(0, 4);
+        setMediaFiles(files.map(function(f) {
+          const isPdf = f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf");
+          return { name: f.name || (isPdf ? "Recipe PDF" : "Recipe image"), type: isPdf ? "pdf" : "image" };
+        }));
         const pdfs = files.filter(function(f) { return f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"); });
         const imgs = files.filter(function(f) { return f.type !== "application/pdf" && !f.name.toLowerCase().endsWith(".pdf"); });
         if (pdfs.length > 0) {
@@ -1012,13 +1017,23 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
               <div>
                 <input ref={fileRef} type="file" accept="image/*,.pdf,image/heic,image/heif" multiple onChange={handleFiles} style={{display:"none"}} />
                 <div onClick={() => fileRef.current.click()}
-                  style={{border:"2px dashed "+(images.length>0?C.green:C.border),borderRadius:12,padding:36,textAlign:"center",cursor:"pointer",color:images.length>0?C.green:C.light,marginBottom:10,background:images.length>0?C.greenPale:"transparent"}}>
-                  <div style={{fontSize:"2.2em",marginBottom:6}}>{images.length>0?"✓":"📷"}</div>
+                  style={{border:"2px dashed "+(mediaFiles.length>0?C.green:C.border),borderRadius:12,padding:36,textAlign:"center",cursor:"pointer",color:mediaFiles.length>0?C.green:C.light,marginBottom:10,background:mediaFiles.length>0?C.greenPale:"transparent"}}>
+                  <div style={{fontSize:"2.2em",marginBottom:6}}>{mediaFiles.length>0?"✓":"📷"}</div>
                   <div style={{fontWeight:600,fontSize:"0.88em"}}>
-                    {images.length>0 ? images.length+" file"+(images.length>1?"s":"")+" ready - tap to change" : "Upload photo, screenshot, or PDF"}
+                    {mediaFiles.length>0 ? mediaFiles.length+" file"+(mediaFiles.length>1?"s":"")+" ready - tap to change" : "Upload photo, screenshot, or PDF"}
                   </div>
                   <div style={{fontSize:"0.75em",marginTop:4,color:C.light}}>Up to 4 images of the same recipe · HEIC, JPG, PNG, PDF</div>
                 </div>
+                {mediaFiles.length > 0 && (
+                  <div style={{display:"grid",gap:7,marginBottom:10}}>
+                    {mediaFiles.map((file, i) => (
+                      <div key={i} style={{display:"flex",alignItems:"center",gap:9,background:C.white,border:"1px solid "+C.border,borderRadius:8,padding:"8px 10px",color:C.dark,fontSize:"0.78em",boxShadow:"0 2px 8px rgba(92,61,46,0.06)"}}>
+                        <span style={{width:28,height:28,borderRadius:6,display:"inline-flex",alignItems:"center",justifyContent:"center",background:file.type==="pdf"?C.goldPale:C.greenPale,color:file.type==="pdf"?C.brown:C.green,flexShrink:0}}>{file.type==="pdf"?"📄":"🖼️"}</span>
+                        <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:600}}>{file.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {images.length > 0 && (
                   <div style={{background:C.goldPale,border:"1px solid "+C.goldLight,borderRadius:8,padding:"8px 12px",fontSize:"0.78em",color:C.brown,marginBottom:10}}>
                     ⚠️ Please make sure all images are pages of the same recipe - multiple different recipes can't be imported at once.
