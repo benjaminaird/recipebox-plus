@@ -1106,6 +1106,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [mode, setMode] = useState("url");
       const [url, setUrl] = useState("");
       const [ytUrl, setYtUrl] = useState("");
+      const [socialUrl, setSocialUrl] = useState("");
       const [text, setText] = useState("");
       const [images, setImages] = useState([]);
       const [pdfTexts, setPdfTexts] = useState([]);
@@ -1194,6 +1195,43 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             if (!parsed.heroImage && transcriptData.thumbnail) {
               parsed.heroImage = transcriptData.thumbnail;
             }
+
+          } else if (mode === "social") {
+            setLoadingMsg("Fetching public social post...");
+            const socialRes = await fetch("/api/fetch-social?url=" + encodeURIComponent(socialUrl));
+            const socialData = await socialRes.json();
+            if (socialData.error) {
+              throw new Error("RecipeBox+ could not access the full caption or recipe text from this social post. Try Paste Text with the caption or upload screenshots.");
+            }
+            const availableText = [
+              socialData.caption,
+              socialData.description,
+              socialData.text,
+              socialData.title
+            ].filter(Boolean).join("\n\n").trim();
+            if (availableText.length < 120 || socialData.sourceQuality === "low") {
+              throw new Error("RecipeBox+ could not access the full caption or recipe text from this social post. Try Paste Text with the caption or upload screenshots.");
+            }
+
+            setLoadingMsg("Extracting recipe from social post...");
+            const prompt =
+              "Extract a recipe ONLY from the public social source data below. Do not use memory. Do not infer a recipe from the title, thumbnail, author, or platform. Do not invent missing ingredients, quantities, steps, times, or servings. If the source data does not include enough recipe details, return {\"error\":\"not_enough_recipe_text\",\"message\":\"Try Paste Text with the caption or upload screenshots.\"}.\n\n" +
+              "Platform: " + (socialData.platform || "") + "\n" +
+              "Source URL: " + (socialData.finalUrl || socialData.url || socialUrl) + "\n" +
+              "Title: " + (socialData.title || "") + "\n" +
+              "Author: " + (socialData.author || "") + "\n" +
+              "Caption/description:\n" + (socialData.caption || socialData.description || "") + "\n\n" +
+              "Public page text:\n" + (socialData.text || "") + "\n\n" +
+              "Detected image/thumbnail URL: " + (socialData.image || socialData.thumbnail || "") + "\n" +
+              "Source quality: " + (socialData.sourceQuality || "") + "\n" +
+              "Warnings: " + (socialData.warnings || []).join("; ");
+            const raw = await callAI([{ role:"user", content:prompt }], EXTRACT_PROMPT, 2500);
+            parsed = await parseImportedRecipe(raw);
+            if (parsed.error === "not_enough_recipe_text" || parsed.error === "unknown_recipe") {
+              throw new Error(parsed.message || "RecipeBox+ could not access the full caption or recipe text from this social post. Try Paste Text with the caption or upload screenshots.");
+            }
+            const socialImage = socialData.image || socialData.thumbnail || "";
+            if (!parsed.heroImage && socialImage) parsed.heroImage = socialImage;
 
           } else if (mode === "text") {
             setLoadingMsg("Extracting recipe...");
@@ -1382,6 +1420,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const tabs = [
         { id:"url", label:"🔗 URL" },
         { id:"youtube", label:"▶️ YouTube" },
+        { id:"social", label:"📱 Social" },
         { id:"text", label:"📄 Paste Text" },
         { id:"media", label:"📷 Photo / PDF" },
       ];
@@ -1389,6 +1428,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const canSubmit = !loading && (
         (mode==="url" && url) ||
         (mode==="youtube" && ytUrl) ||
+        (mode==="social" && socialUrl) ||
         (mode==="text" && text.trim()) ||
         (mode==="media" && (images.length > 0 || pdfTexts.length > 0))
       );
@@ -1438,6 +1478,16 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               </div>
             )}
 
+            {mode === "social" && (
+              <div>
+                <input value={socialUrl} onChange={(e) => setSocialUrl(e.target.value)} onKeyDown={(e) => e.key==="Enter"&&extract()} placeholder="https://www.tiktok.com/@creator/video/..."
+                  style={{width:"100%",padding:"12px 15px",border:"1.5px solid "+C.border,borderRadius:8,fontSize:"0.92em",outline:"none",marginBottom:10,boxSizing:"border-box",fontFamily:SANS}} />
+                <div style={{background:C.goldPale,border:"1px solid "+C.goldLight,borderRadius:8,padding:"9px 13px",fontSize:"0.78em",color:C.brown,marginBottom:18,lineHeight:1.5}}>
+                  📱 Works best with public TikTok, Instagram, or Facebook posts that include the recipe in the caption. If RecipeBox+ can't access it, paste the caption or upload screenshots.
+                </div>
+              </div>
+            )}
+
             {mode === "text" && (
               <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Paste recipe text here..." rows={11}
                 style={{width:"100%",padding:"12px 15px",border:"1.5px solid "+C.border,borderRadius:8,fontSize:"0.9em",resize:"vertical",outline:"none",marginBottom:18,boxSizing:"border-box",fontFamily:SANS}} />
@@ -1481,7 +1531,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
             <button onClick={extract} disabled={!canSubmit}
               style={{width:"100%",background:"linear-gradient(135deg, #1C1410, #5C3D2E)",color:C.white,border:"none",borderRadius:12,padding:15,fontWeight:700,cursor:canSubmit?"pointer":"not-allowed",fontSize:"0.95em",fontFamily:SERIF,letterSpacing:0.5,opacity:canSubmit?1:0.6,display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
-              {loading ? <><Spinner /> {loadingMsg || "Extracting..."}</> : "✦ Extract & Import Recipe"}
+              {loading ? <><Spinner /> {loadingMsg || "Extracting..."}</> : (mode==="social" ? "✦ Extract Social Recipe" : "✦ Extract & Import Recipe")}
             </button>
 
             {error && (
