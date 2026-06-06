@@ -520,7 +520,6 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       });
 
       const sortedRecipes = [...recipes].sort((a,b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-      const recentRecipes = sortedRecipes.slice(0, 6);
       const categoryCounts = {};
       CATEGORIES.forEach((c) => { categoryCounts[c] = recipes.filter((r) => r.category === c).length; });
       const favoriteCount = recipes.filter((r) => r.favorite).length;
@@ -596,19 +595,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               </div>
             ) : isDashboard ? (
               <div>
-                {recentRecipes.length > 0 && (
-                  <div style={{marginTop:24}}>
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:13}}>
-                      <h3 style={{margin:0,fontFamily:SERIF,fontSize:"1.25em",color:C.dark,fontWeight:400}}>Recently Added</h3>
-                      <span style={{fontSize:"0.78em",color:C.light}}>{recentRecipes.length} shown</span>
-                    </div>
-                    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(195px, 1fr))",gap:14}}>
-                      {recentRecipes.map((r) => <RecipeCard key={r.id} recipe={r} onClick={() => onOpen(r)} onFavorite={() => onFavorite(r.id)} />)}
-                    </div>
-                  </div>
-                )}
-
-                <div style={{marginTop:30}}>
+                <div style={{marginTop:24}}>
                   <h3 style={{margin:"0 0 13px",fontFamily:SERIF,fontSize:"1.25em",color:C.dark,fontWeight:400}}>Browse Categories</h3>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(150px, 1fr))",gap:12}}>
                     {browseCards.map((card) => (
