@@ -439,6 +439,30 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       );
     }
 
+    function MissingPhotoModal({ onAdd, onSkip, inputRef }) {
+      return (
+        <div className="modal-overlay" onClick={onSkip}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <div style={{padding:"24px 24px 8px",borderBottom:"1px solid "+C.border}}>
+              <div style={{fontFamily:SERIF,fontSize:"1.3em",color:C.dark,marginBottom:4}}>No Recipe Photo Found</div>
+              <div style={{color:C.light,fontSize:"0.85em",lineHeight:1.5}}>Would you like to add a photo from your camera roll?</div>
+            </div>
+            <div style={{padding:"18px 16px 20px",display:"grid",gap:10}}>
+              <input ref={inputRef} type="file" accept="image/*,image/heic,image/heif" onChange={onAdd} style={{display:"none"}} />
+              <button onClick={() => inputRef.current.click()}
+                style={{width:"100%",background:C.green,color:C.white,border:"none",borderRadius:10,padding:"13px 16px",fontWeight:700,cursor:"pointer",fontSize:"0.95em",fontFamily:SANS}}>
+                📷 Add Photo
+              </button>
+              <button onClick={onSkip}
+                style={{width:"100%",background:C.white,color:C.brown,border:"1.5px solid "+C.border,borderRadius:10,padding:"12px 16px",fontWeight:700,cursor:"pointer",fontSize:"0.9em",fontFamily:SANS}}>
+                Skip for Now
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     // Bottom Nav
     function BottomNav({ tab, setTab }) {
       const items = [
@@ -859,9 +883,17 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [loading, setLoading] = useState(false);
       const [loadingMsg, setLoadingMsg] = useState("");
       const [error, setError] = useState("");
+      const [showPhotoPrompt, setShowPhotoPrompt] = useState(false);
       const [showCategoryModal, setShowCategoryModal] = useState(false);
       const [pendingRecipe, setPendingRecipe] = useState(null);
       const fileRef = useRef();
+      const heroPromptRef = useRef();
+
+      function readyRecipeForSave(recipe) {
+        setPendingRecipe(recipe);
+        if (recipe.heroImage) setShowCategoryModal(true);
+        else setShowPhotoPrompt(true);
+      }
 
       async function parseImportedRecipe(raw) {
         try {
@@ -967,8 +999,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           parsed.favorite = false;
           if (!parsed.heroImage) parsed.heroImage = "";
 
-          setPendingRecipe(parsed);
-          setShowCategoryModal(true);
+          readyRecipeForSave(parsed);
 
         } catch(e) {
           setError(e.message || "Could not extract recipe.");
@@ -1037,8 +1068,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           ]
         };
 
-        setPendingRecipe(parsed);
-        setShowCategoryModal(true);
+        readyRecipeForSave(parsed);
       }
 
       function handleCategorySelect(category) {
@@ -1046,6 +1076,29 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         setShowCategoryModal(false);
         setPendingRecipe(null);
         onDone(recipe);
+      }
+
+      async function handlePromptHeroImage(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+          const b = await fileToBase64(file);
+          const dataUrl = "data:" + b.type + ";base64," + b.data;
+          setPendingRecipe((p) => ({ ...p, heroImage:dataUrl }));
+          setShowPhotoPrompt(false);
+          setShowCategoryModal(true);
+        } catch (err) {
+          setError(err.message || "Could not read that photo.");
+          setShowPhotoPrompt(false);
+          setShowCategoryModal(true);
+        } finally {
+          e.target.value = "";
+        }
+      }
+
+      function skipPromptHeroImage() {
+        setShowPhotoPrompt(false);
+        setShowCategoryModal(true);
       }
 
       async function extractPdfText(file) {
@@ -1112,10 +1165,17 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
       return (
         <div style={{minHeight:"100vh",background:C.cream}}>
+          {showPhotoPrompt && (
+            <MissingPhotoModal
+              onAdd={handlePromptHeroImage}
+              onSkip={skipPromptHeroImage}
+              inputRef={heroPromptRef}
+            />
+          )}
           {showCategoryModal && (
             <CategoryModal
               onSelect={handleCategorySelect}
-              onCancel={() => { setShowCategoryModal(false); setPendingRecipe(null); }}
+              onCancel={() => { setShowCategoryModal(false); setShowPhotoPrompt(false); setPendingRecipe(null); }}
             />
           )}
           <div style={{background:"linear-gradient(135deg, #1C1410, #5C3D2E)",padding:"20px",display:"flex",alignItems:"center",gap:12}}>
