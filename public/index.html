@@ -759,19 +759,19 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
             if (!parsed.heroImage && pageData.image) parsed.heroImage = pageData.image;
 
           } else if (mode === "youtube") {
-            setLoadingMsg("Fetching YouTube transcript...");
+            setLoadingMsg("Fetching YouTube details...");
             const transcriptRes = await fetch("/api/transcript?url=" + encodeURIComponent(ytUrl));
             const transcriptData = await transcriptRes.json();
-            if (transcriptData.error) throw new Error("Could not fetch transcript: " + transcriptData.error);
+            if (transcriptData.error) throw new Error("Could not fetch YouTube details: " + transcriptData.error);
 
-            setLoadingMsg("Extracting recipe from transcript...");
+            setLoadingMsg("Extracting recipe from video text...");
             let content = "Video title: " + transcriptData.title + "\n\n";
             if (transcriptData.transcript) {
               content += "Transcript:\n" + transcriptData.transcript;
             } else if (transcriptData.description) {
               content += "Description:\n" + transcriptData.description;
             } else {
-              throw new Error("No transcript or description found. Try Paste Text instead.");
+              throw new Error("RecipeBox+ could not access this video's transcript or description from the server. Open the video on YouTube, copy the description or transcript, and use Paste Text instead.");
             }
             if (transcriptData.thumbnail) {
               content += "\n\nVideo thumbnail URL: " + transcriptData.thumbnail;

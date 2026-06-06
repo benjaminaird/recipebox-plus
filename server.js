@@ -108,6 +108,30 @@ function bestImage(base, html, jsonLdNodes) {
   imgMatches.forEach(m => candidates.push(m[1]));
   return candidates.map(x => absoluteUrl(base, x)).find(x => /^https?:\/\//i.test(x)) || '';
 }
+async function youtubeiMetadata(videoId) {
+  const { Innertube } = await import('youtubei.js');
+  const youtube = await Innertube.create();
+  const info = await youtube.getInfo(videoId);
+  const thumbnail = info.basic_info?.thumbnail?.[0]?.url ||
+    info.basic_info?.thumbnail?.contents?.[0]?.url ||
+    info.basic_info?.thumbnail?.url ||
+    '';
+  return {
+    title: info.basic_info?.title || '',
+    description: (info.basic_info?.short_description || '').replace(/\s+/g, ' ').trim().slice(0, 2000),
+    thumbnail,
+    captionTrackCount: info.captions?.caption_tracks?.length || 0,
+  };
+}
+async function youtubeOembed(videoUrl) {
+  const r = await fetch('https://www.youtube.com/oembed?url=' + encodeURIComponent(videoUrl) + '&format=json');
+  if (!r.ok) throw new Error('YouTube oEmbed failed with status ' + r.status);
+  const data = await r.json();
+  return {
+    title: data.title || '',
+    thumbnail: data.thumbnail_url || '',
+  };
+}
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', database: !!process.env.DATABASE_URL }));
 
@@ -175,6 +199,7 @@ app.get('/api/transcript', async function(req, res) {
     const descMatch = html.match(/"shortDescription":"([\s\S]*?)"/);
     if (descMatch) description = descMatch[1].replace(/\\n/g, ' ').slice(0, 2000);
     let transcript = '';
+    let thumbnail = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
     const debugInfo = {
       videoId,
       youtubeStatus: yt.status,
@@ -186,6 +211,11 @@ app.get('/api/transcript', async function(req, res) {
       transcriptErrorMessage: null,
       captionErrorName: null,
       captionErrorMessage: null,
+      youtubeiErrorName: null,
+      youtubeiErrorMessage: null,
+      youtubeiCaptionTrackCount: null,
+      oembedErrorName: null,
+      oembedErrorMessage: null,
       userAgentUsed: userAgent,
     };
 
@@ -214,7 +244,29 @@ app.get('/api/transcript', async function(req, res) {
         debugInfo.captionErrorMessage = err?.message || String(err);
       }
     }
-    const payload = { title, description, transcript, thumbnail: 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg' };
+    if (!description || title === '- YouTube' || title === 'YouTube Recipe') {
+      try {
+        const metadata = await youtubeiMetadata(videoId);
+        if (metadata.title) title = metadata.title;
+        if (metadata.description) description = metadata.description;
+        if (metadata.thumbnail) thumbnail = metadata.thumbnail;
+        debugInfo.youtubeiCaptionTrackCount = metadata.captionTrackCount;
+      } catch (err) {
+        debugInfo.youtubeiErrorName = err?.name || '';
+        debugInfo.youtubeiErrorMessage = err?.message || String(err);
+      }
+    }
+    if (title === '- YouTube' || title === 'YouTube Recipe') {
+      try {
+        const metadata = await youtubeOembed(videoUrl);
+        if (metadata.title) title = metadata.title;
+        if (metadata.thumbnail) thumbnail = metadata.thumbnail;
+      } catch (err) {
+        debugInfo.oembedErrorName = err?.name || '';
+        debugInfo.oembedErrorMessage = err?.message || String(err);
+      }
+    }
+    const payload = { title, description, transcript, thumbnail };
     if (debug) {
       payload.debug = {
         ...debugInfo,
