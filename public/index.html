@@ -285,6 +285,7 @@ For ingredient amounts:
 Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return ONLY the JSON.`;
 
     const ADJUST_PROMPT = `You are a culinary assistant. Modify the recipe JSON as requested. Return ONLY raw JSON starting with {. No markdown.`;
+    const REPAIR_JSON_PROMPT = `You repair malformed recipe JSON. Return ONLY one valid raw JSON object. Preserve all recipe content you can. Do not add markdown, comments, or explanation. The JSON must match the RecipeBox+ recipe structure with sections, ingredients, and steps.`;
     const PANTRY_PROMPT = `You are a friendly Pantry Chef. Help users decide what to cook from ingredients they have. Ask about preferences, cuisine, dietary needs. Suggest 3-5 recipes as **Name** - description (X min). If asked to add one to their library, return the full recipe JSON wrapped in <RECIPE_JSON>...</RECIPE_JSON> at the end. Be warm and conversational.`;
     const EDITOR_AI_PROMPT = `You are a culinary assistant helping edit a recipe. The user will describe a change they want. Apply it to the recipe JSON and return ONLY the complete updated recipe JSON starting with {. No markdown, no explanation.`;
 
@@ -732,6 +733,25 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
       const [pendingRecipe, setPendingRecipe] = useState(null);
       const fileRef = useRef();
 
+      async function parseImportedRecipe(raw) {
+        try {
+          return parseAIJson(raw);
+        } catch (err) {
+          setLoadingMsg("Cleaning up recipe format...");
+          const repaired = await callAI([{
+            role: "user",
+            content:
+              "Repair this malformed RecipeBox+ recipe JSON. Return only valid JSON, with no markdown or explanation.\n\n" +
+              raw
+          }], REPAIR_JSON_PROMPT, 3500);
+          try {
+            return parseAIJson(repaired);
+          } catch {
+            throw new Error("RecipeBox+ could not read the recipe format. Try Paste Text, or upload a clearer PDF/photo.");
+          }
+        }
+      }
+
       async function extract() {
         setLoading(true);
         setError("");
@@ -754,7 +774,7 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
               "JSON-LD / structured data:\n" + JSON.stringify(pageData.jsonLd || []) + "\n\n" +
               "Visible page text:\n" + (pageData.text || "");
             const raw = await callAI([{ role:"user", content:prompt }], EXTRACT_PROMPT, 2500);
-            parsed = parseAIJson(raw);
+            parsed = await parseImportedRecipe(raw);
             if (parsed.error === "unknown_recipe") throw new Error("Recipe not found. Please use Paste Text instead.");
             if (!parsed.heroImage && pageData.image) parsed.heroImage = pageData.image;
 
@@ -778,7 +798,7 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
             }
 
             const raw = await callAI([{ role:"user", content:"Extract the recipe from this YouTube video content:\n\n" + content }], EXTRACT_PROMPT, 2000);
-            parsed = parseAIJson(raw);
+            parsed = await parseImportedRecipe(raw);
             if (!parsed.heroImage && transcriptData.thumbnail) {
               parsed.heroImage = transcriptData.thumbnail;
             }
@@ -786,14 +806,19 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
           } else if (mode === "text") {
             setLoadingMsg("Extracting recipe...");
             const raw = await callAI([{ role:"user", content:"Extract the recipe from this text:\n\n" + text }], EXTRACT_PROMPT, 2000);
-            parsed = parseAIJson(raw);
+            parsed = await parseImportedRecipe(raw);
 
           } else if (mode === "media" && pdfTexts.length > 0) {
             setLoadingMsg("Reading recipe from PDF...");
             const pdfContent = pdfTexts.join(" ");
             if (!pdfContent.trim()) throw new Error("Could not read PDF text. Try a photo instead.");
-            const rawPdf = await callAI([{ role:"user", content: "Extract the recipe from this PDF: " + pdfContent }], EXTRACT_PROMPT, 2000);
-            parsed = parseAIJson(rawPdf);
+            const rawPdf = await callAI([{
+              role:"user",
+              content:
+                "Extract the recipe ONLY from the PDF text below. Do not invent missing details. Return valid JSON only.\n\n" +
+                pdfContent.slice(0, 24000)
+            }], EXTRACT_PROMPT, 3500);
+            parsed = await parseImportedRecipe(rawPdf);
           } else if (mode === "media" && images.length > 0) {
             setLoadingMsg("Reading recipe from image...");
             const imgArr = images.map((img, i) => ({
@@ -801,8 +826,8 @@ Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return 
               source: { type: "base64", media_type: img.type, data: img.data }
             }));
             imgArr.push({ type: "text", text: "Extract the recipe from these " + images.length + " image(s) of the same recipe." });
-            const raw = await callAI([{ role:"user", content: imgArr }], EXTRACT_PROMPT, 2000);
-            parsed = parseAIJson(raw);
+            const raw = await callAI([{ role:"user", content: imgArr }], EXTRACT_PROMPT, 3000);
+            parsed = await parseImportedRecipe(raw);
           }
 
           if (!parsed || !parsed.title || !parsed.sections) throw new Error("Could not extract a complete recipe. Try Paste Text.");
