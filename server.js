@@ -132,6 +132,28 @@ async function youtubeOembed(videoUrl) {
     thumbnail: data.thumbnail_url || '',
   };
 }
+async function youtubeDataApiMetadata(videoId) {
+  if (!process.env.YOUTUBE_API_KEY) return null;
+  const url = new URL('https://www.googleapis.com/youtube/v3/videos');
+  url.searchParams.set('part', 'snippet');
+  url.searchParams.set('id', videoId);
+  url.searchParams.set('key', process.env.YOUTUBE_API_KEY);
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('YouTube Data API failed with status ' + r.status);
+  const data = await r.json();
+  const snippet = data.items?.[0]?.snippet;
+  if (!snippet) return null;
+  return {
+    title: snippet.title || '',
+    description: (snippet.description || '').replace(/\s+/g, ' ').trim().slice(0, 2000),
+    thumbnail: snippet.thumbnails?.maxres?.url ||
+      snippet.thumbnails?.standard?.url ||
+      snippet.thumbnails?.high?.url ||
+      snippet.thumbnails?.medium?.url ||
+      snippet.thumbnails?.default?.url ||
+      '',
+  };
+}
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', database: !!process.env.DATABASE_URL }));
 
@@ -214,6 +236,9 @@ app.get('/api/transcript', async function(req, res) {
       youtubeiErrorName: null,
       youtubeiErrorMessage: null,
       youtubeiCaptionTrackCount: null,
+      youtubeDataApiConfigured: !!process.env.YOUTUBE_API_KEY,
+      youtubeDataApiErrorName: null,
+      youtubeDataApiErrorMessage: null,
       oembedErrorName: null,
       oembedErrorMessage: null,
       userAgentUsed: userAgent,
@@ -254,6 +279,17 @@ app.get('/api/transcript', async function(req, res) {
       } catch (err) {
         debugInfo.youtubeiErrorName = err?.name || '';
         debugInfo.youtubeiErrorMessage = err?.message || String(err);
+      }
+    }
+    if (!description || title === '- YouTube' || title === 'YouTube Recipe') {
+      try {
+        const metadata = await youtubeDataApiMetadata(videoId);
+        if (metadata?.title) title = metadata.title;
+        if (metadata?.description) description = metadata.description;
+        if (metadata?.thumbnail) thumbnail = metadata.thumbnail;
+      } catch (err) {
+        debugInfo.youtubeDataApiErrorName = err?.name || '';
+        debugInfo.youtubeDataApiErrorMessage = err?.message || String(err);
       }
     }
     if (title === '- YouTube' || title === 'YouTube Recipe') {
