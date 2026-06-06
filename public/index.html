@@ -673,7 +673,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     }
 
     // Meal Planner
-    function MealPlanner({ recipes, mealPlan, setMealPlan }) {
+    function MealPlanner({ recipes, mealPlan, setMealPlan, onOpen }) {
       const [picking, setPicking] = useState(null);
       const [search, setSearch] = useState("");
       const today = DAYS[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
@@ -692,21 +692,30 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             {DAYS.map((day) => {
               const meals = (mealPlan[day]||[]).map((id) => recipes.find((r) => r.id===id)).filter(Boolean);
               return (
-                <div key={day} style={{background:C.white,borderRadius:12,padding:"15px 17px",marginBottom:10,boxShadow:"0 2px 10px rgba(92,61,46,0.08)",border:day===today?"2px solid "+C.green:"2px solid transparent"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                <div key={day} style={{background:C.white,borderRadius:12,padding:"15px 17px",marginBottom:12,boxShadow:"0 2px 10px rgba(92,61,46,0.08)",border:day===today?"2px solid "+C.green:"2px solid transparent"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
                     <div style={{fontWeight:700,color:C.dark,fontSize:"0.92em"}}>{day}</div>
                     {day===today && <Tag label="Today" bg={C.greenPale} color={C.green} />}
                     <div style={{flex:1}} />
                     <button onClick={() => setPicking({day})} style={{background:C.greenPale,border:"none",borderRadius:6,padding:"4px 12px",color:C.green,fontWeight:700,cursor:"pointer",fontSize:"0.78em",fontFamily:SANS}}>+ Add</button>
                   </div>
-                  {meals.length===0 ? <div style={{color:C.light,fontSize:"0.8em",fontStyle:"italic"}}>No meals planned</div> : (
-                    <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
+                  {meals.length===0 ? (
+                    <button onClick={() => setPicking({day})} style={{width:"100%",background:C.cream2,border:"1px dashed "+C.border,borderRadius:8,padding:"11px 12px",color:C.light,fontSize:"0.82em",fontStyle:"italic",textAlign:"left",cursor:"pointer",fontFamily:SANS}}>
+                      No meals planned - tap to add one
+                    </button>
+                  ) : (
+                    <div style={{display:"grid",gap:8}}>
                       {meals.map((r, i) => (
-                        <div key={i} style={{background:C.cream2,borderRadius:8,padding:"5px 10px",display:"flex",alignItems:"center",gap:7,border:"1px solid "+C.border}}>
-                          <div style={{width:8,height:8,borderRadius:"50%",background:cardColor(r.title)}} />
-                          <span style={{fontSize:"0.83em",fontWeight:500,color:C.dark}}>{r.title}</span>
-                          {r.macros?.calories>0 && <span style={{fontSize:"0.7em",color:C.light}}>{r.macros.calories}cal</span>}
-                          <button onClick={() => { const u={...mealPlan,[day]:(mealPlan[day]||[]).filter((_,j)=>j!==i)}; setMealPlan(u); }} style={{background:"none",border:"none",color:C.light,cursor:"pointer",padding:0,fontSize:"1em",lineHeight:1}}>×</button>
+                        <div key={i} style={{background:C.cream2,borderRadius:9,padding:"9px 10px",display:"flex",alignItems:"center",gap:10,border:"1px solid "+C.border}}>
+                          <div style={{width:34,height:34,borderRadius:8,background:cardColor(r.title),display:"flex",alignItems:"center",justifyContent:"center",fontFamily:SERIF,color:"rgba(255,255,255,0.65)",fontSize:"1.05em",flexShrink:0}}>{r.title?.[0] || "R"}</div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontSize:"0.86em",fontWeight:700,color:C.dark,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.title}</div>
+                            <div style={{fontSize:"0.72em",color:C.light,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                              {[r.category, r.cookTime, r.macros?.calories>0 ? r.macros.calories+" cal" : ""].filter(Boolean).join(" · ") || "Planned recipe"}
+                            </div>
+                          </div>
+                          <button onClick={() => onOpen(r)} style={{background:C.white,border:"1px solid "+C.border,borderRadius:6,padding:"5px 9px",color:C.brown,fontWeight:700,cursor:"pointer",fontSize:"0.74em",fontFamily:SANS}}>Open</button>
+                          <button onClick={() => { const u={...mealPlan,[day]:(mealPlan[day]||[]).filter((_,j)=>j!==i)}; setMealPlan(u); }} style={{background:"none",border:"none",color:C.light,cursor:"pointer",padding:"3px 0",fontSize:"1.1em",lineHeight:1}}>×</button>
                         </div>
                       ))}
                     </div>
@@ -1818,7 +1827,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       return (
         <>
           {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>{setCurrent(r);setScreen("view");}} onAdd={()=>setScreen("import")} onFavorite={toggleFavorite} setTab={setTab} />}
-          {tab==="plan" && <MealPlanner recipes={recipes} mealPlan={mealPlan} setMealPlan={updateMealPlan} />}
+          {tab==="plan" && <MealPlanner recipes={recipes} mealPlan={mealPlan} setMealPlan={updateMealPlan} onOpen={(r)=>{setCurrent(r);setScreen("view");}} />}
           {tab==="pantry" && <PantryChef recipes={recipes} onImport={(r)=>{addRecipe(r);setTab("library");}} onOpenRecipe={(r)=>{setCurrent(r);setScreen("view");}} />}
           <BottomNav tab={tab} setTab={setTab} />
         </>
