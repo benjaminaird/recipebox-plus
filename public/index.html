@@ -447,7 +447,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         { id:"pantry", icon:"🍳", label:"Pantry Chef" },
       ];
       return (
-        <div style={{position:"fixed",bottom:0,left:0,right:0,background:C.white,borderTop:"1px solid "+C.border,display:"flex",zIndex:20,boxShadow:"0 -4px 16px rgba(92,61,46,0.08)"}}>
+        <div style={{position:"fixed",bottom:0,left:0,right:0,background:C.white,borderTop:"1px solid "+C.border,display:"flex",zIndex:20,boxShadow:"0 -4px 16px rgba(92,61,46,0.08)",paddingBottom:"env(safe-area-inset-bottom)"}}>
           {items.map((item) => {
             const active = tab === item.id;
             return (
@@ -794,12 +794,12 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       }
 
       return (
-        <div style={{height:"100vh",display:"flex",flexDirection:"column",background:C.cream}}>
-          <div style={{background:`linear-gradient(135deg, ${C.terra}, ${C.gold})`,padding:"24px 20px 20px"}}>
-            <div style={{fontFamily:SERIF,fontSize:"1.8em",color:C.white}}>Pantry Chef</div>
-            <div style={{color:"rgba(255,255,255,0.8)",fontSize:"0.8em",marginTop:2}}>AI recipe suggestions from what you have</div>
+        <div style={{height:"calc(100dvh - 62px - env(safe-area-inset-bottom))",maxHeight:"calc(100dvh - 62px - env(safe-area-inset-bottom))",display:"flex",flexDirection:"column",background:C.cream,overflow:"hidden"}}>
+          <div style={{background:`linear-gradient(135deg, ${C.terra}, ${C.gold})`,padding:"16px 16px 14px",flexShrink:0}}>
+            <div style={{fontFamily:SERIF,fontSize:"1.45em",color:C.white}}>Pantry Chef</div>
+            <div style={{color:"rgba(255,255,255,0.8)",fontSize:"0.76em",marginTop:1}}>AI recipe suggestions from what you have</div>
           </div>
-          <div style={{flex:1,overflowY:"auto",padding:"16px"}}>
+          <div style={{flex:1,minHeight:0,overflowY:"auto",padding:"12px"}}>
             <div style={{maxWidth:680,margin:"0 auto",display:"flex",flexDirection:"column",gap:11}}>
               {messages.map((m, i) => (
                 <div key={i} className="fade-up" style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
@@ -836,7 +836,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             </div>
           </div>
           {messages.length <= 1 && !loading && (
-            <div style={{padding:"0 16px 8px",background:C.cream}}>
+            <div style={{padding:"0 12px 6px",background:C.cream,flexShrink:0}}>
               <div style={{maxWidth:680,margin:"0 auto",display:"flex",gap:7,overflowX:"auto",paddingBottom:4}}>
                 {starters.map((starter) => (
                   <button key={starter} onClick={() => send(starter)}
@@ -847,8 +847,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               </div>
             </div>
           )}
-          {image && <div style={{textAlign:"center",padding:"3px 0",fontSize:"0.76em",color:C.terra}}>📷 Photo ready</div>}
-          <div style={{padding:"10px 16px 20px",background:C.white,borderTop:"1px solid "+C.border}}>
+          {image && <div style={{textAlign:"center",padding:"3px 0",fontSize:"0.76em",color:C.terra,flexShrink:0}}>📷 Photo ready</div>}
+          <div style={{padding:"8px 12px 10px",background:C.white,borderTop:"1px solid "+C.border,flexShrink:0}}>
             <div style={{maxWidth:680,margin:"0 auto",display:"flex",gap:7,alignItems:"flex-end"}}>
               <input type="file" ref={imgRef} accept="image/*,image/heic,image/heif" onChange={async (e) => { const f=e.target.files[0]; if(!f)return; const b=await fileToBase64(f); setImage(b); }} style={{display:"none"}} />
               <button onClick={() => imgRef.current.click()} style={{background:C.cream2,border:"1px solid "+C.border,borderRadius:8,padding:"9px 11px",cursor:"pointer",fontSize:"1.1em",flexShrink:0}}>📷</button>
