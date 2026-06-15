@@ -1,6 +1,6 @@
 {
-  "name": "RecipeBox+",
-  "short_name": "RecipeBox+",
+  "name": "RecipeBox",
+  "short_name": "RecipeBox",
   "description": "Personal recipe manager with AI-powered imports and editing.",
   "start_url": "/",
   "scope": "/",

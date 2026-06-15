@@ -262,7 +262,7 @@ app.get('/api/fetch-social', async (req, res) => {
   const platform = detectSocialPlatform(target);
   const warnings = [];
   if (platform === 'unknown') {
-    const payload = { error: 'unsupported platform', platform, url: target, warnings: ['RecipeBox+ Social Link currently supports public TikTok, Instagram, and Facebook posts.'], sourceQuality: 'low' };
+    const payload = { error: 'unsupported platform', platform, url: target, warnings: ['RecipeBox Social Link currently supports public TikTok, Instagram, and Facebook posts.'], sourceQuality: 'low' };
     if (debug) payload.debug = { platform, url: target, title: '', descriptionLength: 0, captionLength: 0, textLength: 0, imageFound: false, oEmbedStatus: null, warnings: payload.warnings, sourceQuality: 'low' };
     return res.status(400).json(payload);
   }
@@ -305,8 +305,8 @@ app.get('/api/fetch-social', async (req, res) => {
       }
     } else {
       warnings.push(platform === 'instagram'
-        ? 'Instagram public oEmbed generally requires Meta app credentials, so RecipeBox+ used public page metadata only.'
-        : 'Facebook public oEmbed generally requires Meta app credentials, so RecipeBox+ used public page metadata only.');
+        ? 'Instagram public oEmbed generally requires Meta app credentials, so RecipeBox used public page metadata only.'
+        : 'Facebook public oEmbed generally requires Meta app credentials, so RecipeBox used public page metadata only.');
     }
 
     try {
@@ -328,7 +328,7 @@ app.get('/api/fetch-social', async (req, res) => {
     if (!caption && description) caption = description;
     if (!text && caption) text = caption;
     if (Math.max(text.length, caption.length, description.length) < 120) {
-      warnings.push('RecipeBox+ could not access much caption or recipe text from this post.');
+      warnings.push('RecipeBox could not access much caption or recipe text from this post.');
     }
     const sourceQuality = socialQuality(text, caption, description, warnings);
     const payload = {
@@ -499,5 +499,5 @@ app.get('*', function(req, res) { res.sendFile(path.join(__dirname, 'public', 'i
 module.exports = app;
 
 if (require.main === module) {
-  app.listen(process.env.PORT || 3000, function() { console.log('RecipeBox+ running'); });
+  app.listen(process.env.PORT || 3000, function() { console.log('RecipeBox running'); });
 }

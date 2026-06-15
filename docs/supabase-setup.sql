@@ -1,5 +1,5 @@
--- RecipeBox+ Supabase setup
--- Run this first to support the current shared RecipeBox+ storage model.
+-- RecipeBox Supabase setup
+-- Run this first to support the current shared RecipeBox storage model.
 -- The app uses DATABASE_URL server-side, so this table is not exposed to browsers.
 
 create extension if not exists pgcrypto;

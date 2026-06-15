@@ -1,5 +1,5 @@
-# recipebox-plus
-RecipeBox+ app
+# recipebox
+RecipeBox app
 
 ## Environment variables
 
@@ -9,6 +9,6 @@ RecipeBox+ app
 
 ## Vercel + Supabase
 
-RecipeBox+ is prepared for Vercel through `vercel.json` and `api/index.js`.
+RecipeBox is prepared for Vercel through `vercel.json` and `api/index.js`.
 
 For Supabase setup, run `docs/supabase-setup.sql` in the Supabase SQL Editor, then add the required environment variables in Vercel. See `docs/vercel-supabase-migration.md` for the checklist.
