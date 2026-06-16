@@ -46,7 +46,15 @@ connection string is incorrect.
 
 ## Next auth iteration
 
-The included `docs/neon-setup.sql` account tables use `user_id text` so they can
-work with Neon Auth, Clerk, Auth.js, or another provider. Once auth is selected,
-wire API reads/writes to the authenticated user instead of the current shared
-`recipebox_store` keys.
+RecipeBox now has a first-pass account sync prototype:
+
+- Users create an account with an email address.
+- RecipeBox generates a private sync code that is shown once.
+- The server stores only a salted hash of that sync code.
+- Sessions use an HTTP-only `rb_session` cookie.
+- Signed-in recipe and meal plan data is stored by `user_id` in Neon.
+- Signed-out users keep using device-local storage.
+
+This is intentionally a bridge to a fuller auth provider. For v1, replace the
+sync-code sign-in layer with Neon Auth or Clerk, then keep using the same
+`recipes`, `meal_plans`, and `user_settings` tables with provider user IDs.

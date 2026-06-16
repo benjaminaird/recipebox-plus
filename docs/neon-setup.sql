@@ -18,9 +18,13 @@ create table if not exists profiles (
   user_id text primary key,
   email text,
   display_name text,
+  sync_code_hash text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+create unique index if not exists profiles_email_idx
+  on profiles (email);
 
 create table if not exists recipes (
   id uuid primary key default gen_random_uuid(),
@@ -54,3 +58,14 @@ create table if not exists user_settings (
   settings_json jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now()
 );
+
+create table if not exists account_sessions (
+  token_hash text primary key,
+  user_id text not null references profiles(user_id) on delete cascade,
+  expires_at timestamptz not null,
+  created_at timestamptz not null default now(),
+  last_seen_at timestamptz not null default now()
+);
+
+create index if not exists account_sessions_user_id_idx
+  on account_sessions (user_id);

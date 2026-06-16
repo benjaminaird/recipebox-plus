@@ -322,6 +322,24 @@ function asyncPutJson(url, body) {
     fetch(url, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body), keepalive:true }).catch(() => {});
   } catch (e) {}
 }
+async function postJson(url, body) {
+  const res = await fetch(url, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body || {}) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Request failed");
+  return data;
+}
+async function fetchJson(url, fallback) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return fallback;
+    return await res.json();
+  } catch {
+    return fallback;
+  }
+}
+function loadAccountSession() {
+  return syncGetJson("/api/auth/session", { user:null });
+}
 function loadRecipes() {
   let local = [];
   try { local = JSON.parse(localStorage.getItem(RECIPES_KEY) || "[]"); } catch {}
@@ -1049,10 +1067,75 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       );
     }
 
-    function Settings({ timerSound, setTimerSound }) {
+    function Settings({ timerSound, setTimerSound, account, setAccount, recipes, mealPlan, onCloudData }) {
+      const [mode, setMode] = useState("create");
+      const [email, setEmail] = useState("");
+      const [displayName, setDisplayName] = useState("");
+      const [syncCode, setSyncCode] = useState("");
+      const [newSyncCode, setNewSyncCode] = useState("");
+      const [accountMsg, setAccountMsg] = useState("");
+      const [accountBusy, setAccountBusy] = useState(false);
+
       function chooseSound(id) {
         setTimerSound(id);
         saveTimerSound(id);
+      }
+      async function createAccount() {
+        setAccountBusy(true);
+        setAccountMsg("");
+        setNewSyncCode("");
+        try {
+          const data = await postJson("/api/auth/signup", { email, displayName, recipes, mealPlan });
+          setAccount(data.user);
+          setNewSyncCode(data.syncCode);
+          setAccountMsg("Account created. Save this sync code now.");
+          await onCloudData();
+        } catch (err) {
+          setAccountMsg(err.message || "Could not create account.");
+        } finally {
+          setAccountBusy(false);
+        }
+      }
+      async function signIn() {
+        setAccountBusy(true);
+        setAccountMsg("");
+        try {
+          const data = await postJson("/api/auth/signin", { email, syncCode });
+          setAccount(data.user);
+          setAccountMsg("Signed in. Your cloud RecipeBox is loaded.");
+          await onCloudData();
+        } catch (err) {
+          setAccountMsg(err.message || "Could not sign in.");
+        } finally {
+          setAccountBusy(false);
+        }
+      }
+      async function signOut() {
+        setAccountBusy(true);
+        setAccountMsg("");
+        try {
+          await postJson("/api/auth/signout", {});
+          setAccount(null);
+          setNewSyncCode("");
+          setAccountMsg("Signed out. This device keeps its local recipes.");
+        } catch (err) {
+          setAccountMsg(err.message || "Could not sign out.");
+        } finally {
+          setAccountBusy(false);
+        }
+      }
+      async function migrateLocal() {
+        setAccountBusy(true);
+        setAccountMsg("");
+        try {
+          const data = await postJson("/api/auth/migrate", { recipes, mealPlan });
+          await onCloudData(data.recipes, data.mealPlan);
+          setAccountMsg("This device's recipes are synced to your account.");
+        } catch (err) {
+          setAccountMsg(err.message || "Could not sync recipes.");
+        } finally {
+          setAccountBusy(false);
+        }
       }
       const placeholder = [
         { title:"Appearance", text:"Theme and display controls coming soon." },
@@ -1071,14 +1154,56 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           <div style={{maxWidth:760,margin:"18px auto",padding:"0 16px",display:"grid",gap:14}}>
             <div style={{background:C.white,border:"1px solid "+C.border,borderRadius:12,padding:16,boxShadow:"0 2px 10px rgba(92,61,46,0.08)"}}>
               <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark,marginBottom:4}}>Account</div>
-              <div style={{fontSize:"0.84em",color:C.light,lineHeight:1.5,marginBottom:12}}>Sign in and user profiles coming soon.</div>
-              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                {["Profile","Sync","Shared recipe boxes"].map((label) => (
-                  <button key={label} disabled style={{background:C.cream2,border:"1px solid "+C.border,borderRadius:8,padding:"7px 10px",color:C.light,fontWeight:700,fontSize:"0.76em",fontFamily:SANS}}>
-                    {label}
-                  </button>
-                ))}
-              </div>
+              {account ? (
+                <div>
+                  <div style={{fontSize:"0.86em",color:C.mid,lineHeight:1.5,marginBottom:12}}>
+                    Signed in as <strong>{account.email}</strong>. Your recipes and meal plan sync to this account.
+                  </div>
+                  {newSyncCode && (
+                    <div style={{background:C.goldPale,border:"1px solid "+C.goldLight,borderRadius:10,padding:12,marginBottom:12}}>
+                      <div style={{fontWeight:900,color:C.brown,fontSize:"0.82em",marginBottom:5}}>Save your sync code</div>
+                      <div style={{fontFamily:"monospace",fontSize:"1.05em",color:C.dark,letterSpacing:0.5}}>{newSyncCode}</div>
+                      <div style={{color:C.light,fontSize:"0.76em",lineHeight:1.4,marginTop:6}}>You will need this code to sign in on another device. RecipeBox does not show it again.</div>
+                    </div>
+                  )}
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                    <button onClick={migrateLocal} disabled={accountBusy} style={{background:C.green,color:C.white,border:"none",borderRadius:8,padding:"8px 11px",fontWeight:800,fontSize:"0.78em",fontFamily:SANS,cursor:"pointer",opacity:accountBusy?0.65:1}}>
+                      Sync this device
+                    </button>
+                    <button onClick={signOut} disabled={accountBusy} style={{background:C.cream2,color:C.brown,border:"1px solid "+C.border,borderRadius:8,padding:"8px 11px",fontWeight:800,fontSize:"0.78em",fontFamily:SANS,cursor:"pointer",opacity:accountBusy?0.65:1}}>
+                      Sign out
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div style={{fontSize:"0.84em",color:C.light,lineHeight:1.5,marginBottom:12}}>Create a RecipeBox account to sync recipes across devices. This first version uses an email plus a private sync code.</div>
+                  <div style={{display:"flex",gap:7,marginBottom:12}}>
+                    {["create","signin"].map((m) => (
+                      <button key={m} onClick={() => { setMode(m); setAccountMsg(""); }}
+                        style={{background:mode===m?C.green:C.cream2,color:mode===m?C.white:C.mid,border:"1px solid "+(mode===m?C.green:C.border),borderRadius:999,padding:"6px 12px",fontWeight:800,fontSize:"0.76em",fontFamily:SANS,cursor:"pointer"}}>
+                        {m==="create" ? "Create account" : "Sign in"}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{display:"grid",gap:9}}>
+                    <input value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="Email address" inputMode="email" autoCapitalize="none"
+                      style={{width:"100%",padding:"10px 12px",border:"1px solid "+C.border,borderRadius:8,fontFamily:SANS,fontSize:"0.88em",outline:"none"}} />
+                    {mode === "create" ? (
+                      <input value={displayName} onChange={(e)=>setDisplayName(e.target.value)} placeholder="Name (optional)"
+                        style={{width:"100%",padding:"10px 12px",border:"1px solid "+C.border,borderRadius:8,fontFamily:SANS,fontSize:"0.88em",outline:"none"}} />
+                    ) : (
+                      <input value={syncCode} onChange={(e)=>setSyncCode(e.target.value)} placeholder="Sync code" autoCapitalize="characters"
+                        style={{width:"100%",padding:"10px 12px",border:"1px solid "+C.border,borderRadius:8,fontFamily:SANS,fontSize:"0.88em",outline:"none"}} />
+                    )}
+                    <button onClick={mode === "create" ? createAccount : signIn} disabled={accountBusy}
+                      style={{background:C.terra,color:C.white,border:"none",borderRadius:9,padding:"10px 13px",fontWeight:900,fontFamily:SANS,cursor:"pointer",opacity:accountBusy?0.65:1}}>
+                      {accountBusy ? "Working..." : mode === "create" ? "Create & Sync" : "Sign In"}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {accountMsg && <div style={{marginTop:12,color:accountMsg.includes("Could not")||accountMsg.includes("did not")?C.red:C.green,fontSize:"0.8em",lineHeight:1.4,fontWeight:700}}>{accountMsg}</div>}
             </div>
 
             <div style={{background:C.white,border:"1px solid "+C.border,borderRadius:12,padding:16,boxShadow:"0 2px 10px rgba(92,61,46,0.08)"}}>
@@ -2157,6 +2282,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [mealPlan, setMealPlanState] = useState(() => loadMealPlan());
       const [timerSound, setTimerSound] = useState(() => loadTimerSound());
       const [current, setCurrent] = useState(null);
+      const [account, setAccount] = useState(() => loadAccountSession().user || null);
       const [showSplash, setShowSplash] = useState(true);
 
       useEffect(() => { saveRecipes(recipes); }, [recipes]);
@@ -2166,6 +2292,14 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       }, []);
 
       function updateMealPlan(plan) { setMealPlanState(plan); saveMealPlan(plan); }
+      async function loadCloudData(nextRecipes, nextMealPlan) {
+        const cloudRecipes = Array.isArray(nextRecipes) ? nextRecipes : await fetchJson("/api/recipes", []);
+        const cloudMealPlan = nextMealPlan && typeof nextMealPlan === "object" ? nextMealPlan : await fetchJson("/api/mealplan", {});
+        setRecipes(Array.isArray(cloudRecipes) ? cloudRecipes : []);
+        setMealPlanState(cloudMealPlan && typeof cloudMealPlan === "object" ? cloudMealPlan : {});
+        try { localStorage.setItem(RECIPES_KEY, JSON.stringify(Array.isArray(cloudRecipes) ? cloudRecipes : [])); } catch {}
+        try { localStorage.setItem(MEALPLAN_KEY, JSON.stringify(cloudMealPlan && typeof cloudMealPlan === "object" ? cloudMealPlan : {})); } catch {}
+      }
       function addRecipe(r) { setRecipes((p) => [r, ...p]); setCurrent(r); setScreen("view"); }
       function updateRecipe(r) { setRecipes((p) => p.map((x) => x.id===r.id?r:x)); setCurrent(r); }
       function deleteRecipe(id) { if (!window.confirm("Delete this recipe?")) return; setRecipes((p) => p.filter((r) => r.id!==id)); setScreen("library"); }
@@ -2186,7 +2320,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>{setCurrent(r);setScreen("view");}} onAdd={()=>setScreen("import")} onFavorite={toggleFavorite} setTab={setTab} />}
           {tab==="plan" && <MealPlanner recipes={recipes} mealPlan={mealPlan} setMealPlan={updateMealPlan} onOpen={(r)=>{setCurrent(r);setScreen("view");}} />}
           {tab==="pantry" && <PantryChef recipes={recipes} onImport={(r)=>{addRecipe(r);setTab("library");}} onOpenRecipe={(r)=>{setCurrent(r);setScreen("view");}} />}
-          {tab==="settings" && <Settings timerSound={timerSound} setTimerSound={setTimerSound} />}
+          {tab==="settings" && <Settings timerSound={timerSound} setTimerSound={setTimerSound} account={account} setAccount={setAccount} recipes={recipes} mealPlan={mealPlan} onCloudData={loadCloudData} />}
           <BottomNav tab={tab} setTab={setTab} />
         </>
       );
