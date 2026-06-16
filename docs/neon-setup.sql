@@ -18,7 +18,7 @@ create table if not exists profiles (
   user_id text primary key,
   email text,
   display_name text,
-  sync_code_hash text,
+  password_hash text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

@@ -29,11 +29,11 @@ async function getPool() {
       user_id text PRIMARY KEY,
       email text UNIQUE,
       display_name text,
-      sync_code_hash text,
+      password_hash text,
       created_at timestamptz NOT NULL DEFAULT now(),
       updated_at timestamptz NOT NULL DEFAULT now()
     )`);
-    await pool.query('ALTER TABLE profiles ADD COLUMN IF NOT EXISTS sync_code_hash text');
+    await pool.query('ALTER TABLE profiles ADD COLUMN IF NOT EXISTS password_hash text');
     await pool.query(`CREATE TABLE IF NOT EXISTS recipes (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id text NOT NULL,
@@ -112,31 +112,20 @@ function hashToken(token) {
   return crypto.createHash('sha256').update(String(token || '')).digest('hex');
 }
 
-function hashSyncCode(code, salt) {
-  const clean = String(code || '').trim().toUpperCase();
+function hashPassword(password, salt) {
+  const clean = String(password || '');
   const actualSalt = salt || crypto.randomBytes(16).toString('hex');
   const hash = crypto.scryptSync(clean, actualSalt, 32).toString('hex');
   return `scrypt$${actualSalt}$${hash}`;
 }
 
-function verifySyncCode(code, stored) {
+function verifyPassword(password, stored) {
   const parts = String(stored || '').split('$');
   if (parts.length !== 3 || parts[0] !== 'scrypt') return false;
-  const candidate = hashSyncCode(code, parts[1]).split('$')[2];
+  const candidate = hashPassword(password, parts[1]).split('$')[2];
   const a = Buffer.from(candidate, 'hex');
   const b = Buffer.from(parts[2], 'hex');
   return a.length === b.length && crypto.timingSafeEqual(a, b);
-}
-
-function makeSyncCode() {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let raw = '';
-  while (raw.length < 12) {
-    const bytes = crypto.randomBytes(12);
-    for (const byte of bytes) raw += alphabet[byte % alphabet.length];
-  }
-  raw = raw.slice(0, 12);
-  return `RB-${raw.slice(0, 4)}-${raw.slice(4, 8)}-${raw.slice(8, 12)}`;
 }
 
 function cookieOptions(req) {
@@ -422,20 +411,21 @@ app.post('/api/auth/signup', async (req, res) => {
     if (!db) return res.status(500).json({ error: 'database not configured' });
     const email = normalizeEmail(req.body.email);
     const displayName = String(req.body.displayName || '').trim().slice(0, 120);
+    const password = String(req.body.password || '');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Enter a valid email address.' });
+    if (password.length < 8) return res.status(400).json({ error: 'Use a password with at least 8 characters.' });
     const exists = await db.query('SELECT user_id FROM profiles WHERE email=$1', [email]);
-    if (exists.rows[0]) return res.status(409).json({ error: 'An account already exists for that email. Sign in with your sync code.' });
+    if (exists.rows[0]) return res.status(409).json({ error: 'An account already exists for that email. Sign in with your password.' });
     const userId = crypto.randomUUID();
-    const syncCode = makeSyncCode();
     await db.query(
-      `INSERT INTO profiles(user_id, email, display_name, sync_code_hash)
+      `INSERT INTO profiles(user_id, email, display_name, password_hash)
        VALUES($1, $2, $3, $4)`,
-      [userId, email, displayName, hashSyncCode(syncCode)]
+      [userId, email, displayName, hashPassword(password)]
     );
     if (Array.isArray(req.body.recipes) && req.body.recipes.length) await replaceUserRecipes(userId, req.body.recipes);
     if (req.body.mealPlan && typeof req.body.mealPlan === 'object') await replaceUserMealPlan(userId, req.body.mealPlan);
     await createSession(req, res, userId);
-    res.json({ ok: true, user: { id: userId, email, displayName }, syncCode });
+    res.json({ ok: true, user: { id: userId, email, displayName } });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -444,9 +434,9 @@ app.post('/api/auth/signin', async (req, res) => {
     const db = await getPool();
     if (!db) return res.status(500).json({ error: 'database not configured' });
     const email = normalizeEmail(req.body.email);
-    const result = await db.query('SELECT user_id, email, display_name, sync_code_hash FROM profiles WHERE email=$1', [email]);
+    const result = await db.query('SELECT user_id, email, display_name, password_hash FROM profiles WHERE email=$1', [email]);
     const user = result.rows[0];
-    if (!user || !verifySyncCode(req.body.syncCode, user.sync_code_hash)) return res.status(401).json({ error: 'Email or sync code did not match.' });
+    if (!user || !verifyPassword(req.body.password, user.password_hash)) return res.status(401).json({ error: 'Email or password did not match.' });
     await createSession(req, res, user.user_id);
     res.json({ ok: true, user: publicUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
