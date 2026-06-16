@@ -9,6 +9,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const SESSION_COOKIE = 'rb_session';
 const SESSION_DAYS = 3650;
+const PASSWORD_MIN_LENGTH = 6;
+const AUTH_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const AUTH_LIMIT_MAX = 20;
+const authAttempts = new Map();
 
 let pool = null;
 async function getPool() {
@@ -93,6 +97,37 @@ async function writeStore(key, value) {
 
 function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase();
+}
+
+function clientIp(req) {
+  return String(req.headers['x-forwarded-for'] || req.ip || req.socket?.remoteAddress || '')
+    .split(',')[0]
+    .trim();
+}
+
+function authLimitKey(req) {
+  return `${clientIp(req)}|${normalizeEmail(req.body?.email)}`;
+}
+
+function checkAuthLimit(req, res) {
+  const key = authLimitKey(req);
+  const now = Date.now();
+  const entry = authAttempts.get(key) || { count: 0, resetAt: now + AUTH_LIMIT_WINDOW_MS };
+  if (entry.resetAt <= now) {
+    entry.count = 0;
+    entry.resetAt = now + AUTH_LIMIT_WINDOW_MS;
+  }
+  entry.count += 1;
+  authAttempts.set(key, entry);
+  if (entry.count > AUTH_LIMIT_MAX) {
+    res.status(429).json({ error: 'Too many sign-in attempts. Wait a few minutes and try again.' });
+    return false;
+  }
+  return true;
+}
+
+function clearAuthLimit(req) {
+  authAttempts.delete(authLimitKey(req));
 }
 
 function publicUser(row) {
@@ -407,13 +442,14 @@ app.get('/api/auth/session', async (req, res) => {
 
 app.post('/api/auth/signup', async (req, res) => {
   try {
+    if (!checkAuthLimit(req, res)) return;
     const db = await getPool();
     if (!db) return res.status(500).json({ error: 'database not configured' });
     const email = normalizeEmail(req.body.email);
     const displayName = String(req.body.displayName || '').trim().slice(0, 120);
     const password = String(req.body.password || '');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Enter a valid email address.' });
-    if (password.length < 8) return res.status(400).json({ error: 'Use a password with at least 8 characters.' });
+    if (password.length < PASSWORD_MIN_LENGTH) return res.status(400).json({ error: 'Use a password with at least 6 characters.' });
     const exists = await db.query('SELECT user_id FROM profiles WHERE email=$1', [email]);
     if (exists.rows[0]) return res.status(409).json({ error: 'An account already exists for that email. Sign in with your password.' });
     const userId = crypto.randomUUID();
@@ -425,12 +461,14 @@ app.post('/api/auth/signup', async (req, res) => {
     if (Array.isArray(req.body.recipes) && req.body.recipes.length) await replaceUserRecipes(userId, req.body.recipes);
     if (req.body.mealPlan && typeof req.body.mealPlan === 'object') await replaceUserMealPlan(userId, req.body.mealPlan);
     await createSession(req, res, userId);
+    clearAuthLimit(req);
     res.json({ ok: true, user: { id: userId, email, displayName } });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/auth/signin', async (req, res) => {
   try {
+    if (!checkAuthLimit(req, res)) return;
     const db = await getPool();
     if (!db) return res.status(500).json({ error: 'database not configured' });
     const email = normalizeEmail(req.body.email);
@@ -438,6 +476,7 @@ app.post('/api/auth/signin', async (req, res) => {
     const user = result.rows[0];
     if (!user || !verifyPassword(req.body.password, user.password_hash)) return res.status(401).json({ error: 'Email or password did not match.' });
     await createSession(req, res, user.user_id);
+    clearAuthLimit(req);
     res.json({ ok: true, user: publicUser(user) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

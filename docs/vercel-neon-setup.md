@@ -51,6 +51,8 @@ RecipeBox now has a first-pass account sync prototype:
 - Users must sign in or create an account before entering the app.
 - Users create an account with an email address and password.
 - The server stores only a salted password hash.
+- Passwords require at least 6 characters with no complexity rules.
+- Auth endpoints have a lightweight per-IP/email attempt limit to slow guessing.
 - Sessions use an HTTP-only `rb_session` cookie with a long rolling expiration,
   so users stay signed in unless they sign out from Settings.
 - Signed-in recipe and meal plan data is stored by `user_id` in Neon.
