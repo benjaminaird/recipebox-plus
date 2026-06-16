@@ -69,3 +69,14 @@ create table if not exists account_sessions (
 
 create index if not exists account_sessions_user_id_idx
   on account_sessions (user_id);
+
+create table if not exists password_reset_tokens (
+  token_hash text primary key,
+  user_id text not null references profiles(user_id) on delete cascade,
+  expires_at timestamptz not null,
+  used_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists password_reset_tokens_user_id_idx
+  on password_reset_tokens (user_id);

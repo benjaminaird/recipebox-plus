@@ -12,6 +12,11 @@ Supabase free project slot.
 
 - `ANTHROPIC_API_KEY`: server-side Anthropic key for AI extraction.
 - `DATABASE_URL`: Neon Postgres pooled connection string.
+- `RESEND_API_KEY`: Resend API key for password reset emails.
+- `RESEND_FROM`: sender identity for password reset emails, for example
+  `RecipeBox <hello@yourdomain.com>`.
+- `APP_BASE_URL`: production app URL used in password reset links, for example
+  `https://recipebox-kappa.vercel.app`.
 - `YOUTUBE_API_KEY`: optional, but recommended for YouTube metadata fallback.
 
 ## Vercel project settings
@@ -53,6 +58,10 @@ RecipeBox now has a first-pass account sync prototype:
 - The server stores only a salted password hash.
 - Passwords require at least 6 characters with no complexity rules.
 - Auth endpoints have a lightweight per-IP/email attempt limit to slow guessing.
+- Password reset uses one-hour email links sent through Resend.
+- Users can delete their account from Settings after confirming their password.
+- Existing local recipes are synced only when the user chooses to add this
+  device's recipes to the account.
 - Sessions use an HTTP-only `rb_session` cookie with a long rolling expiration,
   so users stay signed in unless they sign out from Settings.
 - Signed-in recipe and meal plan data is stored by `user_id` in Neon.

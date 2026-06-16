@@ -337,8 +337,11 @@ async function fetchJson(url, fallback) {
     return fallback;
   }
 }
-function loadAccountSession() {
+    function loadAccountSession() {
   return syncGetJson("/api/auth/session", { user:null });
+}
+function hasLocalRecipeData(recipes, mealPlan) {
+  return (Array.isArray(recipes) && recipes.length > 0) || (mealPlan && typeof mealPlan === "object" && Object.keys(mealPlan).length > 0);
 }
 function loadRecipes() {
   let local = [];
@@ -1073,8 +1076,12 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [displayName, setDisplayName] = useState("");
       const [password, setPassword] = useState("");
       const [confirmPassword, setConfirmPassword] = useState("");
+      const [syncLocal, setSyncLocal] = useState(() => hasLocalRecipeData(recipes, mealPlan));
+      const [deleteConfirm, setDeleteConfirm] = useState("");
+      const [deletePassword, setDeletePassword] = useState("");
       const [accountMsg, setAccountMsg] = useState("");
       const [accountBusy, setAccountBusy] = useState(false);
+      const localDataAvailable = hasLocalRecipeData(recipes, mealPlan);
 
       function chooseSound(id) {
         setTimerSound(id);
@@ -1085,7 +1092,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         setAccountMsg("");
         try {
           if (password !== confirmPassword) throw new Error("Passwords do not match.");
-          const data = await postJson("/api/auth/signup", { email, displayName, password, recipes, mealPlan });
+          const data = await postJson("/api/auth/signup", { email, displayName, password, recipes:syncLocal?recipes:[], mealPlan:syncLocal?mealPlan:{} });
           setAccount(data.user);
           setAccountMsg("Account created. You're signed in.");
           await onCloudData();
@@ -1101,10 +1108,47 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         try {
           const data = await postJson("/api/auth/signin", { email, password });
           setAccount(data.user);
-          setAccountMsg("Signed in. Your cloud RecipeBox is loaded.");
-          await onCloudData();
+          if (syncLocal && localDataAvailable) {
+            const migrated = await postJson("/api/auth/migrate", { recipes, mealPlan });
+            await onCloudData(migrated.recipes, migrated.mealPlan);
+            setAccountMsg("Signed in. This device's recipes were added to your account.");
+          } else {
+            setAccountMsg("Signed in. Your cloud RecipeBox is loaded.");
+            await onCloudData();
+          }
         } catch (err) {
           setAccountMsg(err.message || "Could not sign in.");
+        } finally {
+          setAccountBusy(false);
+        }
+      }
+      async function requestReset() {
+        setAccountBusy(true);
+        setAccountMsg("");
+        try {
+          await postJson("/api/auth/request-password-reset", { email });
+          setAccountMsg("If that email has a RecipeBox account, a reset link is on the way.");
+        } catch (err) {
+          setAccountMsg(err.message || "Could not send reset link.");
+        } finally {
+          setAccountBusy(false);
+        }
+      }
+      async function deleteAccount() {
+        if (deleteConfirm !== "DELETE") {
+          setAccountMsg("Type DELETE to confirm account deletion.");
+          return;
+        }
+        setAccountBusy(true);
+        setAccountMsg("");
+        try {
+          await postJson("/api/auth/delete-account", { password:deletePassword });
+          setAccount(null);
+          setDeleteConfirm("");
+          setDeletePassword("");
+          setAccountMsg("Account deleted.");
+        } catch (err) {
+          setAccountMsg(err.message || "Could not delete account.");
         } finally {
           setAccountBusy(false);
         }
@@ -1165,22 +1209,38 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                       Sign out
                     </button>
                   </div>
+                  <div style={{marginTop:16,paddingTop:14,borderTop:"1px solid "+C.border}}>
+                    <div style={{fontWeight:900,color:C.red,fontSize:"0.86em",marginBottom:6}}>Delete account</div>
+                    <div style={{fontSize:"0.78em",color:C.light,lineHeight:1.45,marginBottom:10}}>This permanently deletes your account, recipes, meal plan, and sessions from RecipeBox cloud storage.</div>
+                    <div style={{display:"grid",gap:8}}>
+                      <input value={deleteConfirm} onChange={(e)=>setDeleteConfirm(e.target.value)} placeholder="Type DELETE"
+                        style={{width:"100%",padding:"9px 11px",border:"1px solid "+C.border,borderRadius:8,fontFamily:SANS,fontSize:"0.84em",outline:"none"}} />
+                      <input type="password" value={deletePassword} onChange={(e)=>setDeletePassword(e.target.value)} placeholder="Password"
+                        style={{width:"100%",padding:"9px 11px",border:"1px solid "+C.border,borderRadius:8,fontFamily:SANS,fontSize:"0.84em",outline:"none"}} />
+                      <button onClick={deleteAccount} disabled={accountBusy || deleteConfirm !== "DELETE" || !deletePassword}
+                        style={{background:C.red,color:C.white,border:"none",borderRadius:8,padding:"9px 11px",fontWeight:900,fontSize:"0.78em",fontFamily:SANS,cursor:"pointer",opacity:(accountBusy || deleteConfirm !== "DELETE" || !deletePassword)?0.55:1}}>
+                        Delete my account
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div>
-                  <div style={{fontSize:"0.84em",color:C.light,lineHeight:1.5,marginBottom:12}}>Create a RecipeBox account to sync recipes across devices.</div>
+                  <div style={{fontSize:"0.84em",color:C.light,lineHeight:1.5,marginBottom:12}}>Start your RecipeBox with email and password. Apple and Google sign-in are planned for v1.</div>
                   <div style={{display:"flex",gap:7,marginBottom:12}}>
-                    {["create","signin"].map((m) => (
+                    {["create","signin","reset"].map((m) => (
                       <button key={m} onClick={() => { setMode(m); setAccountMsg(""); }}
                         style={{background:mode===m?C.green:C.cream2,color:mode===m?C.white:C.mid,border:"1px solid "+(mode===m?C.green:C.border),borderRadius:999,padding:"6px 12px",fontWeight:800,fontSize:"0.76em",fontFamily:SANS,cursor:"pointer"}}>
-                        {m==="create" ? "Create account" : "Sign in"}
+                        {m==="create" ? "Create account" : m==="signin" ? "Sign in" : "Reset"}
                       </button>
                     ))}
                   </div>
                   <div style={{display:"grid",gap:9}}>
                     <input value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="Email address" inputMode="email" autoCapitalize="none"
                       style={{width:"100%",padding:"10px 12px",border:"1px solid "+C.border,borderRadius:8,fontFamily:SANS,fontSize:"0.88em",outline:"none"}} />
-                    {mode === "create" ? (
+                    {mode === "reset" ? (
+                      <div style={{fontSize:"0.78em",color:C.light,lineHeight:1.45}}>Enter your email and RecipeBox will send a reset link.</div>
+                    ) : mode === "create" ? (
                       <>
                         <input value={displayName} onChange={(e)=>setDisplayName(e.target.value)} placeholder="Name (optional)"
                           style={{width:"100%",padding:"10px 12px",border:"1px solid "+C.border,borderRadius:8,fontFamily:SANS,fontSize:"0.88em",outline:"none"}} />
@@ -1194,9 +1254,15 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                       <input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} placeholder="Password"
                         style={{width:"100%",padding:"10px 12px",border:"1px solid "+C.border,borderRadius:8,fontFamily:SANS,fontSize:"0.88em",outline:"none"}} />
                     )}
-                    <button onClick={mode === "create" ? createAccount : signIn} disabled={accountBusy}
+                    {mode !== "reset" && localDataAvailable && (
+                      <label style={{display:"flex",gap:8,alignItems:"flex-start",fontSize:"0.78em",color:C.mid,lineHeight:1.35}}>
+                        <input type="checkbox" checked={syncLocal} onChange={(e)=>setSyncLocal(e.target.checked)} style={{marginTop:2}} />
+                        Add recipes already on this device to the account.
+                      </label>
+                    )}
+                    <button onClick={mode === "reset" ? requestReset : mode === "create" ? createAccount : signIn} disabled={accountBusy}
                       style={{background:C.terra,color:C.white,border:"none",borderRadius:9,padding:"10px 13px",fontWeight:900,fontFamily:SANS,cursor:"pointer",opacity:accountBusy?0.65:1}}>
-                      {accountBusy ? "Working..." : mode === "create" ? "Create & Sync" : "Sign In"}
+                      {accountBusy ? "Working..." : mode === "reset" ? "Send Reset Link" : mode === "create" ? "Create Account" : "Sign In"}
                     </button>
                   </div>
                 </div>
@@ -2260,21 +2326,23 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       );
     }
 
-    function AuthScreen({ recipes, mealPlan, setAccount, onCloudData }) {
-      const [mode, setMode] = useState("create");
+    function AuthScreen({ recipes, mealPlan, setAccount, onCloudData, initialMode, resetToken }) {
+      const [mode, setMode] = useState(initialMode || "create");
       const [email, setEmail] = useState("");
       const [displayName, setDisplayName] = useState("");
       const [password, setPassword] = useState("");
       const [confirmPassword, setConfirmPassword] = useState("");
+      const [syncLocal, setSyncLocal] = useState(() => hasLocalRecipeData(recipes, mealPlan));
       const [message, setMessage] = useState("");
       const [busy, setBusy] = useState(false);
+      const localDataAvailable = hasLocalRecipeData(recipes, mealPlan);
 
       async function createAccount() {
         setBusy(true);
         setMessage("");
         try {
           if (password !== confirmPassword) throw new Error("Passwords do not match.");
-          const data = await postJson("/api/auth/signup", { email, displayName, password, recipes, mealPlan });
+          const data = await postJson("/api/auth/signup", { email, displayName, password, recipes:syncLocal?recipes:[], mealPlan:syncLocal?mealPlan:{} });
           setAccount(data.user);
           await onCloudData();
         } catch (err) {
@@ -2289,38 +2357,80 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         try {
           const data = await postJson("/api/auth/signin", { email, password });
           setAccount(data.user);
-          await onCloudData();
+          if (syncLocal && localDataAvailable) {
+            const migrated = await postJson("/api/auth/migrate", { recipes, mealPlan });
+            await onCloudData(migrated.recipes, migrated.mealPlan);
+          } else {
+            await onCloudData();
+          }
         } catch (err) {
           setMessage(err.message || "Could not sign in.");
         } finally {
           setBusy(false);
         }
       }
+      async function requestReset() {
+        setBusy(true);
+        setMessage("");
+        try {
+          await postJson("/api/auth/request-password-reset", { email });
+          setMessage("If that email has a RecipeBox account, a reset link is on the way.");
+        } catch (err) {
+          setMessage(err.message || "Could not send reset link.");
+        } finally {
+          setBusy(false);
+        }
+      }
+      async function saveNewPassword() {
+        setBusy(true);
+        setMessage("");
+        try {
+          if (password !== confirmPassword) throw new Error("Passwords do not match.");
+          await postJson("/api/auth/reset-password", { token:resetToken, password });
+          window.history.replaceState({}, "", window.location.pathname);
+          setPassword("");
+          setConfirmPassword("");
+          setMode("signin");
+          setMessage("Password updated. Sign in with your new password.");
+        } catch (err) {
+          setMessage(err.message || "Could not reset password.");
+        } finally {
+          setBusy(false);
+        }
+      }
 
       const isCreate = mode === "create";
+      const isResetRequest = mode === "reset";
+      const isNewPassword = mode === "newpass";
       return (
         <div style={{minHeight:"100vh",background:"linear-gradient(135deg, #1C1410 0%, #5C3D2E 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
           <div style={{width:"100%",maxWidth:430}}>
             <div style={{textAlign:"center",marginBottom:20}}>
               <img src="/icon-192.png" alt="" style={{width:92,height:92,borderRadius:22,display:"block",margin:"0 auto 14px",boxShadow:"0 18px 55px rgba(28,20,16,0.28)"}} />
               <div style={{fontFamily:SERIF,fontSize:"2.3em",color:C.white,lineHeight:1}}>RecipeBox</div>
-              <div style={{marginTop:6,color:C.brownLight,fontSize:"0.9em",fontWeight:700}}>Sign in to keep your recipes synced</div>
+              <div style={{marginTop:6,color:C.brownLight,fontSize:"0.9em",fontWeight:700}}>Start your RecipeBox</div>
             </div>
 
             <div style={{background:C.cream,border:"1px solid rgba(255,255,255,0.16)",borderRadius:18,padding:18,boxShadow:"0 18px 60px rgba(0,0,0,0.28)"}}>
-              <div style={{display:"flex",gap:8,marginBottom:14}}>
-                {["create","signin"].map((m) => (
-                  <button key={m} onClick={() => { setMode(m); setMessage(""); }}
-                    style={{flex:1,background:mode===m?C.green:C.white,color:mode===m?C.white:C.mid,border:"1px solid "+(mode===m?C.green:C.border),borderRadius:999,padding:"8px 12px",fontWeight:900,fontSize:"0.8em",fontFamily:SANS,cursor:"pointer"}}>
-                    {m==="create" ? "Create account" : "Sign in"}
-                  </button>
-                ))}
-              </div>
+              {!isNewPassword && (
+                <div style={{display:"flex",gap:8,marginBottom:14}}>
+                  {["create","signin"].map((m) => (
+                    <button key={m} onClick={() => { setMode(m); setMessage(""); }}
+                      style={{flex:1,background:mode===m?C.green:C.white,color:mode===m?C.white:C.mid,border:"1px solid "+(mode===m?C.green:C.border),borderRadius:999,padding:"8px 12px",fontWeight:900,fontSize:"0.8em",fontFamily:SANS,cursor:"pointer"}}>
+                      {m==="create" ? "Create account" : "Sign in"}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               <div style={{display:"grid",gap:10}}>
-                <input value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="Email address" inputMode="email" autoCapitalize="none"
-                  style={{width:"100%",padding:"12px 13px",border:"1px solid "+C.border,borderRadius:10,fontFamily:SANS,fontSize:"0.92em",outline:"none",background:C.white}} />
-                {isCreate ? (
+                {!isNewPassword && (
+                  <input value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="Email address" inputMode="email" autoCapitalize="none"
+                    style={{width:"100%",padding:"12px 13px",border:"1px solid "+C.border,borderRadius:10,fontFamily:SANS,fontSize:"0.92em",outline:"none",background:C.white}} />
+                )}
+                {isResetRequest ? (
+                  <div style={{fontSize:"0.8em",color:C.light,lineHeight:1.45}}>Enter your email and RecipeBox will send a secure reset link.</div>
+                ) : isCreate ? (
                   <>
                     <input value={displayName} onChange={(e)=>setDisplayName(e.target.value)} placeholder="Name (optional)"
                       style={{width:"100%",padding:"12px 13px",border:"1px solid "+C.border,borderRadius:10,fontFamily:SANS,fontSize:"0.92em",outline:"none",background:C.white}} />
@@ -2330,18 +2440,43 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     <input type="password" value={confirmPassword} onChange={(e)=>setConfirmPassword(e.target.value)} placeholder="Confirm password"
                       style={{width:"100%",padding:"12px 13px",border:"1px solid "+C.border,borderRadius:10,fontFamily:SANS,fontSize:"0.92em",outline:"none",background:C.white}} />
                   </>
+                ) : isNewPassword ? (
+                  <>
+                    <div style={{fontFamily:SERIF,fontSize:"1.25em",color:C.dark}}>Choose a new password</div>
+                    <input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} placeholder="New password"
+                      style={{width:"100%",padding:"12px 13px",border:"1px solid "+C.border,borderRadius:10,fontFamily:SANS,fontSize:"0.92em",outline:"none",background:C.white}} />
+                    <div style={{color:C.light,fontSize:"0.74em",lineHeight:1.35,marginTop:-5}}>At least 6 characters. No special rules.</div>
+                    <input type="password" value={confirmPassword} onChange={(e)=>setConfirmPassword(e.target.value)} placeholder="Confirm new password"
+                      style={{width:"100%",padding:"12px 13px",border:"1px solid "+C.border,borderRadius:10,fontFamily:SANS,fontSize:"0.92em",outline:"none",background:C.white}} />
+                  </>
                 ) : (
                   <input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} placeholder="Password"
                     style={{width:"100%",padding:"12px 13px",border:"1px solid "+C.border,borderRadius:10,fontFamily:SANS,fontSize:"0.92em",outline:"none",background:C.white}} />
                 )}
-                <button onClick={isCreate ? createAccount : signIn} disabled={busy}
+                {!isResetRequest && !isNewPassword && localDataAvailable && (
+                  <label style={{display:"flex",gap:8,alignItems:"flex-start",fontSize:"0.78em",color:C.mid,lineHeight:1.35}}>
+                    <input type="checkbox" checked={syncLocal} onChange={(e)=>setSyncLocal(e.target.checked)} style={{marginTop:2}} />
+                    Add recipes already on this device to the account.
+                  </label>
+                )}
+                <button onClick={isNewPassword ? saveNewPassword : isResetRequest ? requestReset : isCreate ? createAccount : signIn} disabled={busy}
                   style={{background:C.terra,color:C.white,border:"none",borderRadius:11,padding:"12px 14px",fontWeight:900,fontFamily:SANS,cursor:"pointer",opacity:busy?0.65:1}}>
-                  {busy ? "Working..." : isCreate ? "Create & Sync" : "Sign In"}
+                  {busy ? "Working..." : isNewPassword ? "Save New Password" : isResetRequest ? "Send Reset Link" : isCreate ? "Create Account" : "Sign In"}
                 </button>
+                {!isCreate && !isResetRequest && !isNewPassword && (
+                  <button onClick={() => { setMode("reset"); setMessage(""); }} style={{background:"none",border:"none",color:C.green,fontWeight:900,fontFamily:SANS,cursor:"pointer",fontSize:"0.82em"}}>
+                    Forgot password?
+                  </button>
+                )}
+                {isResetRequest && (
+                  <button onClick={() => { setMode("signin"); setMessage(""); }} style={{background:"none",border:"none",color:C.green,fontWeight:900,fontFamily:SANS,cursor:"pointer",fontSize:"0.82em"}}>
+                    Back to sign in
+                  </button>
+                )}
               </div>
 
               {message && <div style={{marginTop:12,color:message.includes("Could not")||message.includes("did not")?C.red:C.green,fontSize:"0.82em",lineHeight:1.45,fontWeight:800}}>{message}</div>}
-              <div style={{marginTop:14,color:C.light,fontSize:"0.76em",lineHeight:1.45,textAlign:"center"}}>Stay signed in on this device. Sign out anytime from Settings.</div>
+              {!isNewPassword && <div style={{marginTop:14,color:C.light,fontSize:"0.76em",lineHeight:1.45,textAlign:"center"}}>Stay signed in on this device. Sign out anytime from Settings. Apple and Google sign-in are planned for v1.</div>}
             </div>
           </div>
         </div>
@@ -2370,6 +2505,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [current, setCurrent] = useState(null);
       const [account, setAccount] = useState(() => loadAccountSession().user || null);
       const [showSplash, setShowSplash] = useState(true);
+      const resetToken = (() => { try { return new URLSearchParams(window.location.search).get("reset"); } catch { return null; } })();
 
       useEffect(() => { saveRecipes(recipes); }, [recipes]);
       useEffect(() => {
@@ -2392,6 +2528,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       function toggleFavorite(id) { setRecipes((p) => p.map((r) => r.id===id?{...r,favorite:!r.favorite}:r)); }
 
       if (showSplash) return <SplashScreen />;
+      if (resetToken) return <AuthScreen recipes={recipes} mealPlan={mealPlan} setAccount={setAccount} onCloudData={loadCloudData} initialMode="newpass" resetToken={resetToken} />;
       if (!account) return <AuthScreen recipes={recipes} mealPlan={mealPlan} setAccount={setAccount} onCloudData={loadCloudData} />;
       if (screen==="import") return <ImportScreen onDone={(r)=>{addRecipe(r);setScreen("library");}} onCancel={()=>setScreen("library")} />;
       if (screen==="edit"&&current) return <EditRecipe recipe={current} onSave={(r)=>{ if(recipes.find((x)=>x.id===r.id)) updateRecipe(r); else addRecipe(r); setScreen("view"); }} onCancel={()=>setScreen("view")} />;

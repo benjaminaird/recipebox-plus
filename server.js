@@ -12,6 +12,7 @@ const SESSION_DAYS = 3650;
 const PASSWORD_MIN_LENGTH = 6;
 const AUTH_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const AUTH_LIMIT_MAX = 20;
+const RESET_TOKEN_MINUTES = 60;
 const authAttempts = new Map();
 
 let pool = null;
@@ -72,6 +73,14 @@ async function getPool() {
       last_seen_at timestamptz NOT NULL DEFAULT now()
     )`);
     await pool.query('CREATE INDEX IF NOT EXISTS account_sessions_user_id_idx ON account_sessions (user_id)');
+    await pool.query(`CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      token_hash text PRIMARY KEY,
+      user_id text NOT NULL REFERENCES profiles(user_id) ON DELETE CASCADE,
+      expires_at timestamptz NOT NULL,
+      used_at timestamptz,
+      created_at timestamptz NOT NULL DEFAULT now()
+    )`);
+    await pool.query('CREATE INDEX IF NOT EXISTS password_reset_tokens_user_id_idx ON password_reset_tokens (user_id)');
   }
   return pool;
 }
@@ -130,6 +139,16 @@ function clearAuthLimit(req) {
   authAttempts.delete(authLimitKey(req));
 }
 
+function escapeHtml(value) {
+  return String(value || '').replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }[ch]));
+}
+
 function publicUser(row) {
   if (!row) return null;
   return { id: row.user_id, email: row.email, displayName: row.display_name || '' };
@@ -145,6 +164,13 @@ function parseCookies(req) {
 
 function hashToken(token) {
   return crypto.createHash('sha256').update(String(token || '')).digest('hex');
+}
+
+function requestOrigin(req) {
+  if (process.env.APP_BASE_URL) return process.env.APP_BASE_URL.replace(/\/$/, '');
+  const proto = String(req.headers['x-forwarded-proto'] || req.protocol || 'http').split(',')[0].trim();
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  return host ? `${proto}://${host}` : 'http://localhost:3000';
 }
 
 function hashPassword(password, salt) {
@@ -183,6 +209,38 @@ async function createSession(req, res, userId) {
     [tokenHash, userId, SESSION_DAYS]
   );
   res.cookie(SESSION_COOKIE, token, cookieOptions(req));
+}
+
+async function sendPasswordResetEmail(email, resetUrl) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) throw new Error('Password reset email is not configured.');
+  const from = process.env.RESEND_FROM || 'RecipeBox <onboarding@resend.dev>';
+  const safeUrl = escapeHtml(resetUrl);
+  const html = `
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.5;color:#2F211B">
+      <h1 style="font-family:Georgia,serif">Reset your RecipeBox password</h1>
+      <p>Use the button below to choose a new password. This link expires in ${RESET_TOKEN_MINUTES} minutes.</p>
+      <p><a href="${safeUrl}" style="display:inline-block;background:#C76F3A;color:#fff;text-decoration:none;font-weight:700;padding:12px 16px;border-radius:10px">Reset password</a></p>
+      <p>If you did not ask for this, you can ignore this email.</p>
+    </div>`;
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from,
+      to: [email],
+      subject: 'Reset your RecipeBox password',
+      html,
+      text: `Reset your RecipeBox password: ${resetUrl}\n\nThis link expires in ${RESET_TOKEN_MINUTES} minutes.`,
+    }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.message || data.error || 'Could not send reset email.');
+  }
 }
 
 async function currentUser(req) {
@@ -481,11 +539,97 @@ app.post('/api/auth/signin', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+app.post('/api/auth/request-password-reset', async (req, res) => {
+  try {
+    if (!checkAuthLimit(req, res)) return;
+    const db = await getPool();
+    if (!db) return res.status(500).json({ error: 'database not configured' });
+    if (!process.env.RESEND_API_KEY) return res.status(503).json({ error: 'Password reset email is not configured yet.' });
+    const email = normalizeEmail(req.body.email);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.json({ ok: true });
+    const result = await db.query('SELECT user_id, email FROM profiles WHERE email=$1', [email]);
+    const user = result.rows[0];
+    if (user) {
+      const token = crypto.randomBytes(32).toString('base64url');
+      await db.query(
+        `INSERT INTO password_reset_tokens(token_hash, user_id, expires_at)
+         VALUES($1, $2, now() + ($3::text || ' minutes')::interval)`,
+        [hashToken(token), user.user_id, RESET_TOKEN_MINUTES]
+      );
+      const resetUrl = `${requestOrigin(req)}/?reset=${encodeURIComponent(token)}`;
+      await sendPasswordResetEmail(user.email, resetUrl);
+    }
+    clearAuthLimit(req);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/auth/reset-password', async (req, res) => {
+  try {
+    if (!checkAuthLimit(req, res)) return;
+    const db = await getPool();
+    if (!db) return res.status(500).json({ error: 'database not configured' });
+    const token = String(req.body.token || '');
+    const password = String(req.body.password || '');
+    if (password.length < PASSWORD_MIN_LENGTH) return res.status(400).json({ error: 'Use a password with at least 6 characters.' });
+    const result = await db.query(
+      `SELECT token_hash, user_id
+       FROM password_reset_tokens
+       WHERE token_hash=$1 AND used_at IS NULL AND expires_at > now()`,
+      [hashToken(token)]
+    );
+    const reset = result.rows[0];
+    if (!reset) return res.status(400).json({ error: 'This reset link is invalid or expired.' });
+    await db.query('BEGIN');
+    try {
+      await db.query('UPDATE profiles SET password_hash=$1, updated_at=now() WHERE user_id=$2', [hashPassword(password), reset.user_id]);
+      await db.query('UPDATE password_reset_tokens SET used_at=now() WHERE token_hash=$1', [reset.token_hash]);
+      await db.query('DELETE FROM account_sessions WHERE user_id=$1', [reset.user_id]);
+      await db.query('COMMIT');
+    } catch (err) {
+      await db.query('ROLLBACK');
+      throw err;
+    }
+    clearAuthLimit(req);
+    res.clearCookie(SESSION_COOKIE, { path: '/' });
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.post('/api/auth/signout', async (req, res) => {
   try {
     const db = await getPool();
     const token = parseCookies(req)[SESSION_COOKIE];
     if (db && token) await db.query('DELETE FROM account_sessions WHERE token_hash=$1', [hashToken(token)]);
+    res.clearCookie(SESSION_COOKIE, { path: '/' });
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/auth/delete-account', async (req, res) => {
+  try {
+    if (!checkAuthLimit(req, res)) return;
+    const db = await getPool();
+    if (!db) return res.status(500).json({ error: 'database not configured' });
+    const user = await currentUser(req);
+    if (!user) return res.status(401).json({ error: 'sign in required' });
+    const result = await db.query('SELECT user_id, password_hash FROM profiles WHERE user_id=$1', [user.user_id]);
+    const profile = result.rows[0];
+    if (!profile || !verifyPassword(req.body.password, profile.password_hash)) return res.status(401).json({ error: 'Password did not match.' });
+    await db.query('BEGIN');
+    try {
+      await db.query('DELETE FROM recipes WHERE user_id=$1', [user.user_id]);
+      await db.query('DELETE FROM meal_plans WHERE user_id=$1', [user.user_id]);
+      await db.query('DELETE FROM user_settings WHERE user_id=$1', [user.user_id]);
+      await db.query('DELETE FROM password_reset_tokens WHERE user_id=$1', [user.user_id]);
+      await db.query('DELETE FROM account_sessions WHERE user_id=$1', [user.user_id]);
+      await db.query('DELETE FROM profiles WHERE user_id=$1', [user.user_id]);
+      await db.query('COMMIT');
+    } catch (err) {
+      await db.query('ROLLBACK');
+      throw err;
+    }
+    clearAuthLimit(req);
     res.clearCookie(SESSION_COOKIE, { path: '/' });
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
