@@ -8,6 +8,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 const SESSION_COOKIE = 'rb_session';
+const SESSION_DAYS = 3650;
 
 let pool = null;
 async function getPool() {
@@ -128,7 +129,13 @@ function verifySyncCode(code, stored) {
 }
 
 function makeSyncCode() {
-  const raw = crypto.randomBytes(9).toString('base64url').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let raw = '';
+  while (raw.length < 12) {
+    const bytes = crypto.randomBytes(12);
+    for (const byte of bytes) raw += alphabet[byte % alphabet.length];
+  }
+  raw = raw.slice(0, 12);
   return `RB-${raw.slice(0, 4)}-${raw.slice(4, 8)}-${raw.slice(8, 12)}`;
 }
 
@@ -137,7 +144,7 @@ function cookieOptions(req) {
     httpOnly: true,
     sameSite: 'lax',
     secure: !!(process.env.VERCEL || req.headers['x-forwarded-proto'] === 'https'),
-    maxAge: 1000 * 60 * 60 * 24 * 30,
+    maxAge: 1000 * 60 * 60 * 24 * SESSION_DAYS,
     path: '/',
   };
 }
@@ -148,8 +155,8 @@ async function createSession(req, res, userId) {
   const tokenHash = hashToken(token);
   await db.query(
     `INSERT INTO account_sessions(token_hash, user_id, expires_at)
-     VALUES($1, $2, now() + interval '30 days')`,
-    [tokenHash, userId]
+     VALUES($1, $2, now() + ($3::text || ' days')::interval)`,
+    [tokenHash, userId, SESSION_DAYS]
   );
   res.cookie(SESSION_COOKIE, token, cookieOptions(req));
 }
@@ -167,7 +174,12 @@ async function currentUser(req) {
     [hashToken(token)]
   );
   if (!result.rows[0]) return null;
-  await db.query('UPDATE account_sessions SET last_seen_at=now() WHERE token_hash=$1', [hashToken(token)]);
+  await db.query(
+    `UPDATE account_sessions
+     SET last_seen_at=now(), expires_at=now() + ($2::text || ' days')::interval
+     WHERE token_hash=$1`,
+    [hashToken(token), SESSION_DAYS]
+  );
   return result.rows[0];
 }
 

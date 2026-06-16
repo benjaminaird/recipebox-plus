@@ -2262,6 +2262,109 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       );
     }
 
+    function AuthScreen({ recipes, mealPlan, setAccount, onCloudData }) {
+      const [mode, setMode] = useState("create");
+      const [email, setEmail] = useState("");
+      const [displayName, setDisplayName] = useState("");
+      const [syncCode, setSyncCode] = useState("");
+      const [newSyncCode, setNewSyncCode] = useState("");
+      const [pendingUser, setPendingUser] = useState(null);
+      const [message, setMessage] = useState("");
+      const [busy, setBusy] = useState(false);
+
+      async function createAccount() {
+        setBusy(true);
+        setMessage("");
+        setNewSyncCode("");
+        try {
+          const data = await postJson("/api/auth/signup", { email, displayName, recipes, mealPlan });
+          setPendingUser(data.user);
+          setNewSyncCode(data.syncCode);
+          setMessage("Account created. Save your sync code before you continue.");
+        } catch (err) {
+          setMessage(err.message || "Could not create account.");
+        } finally {
+          setBusy(false);
+        }
+      }
+      async function continueAfterCreate() {
+        if (!pendingUser) return;
+        setBusy(true);
+        try {
+          setAccount(pendingUser);
+          await onCloudData();
+        } finally {
+          setBusy(false);
+        }
+      }
+      async function signIn() {
+        setBusy(true);
+        setMessage("");
+        try {
+          const data = await postJson("/api/auth/signin", { email, syncCode });
+          setAccount(data.user);
+          await onCloudData();
+        } catch (err) {
+          setMessage(err.message || "Could not sign in.");
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      const isCreate = mode === "create";
+      return (
+        <div style={{minHeight:"100vh",background:"linear-gradient(135deg, #1C1410 0%, #5C3D2E 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{width:"100%",maxWidth:430}}>
+            <div style={{textAlign:"center",marginBottom:20}}>
+              <img src="/icon-192.png" alt="" style={{width:92,height:92,borderRadius:22,display:"block",margin:"0 auto 14px",boxShadow:"0 18px 55px rgba(28,20,16,0.28)"}} />
+              <div style={{fontFamily:SERIF,fontSize:"2.3em",color:C.white,lineHeight:1}}>RecipeBox</div>
+              <div style={{marginTop:6,color:C.brownLight,fontSize:"0.9em",fontWeight:700}}>Sign in to keep your recipes synced</div>
+            </div>
+
+            <div style={{background:C.cream,border:"1px solid rgba(255,255,255,0.16)",borderRadius:18,padding:18,boxShadow:"0 18px 60px rgba(0,0,0,0.28)"}}>
+              <div style={{display:"flex",gap:8,marginBottom:14}}>
+                {["create","signin"].map((m) => (
+                  <button key={m} onClick={() => { setMode(m); setMessage(""); setNewSyncCode(""); setPendingUser(null); }}
+                    style={{flex:1,background:mode===m?C.green:C.white,color:mode===m?C.white:C.mid,border:"1px solid "+(mode===m?C.green:C.border),borderRadius:999,padding:"8px 12px",fontWeight:900,fontSize:"0.8em",fontFamily:SANS,cursor:"pointer"}}>
+                    {m==="create" ? "Create account" : "Sign in"}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{display:"grid",gap:10}}>
+                <input value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="Email address" inputMode="email" autoCapitalize="none"
+                  style={{width:"100%",padding:"12px 13px",border:"1px solid "+C.border,borderRadius:10,fontFamily:SANS,fontSize:"0.92em",outline:"none",background:C.white}} />
+                {isCreate ? (
+                  <input value={displayName} onChange={(e)=>setDisplayName(e.target.value)} placeholder="Name (optional)"
+                    style={{width:"100%",padding:"12px 13px",border:"1px solid "+C.border,borderRadius:10,fontFamily:SANS,fontSize:"0.92em",outline:"none",background:C.white}} />
+                ) : (
+                  <input value={syncCode} onChange={(e)=>setSyncCode(e.target.value)} placeholder="Sync code" autoCapitalize="characters"
+                    style={{width:"100%",padding:"12px 13px",border:"1px solid "+C.border,borderRadius:10,fontFamily:SANS,fontSize:"0.92em",outline:"none",background:C.white}} />
+                )}
+                <button onClick={isCreate ? createAccount : signIn} disabled={busy}
+                  style={{background:C.terra,color:C.white,border:"none",borderRadius:11,padding:"12px 14px",fontWeight:900,fontFamily:SANS,cursor:"pointer",opacity:busy?0.65:1}}>
+                  {busy ? "Working..." : isCreate ? "Create & Sync" : "Sign In"}
+                </button>
+              </div>
+
+              {newSyncCode && (
+                <div style={{background:C.goldPale,border:"1px solid "+C.goldLight,borderRadius:12,padding:12,marginTop:14}}>
+                  <div style={{fontWeight:900,color:C.brown,fontSize:"0.82em",marginBottom:5}}>Save this sync code</div>
+                  <div style={{fontFamily:"monospace",fontSize:"1.08em",color:C.dark,letterSpacing:0.5}}>{newSyncCode}</div>
+                  <div style={{color:C.light,fontSize:"0.76em",lineHeight:1.4,marginTop:6}}>You will need it to sign in on another device.</div>
+                  <button onClick={continueAfterCreate} disabled={busy} style={{width:"100%",marginTop:10,background:C.green,color:C.white,border:"none",borderRadius:9,padding:"10px 12px",fontWeight:900,fontFamily:SANS,cursor:"pointer",opacity:busy?0.65:1}}>
+                    Continue to RecipeBox
+                  </button>
+                </div>
+              )}
+              {message && <div style={{marginTop:12,color:message.includes("Could not")||message.includes("did not")?C.red:C.green,fontSize:"0.82em",lineHeight:1.45,fontWeight:800}}>{message}</div>}
+              <div style={{marginTop:14,color:C.light,fontSize:"0.76em",lineHeight:1.45,textAlign:"center"}}>Stay signed in on this device. Sign out anytime from Settings.</div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     function SplashScreen() {
       return (
         <div style={{minHeight:"100vh",background:"linear-gradient(135deg, #1C1410 0%, #5C3D2E 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:28}}>
@@ -2306,6 +2409,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       function toggleFavorite(id) { setRecipes((p) => p.map((r) => r.id===id?{...r,favorite:!r.favorite}:r)); }
 
       if (showSplash) return <SplashScreen />;
+      if (!account) return <AuthScreen recipes={recipes} mealPlan={mealPlan} setAccount={setAccount} onCloudData={loadCloudData} />;
       if (screen==="import") return <ImportScreen onDone={(r)=>{addRecipe(r);setScreen("library");}} onCancel={()=>setScreen("library")} />;
       if (screen==="edit"&&current) return <EditRecipe recipe={current} onSave={(r)=>{ if(recipes.find((x)=>x.id===r.id)) updateRecipe(r); else addRecipe(r); setScreen("view"); }} onCancel={()=>setScreen("view")} />;
       if (screen==="view"&&current) return (
