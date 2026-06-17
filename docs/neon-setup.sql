@@ -93,6 +93,68 @@ create table if not exists ai_usage_monthly (
 create index if not exists ai_usage_monthly_period_idx
   on ai_usage_monthly (period);
 
+create table if not exists user_entitlements (
+  user_id text primary key references profiles(user_id) on delete cascade,
+  plan text not null default 'beta',
+  subscription_status text not null default 'beta',
+  ai_monthly_limit integer,
+  ai_daily_limit integer,
+  import_daily_limit integer,
+  adjust_daily_limit integer,
+  pantry_daily_limit integer,
+  stripe_customer_id text,
+  stripe_subscription_id text,
+  updated_at timestamptz not null default now(),
+  updated_by text,
+  metadata jsonb not null default '{}'::jsonb
+);
+
+create table if not exists subscription_events (
+  id uuid primary key default gen_random_uuid(),
+  user_id text references profiles(user_id) on delete set null,
+  provider text not null,
+  event_type text not null,
+  provider_event_id text,
+  payload jsonb not null default '{}'::jsonb,
+  processed_at timestamptz not null default now()
+);
+
+create index if not exists subscription_events_user_idx
+  on subscription_events (user_id, processed_at desc);
+
+create table if not exists rate_limit_counters (
+  key text not null,
+  bucket text not null,
+  count integer not null default 0,
+  reset_at timestamptz not null,
+  updated_at timestamptz not null default now(),
+  primary key(key, bucket)
+);
+
+create index if not exists rate_limit_counters_reset_idx
+  on rate_limit_counters (reset_at);
+
+create table if not exists ai_usage_events (
+  id uuid primary key default gen_random_uuid(),
+  request_id text not null,
+  user_id text references profiles(user_id) on delete set null,
+  feature text not null,
+  model text not null,
+  tier text not null,
+  input_tokens integer,
+  output_tokens integer,
+  estimated_cost_usd numeric(12,6),
+  success boolean not null,
+  error_message text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists ai_usage_events_user_created_idx
+  on ai_usage_events (user_id, created_at desc);
+
+create index if not exists ai_usage_events_created_idx
+  on ai_usage_events (created_at desc);
+
 create table if not exists app_control_sources (
   id text primary key,
   title text not null,

@@ -4,6 +4,15 @@ const crypto = require('crypto');
 const { fetchTranscript } = require('youtube-transcript');
 
 const app = express();
+app.disable('x-powered-by');
+app.use(function securityHeaders(req, res, next) {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=(), payment=()');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-site');
+  next();
+});
 app.use(function(req, res, next) {
   const origin = req.headers.origin;
   if (isAllowedOrigin(origin)) {
@@ -70,6 +79,19 @@ const ADMIN_SECTION_NAMES = [
   'Integrations',
   'WhatsNext Sync',
   'Change Log / Rollback',
+];
+const DEFAULT_PLAN = process.env.DEFAULT_ACCOUNT_PLAN || 'beta';
+const PLAN_ENTITLEMENTS = {
+  free: { aiMonthlyLimit: 10, aiDailyLimit: 8, importDailyLimit: 6, adjustDailyLimit: 8, pantryDailyLimit: 12 },
+  beta: { aiMonthlyLimit: AI_MONTHLY_LIMIT, aiDailyLimit: 60, importDailyLimit: 35, adjustDailyLimit: 40, pantryDailyLimit: 50 },
+  plus: { aiMonthlyLimit: 300, aiDailyLimit: 150, importDailyLimit: 100, adjustDailyLimit: 100, pantryDailyLimit: 120 },
+  master_admin: { aiMonthlyLimit: null, aiDailyLimit: null, importDailyLimit: null, adjustDailyLimit: null, pantryDailyLimit: null, unlimited: true },
+};
+const AI_FEATURE_PATTERNS = [
+  { feature: 'import', patterns: ['extract the recipe', 'recipe extraction', 'repair malformed recipe'] },
+  { feature: 'adjust', patterns: ['adjust this recipe', 'request:'] },
+  { feature: 'pantry', patterns: ['pantry chef', 'what i have', 'ingredients i have'] },
+  { feature: 'chat-editor', patterns: ['recipe editor', 'chat editor'] },
 ];
 
 let pool = null;
@@ -148,6 +170,56 @@ async function getPool() {
       PRIMARY KEY(user_id, period)
     )`);
     await pool.query('CREATE INDEX IF NOT EXISTS ai_usage_monthly_period_idx ON ai_usage_monthly (period)');
+    await pool.query(`CREATE TABLE IF NOT EXISTS user_entitlements (
+      user_id text PRIMARY KEY REFERENCES profiles(user_id) ON DELETE CASCADE,
+      plan text NOT NULL DEFAULT 'beta',
+      subscription_status text NOT NULL DEFAULT 'beta',
+      ai_monthly_limit integer,
+      ai_daily_limit integer,
+      import_daily_limit integer,
+      adjust_daily_limit integer,
+      pantry_daily_limit integer,
+      stripe_customer_id text,
+      stripe_subscription_id text,
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      updated_by text,
+      metadata jsonb NOT NULL DEFAULT '{}'::jsonb
+    )`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS subscription_events (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id text REFERENCES profiles(user_id) ON DELETE SET NULL,
+      provider text NOT NULL,
+      event_type text NOT NULL,
+      provider_event_id text,
+      payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+      processed_at timestamptz NOT NULL DEFAULT now()
+    )`);
+    await pool.query('CREATE INDEX IF NOT EXISTS subscription_events_user_idx ON subscription_events (user_id, processed_at desc)');
+    await pool.query(`CREATE TABLE IF NOT EXISTS rate_limit_counters (
+      key text NOT NULL,
+      bucket text NOT NULL,
+      count integer NOT NULL DEFAULT 0,
+      reset_at timestamptz NOT NULL,
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      PRIMARY KEY(key, bucket)
+    )`);
+    await pool.query('CREATE INDEX IF NOT EXISTS rate_limit_counters_reset_idx ON rate_limit_counters (reset_at)');
+    await pool.query(`CREATE TABLE IF NOT EXISTS ai_usage_events (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      request_id text NOT NULL,
+      user_id text REFERENCES profiles(user_id) ON DELETE SET NULL,
+      feature text NOT NULL,
+      model text NOT NULL,
+      tier text NOT NULL,
+      input_tokens integer,
+      output_tokens integer,
+      estimated_cost_usd numeric(12,6),
+      success boolean NOT NULL,
+      error_message text,
+      created_at timestamptz NOT NULL DEFAULT now()
+    )`);
+    await pool.query('CREATE INDEX IF NOT EXISTS ai_usage_events_user_created_idx ON ai_usage_events (user_id, created_at desc)');
+    await pool.query('CREATE INDEX IF NOT EXISTS ai_usage_events_created_idx ON ai_usage_events (created_at desc)');
     await pool.query(`CREATE TABLE IF NOT EXISTS app_control_sources (
       id text PRIMARY KEY,
       title text NOT NULL,
@@ -567,6 +639,120 @@ async function logAppControlChange(db, sourceId, action, user, previousValue, ne
   );
 }
 
+function periodKey(scope = 'day') {
+  const now = new Date();
+  if (scope === 'month') return now.toISOString().slice(0, 7);
+  return now.toISOString().slice(0, 10);
+}
+
+function resetAfter(scope = 'day') {
+  const now = new Date();
+  if (scope === 'month') return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+}
+
+function detectAiFeature(body) {
+  const text = JSON.stringify(body || {}).toLowerCase().slice(0, 12000);
+  const found = AI_FEATURE_PATTERNS.find((item) => item.patterns.some((pattern) => text.includes(pattern)));
+  return found?.feature || 'general-ai';
+}
+
+async function readEntitlements(user) {
+  const db = await getPool();
+  const master = isMasterAdminUser(user);
+  const defaults = PLAN_ENTITLEMENTS[master ? 'master_admin' : DEFAULT_PLAN] || PLAN_ENTITLEMENTS.beta;
+  if (!db || !user) return { plan: DEFAULT_PLAN, subscriptionStatus: 'unknown', ...defaults };
+  const result = await db.query('SELECT * FROM user_entitlements WHERE user_id=$1', [user.user_id]);
+  const row = result.rows[0];
+  if (!row) return { plan: master ? 'master_admin' : DEFAULT_PLAN, subscriptionStatus: master ? 'master_admin' : DEFAULT_PLAN, ...defaults };
+  const planDefaults = PLAN_ENTITLEMENTS[row.plan] || defaults;
+  return {
+    plan: master ? 'master_admin' : row.plan,
+    subscriptionStatus: master ? 'master_admin' : row.subscription_status,
+    aiMonthlyLimit: master ? null : Number(row.ai_monthly_limit ?? planDefaults.aiMonthlyLimit),
+    aiDailyLimit: master ? null : Number(row.ai_daily_limit ?? planDefaults.aiDailyLimit),
+    importDailyLimit: master ? null : Number(row.import_daily_limit ?? planDefaults.importDailyLimit),
+    adjustDailyLimit: master ? null : Number(row.adjust_daily_limit ?? planDefaults.adjustDailyLimit),
+    pantryDailyLimit: master ? null : Number(row.pantry_daily_limit ?? planDefaults.pantryDailyLimit),
+    unlimited: master || !!planDefaults.unlimited,
+  };
+}
+
+async function checkRateLimit(key, bucket, max, scope = 'day') {
+  if (!Number.isFinite(Number(max)) || Number(max) <= 0) return { allowed: true, limit: null, remaining: null };
+  const db = await getPool();
+  if (!db) return { allowed: true, limit: Number(max), remaining: Number(max) };
+  const scopedBucket = `${bucket}:${periodKey(scope)}`;
+  const result = await db.query(
+    `INSERT INTO rate_limit_counters(key, bucket, count, reset_at, updated_at)
+     VALUES($1, $2, 1, $3, now())
+     ON CONFLICT(key, bucket)
+     DO UPDATE SET count=CASE WHEN rate_limit_counters.reset_at <= now() THEN 1 ELSE rate_limit_counters.count + 1 END,
+                   reset_at=CASE WHEN rate_limit_counters.reset_at <= now() THEN EXCLUDED.reset_at ELSE rate_limit_counters.reset_at END,
+                   updated_at=now()
+     RETURNING count, reset_at`,
+    [key, scopedBucket, resetAfter(scope)]
+  );
+  const count = Number(result.rows[0]?.count || 0);
+  const limit = Number(max);
+  return { allowed: count <= limit, limit, remaining: Math.max(0, limit - count), resetAt: result.rows[0]?.reset_at };
+}
+
+function estimateAiCostUsd(model, inputTokens, outputTokens) {
+  const input = Number(inputTokens || 0);
+  const output = Number(outputTokens || 0);
+  const name = String(model || '').toLowerCase();
+  const rates = name.includes('haiku')
+    ? { input: 0.0000008, output: 0.000004 }
+    : { input: 0.000003, output: 0.000015 };
+  return Number(((input * rates.input) + (output * rates.output)).toFixed(6));
+}
+
+async function logAiUsageEvent({ requestId, user, feature, model, tier, inputTokens, outputTokens, success, errorMessage }) {
+  const db = await getPool();
+  if (!db) return;
+  await db.query(
+    `INSERT INTO ai_usage_events(request_id, user_id, feature, model, tier, input_tokens, output_tokens, estimated_cost_usd, success, error_message)
+     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+    [
+      requestId,
+      user?.user_id || null,
+      feature || 'general-ai',
+      String(model || ''),
+      tier || 'unknown',
+      Number.isFinite(Number(inputTokens)) ? Number(inputTokens) : null,
+      Number.isFinite(Number(outputTokens)) ? Number(outputTokens) : null,
+      estimateAiCostUsd(model, inputTokens, outputTokens),
+      !!success,
+      errorMessage ? String(errorMessage).slice(0, 1000) : null,
+    ]
+  );
+}
+
+async function checkGlobalAiControls() {
+  if (String(process.env.AI_FEATURES_ENABLED || 'true').toLowerCase() === 'false') {
+    return { allowed: false, error: process.env.AI_EMERGENCY_DISABLE_REASON || 'RecipeBox AI is temporarily unavailable.' };
+  }
+  const dailyMax = Number(process.env.AI_DAILY_GLOBAL_MAX_REQUESTS || 0);
+  if (dailyMax > 0) {
+    const daily = await checkRateLimit('global', 'ai-requests', dailyMax, 'day');
+    if (!daily.allowed) return { allowed: false, error: 'RecipeBox AI is busy today. Please try again tomorrow.' };
+  }
+  const monthlyCostCap = Number(process.env.AI_MONTHLY_GLOBAL_MAX_COST_USD || 0);
+  if (monthlyCostCap > 0) {
+    const db = await getPool();
+    const result = await db.query(
+      `SELECT COALESCE(SUM(estimated_cost_usd), 0)::numeric AS total
+       FROM ai_usage_events
+       WHERE created_at >= date_trunc('month', now()) AND success=true`
+    );
+    if (Number(result.rows[0]?.total || 0) >= monthlyCostCap) {
+      return { allowed: false, error: 'RecipeBox AI monthly budget is paused for now.' };
+    }
+  }
+  return { allowed: true };
+}
+
 function cookieOptions(req) {
   const origin = req.headers.origin ? String(req.headers.origin).replace(/\/$/, '') : '';
   const crossOrigin = !!origin && isAllowedOrigin(origin) && origin !== requestOrigin(req);
@@ -736,14 +922,16 @@ async function readAiUsage(userId) {
   const db = await getPool();
   const period = currentAiPeriod();
   if (!db || !userId) return { period, count: 0, limit: AI_MONTHLY_LIMIT, remaining: AI_MONTHLY_LIMIT };
-  const profile = await db.query('SELECT role FROM profiles WHERE user_id=$1', [userId]);
-  if (profile.rows[0]?.role === 'master_admin') return { period, count: 0, limit: null, remaining: null, unlimited: true };
+  const profile = await db.query('SELECT user_id, email, display_name, role FROM profiles WHERE user_id=$1', [userId]);
+  const entitlement = await readEntitlements(profile.rows[0]);
+  if (entitlement.unlimited) return { period, count: 0, limit: null, remaining: null, unlimited: true, plan: entitlement.plan };
   const result = await db.query(
     'SELECT request_count FROM ai_usage_monthly WHERE user_id=$1 AND period=$2',
     [userId, period]
   );
   const count = Number(result.rows[0]?.request_count || 0);
-  return { period, count, limit: AI_MONTHLY_LIMIT, remaining: Math.max(0, AI_MONTHLY_LIMIT - count) };
+  const limit = Number(entitlement.aiMonthlyLimit ?? AI_MONTHLY_LIMIT);
+  return { period, count, limit, remaining: Math.max(0, limit - count), plan: entitlement.plan };
 }
 
 async function incrementAiUsage(userId) {
@@ -1573,10 +1761,47 @@ app.get('/api/ai-usage', async function(req, res) {
   } catch(err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/ai', async function(req, res) {
+app.get('/api/me/entitlements', requireAuth, async function(req, res) {
   try {
-    const user = await currentUser(req);
+    const entitlements = await readEntitlements(req.user);
+    res.json({
+      plan: entitlements.plan,
+      subscriptionStatus: entitlements.subscriptionStatus,
+      unlimited: !!entitlements.unlimited,
+      limits: {
+        aiMonthly: entitlements.aiMonthlyLimit,
+        aiDaily: entitlements.aiDailyLimit,
+        importDaily: entitlements.importDailyLimit,
+        adjustDaily: entitlements.adjustDailyLimit,
+        pantryDaily: entitlements.pantryDailyLimit,
+      },
+    });
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/ai', async function(req, res) {
+  const requestId = crypto.randomUUID();
+  let user = null;
+  let feature = 'general-ai';
+  let model = '';
+  let tier = 'unknown';
+  try {
+    user = await currentUser(req);
     if (!user) return res.status(401).json({ error: 'Sign in to use RecipeBox AI.' });
+    feature = detectAiFeature(req.body);
+    model = String(req.body?.model || '');
+    const entitlement = await readEntitlements(user);
+    tier = entitlement.plan;
+    if (!entitlement.unlimited) {
+      const ipLimit = await checkRateLimit(`ip:${clientIp(req)}`, `ai:${feature}`, 80, 'day');
+      if (!ipLimit.allowed) return res.status(429).json({ error: 'Slow down a bit before using more RecipeBox AI.' });
+      const perUserLimit = await checkRateLimit(`user:${user.user_id}`, `ai:${feature}`, entitlement.aiDailyLimit || 60, 'day');
+      if (!perUserLimit.allowed) return res.status(429).json({ error: 'Daily AI limit reached for your account.', limit: perUserLimit.limit, resetAt: perUserLimit.resetAt });
+      if (feature === 'import' && String(process.env.AI_IMPORTS_ENABLED || 'true').toLowerCase() === 'false') return res.status(503).json({ error: 'Recipe imports are temporarily paused.' });
+      if (feature === 'adjust' && String(process.env.AI_ADJUST_ENABLED || 'true').toLowerCase() === 'false') return res.status(503).json({ error: 'Recipe adjustments are temporarily paused.' });
+    }
+    const globalControls = await checkGlobalAiControls();
+    if (!entitlement.unlimited && !globalControls.allowed) return res.status(503).json({ error: globalControls.error });
     const usage = await readAiUsage(user.user_id);
     if (!usage.unlimited && usage.remaining <= 0) {
       return res.status(429).json({
@@ -1592,10 +1817,26 @@ app.post('/api/ai', async function(req, res) {
       body: JSON.stringify(req.body),
     });
     const d = await r.json();
-    if (!r.ok) return res.status(r.status).json(d);
+    if (!r.ok) {
+      await logAiUsageEvent({ requestId, user, feature, model, tier, success: false, errorMessage: d.error?.message || d.error || 'Anthropic request failed' });
+      return res.status(r.status).json(d);
+    }
     const nextUsage = await incrementAiUsage(user.user_id);
-    res.status(r.status).json({ ...d, aiUsage: nextUsage });
-  } catch(err) { res.status(500).json({ error: err.message }); }
+    await logAiUsageEvent({
+      requestId,
+      user,
+      feature,
+      model,
+      tier,
+      inputTokens: d.usage?.input_tokens,
+      outputTokens: d.usage?.output_tokens,
+      success: true,
+    });
+    res.status(r.status).json({ ...d, aiUsage: nextUsage, requestId });
+  } catch(err) {
+    try { await logAiUsageEvent({ requestId, user, feature, model, tier, success: false, errorMessage: err.message }); } catch {}
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('*', function(req, res) { res.sendFile(path.join(__dirname, 'public', 'index.html')); });

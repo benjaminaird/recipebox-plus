@@ -19,6 +19,15 @@ Supabase free project slot.
   `https://recipebox-kappa.vercel.app`.
 - `AI_MONTHLY_LIMIT`: optional monthly AI request limit per user. Defaults to
   `50` when unset.
+- `DEFAULT_ACCOUNT_PLAN`: optional default plan for accounts without an
+  explicit entitlement row. Defaults to `beta`.
+- `AI_FEATURES_ENABLED`: set to `false` to pause all non-admin AI calls.
+- `AI_IMPORTS_ENABLED`: set to `false` to pause AI import calls.
+- `AI_ADJUST_ENABLED`: set to `false` to pause AI adjustment calls.
+- `AI_DAILY_GLOBAL_MAX_REQUESTS`: optional global daily request cap.
+- `AI_MONTHLY_GLOBAL_MAX_COST_USD`: optional global monthly estimated AI cost
+  cap.
+- `AI_EMERGENCY_DISABLE_REASON`: user-facing reason shown when AI is disabled.
 - `MASTER_ADMIN_EMAIL`: optional master admin email for App Control access.
 - `MASTER_ADMIN_PASSWORD_HASH`: preferred master admin password hash generated
   by RecipeBox's `scrypt$salt$hash` format.
@@ -75,6 +84,10 @@ RecipeBox now has a first-pass account sync prototype:
 - Users can delete their account from Settings after confirming their password.
 - AI requests are counted per signed-in user per month, with a configurable
   beta limit shown in Settings.
+- AI requests also pass backend-only entitlement, per-user, per-IP, and optional
+  global kill-switch checks before the provider call.
+- AI usage events are logged with request id, feature, model, tier, success
+  state, token counts when available, and estimated cost.
 - Master admin accounts can open App Control, bypass monthly AI limits, and
   manage typed knowledge sources. Normal users cannot access admin endpoints.
 - App Control changes are logged in `app_control_change_log` and knowledge

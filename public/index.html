@@ -1410,7 +1410,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       ];
       return (
         <div style={{...S.page,paddingBottom:NAV_CLEARANCE}}>
-          <PageHeader title="Your RecipeBox" subtitle="Account, sync, timers, and recipe-box preferences" compact={compactHeader} />
+          <PageHeader title="Settings" subtitle="Account, sync, timers, and recipe-box preferences" compact={compactHeader} />
           <div style={{maxWidth:760,margin:"18px auto",padding:"0 16px",display:"grid",gap:14}}>
             <div style={{...S.card,padding:16}}>
               <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark,marginBottom:4}}>RecipeBox Account</div>
@@ -1691,7 +1691,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       }
 
       return (
-        <div style={{minHeight:"100vh",background:dark.bg,color:dark.text,paddingBottom:NAV_CLEARANCE}}>
+        <div style={{minHeight:"100vh",background:dark.bg,color:dark.text,paddingBottom:NAV_CLEARANCE,width:"100%",maxWidth:"100%",overflowX:"hidden"}}>
           <div style={{position:"sticky",top:0,zIndex:24,background:"linear-gradient(135deg,#11120f,#2a2018)",borderBottom:"1px solid "+dark.line,padding:safePad(18,18,18)}}>
             <div style={{maxWidth:1120,margin:"0 auto",display:"flex",alignItems:"center",gap:12}}>
               <button onClick={onBack} style={{width:40,height:40,borderRadius:12,border:"1px solid "+dark.line,background:"rgba(255,249,238,0.05)",color:dark.text,cursor:"pointer",fontWeight:900}}>←</button>
@@ -1704,7 +1704,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             </div>
           </div>
 
-          <div style={{maxWidth:1120,margin:"0 auto",padding:"18px",display:"grid",gap:16}}>
+          <div style={{maxWidth:1120,margin:"0 auto",padding:"18px",display:"grid",gap:16,width:"100%",overflowX:"hidden"}}>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(150px, 1fr))",gap:10}}>
               {[["Sources",sources.length],["Active",sources.filter((x)=>x.active).length],["Inactive",sources.filter((x)=>!x.active).length],["Changes",changes.length]].map(([label,value]) => (
                 <div key={label} style={{background:dark.panel,border:"1px solid "+dark.line,borderRadius:14,padding:14}}>
@@ -1715,11 +1715,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             </div>
 
             <div style={{background:dark.panel,border:"1px solid "+dark.line,borderRadius:16,padding:14}}>
-              <div style={{display:"flex",justifyContent:"space-between",gap:10,marginBottom:12}}>
-                <div><div style={{fontFamily:SERIF,fontSize:"1.4em"}}>Knowledge Base</div><div style={{fontSize:"0.8em",color:dark.muted}}>Schema-validated sources only. No raw code, SQL, HTML, or scripts.</div></div>
+              <div style={{display:"flex",justifyContent:"space-between",gap:10,marginBottom:12,alignItems:"flex-start",flexWrap:"wrap"}}>
+                <div style={{minWidth:0,flex:"1 1 260px"}}><div style={{fontFamily:SERIF,fontSize:"1.4em"}}>Knowledge Base</div><div style={{fontSize:"0.8em",color:dark.muted}}>Schema-validated sources only. No raw code, SQL, HTML, or scripts.</div></div>
                 <button onClick={whatsNextSync} disabled={busy} style={{...S.ghostBtn,borderColor:dark.line,background:"rgba(255,249,238,0.04)",color:dark.text,borderRadius:10,padding:"9px 10px",fontSize:"0.78em"}}><Icon name="sync" size={15} /> Sync</button>
               </div>
-              <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:8,marginBottom:8}}>
+              <div style={{display:"flex",gap:8,overflowX:"auto",WebkitOverflowScrolling:"touch",paddingBottom:8,marginBottom:8,maxWidth:"100%"}}>
                 {APP_CONTROL_CATEGORIES.map((cat) => <button key={cat} onClick={() => setFilter(cat)} style={chip(filter === cat)}>{cat}</button>)}
               </div>
               {message && <div style={{margin:"8px 0 12px",color:message.includes("Could not")||message.includes("required")||message.includes("not configured")?dark.red:dark.green,fontWeight:900,fontSize:"0.82em"}}>{message}</div>}
@@ -1759,24 +1759,24 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           </div>
 
           {editor && (
-            <div className="modal-overlay" style={{alignItems:"stretch",overflowY:"auto"}}>
-              <div className="modal-box" style={{maxWidth:760,margin:"24px auto",background:dark.panel,color:dark.text,border:"1px solid "+dark.line,borderRadius:18,alignSelf:"flex-start"}}>
+            <div className="modal-overlay" style={{alignItems:"flex-start",justifyContent:"center",overflowY:"auto",overflowX:"hidden",padding:"max(12px, env(safe-area-inset-top)) 12px max(18px, env(safe-area-inset-bottom))"}}>
+              <div className="modal-box" style={{width:"min(760px, 100%)",maxWidth:"100%",maxHeight:"calc(100dvh - 24px)",overflowY:"auto",overflowX:"hidden",margin:"0 auto",background:dark.panel,color:dark.text,border:"1px solid "+dark.line,borderRadius:18,alignSelf:"flex-start"}}>
                 <div style={{padding:18,borderBottom:"1px solid "+dark.line,display:"flex",alignItems:"center",gap:10}}>
                   <div style={{flex:1}}><div style={{fontFamily:SERIF,fontSize:"1.45em"}}>{editor === "create" ? "Add Knowledge Source" : "Edit Knowledge Source"}</div><div style={{fontSize:"0.78em",color:dark.muted}}>Typed fields only. Invalid values are rejected server-side.</div></div>
                   <button onClick={() => setEditor(null)} style={{background:"none",border:"none",color:dark.text,cursor:"pointer"}}><Icon name="close" /></button>
                 </div>
                 <div style={{padding:18,display:"grid",gap:12}}>
                   <input value={draft.title || ""} onChange={(e)=>setDraft({...draft,title:e.target.value})} placeholder="Title" style={{...S.input,padding:12,background:"#fff9ee",width:"100%"}} />
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(180px, 1fr))",gap:10}}>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(min(180px, 100%), 1fr))",gap:10}}>
                     <select value={draft.category || "Methodology"} onChange={(e)=>setDraft({...draft,category:e.target.value})} style={{...S.input,padding:12,background:"#fff9ee"}}>{APP_CONTROL_CATEGORIES.filter((x)=>x!=="All").map((cat)=><option key={cat}>{cat}</option>)}</select>
                     <select value={draft.scopeType || "Global"} onChange={(e)=>setDraft({...draft,scopeType:e.target.value,scopeValue:e.target.value==="Global"?"":draft.scopeValue})} style={{...S.input,padding:12,background:"#fff9ee"}}>{APP_CONTROL_SCOPE_TYPES.map((scope)=><option key={scope}>{scope}</option>)}</select>
                     {draft.scopeType === "Feature" ? <select value={draft.scopeValue || ""} onChange={(e)=>setDraft({...draft,scopeValue:e.target.value})} style={{...S.input,padding:12,background:"#fff9ee"}}><option value="">Choose feature</option>{APP_CONTROL_FEATURES.map((feature)=><option key={feature}>{feature}</option>)}</select> : <input value={draft.scopeValue || ""} onChange={(e)=>setDraft({...draft,scopeValue:e.target.value})} placeholder="Scope value" disabled={draft.scopeType==="Global"} style={{...S.input,padding:12,background:"#fff9ee",opacity:draft.scopeType==="Global"?0.6:1}} />}
                   </div>
                   <textarea value={draft.useWhen || ""} onChange={(e)=>setDraft({...draft,useWhen:e.target.value})} placeholder="Use when..." style={{...S.input,padding:12,minHeight:76,background:"#fff9ee",resize:"vertical"}} />
                   <textarea value={draft.content || ""} onChange={(e)=>setDraft({...draft,content:e.target.value})} placeholder="Knowledge / rules / behavior guidance..." style={{...S.input,padding:12,minHeight:220,background:"#fff9ee",resize:"vertical",lineHeight:1.5}} />
-                  <div><div style={{fontSize:"0.72em",letterSpacing:1.5,textTransform:"uppercase",color:dark.gold,fontWeight:900,marginBottom:8}}>Applies To Features</div><div style={{display:"flex",gap:7,flexWrap:"wrap"}}>{APP_CONTROL_FEATURES.map((feature) => <button key={feature} onClick={() => toggleFeature(feature)} style={chip((draft.appliesToFeatures || []).includes(feature))}>{feature}</button>)}</div></div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}><input type="number" min="0" max="100" value={draft.priority ?? 50} onChange={(e)=>setDraft({...draft,priority:e.target.value})} style={{...S.input,padding:12,background:"#fff9ee"}} /><label style={{display:"flex",alignItems:"center",gap:9,color:dark.muted,fontSize:"0.86em"}}><input type="checkbox" checked={draft.active !== false} onChange={(e)=>setDraft({...draft,active:e.target.checked})} />Active</label></div>
-                  <div style={{display:"flex",gap:10}}><button onClick={saveSource} disabled={busy} style={{...S.goldBtn,flex:1,padding:"12px 14px",borderRadius:10}}>{busy ? "Saving..." : "Save Source"}</button><button onClick={() => setEditor(null)} style={{...S.ghostBtn,flex:1,padding:"12px 14px",borderRadius:10}}>Cancel</button></div>
+                  <div><div style={{fontSize:"0.72em",letterSpacing:1.5,textTransform:"uppercase",color:dark.gold,fontWeight:900,marginBottom:8}}>Applies To Features</div><div style={{display:"flex",gap:7,flexWrap:"wrap",maxWidth:"100%"}}>{APP_CONTROL_FEATURES.map((feature) => <button key={feature} onClick={() => toggleFeature(feature)} style={{...chip((draft.appliesToFeatures || []).includes(feature)),whiteSpace:"normal",textAlign:"left"}}>{feature}</button>)}</div></div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(min(180px, 100%), 1fr))",gap:10}}><input type="number" min="0" max="100" value={draft.priority ?? 50} onChange={(e)=>setDraft({...draft,priority:e.target.value})} style={{...S.input,padding:12,background:"#fff9ee"}} /><label style={{display:"flex",alignItems:"center",gap:9,color:dark.muted,fontSize:"0.86em"}}><input type="checkbox" checked={draft.active !== false} onChange={(e)=>setDraft({...draft,active:e.target.checked})} />Active</label></div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(min(170px, 100%), 1fr))",gap:10}}><button onClick={saveSource} disabled={busy} style={{...S.goldBtn,padding:"12px 14px",borderRadius:10}}>{busy ? "Saving..." : "Save Source"}</button><button onClick={() => setEditor(null)} style={{...S.ghostBtn,padding:"12px 14px",borderRadius:10}}>Cancel</button></div>
                 </div>
               </div>
             </div>
