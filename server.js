@@ -4,6 +4,18 @@ const crypto = require('crypto');
 const { fetchTranscript } = require('youtube-transcript');
 
 const app = express();
+app.use(function(req, res, next) {
+  const origin = req.headers.origin;
+  if (isAllowedOrigin(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+    res.setHeader('Vary', 'Origin');
+  }
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -15,6 +27,50 @@ const AUTH_LIMIT_MAX = 20;
 const RESET_TOKEN_MINUTES = 60;
 const AI_MONTHLY_LIMIT = Number(process.env.AI_MONTHLY_LIMIT || 50);
 const authAttempts = new Map();
+
+const ADMIN_KB_CATEGORIES = [
+  'Methodology',
+  'AI Instruction',
+  'Import Rule',
+  'Recipe Normalization',
+  'Meal Planning',
+  'Pantry Logic',
+  'Image Handling',
+  'User Experience',
+  'Safety / Guardrail',
+  'Legal / Copyright',
+  'Product Strategy',
+  'WhatsNext Sync',
+];
+const ADMIN_FEATURES = [
+  'Import',
+  'Manual Recipe Entry',
+  'AI Adjust',
+  'AI Chat Editor',
+  'Pantry Chef',
+  'Meal Planner',
+  'Shopping List',
+  'Cook Mode',
+  'PDF Export',
+  'Recipe Detail',
+  'Library',
+  'Settings',
+];
+const ADMIN_SCOPE_TYPES = ['Global', 'Feature', 'Account', 'Recipe Category'];
+const ADMIN_SECTION_NAMES = [
+  'Knowledge Base',
+  'AI Prompt Control',
+  'Import Rules',
+  'Recipe Rules',
+  'Meal Planner Rules',
+  'Pantry Chef Rules',
+  'Image & Hero Photo Rules',
+  'Feature Flags',
+  'User Limits & Entitlements',
+  'Integrations',
+  'WhatsNext Sync',
+  'Change Log / Rollback',
+];
 
 let pool = null;
 async function getPool() {
@@ -35,11 +91,13 @@ async function getPool() {
       user_id text PRIMARY KEY,
       email text UNIQUE,
       display_name text,
+      role text NOT NULL DEFAULT 'user',
       password_hash text,
       created_at timestamptz NOT NULL DEFAULT now(),
       updated_at timestamptz NOT NULL DEFAULT now()
     )`);
     await pool.query('ALTER TABLE profiles ADD COLUMN IF NOT EXISTS password_hash text');
+    await pool.query("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS role text NOT NULL DEFAULT 'user'");
     await pool.query(`CREATE TABLE IF NOT EXISTS recipes (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id text NOT NULL,
@@ -90,6 +148,39 @@ async function getPool() {
       PRIMARY KEY(user_id, period)
     )`);
     await pool.query('CREATE INDEX IF NOT EXISTS ai_usage_monthly_period_idx ON ai_usage_monthly (period)');
+    await pool.query(`CREATE TABLE IF NOT EXISTS app_control_sources (
+      id text PRIMARY KEY,
+      title text NOT NULL,
+      category text NOT NULL,
+      content text NOT NULL,
+      use_when text NOT NULL,
+      scope_type text NOT NULL,
+      scope_value text NOT NULL DEFAULT '',
+      applies_to_features jsonb NOT NULL DEFAULT '[]'::jsonb,
+      priority integer NOT NULL DEFAULT 50,
+      active boolean NOT NULL DEFAULT true,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      created_by text,
+      updated_by text,
+      version integer NOT NULL DEFAULT 1,
+      last_synced_at timestamptz,
+      source_origin text NOT NULL DEFAULT 'RecipeBox'
+    )`);
+    await pool.query('CREATE INDEX IF NOT EXISTS app_control_sources_active_idx ON app_control_sources (active, category)');
+    await pool.query(`CREATE TABLE IF NOT EXISTS app_control_change_log (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      source_id text,
+      action text NOT NULL,
+      changed_by text,
+      changed_at timestamptz NOT NULL DEFAULT now(),
+      previous_value jsonb,
+      next_value jsonb,
+      note text
+    )`);
+    await pool.query('CREATE INDEX IF NOT EXISTS app_control_change_log_source_idx ON app_control_change_log (source_id, changed_at desc)');
+    await seedAppControlKnowledge(pool);
+    await ensureConfiguredMasterAdmin(pool);
   }
   return pool;
 }
@@ -148,6 +239,24 @@ function clearAuthLimit(req) {
   authAttempts.delete(authLimitKey(req));
 }
 
+function configuredOrigins() {
+  return [
+    process.env.APP_BASE_URL,
+    process.env.PUBLIC_APP_URL,
+    'https://recipebox-kappa.vercel.app',
+    'https://recipeboxapp.com',
+    'https://www.recipeboxapp.com',
+    process.env.NATIVE_APP_ORIGIN,
+  ].filter(Boolean).map((value) => String(value).replace(/\/$/, ''));
+}
+
+function isAllowedOrigin(origin) {
+  if (!origin) return false;
+  const clean = String(origin).replace(/\/$/, '');
+  if (configuredOrigins().includes(clean)) return true;
+  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(clean);
+}
+
 function escapeHtml(value) {
   return String(value || '').replace(/[&<>"']/g, (ch) => ({
     '&': '&amp;',
@@ -160,7 +269,12 @@ function escapeHtml(value) {
 
 function publicUser(row) {
   if (!row) return null;
-  return { id: row.user_id, email: row.email, displayName: row.display_name || '' };
+  const role = row.role || 'user';
+  return { id: row.user_id, email: row.email, displayName: row.display_name || '', role, isMasterAdmin: role === 'master_admin' };
+}
+
+function isMasterAdminUser(user) {
+  return !!user && user.role === 'master_admin';
 }
 
 function parseCookies(req) {
@@ -198,11 +312,268 @@ function verifyPassword(password, stored) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
+function masterAdminEmail() {
+  return normalizeEmail(process.env.MASTER_ADMIN_EMAIL || '');
+}
+
+function isConfiguredMasterEmail(email) {
+  const masterEmail = masterAdminEmail();
+  return !!masterEmail && normalizeEmail(email) === masterEmail;
+}
+
+function configuredMasterHash() {
+  if (process.env.MASTER_ADMIN_PASSWORD_HASH) return process.env.MASTER_ADMIN_PASSWORD_HASH;
+  if (process.env.MASTER_ADMIN_PASSWORD) return hashPassword(process.env.MASTER_ADMIN_PASSWORD);
+  return '';
+}
+
+function verifyConfiguredMasterPassword(password) {
+  if (process.env.MASTER_ADMIN_PASSWORD_HASH) return verifyPassword(password, process.env.MASTER_ADMIN_PASSWORD_HASH);
+  if (process.env.MASTER_ADMIN_PASSWORD) return String(password || '') === String(process.env.MASTER_ADMIN_PASSWORD);
+  return false;
+}
+
+async function ensureConfiguredMasterAdmin(db) {
+  const email = masterAdminEmail();
+  const passwordHash = configuredMasterHash();
+  if (!email || !passwordHash) return null;
+  const displayName = String(process.env.MASTER_ADMIN_NAME || 'Master Admin').trim().slice(0, 120);
+  const existing = await db.query('SELECT user_id FROM profiles WHERE email=$1', [email]);
+  if (existing.rows[0]) {
+    await db.query(
+      `UPDATE profiles
+       SET role='master_admin',
+           display_name=COALESCE(NULLIF(display_name, ''), $2),
+           password_hash=COALESCE(password_hash, $3),
+           updated_at=now()
+       WHERE email=$1`,
+      [email, displayName, passwordHash]
+    );
+    return existing.rows[0].user_id;
+  }
+  const userId = crypto.randomUUID();
+  await db.query(
+    `INSERT INTO profiles(user_id, email, display_name, role, password_hash)
+     VALUES($1, $2, $3, 'master_admin', $4)`,
+    [userId, email, displayName, passwordHash]
+  );
+  return userId;
+}
+
+function kbSeedEntries() {
+  const now = new Date().toISOString();
+  const common = { scopeType: 'Global', scopeValue: '', priority: 50, active: true, createdBy: 'system', updatedBy: 'system', version: 1, lastSyncedAt: null, sourceOrigin: 'RecipeBox Seed' };
+  return [
+    {
+      id: 'core-operating-philosophy',
+      title: 'RecipeBox Core Operating Philosophy',
+      category: 'Methodology',
+      useWhen: 'All AI interactions, recommendations, imports, and adjustments.',
+      appliesToFeatures: ADMIN_FEATURES,
+      content: 'Preserve the user intent and the spirit of the recipe. Do not overcomplicate family recipes. Prefer practical home-cooking language that is easy to read on a phone. Separate ingredients from directions clearly. Preserve the original recipe when making major AI changes unless the user confirms replacement. Always preview destructive or major changes before saving.',
+      createdAt: now,
+      updatedAt: now,
+      ...common,
+      priority: 90,
+    },
+    {
+      id: 'recipe-import-normalization-framework',
+      title: 'Recipe Import Normalization Framework',
+      category: 'Recipe Normalization',
+      useWhen: 'Importing from URL, pasted text, image, PDF, YouTube, or social links.',
+      appliesToFeatures: ['Import', 'Manual Recipe Entry', 'PDF Export'],
+      content: 'Extract title, description, ingredients, directions, servings, prep time, cook time, notes, tags, and nutrition when available. Never invent missing exact measurements unless clearly inferred from the source. Flag uncertainty in notes when needed. Preserve the source URL when available. Separate recipe text from blog/story content. Normalize ingredient lines without losing the original meaning.',
+      createdAt: now,
+      updatedAt: now,
+      ...common,
+      priority: 88,
+    },
+    {
+      id: 'ai-adjust-guardrails',
+      title: 'AI Adjust Guardrails',
+      category: 'Safety / Guardrail',
+      useWhen: 'AI Adjust modifies a recipe.',
+      appliesToFeatures: ['AI Adjust', 'AI Chat Editor', 'Recipe Detail'],
+      content: 'Always generate a preview before saving. Do not silently duplicate unless the user chooses Save as new. Offer Replace existing, Save as new, and Cancel for meaningful changes. Show what changed. Preserve the original recipe if the user cancels.',
+      createdAt: now,
+      updatedAt: now,
+      ...common,
+      priority: 86,
+    },
+    {
+      id: 'family-recipe-preservation-rules',
+      title: 'Family Recipe Preservation Rules',
+      category: 'AI Instruction',
+      useWhen: 'Recipe looks personal, handwritten, scanned, or manually entered.',
+      appliesToFeatures: ['Import', 'Manual Recipe Entry', 'AI Adjust', 'Recipe Detail'],
+      content: 'Treat family recipes carefully. Avoid improving away the character of handwritten or inherited recipes. Keep wording where meaningful. Add clarifying notes instead of overwriting uncertain original wording. Prefer gentle cleanup over aggressive modernization.',
+      createdAt: now,
+      updatedAt: now,
+      ...common,
+      priority: 84,
+    },
+    {
+      id: 'pantry-chef-rules',
+      title: 'Pantry Chef Rules',
+      category: 'Pantry Logic',
+      useWhen: 'Generating ideas from pantry ingredients.',
+      appliesToFeatures: ['Pantry Chef'],
+      content: 'Prioritize ingredients the user already has. Clearly list optional missing ingredients. Do not assume expensive or specialty items. Suggest practical substitutions. Prefer saved RecipeBox recipes before inventing new ideas.',
+      createdAt: now,
+      updatedAt: now,
+      ...common,
+      priority: 80,
+    },
+    {
+      id: 'meal-planner-rules',
+      title: 'Meal Planner Rules',
+      category: 'Meal Planning',
+      useWhen: 'Adding recipes to the weekly meal plan.',
+      appliesToFeatures: ['Meal Planner'],
+      content: 'Keep rows compact on mobile. Preserve planned recipe access. Make empty days tappable. Avoid hiding important recipe metadata. Support quick open and remove behavior. Meal planning should feel fast, not like calendar administration.',
+      createdAt: now,
+      updatedAt: now,
+      ...common,
+      priority: 76,
+    },
+    {
+      id: 'hero-image-rules',
+      title: 'Hero Image Rules',
+      category: 'Image Handling',
+      useWhen: 'Recipe has no hero image.',
+      appliesToFeatures: ['Import', 'Recipe Detail', 'Library'],
+      content: 'Prompt the user to add a photo after import or manual save when no image exists. Allow Skip for Now. Use category fallback imagery only when no real image exists. Do not block recipe save because an image is missing.',
+      createdAt: now,
+      updatedAt: now,
+      ...common,
+      priority: 72,
+    },
+    {
+      id: 'copyright-published-cookbook-guidance',
+      title: 'Copyright / Published Cookbook Import Guidance',
+      category: 'Legal / Copyright',
+      useWhen: 'Importing from photos, screenshots, PDFs, websites, or cookbooks.',
+      appliesToFeatures: ['Import', 'PDF Export', 'Recipe Detail'],
+      content: 'Personal use import is different from public redistribution. Store user-provided recipes for personal use. Do not publish copyrighted cookbook text publicly. Avoid presenting imported copyrighted recipes as RecipeBox-owned content. Maintain source attribution where possible. This is not legal advice.',
+      createdAt: now,
+      updatedAt: now,
+      ...common,
+      priority: 78,
+    },
+    {
+      id: 'mobile-ux-rules',
+      title: 'Mobile UX Rules',
+      category: 'User Experience',
+      useWhen: 'Rendering recipe detail, import screens, meal plan, cook mode, and library.',
+      appliesToFeatures: ['Import', 'Recipe Detail', 'Meal Planner', 'Cook Mode', 'Library', 'Settings'],
+      content: 'Design phone-first. Avoid horizontal scrolling. Keep ingredients above directions when practical. Make buttons large enough for thumbs. Support iPhone PWA safe areas. Avoid bottom nav being blocked by iOS app bars. Compact tool surfaces should use compact headings, not hero-scale type.',
+      createdAt: now,
+      updatedAt: now,
+      ...common,
+      priority: 82,
+    },
+    {
+      id: 'whatsnext-sync-rules',
+      title: 'WhatsNext Sync Rules',
+      category: 'WhatsNext Sync',
+      useWhen: 'App Control changes are created, edited, activated, deactivated, or rolled back.',
+      appliesToFeatures: ['Settings'],
+      content: 'App Control changes should eventually sync to WhatsNext as system knowledge and change events. Keep a local source of truth in RecipeBox. If sync is unavailable, log the pending intent and keep RecipeBox behavior stable.',
+      createdAt: now,
+      updatedAt: now,
+      ...common,
+      priority: 70,
+    },
+  ];
+}
+
+function sanitizeFeatures(features) {
+  const list = Array.isArray(features) ? features : [];
+  return Array.from(new Set(list.map(String).filter((f) => ADMIN_FEATURES.includes(f))));
+}
+
+function validateKnowledgeInput(input, existing = {}) {
+  const title = String(input.title ?? existing.title ?? '').trim().slice(0, 160);
+  const category = String(input.category ?? existing.category ?? ADMIN_KB_CATEGORIES[0]).trim();
+  const content = String(input.content ?? existing.content ?? '').trim().slice(0, 24000);
+  const useWhen = String(input.useWhen ?? existing.useWhen ?? input.use_when ?? existing.use_when ?? '').trim().slice(0, 1000);
+  const scopeType = String(input.scopeType ?? existing.scopeType ?? input.scope_type ?? existing.scope_type ?? 'Global').trim();
+  const scopeValue = String(input.scopeValue ?? existing.scopeValue ?? input.scope_value ?? existing.scope_value ?? '').trim().slice(0, 180);
+  const priority = Math.max(0, Math.min(100, Math.round(Number(input.priority ?? existing.priority ?? 50) || 50)));
+  const active = typeof input.active === 'boolean' ? input.active : existing.active !== false;
+  const sourceOrigin = String(input.sourceOrigin ?? existing.sourceOrigin ?? input.source_origin ?? existing.source_origin ?? 'RecipeBox').trim().slice(0, 120) || 'RecipeBox';
+  const appliesToFeatures = sanitizeFeatures(input.appliesToFeatures ?? existing.appliesToFeatures ?? input.applies_to_features ?? existing.applies_to_features);
+  if (!title) throw new Error('Title is required.');
+  if (!content) throw new Error('Content is required.');
+  if (!useWhen) throw new Error('Use-when is required.');
+  if (!ADMIN_KB_CATEGORIES.includes(category)) throw new Error('Category is not allowed.');
+  if (!ADMIN_SCOPE_TYPES.includes(scopeType)) throw new Error('Scope type is not allowed.');
+  if (scopeType === 'Feature' && !ADMIN_FEATURES.includes(scopeValue)) throw new Error('Feature scope value is not allowed.');
+  return { title, category, content, useWhen, scopeType, scopeValue, appliesToFeatures, priority, active, sourceOrigin };
+}
+
+function sourceRowToJson(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    title: row.title,
+    category: row.category,
+    content: row.content,
+    useWhen: row.use_when,
+    scopeType: row.scope_type,
+    scopeValue: row.scope_value || '',
+    appliesToFeatures: Array.isArray(row.applies_to_features) ? row.applies_to_features : [],
+    priority: row.priority,
+    active: row.active,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    createdBy: row.created_by,
+    updatedBy: row.updated_by,
+    version: row.version,
+    lastSyncedAt: row.last_synced_at,
+    sourceOrigin: row.source_origin,
+  };
+}
+
+async function seedAppControlKnowledge(db) {
+  const count = await db.query('SELECT count(*)::int AS count FROM app_control_sources');
+  if (count.rows[0]?.count > 0) return;
+  for (const entry of kbSeedEntries()) {
+    await db.query(
+      `INSERT INTO app_control_sources(id, title, category, content, use_when, scope_type, scope_value, applies_to_features, priority, active, created_at, updated_at, created_by, updated_by, version, last_synced_at, source_origin)
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+      [entry.id, entry.title, entry.category, entry.content, entry.useWhen, entry.scopeType, entry.scopeValue, JSON.stringify(entry.appliesToFeatures), entry.priority, entry.active, entry.createdAt, entry.updatedAt, entry.createdBy, entry.updatedBy, entry.version, entry.lastSyncedAt, entry.sourceOrigin]
+    );
+  }
+  await db.query(
+    `INSERT INTO app_control_change_log(source_id, action, changed_by, next_value, note)
+     VALUES($1, 'seed', 'system', $2::jsonb, 'Seeded initial RecipeBox App Control knowledge base.')`,
+    ['system', JSON.stringify({ count: kbSeedEntries().length })]
+  );
+}
+
+async function logAppControlChange(db, sourceId, action, user, previousValue, nextValue, note = '') {
+  await db.query(
+    `INSERT INTO app_control_change_log(source_id, action, changed_by, previous_value, next_value, note)
+     VALUES($1, $2, $3, $4::jsonb, $5::jsonb, $6)`,
+    [
+      sourceId,
+      action,
+      user?.user_id || 'system',
+      previousValue ? JSON.stringify(previousValue) : null,
+      nextValue ? JSON.stringify(nextValue) : null,
+      note,
+    ]
+  );
+}
+
 function cookieOptions(req) {
+  const origin = req.headers.origin ? String(req.headers.origin).replace(/\/$/, '') : '';
+  const crossOrigin = !!origin && isAllowedOrigin(origin) && origin !== requestOrigin(req);
   return {
     httpOnly: true,
-    sameSite: 'lax',
-    secure: !!(process.env.VERCEL || req.headers['x-forwarded-proto'] === 'https'),
+    sameSite: crossOrigin ? 'none' : 'lax',
+    secure: crossOrigin || !!(process.env.VERCEL || req.headers['x-forwarded-proto'] === 'https'),
     maxAge: 1000 * 60 * 60 * 24 * SESSION_DAYS,
     path: '/',
   };
@@ -258,7 +629,7 @@ async function currentUser(req) {
   const token = parseCookies(req)[SESSION_COOKIE];
   if (!token) return null;
   const result = await db.query(
-    `SELECT p.user_id, p.email, p.display_name
+    `SELECT p.user_id, p.email, p.display_name, p.role
      FROM account_sessions s
      JOIN profiles p ON p.user_id = s.user_id
      WHERE s.token_hash=$1 AND s.expires_at > now()`,
@@ -272,6 +643,23 @@ async function currentUser(req) {
     [hashToken(token), SESSION_DAYS]
   );
   return result.rows[0];
+}
+
+async function requireAuth(req, res, next) {
+  try {
+    const user = await currentUser(req);
+    if (!user) return res.status(401).json({ error: 'sign in required' });
+    req.user = user;
+    next();
+  } catch (err) { res.status(500).json({ error: err.message }); }
+}
+
+async function requireMasterAdmin(req, res, next) {
+  if (!req.user) {
+    return requireAuth(req, res, () => requireMasterAdmin(req, res, next));
+  }
+  if (!isMasterAdminUser(req.user)) return res.status(403).json({ error: 'master admin required' });
+  next();
 }
 
 function normalizeRecipeForDb(recipe) {
@@ -348,6 +736,8 @@ async function readAiUsage(userId) {
   const db = await getPool();
   const period = currentAiPeriod();
   if (!db || !userId) return { period, count: 0, limit: AI_MONTHLY_LIMIT, remaining: AI_MONTHLY_LIMIT };
+  const profile = await db.query('SELECT role FROM profiles WHERE user_id=$1', [userId]);
+  if (profile.rows[0]?.role === 'master_admin') return { period, count: 0, limit: null, remaining: null, unlimited: true };
   const result = await db.query(
     'SELECT request_count FROM ai_usage_monthly WHERE user_id=$1 AND period=$2',
     [userId, period]
@@ -359,6 +749,8 @@ async function readAiUsage(userId) {
 async function incrementAiUsage(userId) {
   const db = await getPool();
   const period = currentAiPeriod();
+  const profile = await db.query('SELECT role FROM profiles WHERE user_id=$1', [userId]);
+  if (profile.rows[0]?.role === 'master_admin') return readAiUsage(userId);
   await db.query(
     `INSERT INTO ai_usage_monthly(user_id, period, request_count, updated_at)
      VALUES($1, $2, 1, now())
@@ -546,19 +938,23 @@ app.post('/api/auth/signup', async (req, res) => {
     const password = String(req.body.password || '');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Enter a valid email address.' });
     if (password.length < PASSWORD_MIN_LENGTH) return res.status(400).json({ error: 'Use a password with at least 6 characters.' });
+    if (isConfiguredMasterEmail(email) && !verifyConfiguredMasterPassword(password)) {
+      return res.status(403).json({ error: 'This email is reserved for the RecipeBox master admin.' });
+    }
     const exists = await db.query('SELECT user_id FROM profiles WHERE email=$1', [email]);
     if (exists.rows[0]) return res.status(409).json({ error: 'An account already exists for that email. Sign in with your password.' });
     const userId = crypto.randomUUID();
+    const role = isConfiguredMasterEmail(email) ? 'master_admin' : 'user';
     await db.query(
-      `INSERT INTO profiles(user_id, email, display_name, password_hash)
-       VALUES($1, $2, $3, $4)`,
-      [userId, email, displayName, hashPassword(password)]
+      `INSERT INTO profiles(user_id, email, display_name, role, password_hash)
+       VALUES($1, $2, $3, $4, $5)`,
+      [userId, email, displayName, role, hashPassword(password)]
     );
     if (Array.isArray(req.body.recipes) && req.body.recipes.length) await replaceUserRecipes(userId, req.body.recipes);
     if (req.body.mealPlan && typeof req.body.mealPlan === 'object') await replaceUserMealPlan(userId, req.body.mealPlan);
     await createSession(req, res, userId);
     clearAuthLimit(req);
-    res.json({ ok: true, user: { id: userId, email, displayName } });
+    res.json({ ok: true, user: { id: userId, email, displayName, role, isMasterAdmin: role === 'master_admin' } });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -567,10 +963,15 @@ app.post('/api/auth/signin', async (req, res) => {
     if (!checkAuthLimit(req, res)) return;
     const db = await getPool();
     if (!db) return res.status(500).json({ error: 'database not configured' });
+    await ensureConfiguredMasterAdmin(db);
     const email = normalizeEmail(req.body.email);
-    const result = await db.query('SELECT user_id, email, display_name, password_hash FROM profiles WHERE email=$1', [email]);
+    const result = await db.query('SELECT user_id, email, display_name, role, password_hash FROM profiles WHERE email=$1', [email]);
     const user = result.rows[0];
     if (!user || !verifyPassword(req.body.password, user.password_hash)) return res.status(401).json({ error: 'Email or password did not match.' });
+    if (isConfiguredMasterEmail(email) && user.role !== 'master_admin') {
+      await db.query("UPDATE profiles SET role='master_admin', updated_at=now() WHERE user_id=$1", [user.user_id]);
+      user.role = 'master_admin';
+    }
     await createSession(req, res, user.user_id);
     clearAuthLimit(req);
     res.json({ ok: true, user: publicUser(user) });
@@ -770,6 +1171,143 @@ app.put('/api/mealplan', async (req, res) => {
       return res.json({ ok: true, savedToDatabase: saved, account: false });
     }
     res.json({ ok: true, savedToDatabase: false, guest: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/admin/app-control/meta', requireAuth, requireMasterAdmin, async (req, res) => {
+  res.json({
+    user: publicUser(req.user),
+    sections: ADMIN_SECTION_NAMES,
+    categories: ADMIN_KB_CATEGORIES,
+    features: ADMIN_FEATURES,
+    scopeTypes: ADMIN_SCOPE_TYPES,
+    whatsNextSync: { configured: false, status: 'not_configured' },
+  });
+});
+
+app.get('/api/admin/knowledge', requireAuth, requireMasterAdmin, async (req, res) => {
+  try {
+    const db = await getPool();
+    const result = await db.query(
+      `SELECT *
+       FROM app_control_sources
+       ORDER BY active DESC, priority DESC, updated_at DESC`
+    );
+    res.json({ sources: result.rows.map(sourceRowToJson) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/admin/knowledge', requireAuth, requireMasterAdmin, async (req, res) => {
+  try {
+    const db = await getPool();
+    const input = validateKnowledgeInput(req.body || {});
+    const id = String(req.body.id || crypto.randomUUID()).trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || crypto.randomUUID();
+    const existing = await db.query('SELECT id FROM app_control_sources WHERE id=$1', [id]);
+    if (existing.rows[0]) return res.status(409).json({ error: 'A source with that id already exists.' });
+    const result = await db.query(
+      `INSERT INTO app_control_sources(id, title, category, content, use_when, scope_type, scope_value, applies_to_features, priority, active, created_by, updated_by, source_origin)
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9,$10,$11,$11,$12)
+       RETURNING *`,
+      [id, input.title, input.category, input.content, input.useWhen, input.scopeType, input.scopeValue, JSON.stringify(input.appliesToFeatures), input.priority, input.active, req.user.user_id, input.sourceOrigin]
+    );
+    const nextValue = sourceRowToJson(result.rows[0]);
+    await logAppControlChange(db, id, 'create', req.user, null, nextValue, 'Created from App Control.');
+    res.json({ ok: true, source: nextValue });
+  } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+app.put('/api/admin/knowledge/:id', requireAuth, requireMasterAdmin, async (req, res) => {
+  try {
+    const db = await getPool();
+    const current = await db.query('SELECT * FROM app_control_sources WHERE id=$1', [req.params.id]);
+    const previous = sourceRowToJson(current.rows[0]);
+    if (!previous) return res.status(404).json({ error: 'source not found' });
+    const input = validateKnowledgeInput(req.body || {}, previous);
+    const result = await db.query(
+      `UPDATE app_control_sources
+       SET title=$2, category=$3, content=$4, use_when=$5, scope_type=$6, scope_value=$7,
+           applies_to_features=$8::jsonb, priority=$9, active=$10, updated_by=$11,
+           updated_at=now(), version=version + 1, source_origin=$12
+       WHERE id=$1
+       RETURNING *`,
+      [req.params.id, input.title, input.category, input.content, input.useWhen, input.scopeType, input.scopeValue, JSON.stringify(input.appliesToFeatures), input.priority, input.active, req.user.user_id, input.sourceOrigin]
+    );
+    const nextValue = sourceRowToJson(result.rows[0]);
+    await logAppControlChange(db, req.params.id, 'update', req.user, previous, nextValue, 'Updated from App Control.');
+    res.json({ ok: true, source: nextValue });
+  } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+app.delete('/api/admin/knowledge/:id', requireAuth, requireMasterAdmin, async (req, res) => {
+  try {
+    const db = await getPool();
+    const current = await db.query('SELECT * FROM app_control_sources WHERE id=$1', [req.params.id]);
+    const previous = sourceRowToJson(current.rows[0]);
+    if (!previous) return res.status(404).json({ error: 'source not found' });
+    const result = await db.query(
+      `UPDATE app_control_sources
+       SET active=false, updated_by=$2, updated_at=now(), version=version + 1
+       WHERE id=$1
+       RETURNING *`,
+      [req.params.id, req.user.user_id]
+    );
+    const nextValue = sourceRowToJson(result.rows[0]);
+    await logAppControlChange(db, req.params.id, 'deactivate', req.user, previous, nextValue, 'Deactivated from App Control.');
+    res.json({ ok: true, source: nextValue });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/admin/change-log', requireAuth, requireMasterAdmin, async (req, res) => {
+  try {
+    const db = await getPool();
+    const result = await db.query(
+      `SELECT *
+       FROM app_control_change_log
+       ORDER BY changed_at DESC
+       LIMIT 80`
+    );
+    res.json({ changes: result.rows.map((row) => ({
+      id: row.id,
+      sourceId: row.source_id,
+      action: row.action,
+      changedBy: row.changed_by,
+      changedAt: row.changed_at,
+      previousValue: row.previous_value,
+      nextValue: row.next_value,
+      note: row.note,
+    })) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/admin/change-log/:id/rollback', requireAuth, requireMasterAdmin, async (req, res) => {
+  try {
+    const db = await getPool();
+    const change = await db.query('SELECT * FROM app_control_change_log WHERE id=$1', [req.params.id]);
+    const row = change.rows[0];
+    if (!row || !row.source_id || !row.previous_value) return res.status(400).json({ error: 'This change cannot be rolled back.' });
+    const previous = validateKnowledgeInput(row.previous_value);
+    const current = await db.query('SELECT * FROM app_control_sources WHERE id=$1', [row.source_id]);
+    const currentValue = sourceRowToJson(current.rows[0]);
+    const result = await db.query(
+      `UPDATE app_control_sources
+       SET title=$2, category=$3, content=$4, use_when=$5, scope_type=$6, scope_value=$7,
+           applies_to_features=$8::jsonb, priority=$9, active=$10, updated_by=$11,
+           updated_at=now(), version=version + 1, source_origin=$12
+       WHERE id=$1
+       RETURNING *`,
+      [row.source_id, previous.title, previous.category, previous.content, previous.useWhen, previous.scopeType, previous.scopeValue, JSON.stringify(previous.appliesToFeatures), previous.priority, previous.active, req.user.user_id, previous.sourceOrigin]
+    );
+    const nextValue = sourceRowToJson(result.rows[0]);
+    await logAppControlChange(db, row.source_id, 'rollback', req.user, currentValue, nextValue, `Rolled back change ${req.params.id}.`);
+    res.json({ ok: true, source: nextValue });
+  } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+app.post('/api/admin/whatsnext-sync', requireAuth, requireMasterAdmin, async (req, res) => {
+  try {
+    const db = await getPool();
+    await logAppControlChange(db, 'whatsnext-sync', 'sync_requested', req.user, null, { status: 'not_configured' }, 'WhatsNext sync requested, but no integration endpoint is configured yet.');
+    res.status(501).json({ error: 'WhatsNext sync is not configured yet.', configured: false });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -1040,7 +1578,7 @@ app.post('/api/ai', async function(req, res) {
     const user = await currentUser(req);
     if (!user) return res.status(401).json({ error: 'Sign in to use RecipeBox AI.' });
     const usage = await readAiUsage(user.user_id);
-    if (usage.remaining <= 0) {
+    if (!usage.unlimited && usage.remaining <= 0) {
       return res.status(429).json({
         error: `Monthly AI beta limit reached (${usage.count}/${usage.limit}).`,
         aiUsage: usage,

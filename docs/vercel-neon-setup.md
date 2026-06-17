@@ -19,6 +19,15 @@ Supabase free project slot.
   `https://recipebox-kappa.vercel.app`.
 - `AI_MONTHLY_LIMIT`: optional monthly AI request limit per user. Defaults to
   `50` when unset.
+- `MASTER_ADMIN_EMAIL`: optional master admin email for App Control access.
+- `MASTER_ADMIN_PASSWORD_HASH`: preferred master admin password hash generated
+  by RecipeBox's `scrypt$salt$hash` format.
+- `MASTER_ADMIN_PASSWORD`: fallback plain-text bootstrap password. Use only
+  long enough to create or promote the master account, then replace with
+  `MASTER_ADMIN_PASSWORD_HASH`.
+- `MASTER_ADMIN_NAME`: optional display name for the master admin profile.
+- `NATIVE_APP_ORIGIN`: optional trusted origin for a future native shell if it
+  is not one of the built-in RecipeBox web origins.
 - `YOUTUBE_API_KEY`: optional, but recommended for YouTube metadata fallback.
 
 ## Vercel project settings
@@ -66,6 +75,10 @@ RecipeBox now has a first-pass account sync prototype:
 - Users can delete their account from Settings after confirming their password.
 - AI requests are counted per signed-in user per month, with a configurable
   beta limit shown in Settings.
+- Master admin accounts can open App Control, bypass monthly AI limits, and
+  manage typed knowledge sources. Normal users cannot access admin endpoints.
+- App Control changes are logged in `app_control_change_log` and knowledge
+  sources are validated before being saved.
 - Existing local recipes are synced only when the user chooses to add this
   device's recipes to the account.
 - Sessions use an HTTP-only `rb_session` cookie with a long rolling expiration,

@@ -18,6 +18,7 @@ create table if not exists profiles (
   user_id text primary key,
   email text,
   display_name text,
+  role text not null default 'user',
   password_hash text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -91,3 +92,40 @@ create table if not exists ai_usage_monthly (
 
 create index if not exists ai_usage_monthly_period_idx
   on ai_usage_monthly (period);
+
+create table if not exists app_control_sources (
+  id text primary key,
+  title text not null,
+  category text not null,
+  content text not null,
+  use_when text not null,
+  scope_type text not null,
+  scope_value text not null default '',
+  applies_to_features jsonb not null default '[]'::jsonb,
+  priority integer not null default 50,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  created_by text,
+  updated_by text,
+  version integer not null default 1,
+  last_synced_at timestamptz,
+  source_origin text not null default 'RecipeBox'
+);
+
+create index if not exists app_control_sources_active_idx
+  on app_control_sources (active, category);
+
+create table if not exists app_control_change_log (
+  id uuid primary key default gen_random_uuid(),
+  source_id text,
+  action text not null,
+  changed_by text,
+  changed_at timestamptz not null default now(),
+  previous_value jsonb,
+  next_value jsonb,
+  note text
+);
+
+create index if not exists app_control_change_log_source_idx
+  on app_control_change_log (source_id, changed_at desc);

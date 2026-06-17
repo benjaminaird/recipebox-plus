@@ -12,7 +12,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="RecipeBox">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;600;700&display=swap" />
+  <script src="/app-config.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -58,6 +60,15 @@
     const BRAND_GRADIENT = `linear-gradient(135deg, ${C.green} 0%, ${C.brown} 100%)`;
     const SERIF = "'DM Serif Display', serif";
     const SANS = "'DM Sans', sans-serif";
+    const APP_VERSION = "1.1.0";
+    const API_BASE = String((window.RECIPEBOX_CONFIG && window.RECIPEBOX_CONFIG.apiBase) || window.RECIPEBOX_API_BASE || "").replace(/\/$/, "");
+    function apiUrl(url) {
+      if (!url || !String(url).startsWith("/api/")) return url;
+      return API_BASE + url;
+    }
+    function apiFetch(url, options = {}) {
+      return fetch(apiUrl(url), { credentials:"include", ...options });
+    }
     const NAV_CLEARANCE = "calc(110px + env(safe-area-inset-bottom))";
     const PANTRY_NAV_OFFSET = "calc(100dvh - 86px - env(safe-area-inset-bottom))";
     const safePad = (top, right, bottom, left = right) => `calc(env(safe-area-inset-top) + ${top}px) ${right}px ${bottom}px ${left}px`;
@@ -74,6 +85,9 @@
     };
     const CARD_COLORS = ["#234B32","#B85D32","#B88A2B","#5A3827","#3E6F4B","#8B6252","#35676B"];
     const CATEGORIES = ["Breakfast","Appetizers","Entrées","Sides","Condiments & Sauces","Desserts"];
+    const APP_CONTROL_CATEGORIES = ["All","Methodology","AI Instruction","Import Rule","Recipe Normalization","Meal Planning","Pantry Logic","Image Handling","User Experience","Safety / Guardrail","Legal / Copyright","Product Strategy","WhatsNext Sync"];
+    const APP_CONTROL_FEATURES = ["Import","Manual Recipe Entry","AI Adjust","AI Chat Editor","Pantry Chef","Meal Planner","Shopping List","Cook Mode","PDF Export","Recipe Detail","Library","Settings"];
+    const APP_CONTROL_SCOPE_TYPES = ["Global","Feature","Account","Recipe Category"];
     const CATEGORY_IMAGES = {
       "Favorites": "https://images.unsplash.com/photo-1495521821757-a1efb6729352?auto=format&fit=crop&w=800&q=80",
       "Breakfast": "https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?auto=format&fit=crop&w=800&q=80",
@@ -392,10 +406,12 @@
         if (navigator.vibrate) navigator.vibrate(0);
       } catch {}
     }
-    function syncGetJson(url, fallback) {
+function syncGetJson(url, fallback) {
   try {
     const xhr = new XMLHttpRequest();
-    xhr.open("GET", url + "?t=" + Date.now(), false);
+    const target = apiUrl(url);
+    xhr.open("GET", target + (target.includes("?") ? "&" : "?") + "t=" + Date.now(), false);
+    xhr.withCredentials = true;
     xhr.send(null);
     if (xhr.status >= 200 && xhr.status < 300) return JSON.parse(xhr.responseText || "null") ?? fallback;
   } catch (e) {}
@@ -403,24 +419,24 @@
 }
 function asyncPutJson(url, body) {
   try {
-    fetch(url, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body), keepalive:true }).catch(() => {});
+    apiFetch(url, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body), keepalive:true }).catch(() => {});
   } catch (e) {}
 }
 async function postJson(url, body) {
-  const res = await fetch(url, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body || {}) });
+  const res = await apiFetch(url, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body || {}) });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "Request failed");
   return data;
 }
 async function putJson(url, body) {
-  const res = await fetch(url, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body || {}) });
+  const res = await apiFetch(url, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body || {}) });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "Request failed");
   return data;
 }
 async function fetchJson(url, fallback) {
   try {
-    const res = await fetch(url);
+    const res = await apiFetch(url);
     if (!res.ok) return fallback;
     return await res.json();
   } catch {
@@ -474,7 +490,7 @@ function downloadJson(filename, data) {
     async function callAI(messages, system, maxTokens) {
       const body = { model: "claude-sonnet-4-5-20250929", max_tokens: maxTokens || 2000, messages };
       if (system) body.system = system;
-      const res = await fetch("/api/ai", {
+      const res = await apiFetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -1209,7 +1225,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       );
     }
 
-    function Settings({ timerSound, setTimerSound, account, setAccount, recipes, mealPlan, aiUsage, onCloudData }) {
+    function Settings({ timerSound, setTimerSound, account, setAccount, recipes, mealPlan, aiUsage, onCloudData, onOpenAdmin }) {
       const [mode, setMode] = useState("create");
       const [email, setEmail] = useState("");
       const [displayName, setDisplayName] = useState("");
@@ -1502,15 +1518,32 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark}}>AI Usage</div>
                     <div style={{fontSize:"0.78em",color:C.light}}>Beta safety limit for imports, Pantry Chef, and recipe edits.</div>
                   </div>
-                  <div style={{fontWeight:900,color:C.green,fontSize:"0.92em"}}>{aiUsage?.remaining ?? 0} left</div>
+                  <div style={{fontWeight:900,color:C.green,fontSize:"0.92em"}}>{aiUsage?.unlimited ? "Unlimited" : (aiUsage?.remaining ?? 0)+" left"}</div>
                 </div>
                 <div style={{height:9,background:C.cream2,borderRadius:999,overflow:"hidden",border:"1px solid "+C.border}}>
-                  <div style={{width:((Math.min(aiUsage?.count || 0, aiUsage?.limit || 50) / Math.max(aiUsage?.limit || 50, 1)) * 100)+"%",height:"100%",background:C.green,borderRadius:999}} />
+                  <div style={{width:(aiUsage?.unlimited ? "100%" : ((Math.min(aiUsage?.count || 0, aiUsage?.limit || 50) / Math.max(aiUsage?.limit || 50, 1)) * 100)+"%"),height:"100%",background:C.green,borderRadius:999}} />
                 </div>
                 <div style={{display:"flex",justifyContent:"space-between",gap:8,marginTop:8,fontSize:"0.76em",color:C.light}}>
-                  <span>{aiUsage?.count || 0} of {aiUsage?.limit || 50} AI requests used</span>
+                  <span>{aiUsage?.unlimited ? "Master Admin unlimited AI access" : (aiUsage?.count || 0)+" of "+(aiUsage?.limit || 50)+" AI requests used"}</span>
                   <span>{aiUsage?.period || "This month"}</span>
                 </div>
+              </div>
+            )}
+
+            {account?.isMasterAdmin && (
+              <div style={{...S.card,padding:16,border:"1px solid rgba(184,138,43,0.45)",background:"linear-gradient(135deg,#20140e,#2d2119)"}}>
+                <div style={{display:"flex",alignItems:"center",gap:12}}>
+                  <div style={{width:42,height:42,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(216,179,95,0.14)",color:C.goldLight,border:"1px solid rgba(216,179,95,0.25)"}}>
+                    <Icon name="lock" size={21} />
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.white}}>App Control</div>
+                    <div style={{fontSize:"0.78em",color:"rgba(255,249,238,0.68)",lineHeight:1.4}}>Master Admin operating brain for rules, prompts, limits, and knowledge.</div>
+                  </div>
+                </div>
+                <button onClick={onOpenAdmin} style={{...S.goldBtn,width:"100%",marginTop:13,borderRadius:9,padding:"10px 12px",fontSize:"0.82em"}}>
+                  Open App Control
+                </button>
               </div>
             )}
 
@@ -1540,7 +1573,18 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(120px, 1fr))",gap:8,marginTop:12}}>
                 <div style={{...S.cardSoft,padding:"9px 10px"}}><div style={{fontWeight:900,color:C.dark,fontSize:"0.9em"}}>{recipes.length}</div><div style={{fontSize:"0.72em",color:C.light}}>recipe cards</div></div>
                 <div style={{...S.cardSoft,padding:"9px 10px"}}><div style={{fontWeight:900,color:C.dark,fontSize:"0.9em"}}>{Object.values(mealPlan || {}).flat().length}</div><div style={{fontSize:"0.72em",color:C.light}}>planned meals</div></div>
-                <div style={{...S.cardSoft,padding:"9px 10px"}}><div style={{fontWeight:900,color:C.dark,fontSize:"0.9em"}}>1.1.0</div><div style={{fontSize:"0.72em",color:C.light}}>app version</div></div>
+                <div style={{...S.cardSoft,padding:"9px 10px"}}><div style={{fontWeight:900,color:C.dark,fontSize:"0.9em"}}>{APP_VERSION}</div><div style={{fontSize:"0.72em",color:C.light}}>app version</div></div>
+              </div>
+            </div>
+
+            <div style={{...S.card,padding:16}}>
+              <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark,marginBottom:4}}>Legal & Support</div>
+              <div style={{fontSize:"0.82em",color:C.light,lineHeight:1.5,marginBottom:12}}>Release-ready links for help, privacy, terms, and account deletion.</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(135px, 1fr))",gap:8}}>
+                <a href="/support.html" target="_blank" rel="noreferrer" style={{...S.ghostBtn,textDecoration:"none",textAlign:"center",borderRadius:9,padding:"10px 11px",fontSize:"0.78em"}}>Support</a>
+                <a href="/privacy.html" target="_blank" rel="noreferrer" style={{...S.ghostBtn,textDecoration:"none",textAlign:"center",borderRadius:9,padding:"10px 11px",fontSize:"0.78em"}}>Privacy</a>
+                <a href="/terms.html" target="_blank" rel="noreferrer" style={{...S.ghostBtn,textDecoration:"none",textAlign:"center",borderRadius:9,padding:"10px 11px",fontSize:"0.78em"}}>Terms</a>
+                <a href="/delete-account.html" target="_blank" rel="noreferrer" style={{...S.ghostBtn,textDecoration:"none",textAlign:"center",borderRadius:9,padding:"10px 11px",fontSize:"0.78em"}}>Delete Account</a>
               </div>
             </div>
 
@@ -1562,6 +1606,181 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               </div>
             )}
           </div>
+        </div>
+      );
+    }
+
+    function emptyAdminDraft() {
+      return { title:"", category:"Methodology", useWhen:"", scopeType:"Global", scopeValue:"", appliesToFeatures:[], priority:50, active:true, content:"", sourceOrigin:"RecipeBox" };
+    }
+
+    function AppControl({ account, onBack }) {
+      const [sources, setSources] = useState([]);
+      const [changes, setChanges] = useState([]);
+      const [filter, setFilter] = useState("All");
+      const [editor, setEditor] = useState(null);
+      const [draft, setDraft] = useState(() => emptyAdminDraft());
+      const [busy, setBusy] = useState(false);
+      const [message, setMessage] = useState("");
+      const dark = { bg:"#11120f", panel:"#1a1714", panel2:"#231d18", line:"rgba(255,249,238,0.12)", text:"#fff9ee", muted:"rgba(255,249,238,0.64)", gold:"#d8b35f", green:"#6fb184", red:"#e0786d" };
+
+      async function loadAdmin() {
+        setBusy(true);
+        try {
+          const [knowledgeData, logData] = await Promise.all([
+            fetchJson("/api/admin/knowledge", { sources:[] }),
+            fetchJson("/api/admin/change-log", { changes:[] }),
+          ]);
+          setSources(knowledgeData.sources || []);
+          setChanges(logData.changes || []);
+        } catch (err) {
+          setMessage(err.message || "Could not load App Control.");
+        } finally { setBusy(false); }
+      }
+      useEffect(() => { loadAdmin(); }, []);
+
+      const visibleSources = sources.filter((source) => filter === "All" || source.category === filter);
+      const chip = (active) => ({ border:"1px solid "+(active?dark.gold:dark.line), background:active?"rgba(216,179,95,0.16)":"rgba(255,249,238,0.04)", color:active?dark.gold:dark.muted, borderRadius:999, padding:"8px 11px", fontSize:"0.76em", fontWeight:900, fontFamily:SANS, cursor:"pointer", whiteSpace:"nowrap" });
+      function editSource(source) { setEditor(source.id); setDraft({ ...source, appliesToFeatures:source.appliesToFeatures || [] }); setMessage(""); }
+      function newSource() { setEditor("create"); setDraft(emptyAdminDraft()); setMessage(""); }
+      function toggleFeature(feature) {
+        setDraft((prev) => {
+          const list = prev.appliesToFeatures || [];
+          return { ...prev, appliesToFeatures:list.includes(feature) ? list.filter((x) => x !== feature) : [...list, feature] };
+        });
+      }
+      async function saveSource() {
+        setBusy(true);
+        try {
+          const payload = { title:draft.title, category:draft.category, useWhen:draft.useWhen, scopeType:draft.scopeType, scopeValue:draft.scopeValue, appliesToFeatures:draft.appliesToFeatures || [], priority:Number(draft.priority || 50), active:!!draft.active, content:draft.content, sourceOrigin:draft.sourceOrigin || "RecipeBox" };
+          editor === "create" ? await postJson("/api/admin/knowledge", payload) : await putJson("/api/admin/knowledge/" + encodeURIComponent(editor), payload);
+          setEditor(null);
+          setMessage("App Control source saved.");
+          await loadAdmin();
+        } catch (err) {
+          setMessage(err.message || "Could not save source.");
+        } finally { setBusy(false); }
+      }
+      async function deactivateSource(source) {
+        if (!window.confirm("Deactivate this App Control source?")) return;
+        setBusy(true);
+        try {
+          const res = await apiFetch("/api/admin/knowledge/" + encodeURIComponent(source.id), { method:"DELETE" });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || "Could not deactivate source.");
+          setMessage("Source deactivated.");
+          await loadAdmin();
+        } catch (err) { setMessage(err.message || "Could not deactivate source."); }
+        finally { setBusy(false); }
+      }
+      async function rollback(change) {
+        if (!window.confirm("Roll back this App Control change?")) return;
+        setBusy(true);
+        try {
+          await postJson("/api/admin/change-log/" + encodeURIComponent(change.id) + "/rollback", {});
+          setMessage("Change rolled back.");
+          await loadAdmin();
+        } catch (err) { setMessage(err.message || "Could not roll back change."); }
+        finally { setBusy(false); }
+      }
+      async function whatsNextSync() {
+        setBusy(true);
+        try { await postJson("/api/admin/whatsnext-sync", {}); }
+        catch (err) { setMessage(err.message || "WhatsNext sync is not configured yet."); }
+        finally { setBusy(false); loadAdmin(); }
+      }
+
+      return (
+        <div style={{minHeight:"100vh",background:dark.bg,color:dark.text,paddingBottom:NAV_CLEARANCE}}>
+          <div style={{position:"sticky",top:0,zIndex:24,background:"linear-gradient(135deg,#11120f,#2a2018)",borderBottom:"1px solid "+dark.line,padding:safePad(18,18,18)}}>
+            <div style={{maxWidth:1120,margin:"0 auto",display:"flex",alignItems:"center",gap:12}}>
+              <button onClick={onBack} style={{width:40,height:40,borderRadius:12,border:"1px solid "+dark.line,background:"rgba(255,249,238,0.05)",color:dark.text,cursor:"pointer",fontWeight:900}}>←</button>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:"0.68em",letterSpacing:2,textTransform:"uppercase",color:dark.gold,fontWeight:900}}>Master Admin · {account?.email}</div>
+                <div style={{fontFamily:SERIF,fontSize:"clamp(1.8rem, 7vw, 3.2rem)",lineHeight:1}}>App Control</div>
+                <div style={{fontSize:"0.84em",color:dark.muted,lineHeight:1.35}}>Plain-English operating rules, knowledge, guardrails, feature behavior, and rollback history.</div>
+              </div>
+              <button onClick={newSource} style={{...S.goldBtn,borderRadius:10,padding:"10px 12px",fontSize:"0.82em",display:"inline-flex",alignItems:"center",gap:7}}><Icon name="plus" size={16} /> Add</button>
+            </div>
+          </div>
+
+          <div style={{maxWidth:1120,margin:"0 auto",padding:"18px",display:"grid",gap:16}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(150px, 1fr))",gap:10}}>
+              {[["Sources",sources.length],["Active",sources.filter((x)=>x.active).length],["Inactive",sources.filter((x)=>!x.active).length],["Changes",changes.length]].map(([label,value]) => (
+                <div key={label} style={{background:dark.panel,border:"1px solid "+dark.line,borderRadius:14,padding:14}}>
+                  <div style={{fontSize:"0.72em",textTransform:"uppercase",letterSpacing:1.4,color:dark.muted,fontWeight:800}}>{label}</div>
+                  <div style={{fontFamily:SERIF,fontSize:"2em",lineHeight:1}}>{value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{background:dark.panel,border:"1px solid "+dark.line,borderRadius:16,padding:14}}>
+              <div style={{display:"flex",justifyContent:"space-between",gap:10,marginBottom:12}}>
+                <div><div style={{fontFamily:SERIF,fontSize:"1.4em"}}>Knowledge Base</div><div style={{fontSize:"0.8em",color:dark.muted}}>Schema-validated sources only. No raw code, SQL, HTML, or scripts.</div></div>
+                <button onClick={whatsNextSync} disabled={busy} style={{...S.ghostBtn,borderColor:dark.line,background:"rgba(255,249,238,0.04)",color:dark.text,borderRadius:10,padding:"9px 10px",fontSize:"0.78em"}}><Icon name="sync" size={15} /> Sync</button>
+              </div>
+              <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:8,marginBottom:8}}>
+                {APP_CONTROL_CATEGORIES.map((cat) => <button key={cat} onClick={() => setFilter(cat)} style={chip(filter === cat)}>{cat}</button>)}
+              </div>
+              {message && <div style={{margin:"8px 0 12px",color:message.includes("Could not")||message.includes("required")||message.includes("not configured")?dark.red:dark.green,fontWeight:900,fontSize:"0.82em"}}>{message}</div>}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(280px, 1fr))",gap:12}}>
+                {visibleSources.map((source) => (
+                  <div key={source.id} style={{background:dark.panel2,border:"1px solid "+(source.active?dark.line:"rgba(224,120,109,0.35)"),borderRadius:14,padding:14,display:"grid",gap:10}}>
+                    <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontFamily:SERIF,fontSize:"1.18em",lineHeight:1.1}}>{source.title}</div>
+                        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:8}}>
+                          <span style={{fontSize:"0.68em",fontWeight:900,color:dark.gold,border:"1px solid rgba(216,179,95,0.28)",borderRadius:999,padding:"4px 7px"}}>{source.category}</span>
+                          <span style={{fontSize:"0.68em",fontWeight:900,color:source.active?dark.green:dark.red,border:"1px solid "+(source.active?"rgba(111,177,132,0.35)":"rgba(224,120,109,0.35)"),borderRadius:999,padding:"4px 7px"}}>{source.active?"Active":"Inactive"}</span>
+                        </div>
+                      </div>
+                      <button onClick={() => editSource(source)} style={{background:"rgba(255,249,238,0.05)",border:"1px solid "+dark.line,color:dark.text,borderRadius:9,width:34,height:34,cursor:"pointer"}}><Icon name="edit" size={15} /></button>
+                      <button onClick={() => deactivateSource(source)} style={{background:"rgba(224,120,109,0.08)",border:"1px solid rgba(224,120,109,0.3)",color:dark.red,borderRadius:9,width:34,height:34,cursor:"pointer"}}><Icon name="trash" size={15} /></button>
+                    </div>
+                    <div style={{fontSize:"0.8em",color:dark.muted,lineHeight:1.45}}>{source.useWhen}</div>
+                    <div style={{display:"flex",justifyContent:"space-between",gap:8,fontSize:"0.72em",color:"rgba(255,249,238,0.52)"}}><span>{source.scopeType}{source.scopeValue ? ": "+source.scopeValue : ""}</span><span>{(source.content || "").length.toLocaleString()} chars · v{source.version}</span></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{background:dark.panel,border:"1px solid "+dark.line,borderRadius:16,padding:14}}>
+              <div style={{fontFamily:SERIF,fontSize:"1.35em",marginBottom:4}}>Change Log / Rollback</div>
+              <div style={{fontSize:"0.8em",color:dark.muted,marginBottom:12}}>Every change is logged. Rollback restores the previous validated value.</div>
+              <div style={{display:"grid",gap:8}}>
+                {changes.slice(0, 14).map((change) => (
+                  <div key={change.id} style={{display:"flex",gap:10,alignItems:"center",background:dark.panel2,border:"1px solid "+dark.line,borderRadius:12,padding:10}}>
+                    <div style={{flex:1,minWidth:0}}><div style={{fontWeight:900,fontSize:"0.82em"}}>{change.action} <span style={{color:dark.muted,fontWeight:600}}>· {change.sourceId}</span></div><div style={{fontSize:"0.72em",color:dark.muted}}>{new Date(change.changedAt).toLocaleString()} · {change.note || "No note"}</div></div>
+                    <button onClick={() => rollback(change)} disabled={!change.previousValue || busy} style={{...S.ghostBtn,borderRadius:9,padding:"8px 9px",fontSize:"0.72em",opacity:!change.previousValue?0.4:1}}>Rollback</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {editor && (
+            <div className="modal-overlay" style={{alignItems:"stretch",overflowY:"auto"}}>
+              <div className="modal-box" style={{maxWidth:760,margin:"24px auto",background:dark.panel,color:dark.text,border:"1px solid "+dark.line,borderRadius:18,alignSelf:"flex-start"}}>
+                <div style={{padding:18,borderBottom:"1px solid "+dark.line,display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{flex:1}}><div style={{fontFamily:SERIF,fontSize:"1.45em"}}>{editor === "create" ? "Add Knowledge Source" : "Edit Knowledge Source"}</div><div style={{fontSize:"0.78em",color:dark.muted}}>Typed fields only. Invalid values are rejected server-side.</div></div>
+                  <button onClick={() => setEditor(null)} style={{background:"none",border:"none",color:dark.text,cursor:"pointer"}}><Icon name="close" /></button>
+                </div>
+                <div style={{padding:18,display:"grid",gap:12}}>
+                  <input value={draft.title || ""} onChange={(e)=>setDraft({...draft,title:e.target.value})} placeholder="Title" style={{...S.input,padding:12,background:"#fff9ee",width:"100%"}} />
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(180px, 1fr))",gap:10}}>
+                    <select value={draft.category || "Methodology"} onChange={(e)=>setDraft({...draft,category:e.target.value})} style={{...S.input,padding:12,background:"#fff9ee"}}>{APP_CONTROL_CATEGORIES.filter((x)=>x!=="All").map((cat)=><option key={cat}>{cat}</option>)}</select>
+                    <select value={draft.scopeType || "Global"} onChange={(e)=>setDraft({...draft,scopeType:e.target.value,scopeValue:e.target.value==="Global"?"":draft.scopeValue})} style={{...S.input,padding:12,background:"#fff9ee"}}>{APP_CONTROL_SCOPE_TYPES.map((scope)=><option key={scope}>{scope}</option>)}</select>
+                    {draft.scopeType === "Feature" ? <select value={draft.scopeValue || ""} onChange={(e)=>setDraft({...draft,scopeValue:e.target.value})} style={{...S.input,padding:12,background:"#fff9ee"}}><option value="">Choose feature</option>{APP_CONTROL_FEATURES.map((feature)=><option key={feature}>{feature}</option>)}</select> : <input value={draft.scopeValue || ""} onChange={(e)=>setDraft({...draft,scopeValue:e.target.value})} placeholder="Scope value" disabled={draft.scopeType==="Global"} style={{...S.input,padding:12,background:"#fff9ee",opacity:draft.scopeType==="Global"?0.6:1}} />}
+                  </div>
+                  <textarea value={draft.useWhen || ""} onChange={(e)=>setDraft({...draft,useWhen:e.target.value})} placeholder="Use when..." style={{...S.input,padding:12,minHeight:76,background:"#fff9ee",resize:"vertical"}} />
+                  <textarea value={draft.content || ""} onChange={(e)=>setDraft({...draft,content:e.target.value})} placeholder="Knowledge / rules / behavior guidance..." style={{...S.input,padding:12,minHeight:220,background:"#fff9ee",resize:"vertical",lineHeight:1.5}} />
+                  <div><div style={{fontSize:"0.72em",letterSpacing:1.5,textTransform:"uppercase",color:dark.gold,fontWeight:900,marginBottom:8}}>Applies To Features</div><div style={{display:"flex",gap:7,flexWrap:"wrap"}}>{APP_CONTROL_FEATURES.map((feature) => <button key={feature} onClick={() => toggleFeature(feature)} style={chip((draft.appliesToFeatures || []).includes(feature))}>{feature}</button>)}</div></div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}><input type="number" min="0" max="100" value={draft.priority ?? 50} onChange={(e)=>setDraft({...draft,priority:e.target.value})} style={{...S.input,padding:12,background:"#fff9ee"}} /><label style={{display:"flex",alignItems:"center",gap:9,color:dark.muted,fontSize:"0.86em"}}><input type="checkbox" checked={draft.active !== false} onChange={(e)=>setDraft({...draft,active:e.target.checked})} />Active</label></div>
+                  <div style={{display:"flex",gap:10}}><button onClick={saveSource} disabled={busy} style={{...S.goldBtn,flex:1,padding:"12px 14px",borderRadius:10}}>{busy ? "Saving..." : "Save Source"}</button><button onClick={() => setEditor(null)} style={{...S.ghostBtn,flex:1,padding:"12px 14px",borderRadius:10}}>Cancel</button></div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       );
     }
@@ -1619,7 +1838,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
           if (mode === "url") {
             setLoadingMsg("Fetching recipe page...");
-            const pageRes = await fetch("/api/fetch-url?url=" + encodeURIComponent(url));
+            const pageRes = await apiFetch("/api/fetch-url?url=" + encodeURIComponent(url));
             const pageData = await pageRes.json();
             if (pageData.error) throw new Error("Could not fetch recipe page: " + pageData.error);
 
@@ -1638,7 +1857,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
           } else if (mode === "youtube") {
             setLoadingMsg("Fetching YouTube details...");
-            const transcriptRes = await fetch("/api/transcript?url=" + encodeURIComponent(ytUrl));
+            const transcriptRes = await apiFetch("/api/transcript?url=" + encodeURIComponent(ytUrl));
             const transcriptData = await transcriptRes.json();
             if (transcriptData.error) throw new Error("Could not fetch YouTube details: " + transcriptData.error);
 
@@ -1663,7 +1882,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
           } else if (mode === "social") {
             setLoadingMsg("Fetching public social post...");
-            const socialRes = await fetch("/api/fetch-social?url=" + encodeURIComponent(socialUrl));
+            const socialRes = await apiFetch("/api/fetch-social?url=" + encodeURIComponent(socialUrl));
             const socialData = await socialRes.json();
             if (socialData.error) {
               throw new Error("RecipeBox could not access the full caption or recipe text from this social post. Try Paste Text with the caption or upload screenshots.");
@@ -2862,6 +3081,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       if (showSplash) return <SplashScreen />;
       if (resetToken) return <AuthScreen recipes={recipes} mealPlan={mealPlan} setAccount={setAccount} onCloudData={loadCloudData} initialMode="newpass" resetToken={resetToken} />;
       if (!account) return <AuthScreen recipes={recipes} mealPlan={mealPlan} setAccount={setAccount} onCloudData={loadCloudData} />;
+      if (screen==="admin" && account?.isMasterAdmin) return <AppControl account={account} onBack={()=>setScreen("library")} />;
       if (screen==="import") return <ImportScreen onDone={(r)=>{addRecipe(r);setScreen("library");}} onCancel={()=>setScreen("library")} />;
       if (screen==="edit"&&current) return <EditRecipe recipe={current} onSave={(r)=>{ if(recipes.find((x)=>x.id===r.id)) updateRecipe(r); else addRecipe(r); setScreen("view"); }} onCancel={()=>setScreen("view")} />;
       if (screen==="view"&&current) return (
@@ -2876,7 +3096,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>{setCurrent(r);setScreen("view");}} onAdd={()=>setScreen("import")} onFavorite={toggleFavorite} setTab={setMainTab} />}
           {tab==="plan" && <MealPlanner recipes={recipes} mealPlan={mealPlan} setMealPlan={updateMealPlan} onOpen={(r)=>{setCurrent(r);setScreen("view");}} />}
           {tab==="pantry" && <PantryChef recipes={recipes} onImport={(r)=>{addRecipe(r);setTab("library");}} onOpenRecipe={(r)=>{setCurrent(r);setScreen("view");}} />}
-          {tab==="settings" && <Settings timerSound={timerSound} setTimerSound={setTimerSound} account={account} setAccount={setAccount} recipes={recipes} mealPlan={mealPlan} aiUsage={aiUsage} onCloudData={loadCloudData} />}
+          {tab==="settings" && <Settings timerSound={timerSound} setTimerSound={setTimerSound} account={account} setAccount={setAccount} recipes={recipes} mealPlan={mealPlan} aiUsage={aiUsage} onCloudData={loadCloudData} onOpenAdmin={()=>setScreen("admin")} />}
           <BottomNav tab={tab} setTab={setMainTab} />
         </div>
       );
