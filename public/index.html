@@ -78,9 +78,22 @@
       "Desserts": "https://images.unsplash.com/photo-1519915028121-7d3463d20b13?auto=format&fit=crop&w=800&q=80"
     };
     const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+    const MAIN_TABS = ["library","plan","pantry","settings"];
 
     const uid = () => Math.random().toString(36).slice(2, 9);
     const cardColor = (t) => CARD_COLORS[(t?.charCodeAt(0) || 0) % CARD_COLORS.length];
+
+    function hasHorizontalScrollParent(node, stopAt) {
+      let el = node;
+      while (el && el !== stopAt) {
+        if (el.nodeType === 1) {
+          const style = window.getComputedStyle(el);
+          if ((style.overflowX === "auto" || style.overflowX === "scroll") && el.scrollWidth > el.clientWidth + 4) return true;
+        }
+        el = el.parentElement;
+      }
+      return false;
+    }
 
     function normalizeFractions(str) {
       return String(str || "")
@@ -2520,6 +2533,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [current, setCurrent] = useState(null);
       const [account, setAccount] = useState(() => loadAccountSession().user || null);
       const [showSplash, setShowSplash] = useState(true);
+      const swipeRef = useRef(null);
+      const pointerSwipeRef = useRef(null);
       const resetToken = (() => { try { return new URLSearchParams(window.location.search).get("reset"); } catch { return null; } })();
 
       useEffect(() => { saveRecipes(recipes); }, [recipes]);
@@ -2541,6 +2556,58 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       function updateRecipe(r) { setRecipes((p) => p.map((x) => x.id===r.id?r:x)); setCurrent(r); }
       function deleteRecipe(id) { if (!window.confirm("Delete this recipe?")) return; setRecipes((p) => p.filter((r) => r.id!==id)); setScreen("library"); }
       function toggleFavorite(id) { setRecipes((p) => p.map((r) => r.id===id?{...r,favorite:!r.favorite}:r)); }
+      function setMainTab(nextTab) {
+        if (!MAIN_TABS.includes(nextTab)) return;
+        setTab(nextTab);
+        setScreen("library");
+      }
+      function goTab(delta) {
+        const i = MAIN_TABS.indexOf(tab);
+        if (i < 0) return;
+        const next = Math.min(MAIN_TABS.length - 1, Math.max(0, i + delta));
+        if (next !== i) setMainTab(MAIN_TABS[next]);
+      }
+      function handleSwipeStart(e) {
+        const touch = e.touches && e.touches[0];
+        if (!touch) return;
+        const target = e.target;
+        const tag = target?.tagName?.toLowerCase();
+        if (["input","textarea","select"].includes(tag) || hasHorizontalScrollParent(target, e.currentTarget)) {
+          swipeRef.current = null;
+          return;
+        }
+        swipeRef.current = { x:touch.clientX, y:touch.clientY };
+      }
+      function handleSwipeEnd(e) {
+        const start = swipeRef.current;
+        swipeRef.current = null;
+        const touch = e.changedTouches && e.changedTouches[0];
+        if (!start || !touch) return;
+        const dx = touch.clientX - start.x;
+        const dy = touch.clientY - start.y;
+        if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.35) return;
+        goTab(dx < 0 ? 1 : -1);
+      }
+      function handlePointerStart(e) {
+        if (e.pointerType === "touch") return;
+        const target = e.target;
+        const tag = target?.tagName?.toLowerCase();
+        if (["input","textarea","select"].includes(tag) || hasHorizontalScrollParent(target, e.currentTarget)) {
+          pointerSwipeRef.current = null;
+          return;
+        }
+        pointerSwipeRef.current = { x:e.clientX, y:e.clientY };
+      }
+      function handlePointerEnd(e) {
+        if (e.pointerType === "touch") return;
+        const start = pointerSwipeRef.current;
+        pointerSwipeRef.current = null;
+        if (!start) return;
+        const dx = e.clientX - start.x;
+        const dy = e.clientY - start.y;
+        if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.35) return;
+        goTab(dx < 0 ? 1 : -1);
+      }
 
       if (showSplash) return <SplashScreen />;
       if (resetToken) return <AuthScreen recipes={recipes} mealPlan={mealPlan} setAccount={setAccount} onCloudData={loadCloudData} initialMode="newpass" resetToken={resetToken} />;
@@ -2555,13 +2622,13 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       );
 
       return (
-        <>
-          {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>{setCurrent(r);setScreen("view");}} onAdd={()=>setScreen("import")} onFavorite={toggleFavorite} setTab={setTab} />}
+        <div onTouchStart={handleSwipeStart} onTouchEnd={handleSwipeEnd} onPointerDown={handlePointerStart} onPointerUp={handlePointerEnd}>
+          {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>{setCurrent(r);setScreen("view");}} onAdd={()=>setScreen("import")} onFavorite={toggleFavorite} setTab={setMainTab} />}
           {tab==="plan" && <MealPlanner recipes={recipes} mealPlan={mealPlan} setMealPlan={updateMealPlan} onOpen={(r)=>{setCurrent(r);setScreen("view");}} />}
           {tab==="pantry" && <PantryChef recipes={recipes} onImport={(r)=>{addRecipe(r);setTab("library");}} onOpenRecipe={(r)=>{setCurrent(r);setScreen("view");}} />}
           {tab==="settings" && <Settings timerSound={timerSound} setTimerSound={setTimerSound} account={account} setAccount={setAccount} recipes={recipes} mealPlan={mealPlan} onCloudData={loadCloudData} />}
-          <BottomNav tab={tab} setTab={setTab} />
-        </>
+          <BottomNav tab={tab} setTab={setMainTab} />
+        </div>
       );
     }
 
