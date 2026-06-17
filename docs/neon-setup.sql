@@ -80,3 +80,14 @@ create table if not exists password_reset_tokens (
 
 create index if not exists password_reset_tokens_user_id_idx
   on password_reset_tokens (user_id);
+
+create table if not exists ai_usage_monthly (
+  user_id text not null references profiles(user_id) on delete cascade,
+  period text not null,
+  request_count integer not null default 0,
+  updated_at timestamptz not null default now(),
+  primary key(user_id, period)
+);
+
+create index if not exists ai_usage_monthly_period_idx
+  on ai_usage_monthly (period);

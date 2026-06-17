@@ -17,6 +17,8 @@ Supabase free project slot.
   `RecipeBox <hello@yourdomain.com>`.
 - `APP_BASE_URL`: production app URL used in password reset links, for example
   `https://recipebox-kappa.vercel.app`.
+- `AI_MONTHLY_LIMIT`: optional monthly AI request limit per user. Defaults to
+  `50` when unset.
 - `YOUTUBE_API_KEY`: optional, but recommended for YouTube metadata fallback.
 
 ## Vercel project settings
@@ -62,6 +64,8 @@ RecipeBox now has a first-pass account sync prototype:
 - Signed-in users can change their password from Settings after confirming
   their current password.
 - Users can delete their account from Settings after confirming their password.
+- AI requests are counted per signed-in user per month, with a configurable
+  beta limit shown in Settings.
 - Existing local recipes are synced only when the user chooses to add this
   device's recipes to the account.
 - Sessions use an HTTP-only `rb_session` cookie with a long rolling expiration,

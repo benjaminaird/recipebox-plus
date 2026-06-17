@@ -433,6 +433,9 @@ async function fetchJson(url, fallback) {
 function hasLocalRecipeData(recipes, mealPlan) {
   return (Array.isArray(recipes) && recipes.length > 0) || (mealPlan && typeof mealPlan === "object" && Object.keys(mealPlan).length > 0);
 }
+function defaultAiUsage() {
+  return { period:"", count:0, limit:50, remaining:50 };
+}
 function loadRecipes() {
   let local = [];
   try { local = JSON.parse(localStorage.getItem(RECIPES_KEY) || "[]"); } catch {}
@@ -477,6 +480,7 @@ function downloadJson(filename, data) {
         body: JSON.stringify(body),
       });
       const data = await res.json();
+      if (data.aiUsage) window.dispatchEvent(new CustomEvent("recipebox-ai-usage", { detail:data.aiUsage }));
       if (data.error) throw new Error(typeof data.error === "string" ? data.error : JSON.stringify(data.error));
       return data.content.map((b) => b.text || "").join("");
     }
@@ -1205,7 +1209,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       );
     }
 
-    function Settings({ timerSound, setTimerSound, account, setAccount, recipes, mealPlan, onCloudData }) {
+    function Settings({ timerSound, setTimerSound, account, setAccount, recipes, mealPlan, aiUsage, onCloudData }) {
       const [mode, setMode] = useState("create");
       const [email, setEmail] = useState("");
       const [displayName, setDisplayName] = useState("");
@@ -1490,6 +1494,25 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 })}
               </div>
             </div>
+
+            {account && (
+              <div style={{...S.card,padding:16}}>
+                <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark}}>AI Usage</div>
+                    <div style={{fontSize:"0.78em",color:C.light}}>Beta safety limit for imports, Pantry Chef, and recipe edits.</div>
+                  </div>
+                  <div style={{fontWeight:900,color:C.green,fontSize:"0.92em"}}>{aiUsage?.remaining ?? 0} left</div>
+                </div>
+                <div style={{height:9,background:C.cream2,borderRadius:999,overflow:"hidden",border:"1px solid "+C.border}}>
+                  <div style={{width:((Math.min(aiUsage?.count || 0, aiUsage?.limit || 50) / Math.max(aiUsage?.limit || 50, 1)) * 100)+"%",height:"100%",background:C.green,borderRadius:999}} />
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",gap:8,marginTop:8,fontSize:"0.76em",color:C.light}}>
+                  <span>{aiUsage?.count || 0} of {aiUsage?.limit || 50} AI requests used</span>
+                  <span>{aiUsage?.period || "This month"}</span>
+                </div>
+              </div>
+            )}
 
             {placeholder.map((card) => (
               <div key={card.title} style={{...S.card,padding:16}}>
@@ -2748,12 +2771,23 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [timerSound, setTimerSound] = useState(() => loadTimerSound());
       const [current, setCurrent] = useState(null);
       const [account, setAccount] = useState(() => loadAccountSession().user || null);
+      const [aiUsage, setAiUsage] = useState(() => defaultAiUsage());
       const [showSplash, setShowSplash] = useState(true);
       const swipeRef = useRef(null);
       const pointerSwipeRef = useRef(null);
       const resetToken = (() => { try { return new URLSearchParams(window.location.search).get("reset"); } catch { return null; } })();
 
       useEffect(() => { saveRecipes(recipes); }, [recipes]);
+      useEffect(() => {
+        async function refreshAiUsage() {
+          if (!account) { setAiUsage(defaultAiUsage()); return; }
+          setAiUsage(await fetchJson("/api/ai-usage", defaultAiUsage()));
+        }
+        refreshAiUsage();
+        const handler = (e) => setAiUsage(e.detail || defaultAiUsage());
+        window.addEventListener("recipebox-ai-usage", handler);
+        return () => window.removeEventListener("recipebox-ai-usage", handler);
+      }, [account?.id]);
       useEffect(() => {
         const t = setTimeout(() => setShowSplash(false), 2400);
         return () => clearTimeout(t);
@@ -2842,7 +2876,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>{setCurrent(r);setScreen("view");}} onAdd={()=>setScreen("import")} onFavorite={toggleFavorite} setTab={setMainTab} />}
           {tab==="plan" && <MealPlanner recipes={recipes} mealPlan={mealPlan} setMealPlan={updateMealPlan} onOpen={(r)=>{setCurrent(r);setScreen("view");}} />}
           {tab==="pantry" && <PantryChef recipes={recipes} onImport={(r)=>{addRecipe(r);setTab("library");}} onOpenRecipe={(r)=>{setCurrent(r);setScreen("view");}} />}
-          {tab==="settings" && <Settings timerSound={timerSound} setTimerSound={setTimerSound} account={account} setAccount={setAccount} recipes={recipes} mealPlan={mealPlan} onCloudData={loadCloudData} />}
+          {tab==="settings" && <Settings timerSound={timerSound} setTimerSound={setTimerSound} account={account} setAccount={setAccount} recipes={recipes} mealPlan={mealPlan} aiUsage={aiUsage} onCloudData={loadCloudData} />}
           <BottomNav tab={tab} setTab={setMainTab} />
         </div>
       );

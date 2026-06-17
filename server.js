@@ -13,6 +13,7 @@ const PASSWORD_MIN_LENGTH = 6;
 const AUTH_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const AUTH_LIMIT_MAX = 20;
 const RESET_TOKEN_MINUTES = 60;
+const AI_MONTHLY_LIMIT = Number(process.env.AI_MONTHLY_LIMIT || 50);
 const authAttempts = new Map();
 
 let pool = null;
@@ -81,6 +82,14 @@ async function getPool() {
       created_at timestamptz NOT NULL DEFAULT now()
     )`);
     await pool.query('CREATE INDEX IF NOT EXISTS password_reset_tokens_user_id_idx ON password_reset_tokens (user_id)');
+    await pool.query(`CREATE TABLE IF NOT EXISTS ai_usage_monthly (
+      user_id text NOT NULL REFERENCES profiles(user_id) ON DELETE CASCADE,
+      period text NOT NULL,
+      request_count integer NOT NULL DEFAULT 0,
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      PRIMARY KEY(user_id, period)
+    )`);
+    await pool.query('CREATE INDEX IF NOT EXISTS ai_usage_monthly_period_idx ON ai_usage_monthly (period)');
   }
   return pool;
 }
@@ -329,6 +338,35 @@ async function replaceUserMealPlan(userId, mealPlan) {
     [userId, JSON.stringify(mealPlan || {})]
   );
   return true;
+}
+
+function currentAiPeriod() {
+  return new Date().toISOString().slice(0, 7);
+}
+
+async function readAiUsage(userId) {
+  const db = await getPool();
+  const period = currentAiPeriod();
+  if (!db || !userId) return { period, count: 0, limit: AI_MONTHLY_LIMIT, remaining: AI_MONTHLY_LIMIT };
+  const result = await db.query(
+    'SELECT request_count FROM ai_usage_monthly WHERE user_id=$1 AND period=$2',
+    [userId, period]
+  );
+  const count = Number(result.rows[0]?.request_count || 0);
+  return { period, count, limit: AI_MONTHLY_LIMIT, remaining: Math.max(0, AI_MONTHLY_LIMIT - count) };
+}
+
+async function incrementAiUsage(userId) {
+  const db = await getPool();
+  const period = currentAiPeriod();
+  await db.query(
+    `INSERT INTO ai_usage_monthly(user_id, period, request_count, updated_at)
+     VALUES($1, $2, 1, now())
+     ON CONFLICT(user_id, period)
+     DO UPDATE SET request_count=ai_usage_monthly.request_count + 1, updated_at=now()`,
+    [userId, period]
+  );
+  return readAiUsage(userId);
 }
 
 function absoluteUrl(base, maybeUrl) {
@@ -989,17 +1027,36 @@ app.get('/api/transcript', async function(req, res) {
   } catch(err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/ai', async function(req, res) {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return res.status(500).json({ error: 'no key' });
+app.get('/api/ai-usage', async function(req, res) {
   try {
+    const user = await currentUser(req);
+    if (!user) return res.status(401).json({ error: 'sign in required' });
+    res.json(await readAiUsage(user.user_id));
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/ai', async function(req, res) {
+  try {
+    const user = await currentUser(req);
+    if (!user) return res.status(401).json({ error: 'Sign in to use RecipeBox AI.' });
+    const usage = await readAiUsage(user.user_id);
+    if (usage.remaining <= 0) {
+      return res.status(429).json({
+        error: `Monthly AI beta limit reached (${usage.count}/${usage.limit}).`,
+        aiUsage: usage,
+      });
+    }
+    const key = process.env.ANTHROPIC_API_KEY;
+    if (!key) return res.status(500).json({ error: 'no key' });
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify(req.body),
     });
     const d = await r.json();
-    res.status(r.status).json(d);
+    if (!r.ok) return res.status(r.status).json(d);
+    const nextUsage = await incrementAiUsage(user.user_id);
+    res.status(r.status).json({ ...d, aiUsage: nextUsage });
   } catch(err) { res.status(500).json({ error: err.message }); }
 });
 
