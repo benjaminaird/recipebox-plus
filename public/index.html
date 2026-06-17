@@ -44,14 +44,29 @@
     .meal-plan-title { font-size: 0.86em; font-weight: 700; color: #20140E; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
     .meal-plan-meta { font-size: 0.72em; color: #967966; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
     .meal-plan-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: max-content; }
-    .admin-panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 12px; }
+    .admin-shell { height: 100vh; height: 100dvh; max-width: 100vw; overflow-x: clip; overflow-y: auto; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
+    .admin-header-inner, .admin-content { width: min(1120px, calc(100vw - 32px)); margin: 0 auto; max-width: 100%; min-width: 0; }
+    .admin-content { padding: 18px 0 calc(132px + env(safe-area-inset-bottom)); display: grid; gap: 16px; }
+    .admin-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; min-width: 0; }
+    .admin-panel { min-width: 0; max-width: 100%; overflow: hidden; }
+    .admin-panel-grid { display: grid; grid-template-columns: 1fr; gap: 12px; min-width: 0; max-width: 100%; }
+    .admin-source-card { min-width: 0; max-width: 100%; overflow: hidden; }
+    .admin-source-footer { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; min-width: 0; }
     .admin-user-row { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(130px, 0.55fr) minmax(170px, 0.8fr); gap: 10px; align-items: center; }
+    @media (min-width: 760px) {
+      .admin-panel-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (min-width: 1120px) {
+      .admin-panel-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
     @media (max-width: 560px) {
       .modal-overlay { align-items: flex-end; padding: max(12px, env(safe-area-inset-top)) 10px max(12px, env(safe-area-inset-bottom)); }
       .modal-box { max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px); overflow-y: auto; border-radius: 18px; }
       .meal-plan-row { grid-template-columns: 34px minmax(0, 1fr); align-items: start; }
       .meal-plan-title, .meal-plan-meta { white-space: normal; overflow-wrap: anywhere; }
       .meal-plan-actions { grid-column: 2; justify-content: flex-start; min-width: 0; flex-wrap: wrap; }
+      .admin-header-inner, .admin-content { width: calc(100vw - 20px); }
+      .admin-content { padding-top: 12px; }
       .admin-user-row { grid-template-columns: 1fr; align-items: stretch; }
     }
   </style>
@@ -1745,9 +1760,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       }
 
       return (
-        <div style={{minHeight:"100vh",background:dark.bg,color:dark.text,paddingBottom:NAV_CLEARANCE,width:"100%",maxWidth:"100%",overflowX:"hidden"}}>
+        <div className="admin-shell" style={{background:dark.bg,color:dark.text,width:"100%"}}>
           <div style={{position:"sticky",top:0,zIndex:24,background:"linear-gradient(135deg,#11120f,#2a2018)",borderBottom:"1px solid "+dark.line,padding:safePad(18,18,18)}}>
-            <div style={{maxWidth:1120,margin:"0 auto",display:"flex",alignItems:"center",gap:12}}>
+            <div className="admin-header-inner" style={{display:"flex",alignItems:"center",gap:12}}>
               <button onClick={onBack} style={{width:40,height:40,borderRadius:12,border:"1px solid "+dark.line,background:"rgba(255,249,238,0.05)",color:dark.text,cursor:"pointer",fontWeight:900}}>←</button>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:"0.68em",letterSpacing:2,textTransform:"uppercase",color:dark.gold,fontWeight:900}}>Master Admin · {account?.email}</div>
@@ -1758,7 +1773,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             </div>
           </div>
 
-          <div style={{maxWidth:1120,margin:"0 auto",padding:"18px",display:"grid",gap:16,width:"100%",overflowX:"hidden"}}>
+          <div className="admin-content">
             <div style={{display:"flex",gap:8,overflowX:"auto",WebkitOverflowScrolling:"touch",paddingBottom:2}}>
               {[
                 ["knowledge","Knowledge"],
@@ -1769,7 +1784,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             </div>
 
             {section === "knowledge" && <React.Fragment>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(min(150px, 100%), 1fr))",gap:10}}>
+            <div className="admin-stats-grid">
               {[["Sources",sources.length],["Active",sources.filter((x)=>x.active).length],["Inactive",sources.filter((x)=>!x.active).length],["Changes",changes.length]].map(([label,value]) => (
                 <div key={label} style={{background:dark.panel,border:"1px solid "+dark.line,borderRadius:14,padding:14}}>
                   <div style={{fontSize:"0.72em",textTransform:"uppercase",letterSpacing:1.4,color:dark.muted,fontWeight:800}}>{label}</div>
@@ -1778,7 +1793,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               ))}
             </div>
 
-            <div style={{background:dark.panel,border:"1px solid "+dark.line,borderRadius:16,padding:14}}>
+            <div className="admin-panel" style={{background:dark.panel,border:"1px solid "+dark.line,borderRadius:16,padding:14}}>
               <div style={{display:"flex",justifyContent:"space-between",gap:10,marginBottom:12,alignItems:"flex-start",flexWrap:"wrap"}}>
                 <div style={{minWidth:0,flex:"1 1 260px"}}><div style={{fontFamily:SERIF,fontSize:"1.4em"}}>Knowledge Base</div><div style={{fontSize:"0.8em",color:dark.muted}}>Schema-validated sources only. No raw code, SQL, HTML, or scripts.</div></div>
                 <button onClick={whatsNextSync} disabled={busy} style={{...S.ghostBtn,borderColor:dark.line,background:"rgba(255,249,238,0.04)",color:dark.text,borderRadius:10,padding:"9px 10px",fontSize:"0.78em"}}><Icon name="sync" size={15} /> Sync</button>
@@ -1789,7 +1804,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               {message && <div style={{margin:"8px 0 12px",color:message.includes("Could not")||message.includes("required")||message.includes("not configured")?dark.red:dark.green,fontWeight:900,fontSize:"0.82em"}}>{message}</div>}
               <div className="admin-panel-grid">
                 {visibleSources.map((source) => (
-                  <div key={source.id} style={{background:dark.panel2,border:"1px solid "+(source.active?dark.line:"rgba(224,120,109,0.35)"),borderRadius:14,padding:14,display:"grid",gap:10}}>
+                  <div key={source.id} className="admin-source-card" style={{background:dark.panel2,border:"1px solid "+(source.active?dark.line:"rgba(224,120,109,0.35)"),borderRadius:14,padding:14,display:"grid",gap:10}}>
                     <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontFamily:SERIF,fontSize:"1.18em",lineHeight:1.1}}>{source.title}</div>
@@ -1802,13 +1817,13 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                       <button onClick={() => deactivateSource(source)} style={{background:"rgba(224,120,109,0.08)",border:"1px solid rgba(224,120,109,0.3)",color:dark.red,borderRadius:9,width:34,height:34,cursor:"pointer"}}><Icon name="trash" size={15} /></button>
                     </div>
                     <div style={{fontSize:"0.8em",color:dark.muted,lineHeight:1.45}}>{source.useWhen}</div>
-                    <div style={{display:"flex",justifyContent:"space-between",gap:8,fontSize:"0.72em",color:"rgba(255,249,238,0.52)"}}><span>{source.scopeType}{source.scopeValue ? ": "+source.scopeValue : ""}</span><span>{(source.content || "").length.toLocaleString()} chars · v{source.version}</span></div>
+                    <div className="admin-source-footer" style={{fontSize:"0.72em",color:"rgba(255,249,238,0.52)"}}><span>{source.scopeType}{source.scopeValue ? ": "+source.scopeValue : ""}</span><span>{(source.content || "").length.toLocaleString()} chars · v{source.version}</span></div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div style={{background:dark.panel,border:"1px solid "+dark.line,borderRadius:16,padding:14}}>
+            <div className="admin-panel" style={{background:dark.panel,border:"1px solid "+dark.line,borderRadius:16,padding:14}}>
               <div style={{fontFamily:SERIF,fontSize:"1.35em",marginBottom:4}}>Change Log / Rollback</div>
               <div style={{fontSize:"0.8em",color:dark.muted,marginBottom:12}}>Every change is logged. Rollback restores the previous validated value.</div>
               <div style={{display:"grid",gap:8}}>
@@ -1824,7 +1839,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
             {section === "users" && (
               <div style={{display:"grid",gap:14}}>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(min(145px, 100%), 1fr))",gap:10}}>
+                <div className="admin-stats-grid">
                   {[["Total Users",userSummary.totalUsers||0],["New Signups",userSummary.newSignups||0],["Active 7 Days",userSummary.active7||0],["Active 30 Days",userSummary.active30||0]].map(([label,value]) => (
                     <div key={label} style={{background:dark.panel,border:"1px solid "+dark.line,borderRadius:14,padding:14,minWidth:0}}>
                       <div style={{fontSize:"0.72em",textTransform:"uppercase",letterSpacing:1.4,color:dark.muted,fontWeight:800}}>{label}</div>
@@ -1832,7 +1847,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     </div>
                   ))}
                 </div>
-                <div style={{background:dark.panel,border:"1px solid "+dark.line,borderRadius:16,padding:14,display:"grid",gap:12}}>
+                <div className="admin-panel" style={{background:dark.panel,border:"1px solid "+dark.line,borderRadius:16,padding:14,display:"grid",gap:12}}>
                   <div style={{display:"flex",gap:10,alignItems:"flex-end",flexWrap:"wrap"}}>
                     <div style={{flex:"1 1 240px",minWidth:0}}>
                       <div style={{fontFamily:SERIF,fontSize:"1.4em"}}>Users</div>
