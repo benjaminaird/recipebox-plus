@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>RecipeBox</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <meta name="theme-color" content="#2D5016">
+  <meta name="theme-color" content="#1f4b2f">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="RecipeBox">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -21,7 +21,9 @@
   <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: 'DM Sans', sans-serif; background: #F8F1E5; color: #2A1B13; }
+    html { min-height: 100%; overflow-x: hidden; background: linear-gradient(135deg, #234B32 0%, #5A3827 100%); }
+    body { margin: 0; min-height: 100%; overflow-x: hidden; font-family: 'DM Sans', sans-serif; background: linear-gradient(135deg, #234B32 0%, #5A3827 100%); color: #2A1B13; }
+    #root { min-height: 100vh; min-height: 100dvh; overflow-x: hidden; background: linear-gradient(135deg, #234B32 0%, #5A3827 100%); }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
     @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: none; } }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -53,11 +55,13 @@
       blue:"#2563EB", bluePale:"#EFF6FF",
       red:"#C0392B", redPale:"#FDECEA", white:"#FFFFFF",
     };
+    const BRAND_GRADIENT = `linear-gradient(135deg, ${C.green} 0%, ${C.brown} 100%)`;
     const SERIF = "'DM Serif Display', serif";
     const SANS = "'DM Sans', sans-serif";
+    const safePad = (top, right, bottom, left = right) => `calc(env(safe-area-inset-top) + ${top}px) ${right}px ${bottom}px ${left}px`;
     const S = {
-      page: { minHeight:"100vh", background:C.cream },
-      brandHeader: { background:`linear-gradient(135deg, ${C.green} 0%, ${C.brown} 100%)`, boxShadow:"0 12px 34px rgba(32,20,14,0.18)" },
+      page: { minHeight:"100vh", width:"100%", maxWidth:"100%", overflowX:"hidden", background:C.cream },
+      brandHeader: { background:BRAND_GRADIENT, boxShadow:"0 12px 34px rgba(32,20,14,0.18)" },
       card: { background:C.paper, border:"1px solid "+C.border, borderRadius:14, boxShadow:"0 8px 24px rgba(90,56,39,0.08)" },
       cardSoft: { background:C.paper2, border:"1px solid "+C.border, borderRadius:12, boxShadow:"0 4px 16px rgba(90,56,39,0.06)" },
       primaryBtn: { background:C.green, color:C.white, border:"none", borderRadius:10, fontWeight:800, cursor:"pointer", fontFamily:SANS },
@@ -641,15 +645,15 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         { id:"settings", icon:"settings", label:"Settings" },
       ];
       return (
-        <div style={{position:"fixed",bottom:0,left:0,right:0,background:C.paper,borderTop:"1px solid "+C.border,display:"flex",zIndex:20,boxShadow:"0 -8px 24px rgba(90,56,39,0.10)",paddingBottom:"env(safe-area-inset-bottom)"}}>
+        <div style={{position:"fixed",bottom:0,left:0,right:0,background:C.paper,borderTop:"1px solid "+C.border,display:"flex",zIndex:20,boxShadow:"0 -8px 24px rgba(90,56,39,0.10)",paddingBottom:"env(safe-area-inset-bottom)",overflowX:"hidden"}}>
           {items.map((item) => {
             const active = tab === item.id;
             return (
               <button key={item.id} onClick={() => setTab(item.id)}
-                style={{flex:1,padding:"10px 0 8px",border:"none",background:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,position:"relative"}}>
+                style={{flex:"1 1 0",minWidth:0,padding:"10px 0 8px",border:"none",background:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,position:"relative",color:active?"#1f5a37":"#9a7a68",fontFamily:SANS,WebkitTapHighlightColor:"transparent"}}>
                 <Icon name={item.icon} size={23} style={{marginBottom:2}} />
-                <span style={{fontSize:"0.67em",fontWeight:active?700:400,color:active?C.green:C.light,fontFamily:SANS}}>{item.label}</span>
-                {active && <div style={{position:"absolute",bottom:0,width:22,height:3,background:C.gold,borderRadius:2}} />}
+                <span style={{fontSize:"0.67em",fontWeight:active?700:500,color:"inherit",fontFamily:SANS}}>{item.label}</span>
+                {active && <div style={{position:"absolute",bottom:0,width:22,height:3,background:"#c2952e",borderRadius:2}} />}
               </button>
             );
           })}
@@ -725,7 +729,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
       return (
         <div style={{...S.page,paddingBottom:90}}>
-          <div style={{...S.brandHeader,padding:"28px 20px 24px"}}>
+          <div style={{...S.brandHeader,padding:safePad(28,20,24)}}>
             <div style={{maxWidth:900,margin:"0 auto"}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
                 <div>
@@ -797,15 +801,15 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(150px, 1fr))",gap:12}}>
                     {browseCards.map((card) => (
                       <button key={card.label} onClick={card.onClick}
-                        style={{height:116,position:"relative",overflow:"hidden",background:C.dark,border:"1px solid "+C.border,borderRadius:14,padding:0,textAlign:"left",cursor:"pointer",boxShadow:"0 8px 22px rgba(90,56,39,0.10)",fontFamily:SANS}}>
-                        <img src={card.image} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:0.62}} />
-                        <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg, rgba(0,0,0,0.10), rgba(0,0,0,0.58))"}} />
+                        style={{height:116,position:"relative",overflow:"hidden",background:C.dark,border:"1px solid rgba(216,199,174,0.95)",borderRadius:14,padding:0,textAlign:"left",cursor:"pointer",boxShadow:"0 10px 24px rgba(90,56,39,0.13)",fontFamily:SANS}}>
+                        <img src={card.image} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:0.74}} />
+                        <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg, rgba(32,20,14,0.06), rgba(32,20,14,0.48))"}} />
                         <div style={{position:"absolute",left:13,right:13,bottom:12,color:C.white}}>
                           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
                             <span style={{fontWeight:900,fontSize:"0.9em",textShadow:"0 1px 3px rgba(0,0,0,0.35)"}}>{card.label}</span>
-                            <span style={{background:"rgba(255,255,255,0.18)",border:"1px solid rgba(255,255,255,0.25)",borderRadius:999,padding:"2px 8px",fontSize:"0.72em",fontWeight:900}}>{card.count}</span>
+                            <span style={{background:"rgba(255,249,238,0.88)",color:C.brown,border:"1px solid rgba(216,199,174,0.95)",borderRadius:999,padding:"2px 8px",fontSize:"0.72em",fontWeight:900,boxShadow:"0 2px 8px rgba(32,20,14,0.16)"}}>{card.count}</span>
                           </div>
-                          <div style={{marginTop:4,color:"rgba(255,255,255,0.78)",fontSize:"0.74em"}}>{card.count === 1 ? "1 recipe" : card.count + " recipes"}</div>
+                          <div style={{marginTop:4,color:"rgba(255,249,238,0.86)",fontSize:"0.74em"}}>{card.count === 1 ? "1 recipe" : card.count + " recipes"}</div>
                         </div>
                       </button>
                     ))}
@@ -922,7 +926,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
       return (
         <div style={{...S.page,paddingBottom:90}}>
-          <div style={{...S.brandHeader,padding:"28px 20px 24px"}}>
+          <div style={{...S.brandHeader,padding:safePad(28,20,24)}}>
             <div style={{maxWidth:900,margin:"0 auto"}}>
               <div style={{fontFamily:SERIF,fontSize:"1.8em",color:C.white}}>Weekly Meal Plan</div>
               <div style={{color:"rgba(255,249,238,0.72)",fontSize:"0.8em",marginTop:3}}>Plan the week from your RecipeBox · ~{totalCal.toLocaleString()} calories planned</div>
@@ -1038,6 +1042,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         "Quick dinner under 30 minutes",
         "What can I make from my pantry photo?"
       ];
+      const promptCards = [
+        { title:"Use what I have", text:"Tell me what's in your fridge or pantry.", prompt:"I want to use what I have in my fridge or pantry." },
+        { title:"Check my RecipeBox", text:"Find saved recipe cards that match.", prompt:"Check my RecipeBox for recipes that match what I have." },
+        { title:"Quick dinner idea", text:"Get something simple for tonight.", prompt:"Give me a quick, simple dinner idea for tonight." },
+      ];
 
       useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:"smooth" }); }, [messages]);
 
@@ -1085,7 +1094,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
       return (
         <div style={{height:"calc(100dvh - 62px - env(safe-area-inset-bottom))",maxHeight:"calc(100dvh - 62px - env(safe-area-inset-bottom))",display:"flex",flexDirection:"column",background:C.cream,overflow:"hidden"}}>
-          <div style={{...S.brandHeader,padding:"16px 16px 14px",flexShrink:0}}>
+          <div style={{...S.brandHeader,padding:safePad(16,16,14),flexShrink:0}}>
             <div style={{fontFamily:SERIF,fontSize:"1.45em",color:C.white}}>Pantry Chef</div>
             <div style={{color:"rgba(255,249,238,0.78)",fontSize:"0.76em",marginTop:1}}>Ideas from your RecipeBox and what you have on hand</div>
           </div>
@@ -1121,6 +1130,17 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   </div>
                 </div>
               ))}
+              {messages.length <= 1 && !loading && (
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(150px, 1fr))",gap:9,margin:"2px 0 4px"}}>
+                  {promptCards.map((card) => (
+                    <button key={card.title} onClick={() => send(card.prompt)}
+                      style={{...S.cardSoft,background:C.paper,textAlign:"left",padding:"11px 12px",cursor:"pointer",fontFamily:SANS,boxShadow:"0 5px 14px rgba(90,56,39,0.06)"}}>
+                      <div style={{fontFamily:SERIF,fontSize:"1.02em",color:C.dark,lineHeight:1.15,marginBottom:4}}>{card.title}</div>
+                      <div style={{fontSize:"0.76em",color:C.light,lineHeight:1.35}}>{card.text}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
               {loading && <div style={{display:"flex"}}><div style={{...S.cardSoft,borderRadius:"16px 16px 16px 4px",padding:"10px 16px",color:C.light,fontSize:"0.85em"}}>Thinking...</div></div>}
               <div ref={bottomRef} />
             </div>
@@ -1267,7 +1287,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       ];
       return (
         <div style={{...S.page,paddingBottom:96}}>
-          <div style={{...S.brandHeader,padding:"28px 20px 24px"}}>
+          <div style={{...S.brandHeader,padding:safePad(28,20,24)}}>
             <div style={{maxWidth:900,margin:"0 auto"}}>
               <div style={{fontFamily:SERIF,fontSize:"1.8em",color:C.white}}>Your RecipeBox</div>
               <div style={{color:"rgba(255,249,238,0.72)",fontSize:"0.8em",marginTop:3}}>Account, sync, timers, and recipe-box preferences</div>
@@ -1288,20 +1308,6 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     <button onClick={signOut} disabled={accountBusy} style={{...S.ghostBtn,borderRadius:9,padding:"9px 11px",fontSize:"0.78em",opacity:accountBusy?0.65:1}}>
                       Sign out
                     </button>
-                  </div>
-                  <div style={{marginTop:16,paddingTop:14,borderTop:"1px solid "+C.border}}>
-                    <div style={{fontWeight:900,color:C.red,fontSize:"0.86em",marginBottom:6}}>Delete account</div>
-                    <div style={{fontSize:"0.78em",color:C.light,lineHeight:1.45,marginBottom:10}}>This permanently deletes your account, recipes, meal plan, and sessions from RecipeBox cloud storage.</div>
-                    <div style={{display:"grid",gap:8}}>
-                      <input value={deleteConfirm} onChange={(e)=>setDeleteConfirm(e.target.value)} placeholder="Type DELETE"
-                        style={{width:"100%",padding:"9px 11px",border:"1px solid "+C.border,borderRadius:8,fontFamily:SANS,fontSize:"0.84em",outline:"none"}} />
-                      <input type="password" value={deletePassword} onChange={(e)=>setDeletePassword(e.target.value)} placeholder="Password"
-                        style={{width:"100%",padding:"9px 11px",border:"1px solid "+C.border,borderRadius:8,fontFamily:SANS,fontSize:"0.84em",outline:"none"}} />
-                      <button onClick={deleteAccount} disabled={accountBusy || deleteConfirm !== "DELETE" || !deletePassword}
-                        style={{background:C.red,color:C.white,border:"none",borderRadius:8,padding:"9px 11px",fontWeight:900,fontSize:"0.78em",fontFamily:SANS,cursor:"pointer",opacity:(accountBusy || deleteConfirm !== "DELETE" || !deletePassword)?0.55:1}}>
-                        Delete my account
-                      </button>
-                    </div>
                   </div>
                 </div>
               ) : (
@@ -1377,6 +1383,24 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 <div style={{fontSize:"0.82em",color:C.light,lineHeight:1.5}}>{card.text}</div>
               </div>
             ))}
+
+            {account && (
+              <div style={{...S.card,padding:16,border:"1px solid "+C.redPale,background:C.paper}}>
+                <div style={{fontFamily:SERIF,fontSize:"1.05em",color:C.dark,marginBottom:4}}>Danger Zone</div>
+                <div style={{fontWeight:900,color:C.red,fontSize:"0.86em",marginBottom:6}}>Delete account</div>
+                <div style={{fontSize:"0.78em",color:C.light,lineHeight:1.45,marginBottom:10}}>This permanently deletes your account, recipes, meal plan, and sessions from RecipeBox cloud storage.</div>
+                <div style={{display:"grid",gap:8}}>
+                  <input value={deleteConfirm} onChange={(e)=>setDeleteConfirm(e.target.value)} placeholder="Type DELETE"
+                    style={{...S.input,width:"100%",padding:"9px 11px",fontSize:"0.84em"}} />
+                  <input type="password" value={deletePassword} onChange={(e)=>setDeletePassword(e.target.value)} placeholder="Password"
+                    style={{...S.input,width:"100%",padding:"9px 11px",fontSize:"0.84em"}} />
+                  <button onClick={deleteAccount} disabled={accountBusy || deleteConfirm !== "DELETE" || !deletePassword}
+                    style={{background:C.red,color:C.white,border:"none",borderRadius:8,padding:"9px 11px",fontWeight:900,fontSize:"0.78em",fontFamily:SANS,cursor:"pointer",opacity:(accountBusy || deleteConfirm !== "DELETE" || !deletePassword)?0.55:1}}>
+                    Delete my account
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       );
@@ -1729,7 +1753,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               onCancel={() => { setShowCategoryModal(false); setShowPhotoPrompt(false); setPendingRecipe(null); }}
             />
           )}
-          <div style={{...S.brandHeader,padding:"20px",display:"flex",alignItems:"center",gap:12}}>
+          <div style={{...S.brandHeader,padding:safePad(20,20,20),display:"flex",alignItems:"center",gap:12}}>
             <button onClick={onCancel} style={{background:"rgba(255,255,255,0.12)",border:"none",borderRadius:8,padding:"7px 14px",color:"rgba(255,255,255,0.8)",cursor:"pointer",fontFamily:SANS,fontSize:"0.85em"}}>← Back</button>
             <div>
               <div style={{fontFamily:SERIF,fontSize:"1.35em",color:C.white,lineHeight:1}}>Add a recipe to your box</div>
@@ -2301,8 +2325,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const iStyle = {padding:"8px 11px",border:"1px solid "+C.border,borderRadius:8,fontSize:"0.88em",outline:"none",fontFamily:SANS,width:"100%"};
 
       return (
-        <div style={{minHeight:"100vh",background:C.cream}}>
-          <div style={{...S.brandHeader,padding:"15px 20px",display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:10}}>
+        <div style={{minHeight:"100vh",width:"100%",overflowX:"hidden",background:C.cream}}>
+          <div style={{...S.brandHeader,padding:safePad(15,20,15),display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:10}}>
             <button onClick={onCancel} style={{background:"rgba(255,255,255,0.12)",border:"none",borderRadius:8,padding:"7px 13px",color:C.white,cursor:"pointer",fontFamily:SANS,fontSize:"0.83em"}}>Cancel</button>
             <div style={{flex:1,color:"rgba(255,255,255,0.65)",fontSize:"0.86em",fontFamily:SERIF,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{draft.title}</div>
             <button onClick={() => onSave(draft)} style={{...S.goldBtn,borderRadius:8,padding:"8px 20px"}}>Save</button>
@@ -2677,7 +2701,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       );
 
       return (
-        <div onTouchStart={handleSwipeStart} onTouchEnd={handleSwipeEnd} onPointerDown={handlePointerStart} onPointerUp={handlePointerEnd}>
+        <div onTouchStart={handleSwipeStart} onTouchEnd={handleSwipeEnd} onPointerDown={handlePointerStart} onPointerUp={handlePointerEnd} style={{width:"100%",maxWidth:"100%",overflowX:"hidden",background:C.cream}}>
           {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>{setCurrent(r);setScreen("view");}} onAdd={()=>setScreen("import")} onFavorite={toggleFavorite} setTab={setMainTab} />}
           {tab==="plan" && <MealPlanner recipes={recipes} mealPlan={mealPlan} setMealPlan={updateMealPlan} onOpen={(r)=>{setCurrent(r);setScreen("view");}} />}
           {tab==="pantry" && <PantryChef recipes={recipes} onImport={(r)=>{addRecipe(r);setTab("library");}} onOpenRecipe={(r)=>{setCurrent(r);setScreen("view");}} />}
