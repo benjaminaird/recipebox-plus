@@ -1274,6 +1274,10 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [accountMsg, setAccountMsg] = useState("");
       const [accountBusy, setAccountBusy] = useState(false);
       const [backupMsg, setBackupMsg] = useState("");
+      const [feedbackType, setFeedbackType] = useState("bug");
+      const [feedbackText, setFeedbackText] = useState("");
+      const [feedbackMsg, setFeedbackMsg] = useState("");
+      const [feedbackBusy, setFeedbackBusy] = useState(false);
       const compactHeader = useWindowCompactHeader();
       const localDataAvailable = hasLocalRecipeData(recipes, mealPlan);
       const importRef = useRef();
@@ -1388,6 +1392,30 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           setAccountMsg(err.message || "Could not sync recipes.");
         } finally {
           setAccountBusy(false);
+        }
+      }
+      async function sendFeedback() {
+        setFeedbackBusy(true);
+        setFeedbackMsg("");
+        try {
+          await postJson("/api/feedback", {
+            type: feedbackType,
+            message: feedbackText,
+            page: "Settings",
+            device: navigator.userAgent || "",
+            metadata: {
+              appVersion: APP_VERSION,
+              recipeCount: recipes.length,
+              plannedCount: Object.values(mealPlan || {}).flat().length,
+              viewport: { width: window.innerWidth, height: window.innerHeight },
+            },
+          });
+          setFeedbackText("");
+          setFeedbackMsg("Feedback sent. Thank you.");
+        } catch (err) {
+          setFeedbackMsg(err.message || "Could not send feedback.");
+        } finally {
+          setFeedbackBusy(false);
         }
       }
       function backupBase() {
@@ -1587,6 +1615,36 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 <div style={{fontSize:"0.82em",color:C.light,lineHeight:1.5}}>{card.text}</div>
               </div>
             ))}
+
+            {account && (
+              <div style={{...S.card,padding:16}}>
+                <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark,marginBottom:4}}>Beta Feedback</div>
+                <div style={{fontSize:"0.82em",color:C.light,lineHeight:1.5,marginBottom:12}}>Send bugs, confusing moments, or ideas straight into App Control for beta tracking.</div>
+                <div style={{display:"grid",gap:9}}>
+                  <div style={{display:"flex",gap:7,overflowX:"auto",paddingBottom:2}}>
+                    {[
+                      ["bug","Bug"],
+                      ["confusing","Confusing"],
+                      ["import","Import"],
+                      ["idea","Idea"],
+                      ["general","General"],
+                    ].map(([id,label]) => (
+                      <button key={id} onClick={()=>setFeedbackType(id)}
+                        style={{border:"1.5px solid "+(feedbackType===id?C.green:C.border),background:feedbackType===id?C.green:C.paper,color:feedbackType===id?C.white:C.mid,borderRadius:999,padding:"7px 11px",fontSize:"0.76em",fontWeight:800,cursor:"pointer",whiteSpace:"nowrap",fontFamily:SANS}}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <textarea value={feedbackText} onChange={(e)=>setFeedbackText(e.target.value)} placeholder="What happened? What felt off? What would make RecipeBox better?" rows={4}
+                    style={{...S.input,width:"100%",padding:"10px 12px",fontSize:"0.86em",resize:"vertical",lineHeight:1.45}} />
+                  <button onClick={sendFeedback} disabled={feedbackBusy || feedbackText.trim().length < 8}
+                    style={{...S.primaryBtn,borderRadius:9,padding:"10px 12px",fontSize:"0.82em",opacity:(feedbackBusy || feedbackText.trim().length < 8)?0.55:1}}>
+                    {feedbackBusy ? "Sending..." : "Send Feedback"}
+                  </button>
+                  {feedbackMsg && <div style={{color:feedbackMsg.includes("Could not")||feedbackMsg.includes("little more")?C.red:C.green,fontSize:"0.78em",fontWeight:800,lineHeight:1.4}}>{feedbackMsg}</div>}
+                </div>
+              </div>
+            )}
 
             <div style={{...S.card,padding:16}}>
               <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark,marginBottom:4}}>Data & Backup</div>

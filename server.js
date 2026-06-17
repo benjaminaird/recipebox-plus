@@ -164,6 +164,19 @@ async function getPool() {
     )`);
     await pool.query('CREATE INDEX IF NOT EXISTS user_activity_user_created_idx ON user_activity (user_id, created_at desc)');
     await pool.query('CREATE INDEX IF NOT EXISTS user_activity_action_created_idx ON user_activity (action, created_at desc)');
+    await pool.query(`CREATE TABLE IF NOT EXISTS user_feedback (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id text REFERENCES profiles(user_id) ON DELETE CASCADE,
+      type text NOT NULL DEFAULT 'general',
+      message text NOT NULL,
+      page text,
+      device text,
+      status text NOT NULL DEFAULT 'new',
+      metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+      created_at timestamptz NOT NULL DEFAULT now()
+    )`);
+    await pool.query('CREATE INDEX IF NOT EXISTS user_feedback_user_created_idx ON user_feedback (user_id, created_at desc)');
+    await pool.query('CREATE INDEX IF NOT EXISTS user_feedback_status_created_idx ON user_feedback (status, created_at desc)');
     await pool.query(`CREATE TABLE IF NOT EXISTS password_reset_tokens (
       token_hash text PRIMARY KEY,
       user_id text NOT NULL REFERENCES profiles(user_id) ON DELETE CASCADE,
@@ -1407,6 +1420,29 @@ app.put('/api/mealplan', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+app.post('/api/feedback', requireAuth, async (req, res) => {
+  try {
+    const db = await getPool();
+    const type = String(req.body?.type || 'general').trim().toLowerCase();
+    const allowedTypes = new Set(['general', 'bug', 'idea', 'confusing', 'import']);
+    const cleanType = allowedTypes.has(type) ? type : 'general';
+    const message = String(req.body?.message || '').trim();
+    if (message.length < 8) return res.status(400).json({ error: 'Tell us a little more before sending feedback.' });
+    if (message.length > 4000) return res.status(400).json({ error: 'Feedback is too long. Please keep it under 4000 characters.' });
+    const page = String(req.body?.page || '').slice(0, 120);
+    const device = String(req.body?.device || '').slice(0, 240);
+    const metadata = req.body?.metadata && typeof req.body.metadata === 'object' ? req.body.metadata : {};
+    const result = await db.query(
+      `INSERT INTO user_feedback(user_id, type, message, page, device, metadata)
+       VALUES($1,$2,$3,$4,$5,$6::jsonb)
+       RETURNING id, created_at`,
+      [req.user.user_id, cleanType, message, page, device, JSON.stringify(metadata)]
+    );
+    await logUserActivity(req.user, 'feedback_submitted', { type: cleanType, feedbackId: result.rows[0].id });
+    res.json({ ok: true, id: result.rows[0].id, createdAt: result.rows[0].created_at });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.get('/api/admin/users', requireAuth, requireMasterAdmin, async (req, res) => {
   try {
     const db = await getPool();
@@ -1446,7 +1482,8 @@ app.get('/api/admin/users', requireAuth, requireMasterAdmin, async (req, res) =>
          coalesce(mp.planned_count, 0)::int AS planned_count,
          coalesce(ai.ai_count, 0)::int AS ai_usage_count,
          coalesce(ai.import_count, 0)::int AS import_count,
-         coalesce(act.activity_count, 0)::int AS activity_count
+         coalesce(act.activity_count, 0)::int AS activity_count,
+         coalesce(fb.feedback_count, 0)::int AS feedback_count
        FROM profiles p
        LEFT JOIN user_entitlements e ON e.user_id = p.user_id
        LEFT JOIN (
@@ -1471,6 +1508,11 @@ app.get('/api/admin/users', requireAuth, requireMasterAdmin, async (req, res) =>
          FROM user_activity
          GROUP BY user_id
        ) act ON act.user_id = p.user_id
+       LEFT JOIN (
+         SELECT user_id, count(*) AS feedback_count
+         FROM user_feedback
+         GROUP BY user_id
+       ) fb ON fb.user_id = p.user_id
        ${whereSql}
        ORDER BY coalesce(p.last_active_at, p.created_at) DESC
        LIMIT 120`,
@@ -1504,7 +1546,7 @@ app.get('/api/admin/users', requireAuth, requireMasterAdmin, async (req, res) =>
         plannedCount: row.planned_count,
         aiUsageCount: row.ai_usage_count,
         importCount: row.import_count,
-        feedbackCount: 0,
+        feedbackCount: row.feedback_count,
         activityCount: row.activity_count,
       })),
     });
