@@ -59,6 +59,8 @@ RecipeBox now has a first-pass account sync prototype:
 - Passwords require at least 6 characters with no complexity rules.
 - Auth endpoints have a lightweight per-IP/email attempt limit to slow guessing.
 - Password reset uses one-hour email links sent through Resend.
+- Signed-in users can change their password from Settings after confirming
+  their current password.
 - Users can delete their account from Settings after confirming their password.
 - Existing local recipes are synced only when the user chooses to add this
   device's recipes to the account.

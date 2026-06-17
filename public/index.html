@@ -1214,6 +1214,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [syncLocal, setSyncLocal] = useState(() => hasLocalRecipeData(recipes, mealPlan));
       const [deleteConfirm, setDeleteConfirm] = useState("");
       const [deletePassword, setDeletePassword] = useState("");
+      const [currentPassword, setCurrentPassword] = useState("");
+      const [newPassword, setNewPassword] = useState("");
+      const [confirmNewPassword, setConfirmNewPassword] = useState("");
       const [accountMsg, setAccountMsg] = useState("");
       const [accountBusy, setAccountBusy] = useState(false);
       const [backupMsg, setBackupMsg] = useState("");
@@ -1287,6 +1290,22 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           setAccountMsg("Account deleted.");
         } catch (err) {
           setAccountMsg(err.message || "Could not delete account.");
+        } finally {
+          setAccountBusy(false);
+        }
+      }
+      async function changePassword() {
+        setAccountBusy(true);
+        setAccountMsg("");
+        try {
+          if (newPassword !== confirmNewPassword) throw new Error("New passwords do not match.");
+          await postJson("/api/auth/change-password", { currentPassword, newPassword });
+          setCurrentPassword("");
+          setNewPassword("");
+          setConfirmNewPassword("");
+          setAccountMsg("Password updated. Other signed-in sessions were cleared.");
+        } catch (err) {
+          setAccountMsg(err.message || "Could not update password.");
         } finally {
           setAccountBusy(false);
         }
@@ -1387,6 +1406,22 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     <button onClick={signOut} disabled={accountBusy} style={{...S.ghostBtn,borderRadius:9,padding:"9px 11px",fontSize:"0.78em",opacity:accountBusy?0.65:1}}>
                       Sign out
                     </button>
+                  </div>
+                  <div style={{marginTop:16,paddingTop:14,borderTop:"1px solid "+C.border}}>
+                    <div style={{fontFamily:SERIF,fontSize:"1.02em",color:C.dark,marginBottom:4}}>Password</div>
+                    <div style={{fontSize:"0.78em",color:C.light,lineHeight:1.45,marginBottom:10}}>Change your password here. New passwords need at least 6 characters.</div>
+                    <div style={{display:"grid",gap:8}}>
+                      <input type="password" value={currentPassword} onChange={(e)=>setCurrentPassword(e.target.value)} placeholder="Current password"
+                        style={{...S.input,width:"100%",padding:"9px 11px",fontSize:"0.84em"}} />
+                      <input type="password" value={newPassword} onChange={(e)=>setNewPassword(e.target.value)} placeholder="New password"
+                        style={{...S.input,width:"100%",padding:"9px 11px",fontSize:"0.84em"}} />
+                      <input type="password" value={confirmNewPassword} onChange={(e)=>setConfirmNewPassword(e.target.value)} placeholder="Confirm new password"
+                        style={{...S.input,width:"100%",padding:"9px 11px",fontSize:"0.84em"}} />
+                      <button onClick={changePassword} disabled={accountBusy || !currentPassword || !newPassword || !confirmNewPassword}
+                        style={{...S.goldBtn,borderRadius:9,padding:"9px 11px",fontSize:"0.78em",opacity:(accountBusy || !currentPassword || !newPassword || !confirmNewPassword)?0.55:1}}>
+                        Update Password
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : (

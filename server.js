@@ -596,6 +596,40 @@ app.post('/api/auth/reset-password', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+app.post('/api/auth/change-password', async (req, res) => {
+  try {
+    if (!checkAuthLimit(req, res)) return;
+    const db = await getPool();
+    if (!db) return res.status(500).json({ error: 'database not configured' });
+    const user = await currentUser(req);
+    if (!user) return res.status(401).json({ error: 'sign in required' });
+    const currentPassword = String(req.body.currentPassword || '');
+    const nextPassword = String(req.body.newPassword || '');
+    if (nextPassword.length < PASSWORD_MIN_LENGTH) return res.status(400).json({ error: 'Use a password with at least 6 characters.' });
+    const result = await db.query('SELECT user_id, password_hash FROM profiles WHERE user_id=$1', [user.user_id]);
+    const profile = result.rows[0];
+    if (!profile || !verifyPassword(currentPassword, profile.password_hash)) return res.status(401).json({ error: 'Current password did not match.' });
+    const token = parseCookies(req)[SESSION_COOKIE];
+    const tokenHash = token ? hashToken(token) : '';
+    await db.query('BEGIN');
+    try {
+      await db.query('UPDATE profiles SET password_hash=$1, updated_at=now() WHERE user_id=$2', [hashPassword(nextPassword), user.user_id]);
+      await db.query('DELETE FROM password_reset_tokens WHERE user_id=$1', [user.user_id]);
+      if (tokenHash) {
+        await db.query('DELETE FROM account_sessions WHERE user_id=$1 AND token_hash<>$2', [user.user_id, tokenHash]);
+      } else {
+        await db.query('DELETE FROM account_sessions WHERE user_id=$1', [user.user_id]);
+      }
+      await db.query('COMMIT');
+    } catch (err) {
+      await db.query('ROLLBACK');
+      throw err;
+    }
+    clearAuthLimit(req);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.post('/api/auth/signout', async (req, res) => {
   try {
     const db = await getPool();
