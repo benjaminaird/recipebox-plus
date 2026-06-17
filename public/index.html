@@ -95,6 +95,59 @@
       return false;
     }
 
+    function Icon({ name, size = 22, strokeWidth = 2, className = "", style = {}, title }) {
+      const common = {
+        width:size,
+        height:size,
+        viewBox:"0 0 24 24",
+        fill:"none",
+        stroke:"currentColor",
+        strokeWidth,
+        strokeLinecap:"round",
+        strokeLinejoin:"round",
+        className,
+        style,
+        "aria-hidden":title ? undefined : "true",
+        role:title ? "img" : undefined,
+      };
+      const icons = {
+        recipeBox:<svg {...common}>{title ? <title>{title}</title> : null}<path d="M4.5 9.5h15v8.25a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2V9.5Z" /><path d="M7 9.5V6.75A1.75 1.75 0 0 1 8.75 5h6.5A1.75 1.75 0 0 1 17 6.75V9.5" /><path d="M8 9.5v-2h8v2" /><path d="M9.25 13.25h5.5" /><path d="M9.25 16h3.5" /></svg>,
+        recipeCard:<svg {...common}>{title ? <title>{title}</title> : null}<rect x="5" y="3.75" width="14" height="16.5" rx="2" /><path d="M8.25 8h7.5" /><path d="M8.25 11.25h7.5" /><path d="M8.25 14.5h4.75" /><path d="M16 18l1.25 1.25L20 16.5" /></svg>,
+        library:<svg {...common}>{title ? <title>{title}</title> : null}<path d="M4.5 5.5h6.25a2 2 0 0 1 2 2v12a2.5 2.5 0 0 0-2.5-2.5H4.5V5.5Z" /><path d="M19.5 5.5h-6.25a2 2 0 0 0-2 2v12a2.5 2.5 0 0 1 2.5-2.5h5.75V5.5Z" /><path d="M7.5 8.75h2.25" /><path d="M14.25 8.75h2.25" /></svg>,
+        addRecipe:<svg {...common}>{title ? <title>{title}</title> : null}<rect x="5" y="3.75" width="14" height="16.5" rx="2" /><path d="M8.25 8h5.5" /><path d="M8.25 11.25h4" /><path d="M15.75 14v5" /><path d="M13.25 16.5h5" /></svg>,
+        import:<svg {...common}>{title ? <title>{title}</title> : null}<path d="M12 3.75v10" /><path d="m8.5 10.25 3.5 3.5 3.5-3.5" /><path d="M5 14.5v3.25a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V14.5" /></svg>,
+        search:<svg {...common}>{title ? <title>{title}</title> : null}<circle cx="10.75" cy="10.75" r="5.75" /><path d="m15.25 15.25 4.25 4.25" /></svg>,
+        pantry:<svg {...common}>{title ? <title>{title}</title> : null}<path d="M5 20V6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5V20" /><path d="M4 20h16" /><path d="M8 8h3" /><path d="M13 8h3" /><path d="M8 12h8" /><path d="M8 16h3" /><path d="M14 16h2" /></svg>,
+        chef:<svg {...common}>{title ? <title>{title}</title> : null}<path d="M7.75 10.5a3.5 3.5 0 0 1 6.5-2.25 2.75 2.75 0 1 1 1.5 5.05" /><path d="M8 13.25h8v4.25A2.5 2.5 0 0 1 13.5 20h-3A2.5 2.5 0 0 1 8 17.5v-4.25Z" /><path d="M10.25 16h3.5" /></svg>,
+        mealPlan:<svg {...common}>{title ? <title>{title}</title> : null}<rect x="4.5" y="5.5" width="15" height="14" rx="2" /><path d="M8 3.75v3.5" /><path d="M16 3.75v3.5" /><path d="M4.5 9h15" /><path d="M8 12.5h2.25" /><path d="M13.75 12.5H16" /><path d="M8 16h2.25" /></svg>,
+        shoppingList:<svg {...common}>{title ? <title>{title}</title> : null}<path d="M7 6.5h13l-1.5 8.25a2 2 0 0 1-2 1.65H9.25a2 2 0 0 1-1.95-1.55L5.75 4.75H3.5" /><circle cx="9.5" cy="20" r="1" /><circle cx="17" cy="20" r="1" /><path d="M10 10h5.5" /><path d="M10 13h4" /></svg>,
+        timer:<svg {...common}>{title ? <title>{title}</title> : null}<circle cx="12" cy="13" r="7" /><path d="M12 13V9" /><path d="M12 13h3" /><path d="M9 3.75h6" /><path d="M12 3.75V6" /></svg>,
+        settings:<svg {...common}>{title ? <title>{title}</title> : null}<circle cx="12" cy="12" r="3" /><path d="M19.25 13.5a7.9 7.9 0 0 0 .05-3l-2.05-.45a5.8 5.8 0 0 0-.65-1.55l1.12-1.78a8.1 8.1 0 0 0-2.12-2.12L13.82 5.7a5.8 5.8 0 0 0-1.57-.65L11.8 3h-3l-.45 2.05a5.8 5.8 0 0 0-1.55.65L5.02 4.58A8.1 8.1 0 0 0 2.9 6.7l1.12 1.78a5.8 5.8 0 0 0-.65 1.57L1.32 10.5a7.9 7.9 0 0 0 0 3l2.05.45c.15.55.37 1.08.65 1.57L2.9 17.3a8.1 8.1 0 0 0 2.12 2.12L6.8 18.3c.49.28 1.02.5 1.55.65L8.8 21h3l.45-2.05a5.8 5.8 0 0 0 1.57-.65l1.78 1.12a8.1 8.1 0 0 0 2.12-2.12l-1.12-1.78c.28-.49.5-1.02.65-1.57l2-.45Z" /></svg>,
+        camera:<svg {...common}>{title ? <title>{title}</title> : null}<path d="M8.5 6.5 10 4.75h4l1.5 1.75H18a2 2 0 0 1 2 2v8.75a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8.5a2 2 0 0 1 2-2h2.5Z" /><circle cx="12" cy="13" r="3.25" /></svg>,
+        uploadPhoto:<svg {...common}>{title ? <title>{title}</title> : null}<rect x="4" y="5" width="16" height="14" rx="2" /><path d="M8 14.5 10.5 12l2 2 2.75-3.25L20 15.5" /><circle cx="8.5" cy="9" r="1" /><path d="M12 3.5v4" /><path d="m9.75 5.75 2.25-2.25 2.25 2.25" /></svg>,
+        pdf:<svg {...common}>{title ? <title>{title}</title> : null}<path d="M7 3.75h7l3 3v13.5H7a2 2 0 0 1-2-2V5.75a2 2 0 0 1 2-2Z" /><path d="M14 3.75V7h3" /><path d="M8 13h8" /><path d="M8 16h5" /><path d="M8 10h2.5" /></svg>,
+        website:<svg {...common}>{title ? <title>{title}</title> : null}<circle cx="12" cy="12" r="8" /><path d="M4 12h16" /><path d="M12 4a12 12 0 0 1 0 16" /><path d="M12 4a12 12 0 0 0 0 16" /></svg>,
+        youtube:<svg {...common}>{title ? <title>{title}</title> : null}<rect x="3.75" y="6.5" width="16.5" height="11" rx="3" /><path d="m10.5 9.75 4.5 2.25-4.5 2.25v-4.5Z" /></svg>,
+        textPaste:<svg {...common}>{title ? <title>{title}</title> : null}<path d="M9 4.5h6l1 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-10a2 2 0 0 1 2-2h2l1-2Z" /><path d="M9 6.5h6" /><path d="M8 11h8" /><path d="M8 14h8" /><path d="M8 17h5" /></svg>,
+        edit:<svg {...common}>{title ? <title>{title}</title> : null}<path d="M4.5 19.5h4.25L19 9.25a2.1 2.1 0 0 0-3-3L5.75 16.5 4.5 19.5Z" /><path d="m14.5 7.75 1.75 1.75" /></svg>,
+        favorite:<svg {...common}>{title ? <title>{title}</title> : null}<path d="M12 19.5 5.75 13.6a4.25 4.25 0 0 1-.3-5.85 3.8 3.8 0 0 1 5.55 0L12 8.8l1-1.05a3.8 3.8 0 0 1 5.55 0 4.25 4.25 0 0 1-.3 5.85L12 19.5Z" /></svg>,
+        star:<svg {...common}>{title ? <title>{title}</title> : null}<path d="m12 3.75 2.35 4.75 5.25.75-3.8 3.7.9 5.25L12 15.75 7.3 18.2l.9-5.25-3.8-3.7 5.25-.75L12 3.75Z" /></svg>,
+        recent:<svg {...common}>{title ? <title>{title}</title> : null}<circle cx="12" cy="12" r="8" /><path d="M12 7.75v4.75l3 1.75" /></svg>,
+        check:<svg {...common}>{title ? <title>{title}</title> : null}<path d="m5 12.5 4.25 4.25L19.5 6.5" /></svg>,
+        close:<svg {...common}>{title ? <title>{title}</title> : null}<path d="M6 6l12 12" /><path d="M18 6 6 18" /></svg>,
+        trash:<svg {...common}>{title ? <title>{title}</title> : null}<path d="M5 7h14" /><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7" /><path d="M7 7l.75 12A2 2 0 0 0 9.75 21h4.5a2 2 0 0 0 2-2L17 7" /><path d="M10 11v5" /><path d="M14 11v5" /></svg>,
+        plus:<svg {...common}>{title ? <title>{title}</title> : null}<path d="M12 5v14" /><path d="M5 12h14" /></svg>,
+        play:<svg {...common}>{title ? <title>{title}</title> : null}<path d="M8 5.75v12.5L18 12 8 5.75Z" /></svg>,
+        pause:<svg {...common}>{title ? <title>{title}</title> : null}<path d="M8.5 5.5v13" /><path d="M15.5 5.5v13" /></svg>,
+        bell:<svg {...common}>{title ? <title>{title}</title> : null}<path d="M18 15.5H6l1.25-1.75V10a4.75 4.75 0 0 1 9.5 0v3.75L18 15.5Z" /><path d="M10 18.25a2.25 2.25 0 0 0 4 0" /></svg>,
+        spark:<svg {...common}>{title ? <title>{title}</title> : null}<path d="M12 3.5 13.75 9 19 12l-5.25 3L12 20.5 10.25 15 5 12l5.25-3L12 3.5Z" /><path d="M18.5 4.5v3" /><path d="M17 6h3" /></svg>,
+        account:<svg {...common}>{title ? <title>{title}</title> : null}<circle cx="12" cy="8.25" r="3.25" /><path d="M5.5 20a6.5 6.5 0 0 1 13 0" /></svg>,
+        sync:<svg {...common}>{title ? <title>{title}</title> : null}<path d="M18.5 8.5A7 7 0 0 0 6.25 6.25L4.5 8" /><path d="M4.5 4.5V8h3.5" /><path d="M5.5 15.5a7 7 0 0 0 12.25 2.25L19.5 16" /><path d="M19.5 19.5V16H16" /></svg>,
+        lock:<svg {...common}>{title ? <title>{title}</title> : null}<rect x="5.5" y="10" width="13" height="10" rx="2" /><path d="M8.5 10V7.5a3.5 3.5 0 0 1 7 0V10" /><path d="M12 14v2" /></svg>,
+      };
+      return icons[name] || icons.recipeCard;
+    }
+
     function normalizeFractions(str) {
       return String(str || "")
         .replace(/¼/g, "1/4")
@@ -448,7 +501,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         <span>
           {[1,2,3,4,5].map((i) => (
             <span key={i} onClick={() => onChange && onChange(i)}
-              style={{fontSize:size||16,color:i<=(value||0)?C.gold:C.cream3,cursor:onChange?"pointer":"default"}}>★</span>
+              style={{display:"inline-flex",color:i<=(value||0)?C.gold:C.cream3,cursor:onChange?"pointer":"default"}}>
+              <Icon name="star" size={size || 16} strokeWidth={2.2} />
+            </span>
           ))}
         </span>
       );
@@ -564,8 +619,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             <div style={{padding:"18px 16px 20px",display:"grid",gap:10}}>
               <input ref={inputRef} type="file" accept="image/*,image/heic,image/heif" onChange={onAdd} style={{display:"none"}} />
               <button onClick={() => inputRef.current.click()}
-                style={{width:"100%",background:C.green,color:C.white,border:"none",borderRadius:10,padding:"13px 16px",fontWeight:700,cursor:"pointer",fontSize:"0.95em",fontFamily:SANS}}>
-                📷 Add Photo
+                style={{width:"100%",background:C.green,color:C.white,border:"none",borderRadius:10,padding:"13px 16px",fontWeight:700,cursor:"pointer",fontSize:"0.95em",fontFamily:SANS,display:"inline-flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                <Icon name="camera" size={18} /> Add Photo
               </button>
               <button onClick={onSkip}
                 style={{width:"100%",background:C.white,color:C.brown,border:"1.5px solid "+C.border,borderRadius:10,padding:"12px 16px",fontWeight:700,cursor:"pointer",fontSize:"0.9em",fontFamily:SANS}}>
@@ -580,10 +635,10 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     // Bottom Nav
     function BottomNav({ tab, setTab }) {
       const items = [
-        { id:"library", icon:"📖", label:"Library" },
-        { id:"plan", icon:"📅", label:"Meal Plan" },
-        { id:"pantry", icon:"🍳", label:"Pantry" },
-        { id:"settings", icon:"⚙️", label:"Settings" },
+        { id:"library", icon:"library", label:"Library" },
+        { id:"plan", icon:"mealPlan", label:"Meal Plan" },
+        { id:"pantry", icon:"pantry", label:"Pantry" },
+        { id:"settings", icon:"settings", label:"Settings" },
       ];
       return (
         <div style={{position:"fixed",bottom:0,left:0,right:0,background:C.paper,borderTop:"1px solid "+C.border,display:"flex",zIndex:20,boxShadow:"0 -8px 24px rgba(90,56,39,0.10)",paddingBottom:"env(safe-area-inset-bottom)"}}>
@@ -592,7 +647,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             return (
               <button key={item.id} onClick={() => setTab(item.id)}
                 style={{flex:1,padding:"10px 0 8px",border:"none",background:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,position:"relative"}}>
-                <span style={{fontSize:"1.3em"}}>{item.icon}</span>
+                <Icon name={item.icon} size={23} style={{marginBottom:2}} />
                 <span style={{fontSize:"0.67em",fontWeight:active?700:400,color:active?C.green:C.light,fontFamily:SANS}}>{item.label}</span>
                 {active && <div style={{position:"absolute",bottom:0,width:22,height:3,background:C.gold,borderRadius:2}} />}
               </button>
@@ -620,10 +675,10 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             )}
             <button onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(); }}
               style={{position:"absolute",top:8,right:8,background:"rgba(32,20,14,0.44)",border:"1px solid rgba(255,255,255,0.18)",borderRadius:"50%",width:32,height:32,cursor:"pointer",fontSize:"0.95em",color:recipe.favorite?C.goldLight:"rgba(255,255,255,0.78)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2}}>
-              {recipe.favorite ? "★" : "☆"}
+              <Icon name="favorite" size={17} strokeWidth={recipe.favorite ? 2.5 : 2} />
             </button>
             <div style={{position:"absolute",bottom:0,left:0,right:0,display:"flex",justifyContent:"space-between",padding:"0 8px 6px",zIndex:2}}>
-              {recipe.cookTime && <span style={{background:"rgba(32,20,14,0.55)",color:C.white,borderRadius:12,padding:"2px 8px",fontSize:"0.69em",fontWeight:700}}>⏱ {recipe.cookTime}</span>}
+              {recipe.cookTime && <span style={{background:"rgba(32,20,14,0.55)",color:C.white,borderRadius:12,padding:"2px 8px",fontSize:"0.69em",fontWeight:700,display:"inline-flex",alignItems:"center",gap:4}}><Icon name="timer" size={12} /> {recipe.cookTime}</span>}
               {recipe.macros?.calories > 0 && <span style={{background:"rgba(32,20,14,0.55)",color:C.white,borderRadius:12,padding:"2px 8px",fontSize:"0.69em",fontWeight:700}}>{recipe.macros.calories} cal</span>}
             </div>
           </div>
@@ -682,7 +737,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 </button>
               </div>
               <div style={{position:"relative"}}>
-                <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",color:"rgba(255,255,255,0.4)"}}>🔍</span>
+                <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",color:"rgba(255,255,255,0.4)",display:"inline-flex"}}><Icon name="search" size={18} /></span>
                 <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search recipes, ingredients, tags..."
                   style={{width:"100%",padding:"12px 16px 12px 42px",borderRadius:12,border:"1px solid rgba(255,249,238,0.18)",fontSize:"0.9em",background:"rgba(255,249,238,0.12)",color:C.white,outline:"none",fontFamily:SANS}} />
               </div>
@@ -692,7 +747,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           <div style={{maxWidth:900,margin:"0 auto",padding:"0 16px"}}>
             {todayRecipes.length > 0 && (
               <div onClick={() => setTab("plan")} style={{...S.cardSoft,background:`linear-gradient(135deg, ${C.greenPale}, ${C.goldPale})`,padding:"13px 18px",marginTop:18,cursor:"pointer",display:"flex",alignItems:"center",gap:12}}>
-                <span style={{fontSize:"1.4em"}}>📅</span>
+                <span style={{fontSize:"1.4em",color:C.green,display:"inline-flex"}}><Icon name="mealPlan" size={24} /></span>
                 <div style={{flex:1}}>
                   <div style={{fontWeight:700,color:C.dark,fontSize:"0.88em"}}>Today - {today}</div>
                   <div style={{color:C.mid,fontSize:"0.8em"}}>{todayRecipes.map((r) => r.title).join(" · ")}</div>
@@ -705,7 +760,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               {["all","favorites","recent"].map((f) => (
                 <button key={f} onClick={() => setFilter(f)}
                   style={{border:"1.5px solid "+(filter===f?C.green:C.border),background:filter===f?C.green:C.paper,color:filter===f?C.white:C.mid,borderRadius:20,padding:"6px 14px",fontSize:"0.78em",fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",fontFamily:SANS,flexShrink:0}}>
-                  {f==="all"?"All":f==="favorites"?"★ Favorites":"Recent"}
+                  {f==="all"?"All":f==="favorites"?<span style={{display:"inline-flex",alignItems:"center",gap:5}}><Icon name="favorite" size={13} /> Favorites</span>:"Recent"}
                 </button>
               ))}
             </div>
@@ -860,7 +915,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         setShoppingItems((items) => items.map((item) => item.id === id ? { ...item, text } : item));
       }
       async function copyShoppingList() {
-        const text = shoppingItems.map((item) => (item.checked ? "☑ " : "☐ ") + item.text).join("\n");
+        const text = shoppingItems.map((item) => (item.checked ? "[x] " : "[ ] ") + item.text).join("\n");
         try { await navigator.clipboard.writeText(text); }
         catch { window.prompt("Copy shopping list:", text); }
       }
@@ -989,7 +1044,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       async function send(quickText) {
         const promptText = quickText || input;
         if (!promptText.trim() && !image) return;
-        const display = image ? "📷 " + (promptText || "Photo sent") : promptText;
+        const display = image ? (promptText || "Photo sent") : promptText;
         const matches = findPantryMatches(promptText, recipes);
         const savedContext = {
           savedRecipeMatches: matches.map((match) => ({
@@ -1309,7 +1364,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   return (
                     <button key={option.id} onClick={() => chooseSound(option.id)}
                       style={{background:active?C.greenPale:C.cream2,border:"1.5px solid "+(active?C.green:C.border),borderRadius:9,padding:"9px 10px",textAlign:"left",color:active?C.green:C.dark,fontWeight:700,cursor:"pointer",fontSize:"0.82em",fontFamily:SANS}}>
-                      {active ? "✓ " : ""}{option.label}
+                      <span style={{display:"inline-flex",alignItems:"center",gap:6}}>{active && <Icon name="check" size={14} />}{option.label}</span>
                     </button>
                   );
                 })}
@@ -1727,7 +1782,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 <input ref={fileRef} type="file" accept="image/*,.pdf,image/heic,image/heif" multiple onChange={handleFiles} style={{display:"none"}} />
                 <div onClick={() => fileRef.current.click()}
                   style={{border:"2px dashed "+(mediaFiles.length>0?C.green:C.border),borderRadius:14,padding:36,textAlign:"center",cursor:"pointer",color:mediaFiles.length>0?C.green:C.light,marginBottom:10,background:mediaFiles.length>0?C.greenPale:C.paper}}>
-                  <div style={{fontSize:"2em",marginBottom:6}}>{mediaFiles.length>0?"✓":"+"}</div>
+                  <div style={{display:"flex",justifyContent:"center",marginBottom:6}}><Icon name={mediaFiles.length>0?"check":"plus"} size={30} /></div>
                   <div style={{fontWeight:600,fontSize:"0.88em"}}>
                     {mediaFiles.length>0 ? mediaFiles.length+" file"+(mediaFiles.length>1?"s":"")+" ready - tap to change" : "Upload a recipe card, screenshot, or PDF"}
                   </div>
@@ -1915,7 +1970,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const timerAlert = expiredTimer ? (
         <div role="alertdialog" aria-modal="true" style={{position:"fixed",inset:0,zIndex:180,background:"rgba(28,20,16,0.72)",display:"flex",alignItems:"center",justifyContent:"center",padding:18}}>
           <div className="timer-alert-card" style={{width:"100%",maxWidth:390,background:C.cream,border:"2px solid "+C.red,borderRadius:18,padding:"26px 22px",textAlign:"center",animation:"timerPulse 1.1s ease-in-out infinite",boxShadow:"0 22px 70px rgba(0,0,0,0.35)"}}>
-            <div style={{fontSize:"3em",lineHeight:1,marginBottom:8}}>⏰</div>
+            <div style={{display:"flex",justifyContent:"center",color:C.red,marginBottom:8}}><Icon name="bell" size={48} strokeWidth={1.8} /></div>
             <div style={{fontFamily:SERIF,fontSize:"2em",color:C.red,lineHeight:1.05,marginBottom:6}}>Timer Done</div>
             <div style={{color:C.mid,fontWeight:700,marginBottom:18}}>{fmt(expiredTimer.total)} is up</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -1988,7 +2043,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   <div style={{fontSize:"2.8em",fontWeight:700,color:timer.rem===0?C.red:C.goldLight,fontFamily:SERIF}}>{fmt(timer.rem)}</div>
                   {timer.rem > 0
                     ? <button onClick={() => setTimers((p) => ({...p,[tK]:{...p[tK],running:!p[tK].running}}))} style={{background:"rgba(255,249,238,0.12)",border:"1px solid rgba(255,249,238,0.35)",color:C.goldLight,borderRadius:10,padding:"9px 18px",cursor:"pointer",fontFamily:SANS,marginTop:5,fontWeight:800}}>{timer.running?"Pause":"Resume"}</button>
-                    : <div style={{color:C.red,fontWeight:700}}>⏰ Time's up!</div>
+                    : <div style={{color:C.red,fontWeight:700,display:"inline-flex",alignItems:"center",gap:6}}><Icon name="bell" size={18} /> Time's up!</div>
                   }
                 </div>
               ) : (
@@ -2032,7 +2087,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               <button onClick={onBack} style={{background:"rgba(0,0,0,0.38)",border:"none",borderRadius:8,padding:"7px 13px",color:C.white,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS}}>← Library</button>
             </div>
             <div style={{position:"absolute",top:14,right:14,display:"flex",gap:7}}>
-              <button onClick={() => onUpdate({...recipe,favorite:!recipe.favorite})} style={{background:"rgba(0,0,0,0.38)",border:"none",borderRadius:8,padding:"7px 11px",color:recipe.favorite?"#FFD700":C.white,cursor:"pointer",fontSize:"1em"}}>{recipe.favorite?"★":"☆"}</button>
+              <button onClick={() => onUpdate({...recipe,favorite:!recipe.favorite})} style={{background:"rgba(0,0,0,0.38)",border:"none",borderRadius:8,padding:"7px 11px",color:recipe.favorite?C.goldLight:C.white,cursor:"pointer",fontSize:"1em",display:"inline-flex",alignItems:"center",justifyContent:"center"}}><Icon name="favorite" size={17} strokeWidth={recipe.favorite?2.5:2} /></button>
               <button onClick={onEdit} style={{background:"rgba(0,0,0,0.38)",border:"none",borderRadius:8,padding:"7px 11px",color:C.white,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS}}>Edit</button>
               <button onClick={onDelete} style={{background:"rgba(180,0,0,0.45)",border:"none",borderRadius:8,padding:"7px 11px",color:C.white,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS}}>Delete</button>
             </div>
@@ -2040,8 +2095,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               <div style={{fontSize:"0.7em",color:"rgba(255,255,255,0.65)",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>{recipe.category}</div>
               <h1 style={{margin:0,fontFamily:SERIF,fontSize:"clamp(1.5em,5vw,2.3em)",color:C.white,fontWeight:400,lineHeight:1.1}}>{recipe.title}</h1>
               <div style={{display:"flex",gap:14,marginTop:7,flexWrap:"wrap",alignItems:"center"}}>
-                {recipe.cookTime && <span style={{color:"rgba(255,255,255,0.82)",fontSize:"0.8em"}}>⏱ {recipe.cookTime}</span>}
-                <span style={{color:"rgba(255,255,255,0.82)",fontSize:"0.8em"}}>🍽 {Math.round((recipe.servings||4)*scale)} servings</span>
+                {recipe.cookTime && <span style={{color:"rgba(255,255,255,0.82)",fontSize:"0.8em",display:"inline-flex",alignItems:"center",gap:5}}><Icon name="timer" size={14} /> {recipe.cookTime}</span>}
+                <span style={{color:"rgba(255,255,255,0.82)",fontSize:"0.8em",display:"inline-flex",alignItems:"center",gap:5}}><Icon name="recipeCard" size={14} /> {Math.round((recipe.servings||4)*scale)} servings</span>
                 {recipe.rating>0 && <Stars value={recipe.rating} size={13} />}
               </div>
             </div>
@@ -2055,9 +2110,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 {label:"Cook",action:()=>setCookMode(true),bg:C.green,color:C.white,border:"none"},
                 {label:"Shop List",action:()=>setShowShop(!showShop),bg:C.goldPale,color:C.brown,border:"1px solid "+C.goldLight},
                 {label:"What to Buy",action:()=>setShowWTB(!showWTB),bg:C.terraPale,color:C.terra,border:"1px solid "+C.terra+"25"},
-                {label:"↓ PDF",action:exportPDF,bg:C.greenPale,color:C.green,border:"1px solid "+C.green+"25"},
+                {label:"PDF",icon:"pdf",action:exportPDF,bg:C.greenPale,color:C.green,border:"1px solid "+C.green+"25"},
               ].map((btn) => (
-                <button key={btn.label} onClick={btn.action} style={{background:btn.bg,color:btn.color,border:btn.border,borderRadius:9,padding:"7px 14px",fontWeight:800,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS,whiteSpace:"nowrap",flexShrink:0}}>{btn.label}</button>
+                <button key={btn.label} onClick={btn.action} style={{background:btn.bg,color:btn.color,border:btn.border,borderRadius:9,padding:"7px 14px",fontWeight:800,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS,whiteSpace:"nowrap",flexShrink:0,display:"inline-flex",alignItems:"center",gap:6}}>{btn.icon && <Icon name={btn.icon} size={15} />}{btn.label}</button>
               ))}
             </div>
 
@@ -2122,7 +2177,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             {showShop && (
               <div style={{...S.cardSoft,background:C.greenPale,border:"1px solid "+C.green+"30",padding:16,marginBottom:18}}>
                 <div style={{fontFamily:SERIF,fontSize:"1.05em",marginBottom:11}}>Shopping List</div>
-                {allIngredients.map((ing,i)=>{ let a=scaleAmount(ing.amount,scale),u=ing.unit||""; if(metric){const c=convertMetric(a,u);a=c.amount;u=c.unit;} return <div key={i} style={{padding:"5px 0",borderBottom:"1px solid "+C.blue+"18",fontSize:"0.88em",color:C.dark}}>☐ {a}{u?" "+u:""} {ing.name}</div>; })}
+                {allIngredients.map((ing,i)=>{ let a=scaleAmount(ing.amount,scale),u=ing.unit||""; if(metric){const c=convertMetric(a,u);a=c.amount;u=c.unit;} return <div key={i} style={{padding:"5px 0",borderBottom:"1px solid "+C.blue+"18",fontSize:"0.88em",color:C.dark,display:"flex",alignItems:"center",gap:8}}><span style={{width:14,height:14,border:"1.5px solid "+C.green,borderRadius:4,flexShrink:0}} />{a}{u?" "+u:""} {ing.name}</div>; })}
               </div>
             )}
 
@@ -2141,15 +2196,15 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                       ? <textarea value={wtbText} onChange={(e)=>setWtbText(e.target.value)} placeholder="List ingredients you have..." rows={3} style={{...S.input,width:"100%",padding:"8px 11px",fontSize:"0.86em",resize:"vertical",marginBottom:9,boxSizing:"border-box"}} />
                       : <div>
                           <input ref={wtbImgRef} type="file" accept="image/*" onChange={async (e)=>{ const f=e.target.files[0]; if(!f)return; const b=await fileToBase64(f); setWtbImage(b); }} style={{display:"none"}} />
-                          <div onClick={()=>wtbImgRef.current.click()} style={{border:"2px dashed "+C.border,borderRadius:8,padding:22,textAlign:"center",cursor:"pointer",color:wtbImage?C.green:C.light,marginBottom:9,background:wtbImage?C.greenPale:"transparent"}}>{wtbImage?"✓ Photo ready":"Upload fridge/pantry photo"}</div>
+                          <div onClick={()=>wtbImgRef.current.click()} style={{border:"2px dashed "+C.border,borderRadius:8,padding:22,textAlign:"center",cursor:"pointer",color:wtbImage?C.green:C.light,marginBottom:9,background:wtbImage?C.greenPale:"transparent",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{wtbImage && <Icon name="check" size={17} />}{wtbImage?"Photo ready":"Upload fridge/pantry photo"}</div>
                         </div>
                     }
                     <button onClick={runWTB} disabled={wtbLoading||(wtbMode==="text"&&!wtbText.trim())||(wtbMode==="photo"&&!wtbImage)} style={{width:"100%",background:C.terra,color:C.white,border:"none",borderRadius:9,padding:"10px",fontWeight:800,cursor:"pointer",fontFamily:SANS,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{wtbLoading?<><Spinner/> Analyzing...</>:"Analyze My Kitchen"}</button>
                   </div>
                 ) : (
                   <div>
-                    {wtbResult.have?.length>0 && <div style={{marginBottom:11}}><div style={{fontWeight:700,color:C.green,fontSize:"0.78em",letterSpacing:1,textTransform:"uppercase",marginBottom:5}}>✓ You Have</div>{wtbResult.have.map((x,i)=><div key={i} style={{padding:"4px 0",borderBottom:"1px solid "+C.greenPale,fontSize:"0.86em"}}>✓ {x}</div>)}</div>}
-                    {wtbResult.need?.length>0 && <div style={{marginBottom:11}}><div style={{fontWeight:700,color:C.red,fontSize:"0.78em",letterSpacing:1,textTransform:"uppercase",marginBottom:5}}>🛒 Need to Buy</div>{wtbResult.need.map((x,i)=><div key={i} style={{padding:"4px 0",borderBottom:"1px solid "+C.redPale,fontSize:"0.86em"}}>☐ {x}</div>)}</div>}
+                    {wtbResult.have?.length>0 && <div style={{marginBottom:11}}><div style={{fontWeight:700,color:C.green,fontSize:"0.78em",letterSpacing:1,textTransform:"uppercase",marginBottom:5,display:"flex",alignItems:"center",gap:6}}><Icon name="check" size={15} /> You Have</div>{wtbResult.have.map((x,i)=><div key={i} style={{padding:"4px 0",borderBottom:"1px solid "+C.greenPale,fontSize:"0.86em",display:"flex",alignItems:"center",gap:7}}><Icon name="check" size={14} /> {x}</div>)}</div>}
+                    {wtbResult.need?.length>0 && <div style={{marginBottom:11}}><div style={{fontWeight:700,color:C.red,fontSize:"0.78em",letterSpacing:1,textTransform:"uppercase",marginBottom:5,display:"flex",alignItems:"center",gap:6}}><Icon name="shoppingList" size={15} /> Need to Buy</div>{wtbResult.need.map((x,i)=><div key={i} style={{padding:"4px 0",borderBottom:"1px solid "+C.redPale,fontSize:"0.86em",display:"flex",alignItems:"center",gap:8}}><span style={{width:13,height:13,border:"1.5px solid "+C.red,borderRadius:4,flexShrink:0}} />{x}</div>)}</div>}
                     {wtbResult.notes && <div style={{background:C.goldPale,borderRadius:8,padding:"7px 11px",fontSize:"0.8em",color:C.brown,marginBottom:7}}>{wtbResult.notes}</div>}
                     <button onClick={()=>setWtbResult(null)} style={{background:"none",border:"1px solid "+C.border,color:C.mid,borderRadius:8,padding:"6px 14px",cursor:"pointer",fontSize:"0.82em",fontFamily:SANS}}>Try again</button>
                   </div>
@@ -2174,11 +2229,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                         <div style={{flex:1,minWidth:0,maxWidth:"100%",overflowX:"hidden"}}>
                           <p style={{margin:0,lineHeight:1.78,color:C.mid,fontSize:"0.9em",maxWidth:"100%",whiteSpace:"normal",overflowWrap:"break-word",wordBreak:"normal"}}><StepText text={step.text} ingredients={sec.ingredients} scale={scale} metric={metric} /></p>
                           {tMeta && (timer
-                            ? <span style={{fontSize:"0.78em",fontWeight:700,color:timer.rem===0?C.red:C.brown,marginTop:6,display:"block"}}>{timer.rem===0?"⏰ Done!":"⏱ "+fmt(timer.rem)+" "}{timer.rem>0 && <button onClick={()=>setTimers((p)=>({...p,[tK]:{...p[tK],running:!p[tK].running}}))} style={{background:"none",border:"none",cursor:"pointer",fontSize:"0.73em",color:C.brownLight,fontFamily:SANS}}>{timer.running?"pause":"resume"}</button>}</span>
+                            ? <span style={{fontSize:"0.78em",fontWeight:700,color:timer.rem===0?C.red:C.brown,marginTop:6,display:"inline-flex",alignItems:"center",gap:5}}><Icon name={timer.rem===0?"bell":"timer"} size={14} />{timer.rem===0?"Done!":fmt(timer.rem)+" "}{timer.rem>0 && <button onClick={()=>setTimers((p)=>({...p,[tK]:{...p[tK],running:!p[tK].running}}))} style={{background:"none",border:"none",cursor:"pointer",fontSize:"0.73em",color:C.brownLight,fontFamily:SANS}}>{timer.running?"pause":"resume"}</button>}</span>
                             : tMeta.options.length === 1
-                              ? <button onClick={()=>startTimer(tK, tMeta.defaultSec)} style={{marginTop:6,background:C.goldPale,border:"1px solid "+C.goldLight,borderRadius:5,padding:"2px 10px",fontSize:"0.73em",cursor:"pointer",color:C.brown,fontFamily:SANS}}>⏱ {tMeta.options[0].label} timer</button>
+                              ? <button onClick={()=>startTimer(tK, tMeta.defaultSec)} style={{marginTop:6,background:C.goldPale,border:"1px solid "+C.goldLight,borderRadius:5,padding:"2px 10px",fontSize:"0.73em",cursor:"pointer",color:C.brown,fontFamily:SANS,display:"inline-flex",alignItems:"center",gap:5}}><Icon name="timer" size={13} /> {tMeta.options[0].label} timer</button>
                               : <div style={{marginTop:8,display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-                                  <span style={{fontSize:"0.72em",fontWeight:700,color:C.brown}}>⏱ Timer</span>
+                                  <span style={{fontSize:"0.72em",fontWeight:700,color:C.brown,display:"inline-flex",alignItems:"center",gap:4}}><Icon name="timer" size={13} /> Timer</span>
                                   {tMeta.options.map((opt) => (
                                     <button key={opt.sec} onClick={()=>startTimer(tK, opt.sec)}
                                       style={{background:opt.sec===tMeta.defaultSec?C.goldPale:C.white,border:"1px solid "+(opt.sec===tMeta.defaultSec?C.goldLight:C.border),borderRadius:5,padding:"2px 8px",fontSize:"0.72em",cursor:"pointer",color:C.brown,fontWeight:opt.sec===tMeta.defaultSec?700:500,fontFamily:SANS}}>
@@ -2228,7 +2283,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           const raw = await callAI(newHistory, systemPrompt, 2000);
           const updated = parseAIJson(raw);
           setDraft(updated);
-          setAiHistory([...newHistory, { role:"assistant", content:"✓ Done! I've updated the recipe. You can make more changes or save when ready." }]);
+          setAiHistory([...newHistory, { role:"assistant", content:"Done! I've updated the recipe. You can make more changes or save when ready." }]);
         } catch(e) {
           setAiHistory([...newHistory, { role:"assistant", content:"Sorry, I couldn't apply that change. Try describing it differently." }]);
         }
@@ -2257,7 +2312,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
             {/* AI Chat Helper */}
             <div style={{background:"linear-gradient(135deg, "+C.goldPale+", "+C.terraPale+")",border:"1px solid "+C.goldLight,borderRadius:14,padding:16,marginBottom:20}}>
-              <div style={{fontFamily:SERIF,fontSize:"1.1em",color:C.dark,marginBottom:4}}>✦ AI Recipe Helper</div>
+              <div style={{fontFamily:SERIF,fontSize:"1.1em",color:C.dark,marginBottom:4,display:"flex",alignItems:"center",gap:7}}><Icon name="spark" size={18} /> AI Recipe Helper</div>
               <div style={{color:C.brownLight,fontSize:"0.78em",marginBottom:10}}>Describe any change and AI will update the recipe instantly. Try: "add a gluten-free note", "swap cream for coconut milk", "add prep time", "make the steps more detailed"</div>
               {aiHistory.length > 0 && (
                 <div style={{marginBottom:10,maxHeight:160,overflowY:"auto",display:"flex",flexDirection:"column",gap:6}}>
@@ -2287,7 +2342,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 </div>
               ) : (
                 <div onClick={()=>heroImgRef.current.click()} style={{border:"2px dashed "+C.border,borderRadius:10,padding:24,textAlign:"center",cursor:"pointer",color:C.light,background:C.cream2}}>
-                  <div style={{fontSize:"1.8em",marginBottom:4}}>📷</div>
+                  <div style={{display:"flex",justifyContent:"center",marginBottom:4}}><Icon name="camera" size={30} /></div>
                   <div style={{fontSize:"0.85em",fontWeight:600}}>Add a photo from camera roll</div>
                   <div style={{fontSize:"0.75em",marginTop:2,color:C.light}}>HEIC, JPG, PNG supported</div>
                 </div>
