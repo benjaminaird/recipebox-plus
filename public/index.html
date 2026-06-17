@@ -412,6 +412,12 @@ async function postJson(url, body) {
   if (!res.ok) throw new Error(data.error || "Request failed");
   return data;
 }
+async function putJson(url, body) {
+  const res = await fetch(url, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body || {}) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Request failed");
+  return data;
+}
 async function fetchJson(url, fallback) {
   try {
     const res = await fetch(url);
@@ -448,6 +454,17 @@ function loadMealPlan() {
 function saveMealPlan(m) {
   try { localStorage.setItem(MEALPLAN_KEY, JSON.stringify(m)); } catch {}
   asyncPutJson("/api/mealplan", { mealPlan:m });
+}
+function downloadJson(filename, data) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type:"application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 500);
 }
 
     // AI
@@ -1199,8 +1216,10 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [deletePassword, setDeletePassword] = useState("");
       const [accountMsg, setAccountMsg] = useState("");
       const [accountBusy, setAccountBusy] = useState(false);
+      const [backupMsg, setBackupMsg] = useState("");
       const compactHeader = useWindowCompactHeader();
       const localDataAvailable = hasLocalRecipeData(recipes, mealPlan);
+      const importRef = useRef();
 
       function chooseSound(id) {
         setTimerSound(id);
@@ -1298,11 +1317,57 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           setAccountBusy(false);
         }
       }
+      function backupBase() {
+        const stamp = new Date().toISOString().slice(0, 10);
+        return { stamp, recipes:Array.isArray(recipes) ? recipes : [], mealPlan:mealPlan && typeof mealPlan === "object" ? mealPlan : {} };
+      }
+      function exportRecipes() {
+        const data = backupBase();
+        downloadJson("recipebox-recipes-"+data.stamp+".json", data.recipes);
+        setBackupMsg("Recipe cards exported.");
+      }
+      function exportMealPlan() {
+        const data = backupBase();
+        downloadJson("recipebox-meal-plan-"+data.stamp+".json", data.mealPlan);
+        setBackupMsg("Meal plan exported.");
+      }
+      function exportBackup() {
+        const data = backupBase();
+        downloadJson("recipebox-backup-"+data.stamp+".json", {
+          app:"RecipeBox",
+          version:1,
+          exportedAt:new Date().toISOString(),
+          recipes:data.recipes,
+          mealPlan:data.mealPlan,
+        });
+        setBackupMsg("Full RecipeBox backup exported.");
+      }
+      async function restoreBackup(file) {
+        if (!file) return;
+        setBackupMsg("");
+        try {
+          const raw = await file.text();
+          const parsed = JSON.parse(raw);
+          const nextRecipes = Array.isArray(parsed) ? parsed : Array.isArray(parsed.recipes) ? parsed.recipes : null;
+          const nextMealPlan = parsed && typeof parsed === "object" && parsed.mealPlan && typeof parsed.mealPlan === "object" ? parsed.mealPlan : {};
+          if (!Array.isArray(nextRecipes)) throw new Error("That file does not look like a RecipeBox backup.");
+          const ok = window.confirm("Import this backup and replace the recipes and meal plan on this device"+(account ? " and your signed-in account" : "")+"?");
+          if (!ok) return;
+          try { localStorage.setItem(RECIPES_KEY, JSON.stringify(nextRecipes)); } catch {}
+          try { localStorage.setItem(MEALPLAN_KEY, JSON.stringify(nextMealPlan)); } catch {}
+          await putJson("/api/recipes", { recipes:nextRecipes });
+          await putJson("/api/mealplan", { mealPlan:nextMealPlan });
+          await onCloudData(nextRecipes, nextMealPlan);
+          setBackupMsg("Backup imported: "+nextRecipes.length+" recipe card"+(nextRecipes.length===1?"":"s")+" restored.");
+        } catch (err) {
+          setBackupMsg(err.message || "Could not import that backup.");
+        } finally {
+          if (importRef.current) importRef.current.value = "";
+        }
+      }
       const placeholder = [
         { title:"Appearance", text:"RecipeBox display and card preferences coming soon." },
         { title:"Import Preferences", text:"Default cleanup and recipe-card photo options coming soon." },
-        { title:"Data & Backup", text:"Export, backup, and restore tools for your RecipeBox coming soon." },
-        { title:"About RecipeBox", text:"A personal recipe box with AI-powered import and cooking tools." },
       ];
       return (
         <div style={{...S.page,paddingBottom:NAV_CLEARANCE}}>
@@ -1397,6 +1462,29 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 <div style={{fontSize:"0.82em",color:C.light,lineHeight:1.5}}>{card.text}</div>
               </div>
             ))}
+
+            <div style={{...S.card,padding:16}}>
+              <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark,marginBottom:4}}>Data & Backup</div>
+              <div style={{fontSize:"0.82em",color:C.light,lineHeight:1.5,marginBottom:12}}>Keep a local copy of your recipe cards and meal plan. Imports replace your current RecipeBox data after confirmation.</div>
+              <input ref={importRef} type="file" accept="application/json,.json" onChange={(e)=>restoreBackup(e.target.files && e.target.files[0])} style={{display:"none"}} />
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(145px, 1fr))",gap:8}}>
+                <button onClick={exportBackup} style={{...S.primaryBtn,borderRadius:9,padding:"10px 11px",fontSize:"0.78em"}}>Export Backup</button>
+                <button onClick={exportRecipes} style={{...S.ghostBtn,borderRadius:9,padding:"10px 11px",fontSize:"0.78em"}}>Export Recipes</button>
+                <button onClick={exportMealPlan} style={{...S.ghostBtn,borderRadius:9,padding:"10px 11px",fontSize:"0.78em"}}>Export Meal Plan</button>
+                <button onClick={()=>importRef.current.click()} style={{...S.goldBtn,borderRadius:9,padding:"10px 11px",fontSize:"0.78em"}}>Import Backup</button>
+              </div>
+              {backupMsg && <div style={{marginTop:10,color:backupMsg.includes("Could not")||backupMsg.includes("does not")?C.red:C.green,fontSize:"0.78em",fontWeight:700,lineHeight:1.4}}>{backupMsg}</div>}
+            </div>
+
+            <div style={{...S.card,padding:16}}>
+              <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark,marginBottom:4}}>About RecipeBox</div>
+              <div style={{fontSize:"0.82em",color:C.mid,lineHeight:1.55}}>RecipeBox is your personal family recipe box: AI-powered import, clean recipe cards, meal planning, Pantry Chef, Cook Mode, timers, and cloud sync for your signed-in devices.</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(120px, 1fr))",gap:8,marginTop:12}}>
+                <div style={{...S.cardSoft,padding:"9px 10px"}}><div style={{fontWeight:900,color:C.dark,fontSize:"0.9em"}}>{recipes.length}</div><div style={{fontSize:"0.72em",color:C.light}}>recipe cards</div></div>
+                <div style={{...S.cardSoft,padding:"9px 10px"}}><div style={{fontWeight:900,color:C.dark,fontSize:"0.9em"}}>{Object.values(mealPlan || {}).flat().length}</div><div style={{fontSize:"0.72em",color:C.light}}>planned meals</div></div>
+                <div style={{...S.cardSoft,padding:"9px 10px"}}><div style={{fontWeight:900,color:C.dark,fontSize:"0.9em"}}>1.1.0</div><div style={{fontSize:"0.72em",color:C.light}}>app version</div></div>
+              </div>
+            </div>
 
             {account && (
               <div style={{...S.card,padding:16,border:"1px solid "+C.redPale,background:C.paper}}>
