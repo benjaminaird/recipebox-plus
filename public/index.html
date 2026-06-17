@@ -547,7 +547,7 @@ For ingredient amounts:
 
 Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return ONLY the JSON.`;
 
-    const ADJUST_PROMPT = `You are a culinary assistant. Modify the recipe JSON as requested. Return ONLY raw JSON starting with {. No markdown.`;
+    const ADJUST_PROMPT = `You are a culinary assistant. Modify the provided RecipeBox recipe JSON as requested. Return ONLY one complete raw JSON object starting with { and ending with }. No markdown, comments, or explanation. Preserve the RecipeBox shape: title, description, heroImage, prepTime, cookTime, totalTime, servings, category, tags, macros, notes, rating, favorite, createdAt, and sections with ingredients and steps. Preserve ids when present. Do not omit sections.`;
     const REPAIR_JSON_PROMPT = `You repair malformed recipe JSON. Return ONLY one valid raw JSON object. Preserve all recipe content you can. Do not add markdown, comments, or explanation. The JSON must match the RecipeBox recipe structure with sections, ingredients, and steps.`;
     const PANTRY_PROMPT = `You are Pantry Chef inside RecipeBox. Help users decide what to cook from ingredients they have, cravings, time, or a pantry photo.
 
@@ -656,6 +656,20 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             : <span key={i}>{p.value}</span>)}
         </span>
       );
+    }
+
+    async function parseRecipeJsonWithRepair(raw, contextLabel) {
+      try {
+        return parseAIJson(raw);
+      } catch (err) {
+        const repaired = await callAI([{
+          role:"user",
+          content:
+            "Repair this malformed RecipeBox recipe JSON from " + (contextLabel || "AI") + ". Return only valid JSON, with no markdown or explanation.\n\n" +
+            raw
+        }], REPAIR_JSON_PROMPT, 3500);
+        return parseAIJson(repaired);
+      }
     }
 
     // Category Modal
@@ -2450,6 +2464,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [aiQuery, setAiQuery] = useState("");
       const [aiLoading, setAiLoading] = useState(false);
       const [aiResult, setAiResult] = useState(null);
+      const [aiError, setAiError] = useState("");
       const [wtbMode, setWtbMode] = useState("text");
       const [wtbText, setWtbText] = useState("");
       const [wtbImage, setWtbImage] = useState(null);
@@ -2596,8 +2611,15 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       async function runAIAdjust() {
         if (!aiQuery.trim()) return;
         setAiLoading(true);
-        try { setAiResult(parseAIJson(await callAI([{ role:"user", content:"Recipe: "+JSON.stringify(recipe)+"\nRequest: "+aiQuery }], ADJUST_PROMPT, 2000))); }
-        catch(e) { alert("AI adjustment failed."); }
+        setAiError("");
+        setAiResult(null);
+        try {
+          const raw = await callAI([{ role:"user", content:"Recipe: "+JSON.stringify(recipe)+"\nRequest: "+aiQuery }], ADJUST_PROMPT, 3500);
+          const adjusted = await parseRecipeJsonWithRepair(raw, "AI adjustment");
+          if (!adjusted || !adjusted.title || !Array.isArray(adjusted.sections)) throw new Error("The adjusted recipe was incomplete.");
+          setAiResult(adjusted);
+        }
+        catch(e) { setAiError(e.message || "AI adjustment failed. Try a smaller change or try again."); }
         setAiLoading(false);
       }
 
@@ -2772,6 +2794,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   <input value={aiQuery} onChange={(e)=>setAiQuery(e.target.value)} onKeyDown={(e)=>e.key==="Enter"&&runAIAdjust()} placeholder="What would you like to change?" style={{...S.input,flex:1,padding:"8px 12px",fontSize:"0.88em"}} />
                   <button onClick={runAIAdjust} disabled={aiLoading} style={{...S.goldBtn,borderRadius:8,padding:"8px 18px",display:"flex",alignItems:"center",gap:6}}>{aiLoading?<Spinner/>:"Apply"}</button>
                 </div>
+                {aiError && <div style={{marginTop:9,background:C.redPale,border:"1px solid rgba(192,57,43,0.25)",borderRadius:8,padding:"8px 10px",color:C.red,fontSize:"0.78em",fontWeight:800,lineHeight:1.4}}>{aiError}</div>}
                 {aiResult && (
                   <div style={{...S.cardSoft,marginTop:11,padding:11}}>
                     <div style={{fontWeight:600,marginBottom:7,color:C.dark,fontSize:"0.9em"}}>Preview: {aiResult.title}</div>
