@@ -8,7 +8,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <meta name="theme-color" content="#1f4b2f">
+  <meta name="theme-color" content="#204b2f">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="RecipeBox">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -58,6 +58,8 @@
     const BRAND_GRADIENT = `linear-gradient(135deg, ${C.green} 0%, ${C.brown} 100%)`;
     const SERIF = "'DM Serif Display', serif";
     const SANS = "'DM Sans', sans-serif";
+    const NAV_CLEARANCE = "calc(110px + env(safe-area-inset-bottom))";
+    const PANTRY_NAV_OFFSET = "calc(100dvh - 86px - env(safe-area-inset-bottom))";
     const safePad = (top, right, bottom, left = right) => `calc(env(safe-area-inset-top) + ${top}px) ${right}px ${bottom}px ${left}px`;
     const S = {
       page: { minHeight:"100vh", width:"100%", maxWidth:"100%", overflowX:"hidden", background:C.cream },
@@ -645,18 +647,40 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         { id:"settings", icon:"settings", label:"Settings" },
       ];
       return (
-        <div style={{position:"fixed",bottom:0,left:0,right:0,background:C.paper,borderTop:"1px solid "+C.border,display:"flex",zIndex:20,boxShadow:"0 -8px 24px rgba(90,56,39,0.10)",paddingBottom:"env(safe-area-inset-bottom)",overflowX:"hidden"}}>
+        <div style={{position:"fixed",bottom:0,left:0,right:0,background:C.paper,borderTop:"1px solid "+C.border,display:"flex",zIndex:30,boxShadow:"0 -8px 24px rgba(90,56,39,0.10)",paddingBottom:"calc(env(safe-area-inset-bottom) + 8px)",overflowX:"hidden"}}>
           {items.map((item) => {
             const active = tab === item.id;
             return (
               <button key={item.id} onClick={() => setTab(item.id)}
-                style={{flex:"1 1 0",minWidth:0,padding:"10px 0 8px",border:"none",background:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,position:"relative",color:active?"#1f5a37":"#9a7a68",fontFamily:SANS,WebkitTapHighlightColor:"transparent"}}>
+                style={{flex:"1 1 0",minWidth:0,padding:"12px 0 10px",border:"none",background:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,position:"relative",color:active?"#1f5a37":"#9a7a68",fontFamily:SANS,WebkitTapHighlightColor:"transparent"}}>
                 <Icon name={item.icon} size={23} style={{marginBottom:2}} />
                 <span style={{fontSize:"0.67em",fontWeight:active?700:500,color:"inherit",fontFamily:SANS}}>{item.label}</span>
                 {active && <div style={{position:"absolute",bottom:0,width:22,height:3,background:"#c2952e",borderRadius:2}} />}
               </button>
             );
           })}
+        </div>
+      );
+    }
+
+    function useWindowCompactHeader(threshold = 28) {
+      const [compact, setCompact] = useState(false);
+      useEffect(() => {
+        const onScroll = () => setCompact(window.scrollY > threshold);
+        onScroll();
+        window.addEventListener("scroll", onScroll, { passive:true });
+        return () => window.removeEventListener("scroll", onScroll);
+      }, [threshold]);
+      return compact;
+    }
+
+    function PageHeader({ title, subtitle, compact = false, top = 28, right = 20, bottom = 24 }) {
+      return (
+        <div style={{...S.brandHeader,position:compact?"fixed":"sticky",top:0,left:compact?0:undefined,right:compact?0:undefined,width:compact?"100%":undefined,zIndex:compact?28:18,padding:compact?safePad(10,16,10):safePad(top,right,bottom),transition:"padding 0.18s ease, box-shadow 0.18s ease"}}>
+          <div style={{maxWidth:900,margin:"0 auto"}}>
+            <div style={{fontFamily:SERIF,fontSize:compact?"1.08em":"1.8em",color:C.white,lineHeight:compact?1.15:1,transition:"font-size 0.18s ease"}}>{title}</div>
+            {!compact && subtitle && <div style={{color:"rgba(255,249,238,0.72)",fontSize:"0.8em",marginTop:3}}>{subtitle}</div>}
+          </div>
         </div>
       );
     }
@@ -728,7 +752,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const isDashboard = cat === "All" && filter === "all" && !search.trim();
 
       return (
-        <div style={{...S.page,paddingBottom:90}}>
+        <div style={{...S.page,paddingBottom:NAV_CLEARANCE}}>
           <div style={{...S.brandHeader,padding:safePad(28,20,24)}}>
             <div style={{maxWidth:900,margin:"0 auto"}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
@@ -860,6 +884,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [picking, setPicking] = useState(null);
       const [search, setSearch] = useState("");
       const [shoppingItems, setShoppingItems] = useState([]);
+      const compactHeader = useWindowCompactHeader();
       const today = DAYS[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
       const filteredRecipes = recipes.filter((r) => !search || r.title.toLowerCase().includes(search.toLowerCase()));
       const plannedRecipeIds = Object.values(mealPlan).flat();
@@ -925,13 +950,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       }
 
       return (
-        <div style={{...S.page,paddingBottom:90}}>
-          <div style={{...S.brandHeader,padding:safePad(28,20,24)}}>
-            <div style={{maxWidth:900,margin:"0 auto"}}>
-              <div style={{fontFamily:SERIF,fontSize:"1.8em",color:C.white}}>Weekly Meal Plan</div>
-              <div style={{color:"rgba(255,249,238,0.72)",fontSize:"0.8em",marginTop:3}}>Plan the week from your RecipeBox · ~{totalCal.toLocaleString()} calories planned</div>
-            </div>
-          </div>
+        <div style={{...S.page,paddingBottom:NAV_CLEARANCE}}>
+          <PageHeader title="Weekly Meal Plan" subtitle={"Plan the week from your RecipeBox · ~"+totalCal.toLocaleString()+" calories planned"} compact={compactHeader} />
           <div style={{maxWidth:900,margin:"20px auto",padding:"0 16px"}}>
             <div style={{...S.card,padding:"13px 15px",marginBottom:14}}>
               <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
@@ -1034,6 +1054,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [input, setInput] = useState("");
       const [image, setImage] = useState(null);
       const [loading, setLoading] = useState(false);
+      const [compactHeader, setCompactHeader] = useState(false);
       const imgRef = useRef();
       const bottomRef = useRef();
       const starters = [
@@ -1093,12 +1114,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       }
 
       return (
-        <div style={{height:"calc(100dvh - 62px - env(safe-area-inset-bottom))",maxHeight:"calc(100dvh - 62px - env(safe-area-inset-bottom))",display:"flex",flexDirection:"column",background:C.cream,overflow:"hidden"}}>
-          <div style={{...S.brandHeader,padding:safePad(16,16,14),flexShrink:0}}>
-            <div style={{fontFamily:SERIF,fontSize:"1.45em",color:C.white}}>Pantry Chef</div>
-            <div style={{color:"rgba(255,249,238,0.78)",fontSize:"0.76em",marginTop:1}}>Ideas from your RecipeBox and what you have on hand</div>
-          </div>
-          <div style={{flex:1,minHeight:0,overflowY:"auto",padding:"12px"}}>
+        <div style={{height:PANTRY_NAV_OFFSET,maxHeight:PANTRY_NAV_OFFSET,display:"flex",flexDirection:"column",background:C.cream,overflow:"hidden"}}>
+          <PageHeader title="Pantry Chef" subtitle="Ideas from your RecipeBox and what you have on hand" compact={compactHeader} top={16} right={16} bottom={14} />
+          <div onScroll={(e) => setCompactHeader(e.currentTarget.scrollTop > 20)} style={{flex:1,minHeight:0,overflowY:"auto",padding:"12px"}}>
             <div style={{maxWidth:680,margin:"0 auto",display:"flex",flexDirection:"column",gap:11}}>
               {messages.map((m, i) => (
                 <div key={i} className="fade-up" style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
@@ -1181,6 +1199,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [deletePassword, setDeletePassword] = useState("");
       const [accountMsg, setAccountMsg] = useState("");
       const [accountBusy, setAccountBusy] = useState(false);
+      const compactHeader = useWindowCompactHeader();
       const localDataAvailable = hasLocalRecipeData(recipes, mealPlan);
 
       function chooseSound(id) {
@@ -1286,13 +1305,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         { title:"About RecipeBox", text:"A personal recipe box with AI-powered import and cooking tools." },
       ];
       return (
-        <div style={{...S.page,paddingBottom:96}}>
-          <div style={{...S.brandHeader,padding:safePad(28,20,24)}}>
-            <div style={{maxWidth:900,margin:"0 auto"}}>
-              <div style={{fontFamily:SERIF,fontSize:"1.8em",color:C.white}}>Your RecipeBox</div>
-              <div style={{color:"rgba(255,249,238,0.72)",fontSize:"0.8em",marginTop:3}}>Account, sync, timers, and recipe-box preferences</div>
-            </div>
-          </div>
+        <div style={{...S.page,paddingBottom:NAV_CLEARANCE}}>
+          <PageHeader title="Your RecipeBox" subtitle="Account, sync, timers, and recipe-box preferences" compact={compactHeader} />
           <div style={{maxWidth:760,margin:"18px auto",padding:"0 16px",display:"grid",gap:14}}>
             <div style={{...S.card,padding:16}}>
               <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark,marginBottom:4}}>RecipeBox Account</div>
@@ -2097,7 +2111,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       }
 
       return (
-        <div style={{minHeight:"100vh",background:C.cream,paddingBottom:90}}>
+        <div style={{minHeight:"100vh",background:C.cream,paddingBottom:NAV_CLEARANCE}}>
           {timerAlert}
           {/* Hero */}
           <div style={{minHeight:200,position:"relative",display:"flex",alignItems:"flex-end",overflow:"hidden",background:hasHeroImage?"#000":`linear-gradient(135deg, ${color}, ${color}AA)`}}>
