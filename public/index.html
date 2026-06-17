@@ -40,6 +40,20 @@
     input::placeholder, textarea::placeholder { color: #C4A882; }
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
     .modal-box { background: #FAF7F2; border-radius: 20px; width: 100%; max-width: 420px; overflow: hidden; animation: slideUp 0.25s ease; }
+    .meal-plan-row { background: #FCF2E1; border: 1px solid #D8C7AE; border-radius: 9px; padding: 9px 10px; display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 10px; max-width: 100%; }
+    .meal-plan-title { font-size: 0.86em; font-weight: 700; color: #20140E; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .meal-plan-meta { font-size: 0.72em; color: #967966; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .meal-plan-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: max-content; }
+    .admin-panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 12px; }
+    .admin-user-row { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(130px, 0.55fr) minmax(170px, 0.8fr); gap: 10px; align-items: center; }
+    @media (max-width: 560px) {
+      .modal-overlay { align-items: flex-end; padding: max(12px, env(safe-area-inset-top)) 10px max(12px, env(safe-area-inset-bottom)); }
+      .modal-box { max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px); overflow-y: auto; border-radius: 18px; }
+      .meal-plan-row { grid-template-columns: 34px minmax(0, 1fr); align-items: start; }
+      .meal-plan-title, .meal-plan-meta { white-space: normal; overflow-wrap: anywhere; }
+      .meal-plan-actions { grid-column: 2; justify-content: flex-start; min-width: 0; flex-wrap: wrap; }
+      .admin-user-row { grid-template-columns: 1fr; align-items: stretch; }
+    }
   </style>
 </head>
 <body>
@@ -84,7 +98,7 @@
       eyebrow: { fontSize:"0.68em", letterSpacing:2.4, textTransform:"uppercase", fontWeight:800, color:C.brownLight },
     };
     const CARD_COLORS = ["#234B32","#B85D32","#B88A2B","#5A3827","#3E6F4B","#8B6252","#35676B"];
-    const CATEGORIES = ["Breakfast","Appetizers","Entrées","Sides","Condiments & Sauces","Desserts"];
+    const CATEGORIES = ["Breakfast","Appetizers","Entrées","Sides","Condiments & Sauces","Beverages","Desserts"];
     const APP_CONTROL_CATEGORIES = ["All","Methodology","AI Instruction","Import Rule","Recipe Normalization","Meal Planning","Pantry Logic","Image Handling","User Experience","Safety / Guardrail","Legal / Copyright","Product Strategy","WhatsNext Sync"];
     const APP_CONTROL_FEATURES = ["Import","Manual Recipe Entry","AI Adjust","AI Chat Editor","Pantry Chef","Meal Planner","Shopping List","Cook Mode","PDF Export","Recipe Detail","Library","Settings"];
     const APP_CONTROL_SCOPE_TYPES = ["Global","Feature","Account","Recipe Category"];
@@ -95,6 +109,7 @@
       "Entrées": "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?auto=format&fit=crop&w=800&q=80",
       "Sides": "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=800&q=80",
       "Condiments & Sauces": "https://images.unsplash.com/photo-1604909052743-94e838986d24?auto=format&fit=crop&w=800&q=80",
+      "Beverages": "https://images.unsplash.com/photo-1497534446932-c925b458314e?auto=format&fit=crop&w=800&q=80",
       "Desserts": "https://images.unsplash.com/photo-1519915028121-7d3463d20b13?auto=format&fit=crop&w=800&q=80"
     };
     const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
@@ -541,11 +556,13 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
     function Stars({ value, onChange, size }) {
       return (
-        <span>
+        <span style={{display:"inline-flex",gap:1,alignItems:"center",lineHeight:1}}>
           {[1,2,3,4,5].map((i) => (
             <span key={i} onClick={() => onChange && onChange(i)}
-              style={{display:"inline-flex",color:i<=(value||0)?C.gold:C.cream3,cursor:onChange?"pointer":"default"}}>
-              <Icon name="star" size={size || 16} strokeWidth={2.2} />
+              role={onChange ? "button" : undefined}
+              aria-label={onChange ? i + " star rating" : undefined}
+              style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:(size || 16)+4,height:(size || 16)+4,color:i<=(value||0)?C.gold:C.cream3,cursor:onChange?"pointer":"default",fontSize:(size || 16),lineHeight:1,textShadow:i<=(value||0)?"0 1px 0 rgba(90,56,39,0.12)":"none"}}>
+              {i <= (value || 0) ? "★" : "☆"}
             </span>
           ))}
         </span>
@@ -656,18 +673,18 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         <div className="modal-overlay" onClick={onSkip}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div style={{padding:"24px 24px 8px",borderBottom:"1px solid "+C.border}}>
-              <div style={{fontFamily:SERIF,fontSize:"1.3em",color:C.dark,marginBottom:4}}>No Recipe Photo Found</div>
-              <div style={{color:C.light,fontSize:"0.85em",lineHeight:1.5}}>Would you like to add a photo from your camera roll?</div>
+              <div style={{fontFamily:SERIF,fontSize:"1.3em",color:C.dark,marginBottom:4}}>Add a cover photo?</div>
+              <div style={{color:C.light,fontSize:"0.85em",lineHeight:1.5}}>Your recipe is ready to save. Would you like to choose a cover photo?</div>
             </div>
             <div style={{padding:"18px 16px 20px",display:"grid",gap:10}}>
               <input ref={inputRef} type="file" accept="image/*,image/heic,image/heif" onChange={onAdd} style={{display:"none"}} />
               <button onClick={() => inputRef.current.click()}
                 style={{width:"100%",background:C.green,color:C.white,border:"none",borderRadius:10,padding:"13px 16px",fontWeight:700,cursor:"pointer",fontSize:"0.95em",fontFamily:SANS,display:"inline-flex",alignItems:"center",justifyContent:"center",gap:8}}>
-                <Icon name="camera" size={18} /> Add Photo
+                <Icon name="camera" size={18} /> Choose Photo
               </button>
               <button onClick={onSkip}
                 style={{width:"100%",background:C.white,color:C.brown,border:"1.5px solid "+C.border,borderRadius:10,padding:"12px 16px",fontWeight:700,cursor:"pointer",fontSize:"0.9em",fontFamily:SANS}}>
-                Skip for Now
+                Not Now
               </button>
             </div>
           </div>
@@ -798,7 +815,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   <div style={{color:"rgba(255,249,238,0.78)",fontSize:"0.78em",marginTop:4}}>{recipes.length ? recipes.length+" recipe"+(recipes.length!==1?"s":"")+" tucked away" : "A clean place for family favorites"}</div>
                 </div>
                 <button onClick={onAdd} style={{...S.goldBtn,borderRadius:12,padding:"11px 18px",fontSize:"0.88em"}}>
-                  + Add Card
+                  + Add Recipe
                 </button>
               </div>
               <div style={{position:"relative"}}>
@@ -848,7 +865,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   <div className="fade-up" style={{...S.card,padding:"22px 18px",marginTop:22,display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
                     <div style={{width:54,height:54,borderRadius:14,background:C.greenPale,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.9em",flexShrink:0}}>+</div>
                     <div style={{flex:"1 1 240px",minWidth:0}}>
-                      <div style={{fontFamily:SERIF,fontSize:"1.35em",color:C.dark,lineHeight:1.1,marginBottom:5}}>Add your first recipe card</div>
+                      <div style={{fontFamily:SERIF,fontSize:"1.35em",color:C.dark,lineHeight:1.1,marginBottom:5}}>Add your first recipe</div>
                       <div style={{color:C.light,fontSize:"0.88em",lineHeight:1.45}}>Bring in a family favorite, save a recipe from the web, or ask Pantry Chef for a dinner idea.</div>
                     </div>
                     <div style={{display:"flex",gap:10,flexWrap:"wrap",flex:"1 1 220px"}}>
@@ -1032,21 +1049,23 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   </div>
                   {meals.length===0 ? (
                     <button onClick={() => setPicking({day})} style={{width:"100%",background:C.paper2,border:"1px dashed "+C.border,borderRadius:10,padding:"12px",color:C.light,fontSize:"0.82em",fontStyle:"italic",textAlign:"left",cursor:"pointer",fontFamily:SANS}}>
-                      No recipe cards planned - tap to add one
+                      No recipes planned - tap to add one
                     </button>
                   ) : (
                     <div style={{display:"grid",gap:8}}>
                       {meals.map((r, i) => (
-                        <div key={i} style={{background:C.paper2,borderRadius:9,padding:"9px 10px",display:"flex",alignItems:"center",gap:10,border:"1px solid "+C.border}}>
+                        <div key={i} className="meal-plan-row">
                           <div style={{width:34,height:34,borderRadius:8,background:cardColor(r.title),display:"flex",alignItems:"center",justifyContent:"center",fontFamily:SERIF,color:"rgba(255,255,255,0.65)",fontSize:"1.05em",flexShrink:0}}>{r.title?.[0] || "R"}</div>
                           <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontSize:"0.86em",fontWeight:700,color:C.dark,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.title}</div>
-                            <div style={{fontSize:"0.72em",color:C.light,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                            <div className="meal-plan-title">{r.title}</div>
+                            <div className="meal-plan-meta">
                               {[r.category, r.cookTime, r.macros?.calories>0 ? r.macros.calories+" cal" : ""].filter(Boolean).join(" · ") || "Planned recipe"}
                             </div>
                           </div>
-                          <button onClick={() => onOpen(r)} style={{...S.ghostBtn,borderRadius:7,padding:"5px 9px",fontSize:"0.74em"}}>Open</button>
-                          <button onClick={() => { const u={...mealPlan,[day]:(mealPlan[day]||[]).filter((_,j)=>j!==i)}; setMealPlan(u); }} style={{background:"none",border:"none",color:C.light,cursor:"pointer",padding:"3px 0",fontSize:"1.1em",lineHeight:1}}>×</button>
+                          <div className="meal-plan-actions">
+                            <button onClick={() => onOpen(r)} style={{...S.ghostBtn,borderRadius:7,padding:"7px 11px",fontSize:"0.74em",minHeight:34}}>Open</button>
+                            <button onClick={() => { const u={...mealPlan,[day]:(mealPlan[day]||[]).filter((_,j)=>j!==i)}; setMealPlan(u); }} style={{background:"none",border:"none",color:C.light,cursor:"pointer",padding:"5px 7px",fontSize:"1.1em",lineHeight:1,minHeight:34}}>×</button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1060,10 +1079,10 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               <div style={{background:C.paper,border:"1px solid "+C.border,borderRadius:"20px 20px 0 0",width:"100%",maxWidth:600,maxHeight:"70vh",display:"flex",flexDirection:"column"}}>
                 <div style={{padding:"18px 20px 12px",borderBottom:"1px solid "+C.border}}>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-                    <div style={{fontFamily:SERIF,fontSize:"1.15em"}}>Add a recipe card to {picking.day}</div>
+                    <div style={{fontFamily:SERIF,fontSize:"1.15em"}}>Add a recipe to {picking.day}</div>
                     <button onClick={() => setPicking(null)} style={{background:"none",border:"none",fontSize:"1.4em",cursor:"pointer",color:C.light}}>×</button>
                   </div>
-                  <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search recipe cards..." style={{...S.input,width:"100%",padding:"9px 14px",fontSize:"0.9em"}} />
+                  <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search recipes..." style={{...S.input,width:"100%",padding:"9px 14px",fontSize:"0.9em"}} />
                 </div>
                 <div style={{flex:1,overflowY:"auto",padding:"8px 12px"}}>
                   {filteredRecipes.map((r) => (
@@ -1622,6 +1641,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [draft, setDraft] = useState(() => emptyAdminDraft());
       const [busy, setBusy] = useState(false);
       const [message, setMessage] = useState("");
+      const [section, setSection] = useState("knowledge");
+      const [users, setUsers] = useState([]);
+      const [userSummary, setUserSummary] = useState({ totalUsers:0, newSignups:0, active7:0, active30:0 });
+      const [userSearch, setUserSearch] = useState("");
+      const [userTier, setUserTier] = useState("all");
       const dark = { bg:"#11120f", panel:"#1a1714", panel2:"#231d18", line:"rgba(255,249,238,0.12)", text:"#fff9ee", muted:"rgba(255,249,238,0.64)", gold:"#d8b35f", green:"#6fb184", red:"#e0786d" };
 
       async function loadAdmin() {
@@ -1638,6 +1662,22 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         } finally { setBusy(false); }
       }
       useEffect(() => { loadAdmin(); }, []);
+      async function loadUsers() {
+        setBusy(true);
+        try {
+          const qs = new URLSearchParams({ search:userSearch, tier:userTier });
+          const data = await fetchJson("/api/admin/users?" + qs.toString(), { summary:{}, users:[] });
+          setUserSummary(data.summary || {});
+          setUsers(data.users || []);
+        } catch (err) {
+          setMessage(err.message || "Could not load users.");
+        } finally { setBusy(false); }
+      }
+      useEffect(() => {
+        if (section !== "users") return;
+        const t = setTimeout(loadUsers, 220);
+        return () => clearTimeout(t);
+      }, [section, userSearch, userTier]);
 
       const visibleSources = sources.filter((source) => filter === "All" || source.category === filter);
       const chip = (active) => ({ border:"1px solid "+(active?dark.gold:dark.line), background:active?"rgba(216,179,95,0.16)":"rgba(255,249,238,0.04)", color:active?dark.gold:dark.muted, borderRadius:999, padding:"8px 11px", fontSize:"0.76em", fontWeight:900, fontFamily:SANS, cursor:"pointer", whiteSpace:"nowrap" });
@@ -1689,6 +1729,20 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         catch (err) { setMessage(err.message || "WhatsNext sync is not configured yet."); }
         finally { setBusy(false); loadAdmin(); }
       }
+      async function changeUserTier(user, plan) {
+        setBusy(true);
+        try {
+          await putJson("/api/admin/users/" + encodeURIComponent(user.id) + "/entitlement", { plan });
+          setMessage((user.displayName || user.email || "User") + " moved to " + plan + ".");
+          await loadUsers();
+        } catch (err) {
+          setMessage(err.message || "Could not update user.");
+        } finally { setBusy(false); }
+      }
+      function fmtDate(value) {
+        if (!value) return "Never";
+        try { return new Date(value).toLocaleDateString(undefined, { month:"short", day:"numeric", year:"numeric" }); } catch { return "Unknown"; }
+      }
 
       return (
         <div style={{minHeight:"100vh",background:dark.bg,color:dark.text,paddingBottom:NAV_CLEARANCE,width:"100%",maxWidth:"100%",overflowX:"hidden"}}>
@@ -1700,12 +1754,22 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 <div style={{fontFamily:SERIF,fontSize:"clamp(1.8rem, 7vw, 3.2rem)",lineHeight:1}}>App Control</div>
                 <div style={{fontSize:"0.84em",color:dark.muted,lineHeight:1.35}}>Plain-English operating rules, knowledge, guardrails, feature behavior, and rollback history.</div>
               </div>
-              <button onClick={newSource} style={{...S.goldBtn,borderRadius:10,padding:"10px 12px",fontSize:"0.82em",display:"inline-flex",alignItems:"center",gap:7}}><Icon name="plus" size={16} /> Add</button>
+              <button onClick={newSource} style={{...S.goldBtn,borderRadius:10,padding:"10px 12px",fontSize:"0.82em",display:"inline-flex",alignItems:"center",gap:7}}><Icon name="plus" size={16} /> Add Source</button>
             </div>
           </div>
 
           <div style={{maxWidth:1120,margin:"0 auto",padding:"18px",display:"grid",gap:16,width:"100%",overflowX:"hidden"}}>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(150px, 1fr))",gap:10}}>
+            <div style={{display:"flex",gap:8,overflowX:"auto",WebkitOverflowScrolling:"touch",paddingBottom:2}}>
+              {[
+                ["knowledge","Knowledge"],
+                ["users","Users"],
+              ].map(([id,label]) => (
+                <button key={id} onClick={() => setSection(id)} style={{...chip(section === id),padding:"9px 13px"}}>{label}</button>
+              ))}
+            </div>
+
+            {section === "knowledge" && <React.Fragment>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(min(150px, 100%), 1fr))",gap:10}}>
               {[["Sources",sources.length],["Active",sources.filter((x)=>x.active).length],["Inactive",sources.filter((x)=>!x.active).length],["Changes",changes.length]].map(([label,value]) => (
                 <div key={label} style={{background:dark.panel,border:"1px solid "+dark.line,borderRadius:14,padding:14}}>
                   <div style={{fontSize:"0.72em",textTransform:"uppercase",letterSpacing:1.4,color:dark.muted,fontWeight:800}}>{label}</div>
@@ -1723,7 +1787,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 {APP_CONTROL_CATEGORIES.map((cat) => <button key={cat} onClick={() => setFilter(cat)} style={chip(filter === cat)}>{cat}</button>)}
               </div>
               {message && <div style={{margin:"8px 0 12px",color:message.includes("Could not")||message.includes("required")||message.includes("not configured")?dark.red:dark.green,fontWeight:900,fontSize:"0.82em"}}>{message}</div>}
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(280px, 1fr))",gap:12}}>
+              <div className="admin-panel-grid">
                 {visibleSources.map((source) => (
                   <div key={source.id} style={{background:dark.panel2,border:"1px solid "+(source.active?dark.line:"rgba(224,120,109,0.35)"),borderRadius:14,padding:14,display:"grid",gap:10}}>
                     <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
@@ -1756,6 +1820,68 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 ))}
               </div>
             </div>
+            </React.Fragment>}
+
+            {section === "users" && (
+              <div style={{display:"grid",gap:14}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(min(145px, 100%), 1fr))",gap:10}}>
+                  {[["Total Users",userSummary.totalUsers||0],["New Signups",userSummary.newSignups||0],["Active 7 Days",userSummary.active7||0],["Active 30 Days",userSummary.active30||0]].map(([label,value]) => (
+                    <div key={label} style={{background:dark.panel,border:"1px solid "+dark.line,borderRadius:14,padding:14,minWidth:0}}>
+                      <div style={{fontSize:"0.72em",textTransform:"uppercase",letterSpacing:1.4,color:dark.muted,fontWeight:800}}>{label}</div>
+                      <div style={{fontFamily:SERIF,fontSize:"2em",lineHeight:1}}>{value}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{background:dark.panel,border:"1px solid "+dark.line,borderRadius:16,padding:14,display:"grid",gap:12}}>
+                  <div style={{display:"flex",gap:10,alignItems:"flex-end",flexWrap:"wrap"}}>
+                    <div style={{flex:"1 1 240px",minWidth:0}}>
+                      <div style={{fontFamily:SERIF,fontSize:"1.4em"}}>Users</div>
+                      <div style={{fontSize:"0.8em",color:dark.muted}}>Beta management, activity, storage, and account tiers.</div>
+                    </div>
+                    <input value={userSearch} onChange={(e)=>setUserSearch(e.target.value)} placeholder="Search name or email" style={{...S.input,padding:"10px 12px",background:"#fff9ee",minWidth:0,flex:"1 1 220px"}} />
+                    <select value={userTier} onChange={(e)=>setUserTier(e.target.value)} style={{...S.input,padding:"10px 12px",background:"#fff9ee",flex:"0 1 160px"}}>
+                      <option value="all">All tiers</option>
+                      <option value="free">Free</option>
+                      <option value="beta">Beta</option>
+                      <option value="plus">Plus</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+                  {message && <div style={{color:message.includes("Could not")||message.includes("required")?dark.red:dark.green,fontWeight:900,fontSize:"0.82em"}}>{message}</div>}
+                  <div style={{display:"grid",gap:9}}>
+                    {users.map((user) => (
+                      <div key={user.id} className="admin-user-row" style={{background:dark.panel2,border:"1px solid "+dark.line,borderRadius:13,padding:12,minWidth:0}}>
+                        <div style={{minWidth:0}}>
+                          <div style={{fontWeight:900,color:dark.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.displayName || "Unnamed user"}</div>
+                          <div style={{fontSize:"0.78em",color:dark.muted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.email}</div>
+                          <div style={{fontSize:"0.72em",color:"rgba(255,249,238,0.48)",marginTop:4}}>Joined {fmtDate(user.createdAt)} · Active {fmtDate(user.lastActiveAt)}</div>
+                        </div>
+                        <div style={{display:"flex",gap:6,flexWrap:"wrap",fontSize:"0.72em",color:dark.muted}}>
+                          <span style={{border:"1px solid rgba(216,179,95,0.3)",borderRadius:999,padding:"4px 7px",color:dark.gold,fontWeight:900}}>{user.tier}</span>
+                          <span>{user.recipeCount} recipes</span>
+                          <span>{user.plannedCount} planned</span>
+                          <span>{user.aiUsageCount} AI</span>
+                          <span>{user.importCount} imports</span>
+                        </div>
+                        <div style={{display:"flex",gap:8,alignItems:"center",justifyContent:"flex-end",flexWrap:"wrap"}}>
+                          {user.role === "master_admin" ? (
+                            <span style={{fontSize:"0.78em",color:dark.gold,fontWeight:900}}>Master Admin</span>
+                          ) : (
+                            <select value={["free","beta","plus"].includes(user.tier) ? user.tier : "beta"} onChange={(e)=>changeUserTier(user, e.target.value)} disabled={busy} style={{...S.input,padding:"8px 10px",background:"#fff9ee",minWidth:110}}>
+                              <option value="free">Free</option>
+                              <option value="beta">Beta</option>
+                              <option value="plus">Plus</option>
+                            </select>
+                          )}
+                          <button disabled style={{...S.ghostBtn,borderColor:dark.line,background:"rgba(255,249,238,0.04)",color:dark.muted,borderRadius:9,padding:"8px 9px",fontSize:"0.72em",opacity:0.58,cursor:"not-allowed"}}>Disable later</button>
+                        </div>
+                      </div>
+                    ))}
+                    {!users.length && <div style={{padding:18,textAlign:"center",color:dark.muted}}>No users match those filters.</div>}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {editor && (
@@ -1804,9 +1930,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const fileRef = useRef();
       const heroPromptRef = useRef();
 
-      function readyRecipeForSave(recipe) {
+      function readyRecipeForSave(recipe, options = {}) {
         setPendingRecipe(recipe);
-        if (recipe.heroImage) setShowCategoryModal(true);
+        if (recipe.heroImage || options.skipPhotoPrompt) setShowCategoryModal(true);
         else setShowPhotoPrompt(true);
       }
 
@@ -1860,6 +1986,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             const transcriptRes = await apiFetch("/api/transcript?url=" + encodeURIComponent(ytUrl));
             const transcriptData = await transcriptRes.json();
             if (transcriptData.error) throw new Error("Could not fetch YouTube details: " + transcriptData.error);
+            if (transcriptData.sourceQuality === "low") {
+              throw new Error("We couldn't read enough recipe detail from this video. Try pasting the recipe text or using screenshots instead.");
+            }
 
             setLoadingMsg("Extracting recipe from video text...");
             let content = "Video title: " + transcriptData.title + "\n\n";
@@ -1868,14 +1997,20 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             } else if (transcriptData.description) {
               content += "Description:\n" + transcriptData.description;
             } else {
-              throw new Error("RecipeBox could not access this video's transcript or description from the server. Open the video on YouTube, copy the description or transcript, and use Paste Text instead.");
+              throw new Error("We couldn't read enough recipe detail from this video. Try pasting the recipe text or using screenshots instead.");
             }
             if (transcriptData.thumbnail) {
               content += "\n\nVideo thumbnail URL: " + transcriptData.thumbnail;
             }
+            if (transcriptData.warnings?.length) {
+              content += "\n\nImporter warnings: " + transcriptData.warnings.join("; ");
+            }
 
             const raw = await callAI([{ role:"user", content:"Extract the recipe from this YouTube video content:\n\n" + content }], EXTRACT_PROMPT, 2000);
             parsed = await parseImportedRecipe(raw);
+            if (parsed.error === "unknown_recipe" || parsed.error === "not_enough_recipe_text") {
+              throw new Error("We couldn't read enough recipe detail from this video. Try pasting the recipe text or using screenshots instead.");
+            }
             if (!parsed.heroImage && transcriptData.thumbnail) {
               parsed.heroImage = transcriptData.thumbnail;
             }
@@ -1951,7 +2086,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           parsed.favorite = false;
           if (!parsed.heroImage) parsed.heroImage = "";
 
-          readyRecipeForSave(parsed);
+          readyRecipeForSave(parsed, { skipPhotoPrompt: mode === "media" });
 
         } catch(e) {
           setError(e.message || "Could not extract recipe.");
@@ -2994,6 +3129,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [showSplash, setShowSplash] = useState(true);
       const swipeRef = useRef(null);
       const pointerSwipeRef = useRef(null);
+      const navStateRef = useRef("");
       const resetToken = (() => { try { return new URLSearchParams(window.location.search).get("reset"); } catch { return null; } })();
 
       useEffect(() => { saveRecipes(recipes); }, [recipes]);
@@ -3011,6 +3147,23 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         const t = setTimeout(() => setShowSplash(false), 2400);
         return () => clearTimeout(t);
       }, []);
+      useEffect(() => {
+        if (!account || resetToken || showSplash) return;
+        const key = screen + ":" + tab;
+        if ((screen !== "library" || tab !== "library") && navStateRef.current !== key) {
+          navStateRef.current = key;
+          try { window.history.pushState({ recipebox:true, screen, tab }, ""); } catch {}
+        }
+        const onPop = () => {
+          if (screen !== "library") {
+            setScreen("library");
+            return;
+          }
+          if (tab !== "library") setMainTab("library");
+        };
+        window.addEventListener("popstate", onPop);
+        return () => window.removeEventListener("popstate", onPop);
+      }, [account?.id, resetToken, showSplash, screen, tab]);
 
       function updateMealPlan(plan) { setMealPlanState(plan); saveMealPlan(plan); }
       async function loadCloudData(nextRecipes, nextMealPlan) {

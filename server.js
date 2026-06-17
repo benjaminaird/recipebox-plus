@@ -120,6 +120,7 @@ async function getPool() {
     )`);
     await pool.query('ALTER TABLE profiles ADD COLUMN IF NOT EXISTS password_hash text');
     await pool.query("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS role text NOT NULL DEFAULT 'user'");
+    await pool.query('ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_active_at timestamptz');
     await pool.query(`CREATE TABLE IF NOT EXISTS recipes (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id text NOT NULL,
@@ -154,6 +155,15 @@ async function getPool() {
       last_seen_at timestamptz NOT NULL DEFAULT now()
     )`);
     await pool.query('CREATE INDEX IF NOT EXISTS account_sessions_user_id_idx ON account_sessions (user_id)');
+    await pool.query(`CREATE TABLE IF NOT EXISTS user_activity (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id text REFERENCES profiles(user_id) ON DELETE CASCADE,
+      action text NOT NULL,
+      metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+      created_at timestamptz NOT NULL DEFAULT now()
+    )`);
+    await pool.query('CREATE INDEX IF NOT EXISTS user_activity_user_created_idx ON user_activity (user_id, created_at desc)');
+    await pool.query('CREATE INDEX IF NOT EXISTS user_activity_action_created_idx ON user_activity (action, created_at desc)');
     await pool.query(`CREATE TABLE IF NOT EXISTS password_reset_tokens (
       token_hash text PRIMARY KEY,
       user_id text NOT NULL REFERENCES profiles(user_id) ON DELETE CASCADE,
@@ -828,6 +838,7 @@ async function currentUser(req) {
      WHERE token_hash=$1`,
     [hashToken(token), SESSION_DAYS]
   );
+  await db.query('UPDATE profiles SET last_active_at=now(), updated_at=now() WHERE user_id=$1', [result.rows[0].user_id]);
   return result.rows[0];
 }
 
@@ -912,6 +923,16 @@ async function replaceUserMealPlan(userId, mealPlan) {
     [userId, JSON.stringify(mealPlan || {})]
   );
   return true;
+}
+
+async function logUserActivity(user, action, metadata = {}) {
+  const db = await getPool();
+  if (!db || !user?.user_id) return;
+  await db.query(
+    `INSERT INTO user_activity(user_id, action, metadata)
+     VALUES($1, $2, $3::jsonb)`,
+    [user.user_id, String(action || 'activity').slice(0, 80), JSON.stringify(metadata || {})]
+  );
 }
 
 function currentAiPeriod() {
@@ -1105,6 +1126,28 @@ async function youtubeDataApiMetadata(videoId) {
       snippet.thumbnails?.default?.url ||
       '',
   };
+}
+
+function extractYouTubeVideoId(rawUrl) {
+  const value = String(rawUrl || '').trim();
+  if (/^[a-zA-Z0-9_-]{11}$/.test(value)) return value;
+  try {
+    const url = new URL(value);
+    const host = url.hostname.replace(/^www\./, '').toLowerCase();
+    if (host === 'youtube.com' || host.endsWith('.youtube.com')) {
+      const v = url.searchParams.get('v');
+      if (v && /^[a-zA-Z0-9_-]{11}$/.test(v)) return v;
+      const parts = url.pathname.split('/').filter(Boolean);
+      const marker = parts.findIndex((part) => ['shorts', 'embed', 'live', 'v'].includes(part));
+      if (marker >= 0 && parts[marker + 1] && /^[a-zA-Z0-9_-]{11}$/.test(parts[marker + 1])) return parts[marker + 1];
+    }
+    if (host === 'youtu.be') {
+      const id = url.pathname.split('/').filter(Boolean)[0] || '';
+      if (/^[a-zA-Z0-9_-]{11}$/.test(id)) return id;
+    }
+  } catch {}
+  const loose = value.match(/(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([a-zA-Z0-9_-]{11})/);
+  return loose ? loose[1] : '';
 }
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', database: !!process.env.DATABASE_URL }));
@@ -1329,6 +1372,7 @@ app.put('/api/recipes', async (req, res) => {
     const user = await currentUser(req);
     if (user) {
       const saved = await replaceUserRecipes(user.user_id, req.body.recipes);
+      await logUserActivity(user, 'recipes_saved', { count: req.body.recipes.length });
       return res.json({ ok: true, savedToDatabase: saved, account: true });
     }
     if (process.env.ALLOW_SHARED_GUEST_STORE === '1') {
@@ -1352,6 +1396,7 @@ app.put('/api/mealplan', async (req, res) => {
     const user = await currentUser(req);
     if (user) {
       const saved = await replaceUserMealPlan(user.user_id, req.body.mealPlan || {});
+      await logUserActivity(user, 'meal_plan_saved', { plannedCount: Object.values(req.body.mealPlan || {}).flat().length });
       return res.json({ ok: true, savedToDatabase: saved, account: true });
     }
     if (process.env.ALLOW_SHARED_GUEST_STORE === '1') {
@@ -1359,6 +1404,140 @@ app.put('/api/mealplan', async (req, res) => {
       return res.json({ ok: true, savedToDatabase: saved, account: false });
     }
     res.json({ ok: true, savedToDatabase: false, guest: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/admin/users', requireAuth, requireMasterAdmin, async (req, res) => {
+  try {
+    const db = await getPool();
+    const search = String(req.query.search || '').trim().toLowerCase();
+    const tier = String(req.query.tier || 'all').trim().toLowerCase();
+    const validTiers = new Set(['all', 'free', 'beta', 'plus', 'paid', 'admin', 'master_admin']);
+    const cleanTier = validTiers.has(tier) ? tier : 'all';
+    const params = [];
+    const where = [];
+    if (search) {
+      params.push(`%${search}%`);
+      where.push(`(lower(p.email) LIKE $${params.length} OR lower(coalesce(p.display_name,'')) LIKE $${params.length})`);
+    }
+    if (cleanTier !== 'all') {
+      if (cleanTier === 'admin' || cleanTier === 'master_admin') {
+        where.push("p.role='master_admin'");
+      } else if (cleanTier === 'paid') {
+        params.push(DEFAULT_PLAN);
+        where.push(`coalesce(e.plan, $${params.length})='plus'`);
+      } else {
+        params.push(cleanTier);
+        where.push(`coalesce(e.plan, '${DEFAULT_PLAN}')=$${params.length}`);
+      }
+    }
+    const whereSql = where.length ? 'WHERE ' + where.join(' AND ') : '';
+    const usersResult = await db.query(
+      `SELECT
+         p.user_id,
+         p.email,
+         p.display_name,
+         p.role,
+         p.created_at,
+         p.last_active_at,
+         coalesce(e.plan, CASE WHEN p.role='master_admin' THEN 'master_admin' ELSE '${DEFAULT_PLAN}' END) AS plan,
+         coalesce(e.subscription_status, CASE WHEN p.role='master_admin' THEN 'master_admin' ELSE '${DEFAULT_PLAN}' END) AS subscription_status,
+         coalesce(r.recipe_count, 0)::int AS recipe_count,
+         coalesce(mp.planned_count, 0)::int AS planned_count,
+         coalesce(ai.ai_count, 0)::int AS ai_usage_count,
+         coalesce(ai.import_count, 0)::int AS import_count,
+         coalesce(act.activity_count, 0)::int AS activity_count
+       FROM profiles p
+       LEFT JOIN user_entitlements e ON e.user_id = p.user_id
+       LEFT JOIN (
+         SELECT user_id, count(*) AS recipe_count
+         FROM recipes
+         GROUP BY user_id
+       ) r ON r.user_id = p.user_id
+       LEFT JOIN (
+         SELECT user_id, coalesce(sum(jsonb_array_length(value)),0) AS planned_count
+         FROM meal_plans, jsonb_each(plan_json)
+         GROUP BY user_id
+       ) mp ON mp.user_id = p.user_id
+       LEFT JOIN (
+         SELECT user_id,
+                count(*) AS ai_count,
+                count(*) FILTER (WHERE feature='import') AS import_count
+         FROM ai_usage_events
+         GROUP BY user_id
+       ) ai ON ai.user_id = p.user_id
+       LEFT JOIN (
+         SELECT user_id, count(*) AS activity_count
+         FROM user_activity
+         GROUP BY user_id
+       ) act ON act.user_id = p.user_id
+       ${whereSql}
+       ORDER BY coalesce(p.last_active_at, p.created_at) DESC
+       LIMIT 120`,
+      params
+    );
+    const summaryResult = await db.query(
+      `SELECT
+         count(*)::int AS total_users,
+         count(*) FILTER (WHERE created_at >= now() - interval '7 days')::int AS new_signups,
+         count(*) FILTER (WHERE last_active_at >= now() - interval '7 days')::int AS active_7,
+         count(*) FILTER (WHERE last_active_at >= now() - interval '30 days')::int AS active_30
+       FROM profiles`
+    );
+    res.json({
+      summary: {
+        totalUsers: summaryResult.rows[0]?.total_users || 0,
+        newSignups: summaryResult.rows[0]?.new_signups || 0,
+        active7: summaryResult.rows[0]?.active_7 || 0,
+        active30: summaryResult.rows[0]?.active_30 || 0,
+      },
+      users: usersResult.rows.map((row) => ({
+        id: row.user_id,
+        email: row.email,
+        displayName: row.display_name || '',
+        role: row.role,
+        tier: row.role === 'master_admin' ? 'admin' : row.plan,
+        subscriptionStatus: row.subscription_status,
+        createdAt: row.created_at,
+        lastActiveAt: row.last_active_at,
+        recipeCount: row.recipe_count,
+        plannedCount: row.planned_count,
+        aiUsageCount: row.ai_usage_count,
+        importCount: row.import_count,
+        feedbackCount: 0,
+        activityCount: row.activity_count,
+      })),
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.put('/api/admin/users/:id/entitlement', requireAuth, requireMasterAdmin, async (req, res) => {
+  try {
+    const db = await getPool();
+    const plan = String(req.body?.plan || '').trim().toLowerCase();
+    if (!['free', 'beta', 'plus'].includes(plan)) return res.status(400).json({ error: 'Plan must be free, beta, or plus.' });
+    const target = await db.query('SELECT user_id, role FROM profiles WHERE user_id=$1', [req.params.id]);
+    if (!target.rows[0]) return res.status(404).json({ error: 'user not found' });
+    if (target.rows[0].role === 'master_admin') return res.status(400).json({ error: 'Master admin tier cannot be changed here.' });
+    const limits = PLAN_ENTITLEMENTS[plan] || PLAN_ENTITLEMENTS.beta;
+    await db.query(
+      `INSERT INTO user_entitlements(user_id, plan, subscription_status, ai_monthly_limit, ai_daily_limit, import_daily_limit, adjust_daily_limit, pantry_daily_limit, updated_by, metadata, updated_at)
+       VALUES($1,$2,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,now())
+       ON CONFLICT(user_id) DO UPDATE SET
+         plan=EXCLUDED.plan,
+         subscription_status=EXCLUDED.subscription_status,
+         ai_monthly_limit=EXCLUDED.ai_monthly_limit,
+         ai_daily_limit=EXCLUDED.ai_daily_limit,
+         import_daily_limit=EXCLUDED.import_daily_limit,
+         adjust_daily_limit=EXCLUDED.adjust_daily_limit,
+         pantry_daily_limit=EXCLUDED.pantry_daily_limit,
+         updated_by=EXCLUDED.updated_by,
+         metadata=EXCLUDED.metadata,
+         updated_at=now()`,
+      [req.params.id, plan, limits.aiMonthlyLimit, limits.aiDailyLimit, limits.importDailyLimit, limits.adjustDailyLimit, limits.pantryDailyLimit, req.user.user_id, JSON.stringify({ changedFromAppControl: true })]
+    );
+    await logUserActivity(req.user, 'admin_user_tier_changed', { targetUserId: req.params.id, plan });
+    res.json({ ok: true, userId: req.params.id, plan });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -1647,10 +1826,9 @@ app.get('/api/transcript', async function(req, res) {
   if (!videoUrl) return res.status(400).json({ error: 'no url' });
   try {
     const debug = req.query.debug === '1';
-    let videoId = '';
-    if (videoUrl.includes('v=')) videoId = videoUrl.split('v=')[1].split('&')[0].slice(0, 11);
-    else if (videoUrl.includes('youtu.be/')) videoId = videoUrl.split('youtu.be/')[1].split('?')[0].slice(0, 11);
-    if (videoId.length < 5) return res.status(400).json({ error: 'bad url' });
+    const warnings = [];
+    const videoId = extractYouTubeVideoId(videoUrl);
+    if (!videoId) return res.status(400).json({ error: 'bad url', warnings: ['Paste a full YouTube watch, Shorts, embed, or youtu.be link.'] });
     const userAgent = 'Mozilla/5.0';
     const yt = await fetch('https://www.youtube.com/watch?v=' + videoId, { headers: { 'User-Agent': userAgent, 'Accept-Language': 'en-US' } });
     const html = await yt.text();
@@ -1693,6 +1871,7 @@ app.get('/api/transcript', async function(req, res) {
     } catch (err) {
       debugInfo.transcriptErrorName = err?.name || '';
       debugInfo.transcriptErrorMessage = err?.message || String(err);
+      warnings.push('transcript unavailable');
     }
 
     const cap = transcript ? null : html.match(/"captionTracks":\[\{"baseUrl":"([^"]+)/);
@@ -1705,6 +1884,7 @@ app.get('/api/transcript', async function(req, res) {
       } catch (err) {
         debugInfo.captionErrorName = err?.name || '';
         debugInfo.captionErrorMessage = err?.message || String(err);
+        if (!warnings.includes('transcript unavailable')) warnings.push('transcript unavailable');
       }
     }
     if (!description || title === '- YouTube' || title === 'YouTube Recipe') {
@@ -1740,13 +1920,27 @@ app.get('/api/transcript', async function(req, res) {
         debugInfo.oembedErrorMessage = err?.message || String(err);
       }
     }
-    const payload = { title, description, transcript, thumbnail };
+    if (!transcript && description) warnings.push('description used instead');
+    const availableLength = Math.max(transcript.length, description.length);
+    if (availableLength < 120) warnings.push('low confidence extraction');
+    const payload = {
+      title,
+      description,
+      transcript,
+      thumbnail,
+      videoId,
+      sourceUsed: transcript ? 'transcript' : description ? 'description' : 'metadata',
+      sourceQuality: availableLength >= 500 ? 'good' : availableLength >= 120 ? 'partial' : 'low',
+      warnings: [...new Set(warnings)],
+    };
     if (debug) {
       payload.debug = {
         ...debugInfo,
         title,
         descriptionLength: description.length,
         transcriptLength: transcript.length,
+        sourceQuality: payload.sourceQuality,
+        warnings: payload.warnings,
       };
     }
     res.json(payload);
@@ -1842,6 +2036,7 @@ app.post('/api/ai', async function(req, res) {
 app.get('*', function(req, res) { res.sendFile(path.join(__dirname, 'public', 'index.html')); });
 
 module.exports = app;
+module.exports.extractYouTubeVideoId = extractYouTubeVideoId;
 
 if (require.main === module) {
   app.listen(process.env.PORT || 3000, function() { console.log('RecipeBox running'); });
