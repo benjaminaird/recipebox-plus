@@ -288,20 +288,143 @@
       return raw;
     }
 
-    const METRIC_MAP = {
-      cup:{mult:240,unit:"ml"}, cups:{mult:240,unit:"ml"},
-      tbsp:{mult:15,unit:"ml"}, tablespoon:{mult:15,unit:"ml"}, tablespoons:{mult:15,unit:"ml"},
-      tsp:{mult:5,unit:"ml"}, teaspoon:{mult:5,unit:"ml"}, teaspoons:{mult:5,unit:"ml"},
-      oz:{mult:28,unit:"g"}, ounce:{mult:28,unit:"g"}, ounces:{mult:28,unit:"g"},
-      lb:{mult:454,unit:"g"}, pound:{mult:454,unit:"g"}, pounds:{mult:454,unit:"g"},
+    function cleanUnit(unit) {
+      return String(unit || "").toLowerCase().trim().replace(/\./g, "");
+    }
+
+    const CUP_GRAMS = [
+      { keys:["bread flour"], grams:127 },
+      { keys:["cake flour"], grams:114 },
+      { keys:["almond flour"], grams:96 },
+      { keys:["flour"], grams:120 },
+      { keys:["powdered sugar","confectioners sugar","confectioner's sugar"], grams:120 },
+      { keys:["brown sugar"], grams:220 },
+      { keys:["sugar"], grams:200 },
+      { keys:["butter"], grams:227 },
+      { keys:["cocoa powder","cocoa"], grams:85 },
+      { keys:["rolled oats","oats"], grams:90 },
+      { keys:["chocolate chips","chocolate chip"], grams:170 },
+      { keys:["peanut butter"], grams:258 },
+      { keys:["honey"], grams:340 },
+      { keys:["maple syrup"], grams:322 },
+      { keys:["oil","olive oil","vegetable oil","canola oil"], grams:218 },
+      { keys:["milk","buttermilk"], grams:245 },
+      { keys:["heavy cream","cream"], grams:240 },
+      { keys:["sour cream","yogurt"], grams:245 },
+      { keys:["water"], grams:240 },
+      { keys:["rice"], grams:185 },
+      { keys:["nuts","walnuts","pecans","almonds"], grams:120 },
+      { keys:["cornstarch"], grams:128 },
+      { keys:["breadcrumbs","bread crumbs"], grams:110 }
+    ];
+
+    const UNIT_TO_CUPS = {
+      cup:1, cups:1, c:1,
+      tbsp:1/16, tablespoon:1/16, tablespoons:1/16, tbs:1/16,
+      tsp:1/48, teaspoon:1/48, teaspoons:1/48
     };
 
-    function convertMetric(amount, unit) {
-      const c = METRIC_MAP[(unit||"").toLowerCase()];
-      if (!c) return { amount, unit: unit||"" };
+    const METRIC_MAP = {
+      cup:{mult:240,unit:"ml"}, cups:{mult:240,unit:"ml"}, c:{mult:240,unit:"ml"},
+      tbsp:{mult:15,unit:"ml"}, tablespoon:{mult:15,unit:"ml"}, tablespoons:{mult:15,unit:"ml"}, tbs:{mult:15,unit:"ml"},
+      tsp:{mult:5,unit:"ml"}, teaspoon:{mult:5,unit:"ml"}, teaspoons:{mult:5,unit:"ml"},
+      "fl oz":{mult:30,unit:"ml"}, floz:{mult:30,unit:"ml"},
+      oz:{mult:28,unit:"g"}, ounce:{mult:28,unit:"g"}, ounces:{mult:28,unit:"g"},
+      lb:{mult:454,unit:"g"}, pound:{mult:454,unit:"g"}, pounds:{mult:454,unit:"g"}
+    };
+
+    function cupGramsForIngredient(name) {
+      const text = String(name || "").toLowerCase();
+      if (!text.trim()) return null;
+      const hit = CUP_GRAMS.find((item) => item.keys.some((key) => text.includes(key)));
+      return hit ? hit.grams : null;
+    }
+
+    function roundMeasure(n, unit) {
+      if (!isFinite(n)) return "";
+      if (unit === "g" || unit === "ml") return String(Math.round(n));
+      const rounded = Math.round(n * 10) / 10;
+      return rounded % 1 === 0 ? String(rounded) : String(rounded);
+    }
+
+    function nearestStandardCups(cups) {
+      if (!isFinite(cups) || cups <= 0) return cups;
+      const whole = Math.floor(cups);
+      const frac = cups - whole;
+      const options = [0, 1/8, 1/4, 1/3, 1/2, 2/3, 3/4, 1];
+      let best = options[0];
+      for (const opt of options) {
+        if (Math.abs(frac - opt) < Math.abs(frac - best)) best = opt;
+      }
+      if (best === 1) return whole + 1;
+      return whole + best;
+    }
+
+    function cupsToDisplay(cups) {
+      if (!isFinite(cups) || cups <= 0) return { amount:"", unit:"cup" };
+      const roundedCups = nearestStandardCups(cups);
+      if (roundedCups >= 1/8) {
+        return { amount:numberToFraction(roundedCups), unit:roundedCups <= 1 ? "cup" : "cups" };
+      }
+
+      const tsp = cups * 48;
+      if (tsp < 3) {
+        const roundedTsp = Math.max(1/8, Math.round(tsp * 4) / 4);
+        return { amount:numberToFraction(roundedTsp), unit:Math.abs(roundedTsp - 1) < 0.001 ? "tsp" : "tsp" };
+      }
+
+      const tbsp = cups * 16;
+      const roundedTbsp = Math.max(1/2, Math.round(tbsp * 2) / 2);
+      return { amount:numberToFraction(roundedTbsp), unit:Math.abs(roundedTbsp - 1) < 0.001 ? "tbsp" : "tbsp" };
+    }
+
+    function convertMetric(amount, unit, ingredientName="") {
+      const u = cleanUnit(unit);
       const n = amountToNumber(amount);
       if (n === null) return { amount, unit: unit||"" };
-      return { amount: Math.round(n * c.mult), unit: c.unit };
+
+      const cupsPerUnit = UNIT_TO_CUPS[u];
+      const cupGrams = cupGramsForIngredient(ingredientName);
+      if (cupGrams && cupsPerUnit) {
+        return { amount:roundMeasure(n * cupsPerUnit * cupGrams, "g"), unit:"g" };
+      }
+
+      const c = METRIC_MAP[u];
+      if (!c) return { amount, unit: unit||"" };
+      return { amount:roundMeasure(n * c.mult, c.unit), unit:c.unit };
+    }
+
+    function convertUs(amount, unit, ingredientName="") {
+      const u = cleanUnit(unit);
+      const n = amountToNumber(amount);
+      if (n === null) return { amount, unit: unit||"" };
+
+      const cupGrams = cupGramsForIngredient(ingredientName);
+      if (cupGrams && (u === "g" || u === "gram" || u === "grams")) {
+        return cupsToDisplay(n / cupGrams);
+      }
+      if (cupGrams && (u === "kg" || u === "kilogram" || u === "kilograms")) {
+        return cupsToDisplay((n * 1000) / cupGrams);
+      }
+      if (u === "ml" || u === "milliliter" || u === "milliliters") {
+        return cupsToDisplay(n / 240);
+      }
+      if (u === "l" || u === "liter" || u === "liters") {
+        return cupsToDisplay((n * 1000) / 240);
+      }
+      return { amount, unit: unit||"" };
+    }
+
+    function displayIngredientMeasure(ing, scale=1, metric=false) {
+      const amount = scaleAmount(ing.amount, scale);
+      const unit = ing.unit || "";
+      if (metric) {
+        if (ing.weightAmount && ing.weightUnit) {
+          return { amount:scaleAmount(ing.weightAmount, scale), unit:ing.weightUnit };
+        }
+        return convertMetric(amount, unit, ing.name);
+      }
+      return convertUs(amount, unit, ing.name);
     }
 
     function parseAIJson(raw) {
@@ -642,8 +765,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         if (match.index > last) parts.push({ type:"text", value:text.slice(last, match.index) });
         const ing = ingredients.find((i) => i.id === match[1]);
         if (ing) {
-          let amt = scaleAmount(ing.amount, scale), unit = ing.unit || "";
-          if (metric) { const c = convertMetric(amt, unit); amt = c.amount; unit = c.unit; }
+          const measure = displayIngredientMeasure(ing, scale, metric);
+          let amt = measure.amount, unit = measure.unit || "";
           parts.push({ type:"chip", value:`${amt}${unit?" "+unit:""} ${ing.name}` });
         }
         last = regex.lastIndex;
@@ -2642,15 +2765,19 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         if (!window.jspdf) { alert("PDF library loading. Try again."); return; }
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF(); let y=20;
+        const ingredientLine = (ing) => {
+          const measure = displayIngredientMeasure(ing, scale, metric);
+          return (measure.amount || "") + (measure.unit ? " " + measure.unit : "") + " " + ing.name;
+        };
         doc.setFontSize(20); doc.setFont("helvetica","bold"); doc.text(recipe.title,14,y); y+=10;
         doc.setFontSize(10); doc.setFont("helvetica","normal"); doc.text((recipe.cookTime||"")+" · Serves "+Math.round((recipe.servings||4)*scale),14,y); y+=12;
-        recipe.sections.forEach((sec) => {
+        displaySections.forEach((sec) => {
           doc.setFontSize(13); doc.setFont("helvetica","bold"); doc.text("Ingredients",14,y); y+=7;
-          sec.ingredients.forEach((ing) => { doc.setFontSize(10); doc.setFont("helvetica","normal"); doc.text("• "+scaleAmount(ing.amount,scale)+(ing.unit?" "+ing.unit:"")+" "+ing.name,18,y); y+=5; if(y>270){doc.addPage();y=20;} });
+          sec.ingredients.forEach((ing) => { doc.setFontSize(10); doc.setFont("helvetica","normal"); doc.text("• "+ingredientLine(ing),18,y); y+=5; if(y>270){doc.addPage();y=20;} });
           y+=4; doc.setFontSize(13); doc.setFont("helvetica","bold"); doc.text("Directions",14,y); y+=7;
           sec.steps.forEach((step,idx) => {
             doc.setFontSize(10); doc.setFont("helvetica","normal");
-            const t=step.text.replace(/\{([^}]+)\}/g,(m,id)=>{ const ing=sec.ingredients.find((x)=>x.id===id); return ing?scaleAmount(ing.amount,scale)+(ing.unit?" "+ing.unit:"")+" "+ing.name:m; });
+            const t=step.text.replace(/\{([^}]+)\}/g,(m,id)=>{ const ing=sec.ingredients.find((x)=>x.id===id); return ing?ingredientLine(ing):m; });
             doc.splitTextToSize((idx+1)+". "+t,180).forEach((l)=>{ doc.text(l,14,y); y+=5; if(y>270){doc.addPage();y=20;} }); y+=2;
           }); y+=8;
         });
@@ -2811,7 +2938,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             {showShop && (
               <div style={{...S.cardSoft,background:C.greenPale,border:"1px solid "+C.green+"30",padding:16,marginBottom:18}}>
                 <div style={{fontFamily:SERIF,fontSize:"1.05em",marginBottom:11}}>Shopping List</div>
-                {allIngredients.map((ing,i)=>{ let a=scaleAmount(ing.amount,scale),u=ing.unit||""; if(metric){const c=convertMetric(a,u);a=c.amount;u=c.unit;} return <div key={i} style={{padding:"5px 0",borderBottom:"1px solid "+C.blue+"18",fontSize:"0.88em",color:C.dark,display:"flex",alignItems:"center",gap:8}}><span style={{width:14,height:14,border:"1.5px solid "+C.green,borderRadius:4,flexShrink:0}} />{a}{u?" "+u:""} {ing.name}</div>; })}
+                {allIngredients.map((ing,i)=>{ const measure=displayIngredientMeasure(ing,scale,metric),a=measure.amount,u=measure.unit||""; return <div key={i} style={{padding:"5px 0",borderBottom:"1px solid "+C.blue+"18",fontSize:"0.88em",color:C.dark,display:"flex",alignItems:"center",gap:8}}><span style={{width:14,height:14,border:"1.5px solid "+C.green,borderRadius:4,flexShrink:0}} />{a}{u?" "+u:""} {ing.name}</div>; })}
               </div>
             )}
 
@@ -2853,7 +2980,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 <div style={{display:"grid",gridTemplateColumns:"1fr",gap:32}}>
                   <div>
                     <div style={{fontSize:"0.66em",letterSpacing:3,textTransform:"uppercase",fontWeight:700,color:C.brownLight,marginBottom:13}}>Ingredients</div>
-                    {sec.ingredients.map((ing,i)=>{ let a=scaleAmount(ing.amount,scale),u=ing.unit||""; if(metric){const c=convertMetric(a,u);a=c.amount;u=c.unit;} return <div key={i} style={{padding:"8px 0",borderBottom:"1px solid "+C.cream3,display:"flex",gap:9,alignItems:"baseline"}}><span style={{fontWeight:700,minWidth:110,color:C.dark,fontSize:"0.98em",whiteSpace:"nowrap",letterSpacing:"0.01em"}}>{displayAmount(a)}{u?" "+u:""}</span><span style={{color:C.mid,fontSize:"0.88em"}}>{ing.name}</span></div>; })}
+                    {sec.ingredients.map((ing,i)=>{ const measure=displayIngredientMeasure(ing,scale,metric),a=measure.amount,u=measure.unit||""; return <div key={i} style={{padding:"8px 0",borderBottom:"1px solid "+C.cream3,display:"flex",gap:9,alignItems:"baseline"}}><span style={{fontWeight:700,minWidth:110,color:C.dark,fontSize:"0.98em",whiteSpace:"nowrap",letterSpacing:"0.01em"}}>{displayAmount(a)}{u?" "+u:""}</span><span style={{color:C.mid,fontSize:"0.88em"}}>{ing.name}</span></div>; })}
                   </div>
                   <div>
                     <div style={{fontSize:"0.66em",letterSpacing:3,textTransform:"uppercase",fontWeight:700,color:C.brownLight,marginBottom:13}}>Directions</div>
