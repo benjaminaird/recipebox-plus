@@ -88,11 +88,19 @@ const PLAN_ENTITLEMENTS = {
   master_admin: { aiMonthlyLimit: null, aiDailyLimit: null, importDailyLimit: null, adjustDailyLimit: null, pantryDailyLimit: null, unlimited: true },
 };
 const AI_FEATURE_PATTERNS = [
-  { feature: 'import', patterns: ['extract the recipe', 'recipe extraction', 'repair malformed recipe'] },
+  // 'repair' must be checked before 'import': a malformed-JSON cleanup pass is an
+  // internal helper for an already-billed action, so it is logged but never costs
+  // the user another credit (see NON_BILLABLE_FEATURES).
+  { feature: 'repair', patterns: ['you repair malformed recipe', 'repair this malformed recipebox recipe', 'repair malformed recipe json'] },
+  { feature: 'import', patterns: ['extract the recipe', 'recipe extraction'] },
   { feature: 'adjust', patterns: ['adjust this recipe', 'request:'] },
   { feature: 'pantry', patterns: ['pantry chef', 'what i have', 'ingredients i have'] },
   { feature: 'chat-editor', patterns: ['recipe editor', 'chat editor'] },
 ];
+// Internal helper passes (detection, cleanup, JSON repair) are logged for admin
+// cost visibility but do not consume a user-facing AI credit.
+const NON_BILLABLE_FEATURES = new Set(['repair']);
+function isBillableAiFeature(feature) { return !NON_BILLABLE_FEATURES.has(feature); }
 
 let pool = null;
 async function getPool() {
@@ -1585,6 +1593,9 @@ app.get('/api/admin/users', requireAuth, requireMasterAdmin, async (req, res) =>
          coalesce(mp.planned_count, 0)::int AS planned_count,
          coalesce(ai.ai_count, 0)::int AS ai_usage_count,
          coalesce(ai.import_count, 0)::int AS import_count,
+         coalesce(ai.repair_count, 0)::int AS repair_count,
+         coalesce(ai.failed_count, 0)::int AS failed_count,
+         coalesce(ai.provider_cost, 0)::numeric AS provider_cost_usd,
          coalesce(act.activity_count, 0)::int AS activity_count,
          coalesce(fb.feedback_count, 0)::int AS feedback_count
        FROM profiles p
@@ -1602,7 +1613,10 @@ app.get('/api/admin/users', requireAuth, requireMasterAdmin, async (req, res) =>
        LEFT JOIN (
          SELECT user_id,
                 count(*) AS ai_count,
-                count(*) FILTER (WHERE feature='import') AS import_count
+                count(*) FILTER (WHERE feature='import') AS import_count,
+                count(*) FILTER (WHERE feature='repair') AS repair_count,
+                count(*) FILTER (WHERE success=false) AS failed_count,
+                coalesce(sum(estimated_cost_usd), 0) AS provider_cost
          FROM ai_usage_events
          GROUP BY user_id
        ) ai ON ai.user_id = p.user_id
@@ -1649,6 +1663,9 @@ app.get('/api/admin/users', requireAuth, requireMasterAdmin, async (req, res) =>
         plannedCount: row.planned_count,
         aiUsageCount: row.ai_usage_count,
         importCount: row.import_count,
+        repairCount: row.repair_count,
+        failedAiCount: row.failed_count,
+        providerCostUsd: Number(row.provider_cost_usd || 0),
         feedbackCount: row.feedback_count,
         activityCount: row.activity_count,
       })),
@@ -2141,6 +2158,34 @@ app.get('/api/me/entitlements', requireAuth, async function(req, res) {
   } catch(err) { res.status(500).json({ error: err.message }); }
 });
 
+// User-facing AI credit ledger. Shows fair outcomes only: one credit per
+// completed user action, internal repair/cleanup passes hidden, failed
+// attempts marked "no charge". Provider cost and token counts are NEVER
+// returned here — those live in the admin-only views.
+const AI_LEDGER_LABELS = { import: 'Recipe import', adjust: 'Recipe adjustment', pantry: 'Pantry Chef', 'chat-editor': 'Recipe editor', 'general-ai': 'AI request' };
+app.get('/api/me/ai-ledger', requireAuth, async function(req, res) {
+  try {
+    const usage = await readAiUsage(req.user.user_id);
+    const db = await getPool();
+    if (!db) return res.json({ usage, entries: [] });
+    const result = await db.query(
+      `SELECT feature, success, created_at
+         FROM ai_usage_events
+        WHERE user_id=$1 AND feature <> 'repair'
+        ORDER BY created_at DESC
+        LIMIT 50`,
+      [req.user.user_id]
+    );
+    const entries = result.rows.map((row) => ({
+      at: row.created_at,
+      label: AI_LEDGER_LABELS[row.feature] || 'AI request',
+      credits: row.success ? 1 : 0,
+      status: row.success ? 'charged' : 'no_charge',
+    }));
+    res.json({ usage, entries });
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
 app.post('/api/ai', async function(req, res) {
   const requestId = crypto.randomUUID();
   let user = null;
@@ -2164,8 +2209,11 @@ app.post('/api/ai', async function(req, res) {
     }
     const globalControls = await checkGlobalAiControls();
     if (!entitlement.unlimited && !globalControls.allowed) return res.status(503).json({ error: globalControls.error });
+    const billable = isBillableAiFeature(feature);
     const usage = await readAiUsage(user.user_id);
-    if (!usage.unlimited && usage.remaining <= 0) {
+    // Don't block internal helper passes (e.g. JSON repair) on the monthly cap —
+    // they belong to an action that already passed the gate and was billed.
+    if (billable && !usage.unlimited && usage.remaining <= 0) {
       return res.status(429).json({
         error: `Monthly AI beta limit reached (${usage.count}/${usage.limit}).`,
         aiUsage: usage,
@@ -2183,7 +2231,7 @@ app.post('/api/ai', async function(req, res) {
       await logAiUsageEvent({ requestId, user, feature, model, tier, success: false, errorMessage: d.error?.message || d.error || 'Anthropic request failed' });
       return res.status(r.status).json(d);
     }
-    const nextUsage = await incrementAiUsage(user.user_id);
+    const nextUsage = billable ? await incrementAiUsage(user.user_id) : await readAiUsage(user.user_id);
     await logAiUsageEvent({
       requestId,
       user,
@@ -2205,7 +2253,7 @@ app.get('*', function(req, res) { res.sendFile(path.join(__dirname, 'public', 'i
 
 module.exports = app;
 module.exports.extractYouTubeVideoId = extractYouTubeVideoId;
-module.exports._test = { extractHelpfulLinks };
+module.exports._test = { extractHelpfulLinks, detectAiFeature, isBillableAiFeature };
 
 if (require.main === module) {
   app.listen(process.env.PORT || 3000, function() { console.log('RecipeBox running'); });

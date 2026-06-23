@@ -35,8 +35,12 @@ Last updated: June 23, 2026.
    - Preserved through the multiple-recipe review selections (one/combine/all) via the captured extraction context, and through normal edits (deep-cloned draft). The original-source blob is stripped from AI editor/adjust prompts (saves credits) and is kept out of the localStorage mirror to avoid quota failures — it persists on the server for signed-in users and is included in full JSON exports/backups.
    - Known follow-ups: text-based PDFs (where we extract text instead of rendering pages) do not yet capture an original image; scanned single/double-page PDFs may archive the rotation-augmented page set, so the viewer can show an extra rotated copy.
 
-3. Add real user-visible AI credit ledger behavior.
-   Separate user credits from provider-call logs. Users should see fair outcomes; admins should still see provider cost, hidden repair passes, and abuse/cost signals.
+3. ~~Add real user-visible AI credit ledger behavior.~~ **Done.**
+   - User credits and provider-call logs are now cleanly separated. `ai_usage_monthly` holds the user-facing credit count; `ai_usage_events` holds every provider call with token counts and estimated cost (admin-only).
+   - **Fair counting:** internal JSON-repair/cleanup passes are classified as a `repair` feature and are non-billable — they are still logged for admin cost visibility but never consume a user credit, and are not blocked by the monthly cap (so a repair tied to an already-billed import can't fail the import). Failed/blocked calls cost zero credits.
+   - **User ledger:** `GET /api/me/ai-ledger` (auth-required, scoped to the signed-in user) returns the monthly usage plus recent user-facing activity (friendly labels, 1 credit per completed action, "No charge" for failures). Provider cost and token counts are never exposed to users. Surfaced in Settings → "AI Credits" with a fair-use promise and an expandable "recent activity" list.
+   - **Admin signals:** the admin user list now shows provider cost ($), hidden repair-pass count, and failed-call count per user alongside the AI call count.
+   - Covered by `npm run ai-credits-test` (feature classification + billable/non-billable). No client can change credits/limits/cost — all enforcement stays server-side.
 
 4. Improve social/video imports where source text is thin.
    TikTok and Shorts often need on-screen text or frame understanding. Until that exists, keep the honest fallback. Later, evaluate video-frame OCR/transcription only if cost and privacy are acceptable.

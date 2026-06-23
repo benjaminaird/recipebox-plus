@@ -653,6 +653,14 @@ async function fetchJson(url, fallback) {
 function hasLocalRecipeData(recipes, mealPlan) {
   return (Array.isArray(recipes) && recipes.length > 0) || (mealPlan && typeof mealPlan === "object" && Object.keys(mealPlan).length > 0);
 }
+function formatLedgerDate(at) {
+  if (!at) return "";
+  try {
+    const d = new Date(at);
+    if (isNaN(d.getTime())) return "";
+    return d.toLocaleDateString(undefined, { month:"short", day:"numeric" }) + ", " + d.toLocaleTimeString(undefined, { hour:"numeric", minute:"2-digit" });
+  } catch { return ""; }
+}
 function defaultAiUsage() {
   return { period:"", count:0, limit:50, remaining:50 };
 }
@@ -1601,6 +1609,20 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [feedbackText, setFeedbackText] = useState("");
       const [feedbackMsg, setFeedbackMsg] = useState("");
       const [feedbackBusy, setFeedbackBusy] = useState(false);
+      const [ledger, setLedger] = useState(null);
+      const [ledgerOpen, setLedgerOpen] = useState(false);
+      const [ledgerLoading, setLedgerLoading] = useState(false);
+      async function loadLedger() {
+        setLedgerLoading(true);
+        try { setLedger(await fetchJson("/api/me/ai-ledger", { entries: [] })); }
+        catch { setLedger({ entries: [] }); }
+        setLedgerLoading(false);
+      }
+      function toggleLedger() {
+        const open = !ledgerOpen;
+        setLedgerOpen(open);
+        if (open && !ledger && !ledgerLoading) loadLedger();
+      }
       const compactHeader = useWindowCompactHeader();
       const localDataAvailable = hasLocalRecipeData(recipes, mealPlan);
       const importRef = useRef();
@@ -1900,8 +1922,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               <div style={{...S.card,padding:16}}>
                 <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8}}>
                   <div style={{flex:1}}>
-                    <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark}}>AI Usage</div>
-                    <div style={{fontSize:"0.78em",color:C.light}}>Beta safety limit for imports, Pantry Chef, and recipe edits.</div>
+                    <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark}}>AI Credits</div>
+                    <div style={{fontSize:"0.78em",color:C.light}}>One credit per recipe you import, adjust, or create with AI.</div>
                   </div>
                   <div style={{fontWeight:900,color:C.green,fontSize:"0.92em"}}>{aiUsage?.unlimited ? "Unlimited" : (aiUsage?.remaining ?? 0)+" left"}</div>
                 </div>
@@ -1909,9 +1931,43 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   <div style={{width:(aiUsage?.unlimited ? "100%" : ((Math.min(aiUsage?.count || 0, aiUsage?.limit || 50) / Math.max(aiUsage?.limit || 50, 1)) * 100)+"%"),height:"100%",background:C.green,borderRadius:999}} />
                 </div>
                 <div style={{display:"flex",justifyContent:"space-between",gap:8,marginTop:8,fontSize:"0.76em",color:C.light}}>
-                  <span>{aiUsage?.unlimited ? "Master Admin unlimited AI access" : (aiUsage?.count || 0)+" of "+(aiUsage?.limit || 50)+" AI requests used"}</span>
+                  <span>{aiUsage?.unlimited ? "Master Admin unlimited AI access" : (aiUsage?.count || 0)+" of "+(aiUsage?.limit || 50)+" credits used"}</span>
                   <span>{aiUsage?.period || "This month"}</span>
                 </div>
+                <div style={{marginTop:10,background:C.greenPale,border:"1px solid "+C.green+"30",borderRadius:9,padding:"8px 11px",fontSize:"0.74em",color:C.brown,lineHeight:1.5}}>
+                  Fair-use promise: behind-the-scenes cleanup or formatting retries are free. A blocked page or a failed import never costs you a credit.
+                </div>
+                {!aiUsage?.unlimited && (
+                  <div style={{marginTop:10}}>
+                    <button onClick={toggleLedger}
+                      style={{...S.ghostBtn,borderRadius:8,padding:"8px 12px",fontSize:"0.8em",width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                      {ledgerOpen ? "Hide recent activity" : "View recent activity"}
+                    </button>
+                    {ledgerOpen && (
+                      <div style={{marginTop:10}}>
+                        {ledgerLoading ? (
+                          <div style={{textAlign:"center",color:C.light,fontSize:"0.8em",padding:"10px 0"}}>Loading your activity...</div>
+                        ) : (ledger?.entries?.length ? (
+                          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                            {ledger.entries.map((e, i) => (
+                              <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,background:C.cream2,border:"1px solid "+C.border,borderRadius:8,padding:"8px 11px"}}>
+                                <div style={{minWidth:0}}>
+                                  <div style={{fontWeight:700,color:C.dark,fontSize:"0.82em",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.label}</div>
+                                  <div style={{color:C.light,fontSize:"0.72em",marginTop:1}}>{formatLedgerDate(e.at)}</div>
+                                </div>
+                                <span style={{flexShrink:0,fontWeight:800,fontSize:"0.74em",color:e.credits>0?C.brown:C.green}}>
+                                  {e.credits>0 ? (e.credits+" credit"+(e.credits>1?"s":"")) : "No charge"}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{textAlign:"center",color:C.light,fontSize:"0.8em",padding:"10px 0"}}>No AI activity yet this account.</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -2256,8 +2312,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                           <span style={{border:"1px solid rgba(216,179,95,0.3)",borderRadius:999,padding:"4px 7px",color:dark.gold,fontWeight:900}}>{user.tier}</span>
                           <span>{user.recipeCount} recipes</span>
                           <span>{user.plannedCount} planned</span>
-                          <span>{user.aiUsageCount} AI</span>
+                          <span>{user.aiUsageCount} AI calls</span>
                           <span>{user.importCount} imports</span>
+                          {user.repairCount > 0 && <span>{user.repairCount} repair</span>}
+                          {user.failedAiCount > 0 && <span>{user.failedAiCount} failed</span>}
+                          <span style={{color:dark.gold}}>${(user.providerCostUsd || 0).toFixed(2)} cost</span>
                         </div>
                         <div style={{display:"flex",gap:8,alignItems:"center",justifyContent:"flex-end",flexWrap:"wrap"}}>
                           {user.role === "master_admin" ? (
