@@ -29,8 +29,11 @@ Last updated: June 23, 2026.
 
 1. ~~Build the multiple-recipe import review screen.~~ **Done (c52da90).** Detected recipes are shown with import-one / combine / import-all options and a credit disclosure before any paid extraction. Possible follow-ups: let the user preview a recipe before committing the paid re-extraction, and add a private-suite case that exercises the selection flow end to end.
 
-2. Add original source preservation for photo/PDF imports.
-   Save a lightweight original-source attachment with imported handwritten cards, family photos, screenshots, and PDFs. Recipe detail should show a warm "Original Recipe Card" or "Let's see what the original says" entry that opens the original image/PDF page.
+2. ~~Add original source preservation for photo/PDF imports.~~ **Done.**
+   - Photo/image imports (handwritten cards, family photos, screenshots) and scanned PDFs now save a lightweight `originalSource` on the recipe: up to 4 pages, each re-compressed to ~1280px JPEG q0.7 so payloads stay small. It rides in the per-user `recipe_json` JSONB (no schema/API change).
+   - Recipe detail shows a warm "See the original recipe card / pages" entry (with a thumbnail) that opens a full-screen viewer of the imported image(s)/page(s).
+   - Preserved through the multiple-recipe review selections (one/combine/all) via the captured extraction context, and through normal edits (deep-cloned draft). The original-source blob is stripped from AI editor/adjust prompts (saves credits) and is kept out of the localStorage mirror to avoid quota failures — it persists on the server for signed-in users and is included in full JSON exports/backups.
+   - Known follow-ups: text-based PDFs (where we extract text instead of rendering pages) do not yet capture an original image; scanned single/double-page PDFs may archive the rotation-augmented page set, so the viewer can show an extra rotated copy.
 
 3. Add real user-visible AI credit ledger behavior.
    Separate user credits from provider-call logs. Users should see fair outcomes; admins should still see provider cost, hidden repair passes, and abuse/cost signals.

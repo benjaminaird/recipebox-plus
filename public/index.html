@@ -497,6 +497,38 @@
       return fileToBase64Payload(converted);
     }
 
+    // Build a small JPEG copy of an uploaded card/photo/PDF page so the recipe
+    // can show the user where it came from, without bloating the saved payload.
+    function compressDataUrlForArchive(dataUrl, maxDim, quality) {
+      maxDim = maxDim || 1280;
+      quality = quality || 0.7;
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(img.width * scale));
+          canvas.height = Math.max(1, Math.round(img.height * scale));
+          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+          try { resolve(canvas.toDataURL("image/jpeg", quality)); }
+          catch (err) { reject(err); }
+        };
+        img.onerror = () => reject(new Error("Could not read source image"));
+        img.src = dataUrl;
+      });
+    }
+
+    async function buildOriginalSourcePages(list) {
+      const pages = [];
+      for (const img of (list || []).slice(0, 4)) {
+        const src = img.preview || (img.data ? ("data:" + (img.type || "image/jpeg") + ";base64," + img.data) : "");
+        if (!src) continue;
+        try { pages.push(await compressDataUrlForArchive(src)); }
+        catch (err) { /* skip a page we cannot render; keep the rest */ }
+      }
+      return pages;
+    }
+
     function fileToDataUrl(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -628,11 +660,22 @@ function loadRecipes() {
   let local = [];
   try { local = JSON.parse(localStorage.getItem(RECIPES_KEY) || "[]"); } catch {}
   const server = syncGetJson("/api/recipes", local);
-  if (Array.isArray(server) && server.length) { try { localStorage.setItem(RECIPES_KEY, JSON.stringify(server)); } catch {} return server; }
+  if (Array.isArray(server) && server.length) { try { localStorage.setItem(RECIPES_KEY, JSON.stringify(recipesForLocal(server))); } catch {} return server; }
   return local;
 }
+// Keep the localStorage copy lean: the original-source image archive can be
+// large and would risk the storage quota. It is persisted on the server for
+// signed-in users; we only drop it from the local mirror.
+function recipesForLocal(r) {
+  try {
+    return (Array.isArray(r) ? r : []).map((rec) => {
+      if (rec && rec.originalSource) { const { originalSource, ...rest } = rec; return rest; }
+      return rec;
+    });
+  } catch { return Array.isArray(r) ? r : []; }
+}
 function saveRecipes(r) {
-  try { localStorage.setItem(RECIPES_KEY, JSON.stringify(r)); } catch {}
+  try { localStorage.setItem(RECIPES_KEY, JSON.stringify(recipesForLocal(r))); } catch {}
   asyncPutJson("/api/recipes", { recipes:r });
 }
 function loadMealPlan() {
@@ -1734,7 +1777,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           if (!Array.isArray(nextRecipes)) throw new Error("That file does not look like a RecipeBox backup.");
           const ok = window.confirm("Import this backup and replace the recipes and meal plan on this device"+(account ? " and your signed-in account" : "")+"?");
           if (!ok) return;
-          try { localStorage.setItem(RECIPES_KEY, JSON.stringify(nextRecipes)); } catch {}
+          try { localStorage.setItem(RECIPES_KEY, JSON.stringify(recipesForLocal(nextRecipes))); } catch {}
           try { localStorage.setItem(MEALPLAN_KEY, JSON.stringify(nextMealPlan)); } catch {}
           await putJson("/api/recipes", { recipes:nextRecipes });
           await putJson("/api/mealplan", { mealPlan:nextMealPlan });
@@ -2317,7 +2360,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         });
       }
 
-      function prepImportedRecipe(parsed, heroFallback) {
+      function prepImportedRecipe(parsed, heroFallback, originalSource) {
         if (!parsed || parsed.error || !parsed.title || !parsed.sections) return null;
         let recipe = sanitizeImportedRecipe(parsed);
         if (!recipe.heroImage && heroFallback) recipe.heroImage = heroFallback;
@@ -2327,6 +2370,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         recipe.favorite = false;
         if (!recipe.heroImage) recipe.heroImage = "";
         if (!recipe.notes) recipe.notes = "";
+        if (originalSource) recipe.originalSource = originalSource;
         return recipe;
       }
 
@@ -2334,7 +2378,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         const instruction = "The source below contains multiple distinct recipes. Extract ONLY the single recipe titled \"" + name + "\". Ignore every other recipe in the source. Do not merge recipes together. Return one complete recipe as valid JSON, and do NOT return multiple_recipes_detected.";
         const raw = await callAI(buildFocusedMessages(ctx.messages, instruction), EXTRACT_PROMPT, ctx.maxTokens);
         const parsed = await parseImportedRecipe(raw);
-        return prepImportedRecipe(parsed, ctx.heroFallback);
+        return prepImportedRecipe(parsed, ctx.heroFallback, ctx.originalSource);
       }
 
       async function importChoice(choice) {
@@ -2348,7 +2392,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             const instruction = "The source below contains multiple related recipes or variants. Combine them into ONE recipe card. Keep each component as its own labeled section under \"sections\" (use the component name as the section name). Do not drop any ingredients or steps. Return one complete recipe as valid JSON, and do NOT return multiple_recipes_detected.";
             const raw = await callAI(buildFocusedMessages(ctx.messages, instruction), EXTRACT_PROMPT, Math.max(ctx.maxTokens, 4000));
             const parsed = await parseImportedRecipe(raw);
-            const recipe = prepImportedRecipe(parsed, ctx.heroFallback);
+            const recipe = prepImportedRecipe(parsed, ctx.heroFallback, ctx.originalSource);
             if (!recipe) throw new Error("Could not combine these recipes. Try importing one at a time.");
             setMultiRecipe(null);
             readyRecipeForSave(recipe, { skipPhotoPrompt: mode === "media" });
@@ -2406,6 +2450,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           // Captured so we can re-run extraction against the SAME source if the
           // model reports multiple distinct recipes and the user picks one/all/combined.
           let extractCtx = null;
+          // Lightweight copy of the original card/photo/PDF page(s) for media imports.
+          let originalSource = null;
 
           if (mode === "url") {
             setLoadingMsg("Fetching recipe page...");
@@ -2553,6 +2599,21 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             parsed = await parseImportedRecipe(raw);
           }
 
+          // Preserve a lightweight original-source copy for photo/PDF imports so
+          // the recipe can show where it came from. Captured before the
+          // multiple-recipe handoff so per-recipe selections keep it too.
+          if (mode === "media") {
+            const sourceImgs = images.length ? images : pdfImages;
+            if (sourceImgs.length) {
+              setLoadingMsg("Saving a copy of your original...");
+              const pages = await buildOriginalSourcePages(sourceImgs);
+              if (pages.length) {
+                originalSource = { kind: images.length ? "image" : "pdf", pages, capturedAt: new Date().toISOString() };
+                if (extractCtx) extractCtx.originalSource = originalSource;
+              }
+            }
+          }
+
           if (parsed?.error === "multiple_recipes_detected") {
             const names = (Array.isArray(parsed.recipes) ? parsed.recipes : [])
               .map((n) => (typeof n === "string" ? n.trim() : "")).filter(Boolean);
@@ -2574,6 +2635,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           parsed.favorite = false;
           if (!parsed.heroImage) parsed.heroImage = "";
           if (!parsed.notes) parsed.notes = "";
+          if (originalSource) parsed.originalSource = originalSource;
 
           readyRecipeForSave(parsed, { skipPhotoPrompt: mode === "media" });
 
@@ -2997,6 +3059,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [timers, setTimers] = useState({});
       const [showAI, setShowAI] = useState(false);
       const [showShop, setShowShop] = useState(false);
+      const [showOriginal, setShowOriginal] = useState(false);
       const [showWTB, setShowWTB] = useState(false);
       const [aiQuery, setAiQuery] = useState("");
       const [aiLoading, setAiLoading] = useState(false);
@@ -3153,7 +3216,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         setAiError("");
         setAiResult(null);
         try {
-          const raw = await callAI([{ role:"user", content:"Recipe: "+JSON.stringify(recipe)+"\nRequest: "+aiQuery }], ADJUST_PROMPT, 3500);
+          const { originalSource, ...recipeForAI } = recipe;
+          const raw = await callAI([{ role:"user", content:"Recipe: "+JSON.stringify(recipeForAI)+"\nRequest: "+aiQuery }], ADJUST_PROMPT, 3500);
           const adjusted = await parseRecipeJsonWithRepair(raw, "AI adjustment");
           if (!adjusted || !adjusted.title || !Array.isArray(adjusted.sections)) throw new Error("The adjusted recipe was incomplete.");
           setAiResult(adjusted);
@@ -3368,6 +3432,35 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             {recipe.description && <p style={{color:C.mid,lineHeight:1.7,margin:"0 0 14px",fontSize:"0.92em"}}>{recipe.description}</p>}
             {recipe.tags?.length>0 && <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:14}}>{recipe.tags.map((t)=><Tag key={t} label={t} onClick={onTagClick} />)}</div>}
 
+            {recipe.originalSource?.pages?.length > 0 && (
+              <button onClick={()=>setShowOriginal(true)}
+                style={{display:"flex",alignItems:"center",gap:12,width:"100%",textAlign:"left",border:"1px solid "+C.goldLight,background:C.goldPale,borderRadius:12,padding:"10px 13px",marginBottom:16,cursor:"pointer",fontFamily:SANS}}>
+                <span style={{flexShrink:0,width:42,height:42,borderRadius:9,overflow:"hidden",background:C.cream2,border:"1px solid "+C.goldLight,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  <img src={recipe.originalSource.pages[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}} />
+                </span>
+                <span style={{flex:1,minWidth:0}}>
+                  <span style={{display:"block",fontWeight:800,color:C.brown,fontSize:"0.9em"}}>See the original {recipe.originalSource.kind === "pdf" ? "pages" : "recipe card"}</span>
+                  <span style={{display:"block",color:C.light,fontSize:"0.76em",marginTop:1}}>Tap to view the {recipe.originalSource.pages.length>1 ? recipe.originalSource.pages.length+" images you imported" : "image you imported"}</span>
+                </span>
+                <span style={{color:C.gold,fontWeight:900,fontSize:"1.1em"}}>›</span>
+              </button>
+            )}
+            {showOriginal && recipe.originalSource?.pages?.length > 0 && (
+              <div onClick={()=>setShowOriginal(false)}
+                style={{position:"fixed",inset:0,zIndex:80,background:"rgba(20,12,8,0.88)",display:"flex",flexDirection:"column",padding:"max(env(safe-area-inset-top),16px) 14px max(env(safe-area-inset-bottom),16px)"}}>
+                <div onClick={(e)=>e.stopPropagation()} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:12,flexShrink:0}}>
+                  <div style={{color:C.white,fontFamily:SERIF,fontSize:"1.1em"}}>Original {recipe.originalSource.kind === "pdf" ? "pages" : "recipe card"}</div>
+                  <button onClick={()=>setShowOriginal(false)} style={{background:"rgba(255,255,255,0.16)",border:"none",borderRadius:8,color:C.white,padding:"7px 14px",cursor:"pointer",fontFamily:SANS,fontSize:"0.85em"}}>Close</button>
+                </div>
+                <div onClick={(e)=>e.stopPropagation()} style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:12,alignItems:"center"}}>
+                  {recipe.originalSource.pages.map((p,i)=>(
+                    <img key={i} src={p} alt={"Original page "+(i+1)} style={{maxWidth:"100%",borderRadius:10,boxShadow:"0 8px 30px rgba(0,0,0,0.5)"}} />
+                  ))}
+                </div>
+                <div style={{color:"rgba(255,255,255,0.6)",fontSize:"0.72em",textAlign:"center",marginTop:10,flexShrink:0}}>Saved from your import · for your reference</div>
+              </div>
+            )}
+
             {/* Macros */}
             {recipe.macros && (
               <div style={{...S.cardSoft,display:"flex",gap:7,flexWrap:"wrap",marginBottom:18,padding:"12px 14px"}}>
@@ -3542,10 +3635,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         const newHistory = [...aiHistory, { role:"user", content:userMsg }];
         setAiHistory(newHistory);
         try {
-          const systemPrompt = EDITOR_AI_PROMPT + "\n\nCurrent recipe JSON:\n" + JSON.stringify(draft);
+          const { originalSource, ...draftForAI } = draft;
+          const systemPrompt = EDITOR_AI_PROMPT + "\n\nCurrent recipe JSON:\n" + JSON.stringify(draftForAI);
           const raw = await callAI(newHistory, systemPrompt, 2000);
           const updated = parseAIJson(raw);
-          setDraft(updated);
+          setDraft((p) => ({ ...updated, originalSource: p.originalSource }));
           setAiHistory([...newHistory, { role:"assistant", content:"Done! I've updated the recipe. You can make more changes or save when ready." }]);
         } catch(e) {
           setAiHistory([...newHistory, { role:"assistant", content:"Sorry, I couldn't apply that change. Try describing it differently." }]);
@@ -3898,7 +3992,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         const cloudMealPlan = nextMealPlan && typeof nextMealPlan === "object" ? nextMealPlan : await fetchJson("/api/mealplan", {});
         setRecipes(Array.isArray(cloudRecipes) ? cloudRecipes : []);
         setMealPlanState(cloudMealPlan && typeof cloudMealPlan === "object" ? cloudMealPlan : {});
-        try { localStorage.setItem(RECIPES_KEY, JSON.stringify(Array.isArray(cloudRecipes) ? cloudRecipes : [])); } catch {}
+        try { localStorage.setItem(RECIPES_KEY, JSON.stringify(recipesForLocal(Array.isArray(cloudRecipes) ? cloudRecipes : []))); } catch {}
         try { localStorage.setItem(MEALPLAN_KEY, JSON.stringify(cloudMealPlan && typeof cloudMealPlan === "object" ? cloudMealPlan : {})); } catch {}
       }
       function addRecipe(r) { const t = { ...r, tags: RecipeBoxTags.applyTagsOnCreate(r) }; setRecipes((p) => [t, ...p]); setCurrent(t); setScreen("view"); }
