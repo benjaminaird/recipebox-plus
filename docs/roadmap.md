@@ -44,6 +44,9 @@ Last updated: June 23, 2026.
 6. Keep expanding the private import suite.
    Add more URLs, YouTube links, PDFs, HEIC photos, screenshots, and handwritten cards. Mark expected impossible cases explicitly so trust-first fallback stays green.
 
+7. Tag-based filtering / smart collections (e.g. "Copycat").
+   The data layer for tags is already complete and safe: `tags` is a first-class array on every recipe, stored inside the per-user `recipe_json` JSONB (same ownership/privacy/RLS as the recipe — no separate tag table), preserved through import, manual entry, edit, and AI-adjust, returned by the AI separately from `category`, shown as chips on library cards and recipe detail, included in search and in exports/backups. **"Copycat" must stay a tag/smart-collection, never a main category** (categories remain real recipe types: Breakfast, Entrées, Desserts, etc.). What is still missing is purely UX: tag chips are display-only and the library only filters/browses by category (All/Favorites/Recent + category cards). Adding a clickable-tag filter or a "Copycat" smart-collection chip is a small, safe, additive frontend change (new filter state + make chips tappable). Optionally, instruct the importer/AI to source-groundedly add a `copycat` tag when a source is clearly a restaurant copycat (small prompt change; keep it conservative to avoid false positives). No schema or API change is required.
+
 ## Near-Term AI Credits Policy
 
 AI credits should reflect user-approved outcomes, not internal implementation details.
