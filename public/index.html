@@ -2220,6 +2220,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [showPhotoPrompt, setShowPhotoPrompt] = useState(false);
       const [showCategoryModal, setShowCategoryModal] = useState(false);
       const [pendingRecipe, setPendingRecipe] = useState(null);
+      const [multiRecipe, setMultiRecipe] = useState(null);
       const fileRef = useRef();
       const heroPromptRef = useRef();
 
@@ -2241,6 +2242,79 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         setPendingRecipe(enriched);
         if (enriched.heroImage || options.skipPhotoPrompt) setShowCategoryModal(true);
         else setShowPhotoPrompt(true);
+      }
+
+      // Re-runs extraction against the SAME captured source, but focused on a
+      // single named recipe (or asking the model to combine variants). This is a
+      // fresh paid extraction, which is why the review screen discloses credits.
+      function buildFocusedMessages(messages, instruction) {
+        return (messages || []).map((m, idx) => {
+          if (idx !== 0 || !m || m.role !== "user") return m;
+          if (typeof m.content === "string") return { ...m, content: instruction + "\n\n" + m.content };
+          if (Array.isArray(m.content)) return { ...m, content: [{ type:"text", text: instruction }, ...m.content] };
+          return m;
+        });
+      }
+
+      function prepImportedRecipe(parsed, heroFallback) {
+        if (!parsed || parsed.error || !parsed.title || !parsed.sections) return null;
+        let recipe = sanitizeImportedRecipe(parsed);
+        if (!recipe.heroImage && heroFallback) recipe.heroImage = heroFallback;
+        recipe.id = uid();
+        recipe.createdAt = new Date().toISOString();
+        recipe.rating = 0;
+        recipe.favorite = false;
+        if (!recipe.heroImage) recipe.heroImage = "";
+        if (!recipe.notes) recipe.notes = "";
+        return recipe;
+      }
+
+      async function extractNamedRecipe(ctx, name) {
+        const instruction = "The source below contains multiple distinct recipes. Extract ONLY the single recipe titled \"" + name + "\". Ignore every other recipe in the source. Do not merge recipes together. Return one complete recipe as valid JSON, and do NOT return multiple_recipes_detected.";
+        const raw = await callAI(buildFocusedMessages(ctx.messages, instruction), EXTRACT_PROMPT, ctx.maxTokens);
+        const parsed = await parseImportedRecipe(raw);
+        return prepImportedRecipe(parsed, ctx.heroFallback);
+      }
+
+      async function importChoice(choice) {
+        if (!multiRecipe || loading) return;
+        const ctx = multiRecipe;
+        setError("");
+        setLoading(true);
+        try {
+          if (choice.type === "combined") {
+            setLoadingMsg("Combining recipes into one card...");
+            const instruction = "The source below contains multiple related recipes or variants. Combine them into ONE recipe card. Keep each component as its own labeled section under \"sections\" (use the component name as the section name). Do not drop any ingredients or steps. Return one complete recipe as valid JSON, and do NOT return multiple_recipes_detected.";
+            const raw = await callAI(buildFocusedMessages(ctx.messages, instruction), EXTRACT_PROMPT, Math.max(ctx.maxTokens, 4000));
+            const parsed = await parseImportedRecipe(raw);
+            const recipe = prepImportedRecipe(parsed, ctx.heroFallback);
+            if (!recipe) throw new Error("Could not combine these recipes. Try importing one at a time.");
+            setMultiRecipe(null);
+            readyRecipeForSave(recipe, { skipPhotoPrompt: mode === "media" });
+          } else if (choice.type === "all") {
+            const recipes = [];
+            for (let i = 0; i < ctx.names.length; i++) {
+              setLoadingMsg("Extracting recipe " + (i + 1) + " of " + ctx.names.length + "...");
+              try {
+                const r = await extractNamedRecipe(ctx, ctx.names[i]);
+                if (r) recipes.push(r);
+              } catch (err) { /* keep the ones that succeed */ }
+            }
+            if (!recipes.length) throw new Error("Could not extract these recipes separately. Try importing one at a time.");
+            setMultiRecipe(null);
+            onDone(recipes);
+          } else {
+            setLoadingMsg("Extracting \"" + choice.name + "\"...");
+            const recipe = await extractNamedRecipe(ctx, choice.name);
+            if (!recipe) throw new Error("Could not extract \"" + choice.name + "\". Try another recipe from the list.");
+            setMultiRecipe(null);
+            readyRecipeForSave(recipe, { skipPhotoPrompt: mode === "media" });
+          }
+        } catch (e) {
+          setError(e.message || "Could not import the selected recipe.");
+        }
+        setLoading(false);
+        setLoadingMsg("");
       }
 
       async function parseImportedRecipe(raw) {
@@ -2268,6 +2342,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
         try {
           let parsed;
+          // Captured so we can re-run extraction against the SAME source if the
+          // model reports multiple distinct recipes and the user picks one/all/combined.
+          let extractCtx = null;
 
           if (mode === "url") {
             setLoadingMsg("Fetching recipe page...");
@@ -2284,7 +2361,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               "JSON-LD / structured data:\n" + JSON.stringify(pageData.jsonLd || []) + "\n\n" +
               "Potentially useful source links:\n" + JSON.stringify(pageData.helpfulLinks || []) + "\n\n" +
               "Visible page text:\n" + (pageData.text || "");
-            const raw = await callAI([{ role:"user", content:prompt }], EXTRACT_PROMPT, 2500);
+            const urlMessages = [{ role:"user", content:prompt }];
+            const raw = await callAI(urlMessages, EXTRACT_PROMPT, 2500);
+            extractCtx = { messages: urlMessages, maxTokens: 2500, heroFallback: pageData.image || "" };
             parsed = await parseImportedRecipe(raw);
             if (parsed.error === "unknown_recipe") throw new Error("Recipe not found. Please use Paste Text instead.");
             if (!parsed.heroImage && pageData.image) parsed.heroImage = pageData.image;
@@ -2316,7 +2395,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               content += "\n\nImporter warnings: " + transcriptData.warnings.join("; ");
             }
 
-            const raw = await callAI([{ role:"user", content:"Extract the recipe from this YouTube video content. Use only the transcript, description, and metadata below. Put helpful source-grounded tips or warnings in notes; do not invent notes from general cooking knowledge. If the video contains multiple full recipe variants, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]} instead of merging them or choosing one silently.\n\n" + content }], EXTRACT_PROMPT, 6000);
+            const ytMessages = [{ role:"user", content:"Extract the recipe from this YouTube video content. Use only the transcript, description, and metadata below. Put helpful source-grounded tips or warnings in notes; do not invent notes from general cooking knowledge. If the video contains multiple full recipe variants, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]} instead of merging them or choosing one silently.\n\n" + content }];
+            const raw = await callAI(ytMessages, EXTRACT_PROMPT, 6000);
+            extractCtx = { messages: ytMessages, maxTokens: 6000, heroFallback: transcriptData.thumbnail || "" };
             parsed = await parseImportedRecipe(raw);
             if (parsed.error === "unknown_recipe" || parsed.error === "not_enough_recipe_text") {
               throw new Error("We couldn't read enough recipe detail from this video. Try pasting the recipe text or using screenshots instead.");
@@ -2354,7 +2435,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               "Detected image/thumbnail URL: " + (socialData.image || socialData.thumbnail || "") + "\n" +
               "Source quality: " + (socialData.sourceQuality || "") + "\n" +
               "Warnings: " + (socialData.warnings || []).join("; ");
-            const raw = await callAI([{ role:"user", content:prompt }], EXTRACT_PROMPT, 2500);
+            const socialMessages = [{ role:"user", content:prompt }];
+            const raw = await callAI(socialMessages, EXTRACT_PROMPT, 2500);
+            extractCtx = { messages: socialMessages, maxTokens: 2500, heroFallback: socialData.image || socialData.thumbnail || "" };
             parsed = await parseImportedRecipe(raw);
             if (parsed.error === "not_enough_recipe_text" || parsed.error === "unknown_recipe") {
               throw new Error(parsed.message || "RecipeBox could not access the full caption or recipe text from this social post. Try Paste Text with the caption or upload screenshots.");
@@ -2364,19 +2447,23 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
           } else if (mode === "text") {
             setLoadingMsg("Extracting recipe...");
-            const raw = await callAI([{ role:"user", content:"Extract the recipe from this text. Put source-grounded tips or extra cooking guidance in notes only when present in the text; do not invent notes.\n\n" + text }], EXTRACT_PROMPT, 2000);
+            const textMessages = [{ role:"user", content:"Extract the recipe from this text. Put source-grounded tips or extra cooking guidance in notes only when present in the text; do not invent notes.\n\n" + text }];
+            const raw = await callAI(textMessages, EXTRACT_PROMPT, 2000);
+            extractCtx = { messages: textMessages, maxTokens: 2000, heroFallback: "" };
             parsed = await parseImportedRecipe(raw);
 
           } else if (mode === "media" && pdfTexts.length > 0) {
             setLoadingMsg("Reading recipe from PDF...");
             const pdfContent = pdfTexts.join(" ");
             if (pdfContent.trim()) {
-              const rawPdf = await callAI([{
+              const pdfMessages = [{
                 role:"user",
                 content:
                   "Extract the recipe ONLY from the PDF text below. Do not invent missing details or notes. Put helpful source-grounded tips in notes only when present in the PDF text. Return valid JSON only.\n\n" +
                   pdfContent.slice(0, 24000)
-              }], EXTRACT_PROMPT, 3500);
+              }];
+              const rawPdf = await callAI(pdfMessages, EXTRACT_PROMPT, 3500);
+              extractCtx = { messages: pdfMessages, maxTokens: 3500, heroFallback: "" };
               parsed = await parseImportedRecipe(rawPdf);
             } else if (pdfImages.length > 0) {
               setLoadingMsg("Reading scanned PDF pages...");
@@ -2385,7 +2472,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 source: { type: "base64", media_type: img.type, data: img.data }
               }));
               pdfArr.push({ type: "text", text: "Extract the recipe from these rendered PDF page image(s). The PDF may be sideways, scanned, illustrated, handwritten, or a photo of a recipe card. Some images may be rotated duplicates of the same page; use the clearest orientation and do not duplicate recipe content. Carefully transcribe the visible recipe text first, preserve uncertain quantities as written, and do not invent missing details or notes. Include all visible ingredient-list items and visible add-ins mentioned in directions, such as garnishes, green onions, sauces, peppers, cheese, or variations, unless clearly optional; optional items should be marked optional. Do not include equipment/tools as ingredients. If the PDF page image(s) clearly show multiple distinct recipe cards or standalone recipes, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]} instead of merging them. If the pages are parts of the same recipe, extract one recipe. Put helpful notes only when they are visible in the PDF image text." });
-              const rawPdfImage = await callAI([{ role:"user", content: pdfArr }], EXTRACT_PROMPT, 3500);
+              const pdfImgMessages = [{ role:"user", content: pdfArr }];
+              const rawPdfImage = await callAI(pdfImgMessages, EXTRACT_PROMPT, 3500);
+              extractCtx = { messages: pdfImgMessages, maxTokens: 3500, heroFallback: "" };
               parsed = await parseImportedRecipe(rawPdfImage);
             } else {
               throw new Error("Could not read PDF text or render PDF pages. Try a clearer PDF/photo.");
@@ -2397,13 +2486,24 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               source: { type: "base64", media_type: img.type, data: img.data }
             }));
             imgArr.push({ type: "text", text: "Extract the recipe from these " + images.length + " image(s). These may be handwritten recipe cards or cookbook pages. Carefully transcribe the visible text first, preserve uncertain quantities as written, and do not invent missing details or notes. Include all visible ingredient-list items and visible add-ins mentioned in directions, such as garnishes, green onions, sauces, peppers, cheese, or variations, unless clearly optional; optional items should be marked optional. Do not include equipment/tools as ingredients. If the image(s) clearly show multiple distinct recipe cards or standalone recipes, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]} instead of merging them. If the images are front/back or separate pages of the same recipe, extract one recipe. Put helpful notes only when they are visible in the image text." });
-            const raw = await callAI([{ role:"user", content: imgArr }], EXTRACT_PROMPT, 3000);
+            const imgMessages = [{ role:"user", content: imgArr }];
+            const raw = await callAI(imgMessages, EXTRACT_PROMPT, 3000);
+            extractCtx = { messages: imgMessages, maxTokens: 3000, heroFallback: "" };
             parsed = await parseImportedRecipe(raw);
           }
 
           if (parsed?.error === "multiple_recipes_detected") {
-            const names = Array.isArray(parsed.recipes) && parsed.recipes.length ? " (" + parsed.recipes.join(", ") + ")" : "";
-            throw new Error("I found multiple recipes in this upload" + names + ". Import one recipe at a time for now, or crop/select the card you want.");
+            const names = (Array.isArray(parsed.recipes) ? parsed.recipes : [])
+              .map((n) => (typeof n === "string" ? n.trim() : "")).filter(Boolean);
+            if (extractCtx && names.length) {
+              // Hand off to the review screen instead of silently merging or failing.
+              setMultiRecipe({ names, ...extractCtx });
+              setLoading(false);
+              setLoadingMsg("");
+              return;
+            }
+            const label = names.length ? " (" + names.join(", ") + ")" : "";
+            throw new Error("I found multiple recipes in this upload" + label + ". Import one recipe at a time for now, or crop/select the card you want.");
           }
           if (!parsed || !parsed.title || !parsed.sections) throw new Error("Could not extract a complete recipe. Try Paste Text.");
           parsed = sanitizeImportedRecipe(parsed);
@@ -2662,6 +2762,55 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               onSelect={handleCategorySelect}
               onCancel={() => { setShowCategoryModal(false); setShowPhotoPrompt(false); setPendingRecipe(null); }}
             />
+          )}
+          {multiRecipe && (
+            <div className="modal-overlay" onClick={() => { if (!loading) { setMultiRecipe(null); } }}>
+              <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+                <div style={{padding:"24px 24px 8px",borderBottom:"1px solid "+C.border}}>
+                  <div style={{fontFamily:SERIF,fontSize:"1.3em",color:C.dark,marginBottom:4}}>We found more than one recipe</div>
+                  <div style={{color:C.light,fontSize:"0.85em",lineHeight:1.5}}>This source looks like it has several distinct recipes. Pick the one you want, combine them into a single card, or import them all.</div>
+                </div>
+                <div style={{padding:"14px 16px 8px"}}>
+                  <div style={{fontSize:"0.72em",fontWeight:800,letterSpacing:"0.04em",textTransform:"uppercase",color:C.light,marginBottom:8}}>Recipes detected</div>
+                  <div style={{display:"grid",gap:8,marginBottom:14}}>
+                    {multiRecipe.names.map((name, i) => (
+                      <button key={i} disabled={loading} onClick={() => importChoice({ type:"one", name })}
+                        style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,width:"100%",padding:"13px 15px",border:"1.5px solid "+C.border,borderRadius:10,background:C.white,color:C.dark,fontWeight:600,cursor:loading?"not-allowed":"pointer",fontSize:"0.92em",fontFamily:SANS,textAlign:"left",opacity:loading?0.6:1}}>
+                        <span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{name}</span>
+                        <span style={{color:C.green,fontWeight:800,fontSize:"0.82em",whiteSpace:"nowrap"}}>Import →</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{display:"grid",gap:8}}>
+                    <button disabled={loading} onClick={() => importChoice({ type:"combined" })}
+                      style={{...S.ghostBtn,borderRadius:10,padding:"12px 15px",fontSize:"0.88em",textAlign:"left",cursor:loading?"not-allowed":"pointer",opacity:loading?0.6:1}}>
+                      Combine into one recipe card
+                    </button>
+                    <button disabled={loading} onClick={() => importChoice({ type:"all" })}
+                      style={{...S.ghostBtn,borderRadius:10,padding:"12px 15px",fontSize:"0.88em",textAlign:"left",cursor:loading?"not-allowed":"pointer",opacity:loading?0.6:1}}>
+                      Import all {multiRecipe.names.length} separately
+                    </button>
+                  </div>
+                  <div style={{marginTop:12,background:C.goldPale,border:"1px solid "+C.goldLight,borderRadius:8,padding:"9px 12px",fontSize:"0.76em",color:C.brown,lineHeight:1.5}}>
+                    Each option runs a fresh AI extraction and uses AI credits. Importing all separately uses one extraction per recipe.
+                  </div>
+                  {loading && (
+                    <div style={{marginTop:13,display:"flex",alignItems:"center",justifyContent:"center",gap:10,color:C.green,fontSize:"0.85em",fontWeight:700}}>
+                      <Spinner /> <span style={{color:C.green}}>{loadingMsg || "Working..."}</span>
+                    </div>
+                  )}
+                  {error && (
+                    <div style={{marginTop:12,background:C.redPale,border:"1px solid "+C.red+"50",borderRadius:8,padding:"10px 13px",fontSize:"0.82em",color:C.red,lineHeight:1.6}}>{error}</div>
+                  )}
+                </div>
+                <div style={{padding:"4px 16px 18px"}}>
+                  <button disabled={loading} onClick={() => { setMultiRecipe(null); setError(""); }}
+                    style={{width:"100%",background:C.white,color:C.brown,border:"1.5px solid "+C.border,borderRadius:10,padding:"11px 16px",fontWeight:700,cursor:loading?"not-allowed":"pointer",fontSize:"0.88em",fontFamily:SANS,opacity:loading?0.6:1}}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
           <div style={{...S.brandHeader,padding:safePad(20,20,20),display:"flex",alignItems:"center",gap:12}}>
             <button onClick={onCancel} style={{background:"rgba(255,255,255,0.12)",border:"none",borderRadius:8,padding:"7px 14px",color:"rgba(255,255,255,0.8)",cursor:"pointer",fontFamily:SANS,fontSize:"0.85em"}}>← Back</button>
@@ -3751,7 +3900,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       if (resetToken) return <AuthScreen recipes={recipes} mealPlan={mealPlan} setAccount={setAccount} onCloudData={loadCloudData} initialMode="newpass" resetToken={resetToken} />;
       if (!account) return <AuthScreen recipes={recipes} mealPlan={mealPlan} setAccount={setAccount} onCloudData={loadCloudData} />;
       if (screen==="admin" && account?.isMasterAdmin) return <AppControl account={account} onBack={()=>setScreen("library")} />;
-      if (screen==="import") return <ImportScreen onDone={(r)=>{addRecipe(r);setScreen("library");}} onCancel={()=>setScreen("library")} />;
+      if (screen==="import") return <ImportScreen onDone={(r)=>{(Array.isArray(r)?r:[r]).forEach(addRecipe);setScreen("library");}} onCancel={()=>setScreen("library")} />;
       if (screen==="edit"&&current) return <EditRecipe recipe={current} onSave={(r)=>{ if(recipes.find((x)=>x.id===r.id)) updateRecipe(r); else addRecipe(r); setScreen("view"); }} onCancel={()=>setScreen("view")} />;
       if (screen==="view"&&current) return (
         <>
