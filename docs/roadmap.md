@@ -65,6 +65,10 @@ Last updated: June 23, 2026.
    - Covered by `npm run recipe-tags-test`. No schema/API change (tags still live in the per-user `recipe_json` JSONB, same ownership/privacy/RLS).
    - **Remaining future enhancement:** curated smart collections such as "Copycat Favorites," "Weeknight Wins," or "Meal Prep" (saved/auto-built collections surfaced on the dashboard), and optionally letting users rename/merge their own tags.
 
+8. Tag backfill + branded, copyright-safe PDF export. **Done.**
+   - Settings → "Tag your library" runs the deterministic tag suggester over existing recipes (non-destructive merge, de-dupe, never removes user tags, no AI calls), so recipes saved before the tag system become filterable.
+   - PDF export now includes the recipe Notes (where source links/attribution live), and every page carries a copyright-safe footer: RecipeBox branding, a "personal use · original recipe rights remain with their authors" line (or "Imported from <source>" when a `sourceUrl` is present), and page numbers.
+
 ## Near-Term AI Credits Policy
 
 AI credits should reflect user-approved outcomes, not internal implementation details.

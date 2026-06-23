@@ -3433,13 +3433,22 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           return [parseInt(value.slice(0, 2), 16), parseInt(value.slice(2, 4), 16), parseInt(value.slice(4, 6), 16)];
         };
         const setText = (hex) => doc.setTextColor(...rgb(hex));
-        const footer = () => {
-          doc.setFont("helvetica", "normal"); doc.setFontSize(8); setText(C.light);
-          doc.text("Exported from RecipeBox", margin, pageH - 10);
+        // Copyright-safe footer stamped on every page at the end: RecipeBox
+        // branding, a personal-use/attribution note, and page numbers.
+        const stampFooters = () => {
+          const pages = doc.getNumberOfPages();
+          const attribution = recipe.sourceUrl ? ("Imported from " + String(recipe.sourceUrl).replace(/^https?:\/\//, "").slice(0, 70)) : "Saved with RecipeBox for personal use";
+          for (let p = 1; p <= pages; p++) {
+            doc.setPage(p);
+            doc.setDrawColor(...rgb(C.border)); doc.setLineWidth(0.2);
+            doc.line(margin, pageH - 14, pageW - margin, pageH - 14);
+            doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); setText(C.light);
+            doc.text(attribution + " · original recipe rights remain with their authors", margin, pageH - 9);
+            doc.text("Page " + p + " of " + pages, pageW - margin, pageH - 9, { align: "right" });
+          }
         };
         const ensure = (space = 14) => {
           if (y + space <= pageH - 18) return;
-          footer();
           doc.addPage();
           y = 18;
         };
@@ -3498,6 +3507,13 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             writeWrapped((idx+1)+". "+t, margin, pageW - margin * 2, 5); y+=2;
           }); y+=8;
         });
+        if (recipe.notes && String(recipe.notes).trim()) {
+          ensure(18);
+          doc.setFontSize(13); doc.setFont("helvetica", "bold"); setText(C.dark); doc.text("Notes", margin, y); y += 7;
+          doc.setFontSize(10); doc.setFont("helvetica", "normal"); setText(C.mid);
+          writeWrapped(String(recipe.notes), margin, pageW - margin * 2, 5);
+          y += 6;
+        }
         if (recipe.macros && Object.values(recipe.macros).some(Boolean)) {
           ensure(28);
           doc.setFillColor(...rgb(C.cream2)); doc.roundedRect(margin, y - 5, pageW - margin * 2, 23, 3, 3, "F");
@@ -3506,7 +3522,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           doc.text(["Calories " + Math.round(recipe.macros.calories || 0), "Protein " + Math.round(recipe.macros.protein || 0) + "g", "Carbs " + Math.round(recipe.macros.carbs || 0) + "g", "Fat " + Math.round(recipe.macros.fat || 0) + "g"].join("   "), margin + 5, y + 11);
           y += 24;
         }
-        footer();
+        stampFooters();
         doc.save(recipe.title.replace(/\s+/g,"-")+".pdf");
       }
 
