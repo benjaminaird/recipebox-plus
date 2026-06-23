@@ -789,12 +789,15 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       return <span style={{display:"inline-block",width:16,height:16,border:"2.5px solid rgba(255,255,255,0.4)",borderTopColor:"currentColor",borderRadius:"50%",animation:"spin 0.7s linear infinite"}} />;
     }
 
-    function Tag({ label, bg, color, onClick, active }) {
+    function Tag({ label, bg, color, onClick, active, compact }) {
       const base = {background:active?C.green:(bg||C.cream3),color:active?C.white:(color||C.brown),borderRadius:20,padding:"3px 11px",fontSize:"0.73em",fontWeight:600,display:"inline-flex",alignItems:"center",lineHeight:1.4};
       if (!onClick) return <span style={{...base,padding:"2px 10px"}}>{label}</span>;
+      // Compact chips (dense library cards) keep cards tidy; full-size chips
+      // (Popular Tags row, recipe detail) get a comfortable thumb target.
+      const tap = compact ? {padding:"4px 10px",minHeight:28} : {padding:"7px 13px",minHeight:34};
       return (
         <button type="button" onClick={(e) => { e.stopPropagation(); onClick(label); }}
-          style={{...base,border:"1px solid "+(active?C.green:C.border),cursor:"pointer",fontFamily:SANS,WebkitTapHighlightColor:"transparent"}}
+          style={{...base,...tap,border:"1px solid "+(active?C.green:C.border),cursor:"pointer",fontFamily:SANS,WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}
           aria-label={(active?"Clear ":"Filter by ")+"tag "+label}>
           {label}{active && <span style={{marginLeft:5,fontWeight:800}}>×</span>}
         </button>
@@ -1100,7 +1103,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             {recipe.description && <div style={{color:C.light,fontSize:"0.76em",lineHeight:1.5,marginTop:4,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{recipe.description}</div>}
             {recipe.tags?.length > 0 && (
               <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:7}}>
-                {recipe.tags.slice(0,3).map((t) => <Tag key={t} label={t} onClick={onTagClick} />)}
+                {recipe.tags.slice(0,3).map((t) => <Tag key={t} label={t} onClick={onTagClick} compact />)}
               </div>
             )}
           </div>
@@ -1214,7 +1217,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   {visibleTags.map((t) => <Tag key={t.key} label={t.label} onClick={() => selectTag(t.label)} />)}
                   {popularTags.length > TAG_ROW_LIMIT && (
                     <button onClick={() => setShowAllTags((v) => !v)}
-                      style={{background:"transparent",border:"1px dashed "+C.border,color:C.brown,borderRadius:20,padding:"3px 11px",fontSize:"0.73em",fontWeight:700,cursor:"pointer",fontFamily:SANS}}>
+                      style={{background:"transparent",border:"1px dashed "+C.border,color:C.brown,borderRadius:20,padding:"7px 13px",minHeight:34,fontSize:"0.73em",fontWeight:700,cursor:"pointer",fontFamily:SANS,touchAction:"manipulation"}}>
                       {showAllTags ? "Less" : "+" + (popularTags.length - TAG_ROW_LIMIT) + " more"}
                     </button>
                   )}
@@ -3396,7 +3399,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       if (cookMode && allSteps.length > 0) {
         const cur=allSteps[cookStep], tMeta=timerOptions(cur.text), tK="cook-"+cookStep, timer=timers[tK];
         return (
-          <div style={{minHeight:"100vh",background:`linear-gradient(135deg, ${C.green} 0%, ${C.brown} 100%)`,color:C.dark,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:SANS,padding:20}}>
+          <div style={{minHeight:"100dvh",background:`linear-gradient(135deg, ${C.green} 0%, ${C.brown} 100%)`,color:C.dark,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:SANS,padding:"max(env(safe-area-inset-top),20px) 20px calc(env(safe-area-inset-bottom) + 24px)"}}>
             {timerAlert}
             <div style={{maxWidth:600,width:"100%",textAlign:"center"}}>
               <div style={{color:"rgba(255,249,238,0.72)",fontSize:"0.72em",letterSpacing:3,textTransform:"uppercase",fontFamily:SANS,fontWeight:800,marginBottom:6}}>{cur.secName}</div>
@@ -3509,9 +3512,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 style={{position:"fixed",inset:0,zIndex:80,background:"rgba(20,12,8,0.88)",display:"flex",flexDirection:"column",padding:"max(env(safe-area-inset-top),16px) 14px max(env(safe-area-inset-bottom),16px)"}}>
                 <div onClick={(e)=>e.stopPropagation()} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:12,flexShrink:0}}>
                   <div style={{color:C.white,fontFamily:SERIF,fontSize:"1.1em"}}>Original {recipe.originalSource.kind === "pdf" ? "pages" : "recipe card"}</div>
-                  <button onClick={()=>setShowOriginal(false)} style={{background:"rgba(255,255,255,0.16)",border:"none",borderRadius:8,color:C.white,padding:"7px 14px",cursor:"pointer",fontFamily:SANS,fontSize:"0.85em"}}>Close</button>
+                  <button onClick={()=>setShowOriginal(false)} style={{background:"rgba(255,255,255,0.16)",border:"none",borderRadius:9,color:C.white,padding:"10px 16px",minHeight:40,cursor:"pointer",fontFamily:SANS,fontSize:"0.85em",fontWeight:700,touchAction:"manipulation"}}>Close</button>
                 </div>
-                <div onClick={(e)=>e.stopPropagation()} style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:12,alignItems:"center"}}>
+                <div onClick={(e)=>e.stopPropagation()} style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehavior:"contain",display:"flex",flexDirection:"column",gap:12,alignItems:"center"}}>
                   {recipe.originalSource.pages.map((p,i)=>(
                     <img key={i} src={p} alt={"Original page "+(i+1)} style={{maxWidth:"100%",borderRadius:10,boxShadow:"0 8px 30px rgba(0,0,0,0.5)"}} />
                   ))}

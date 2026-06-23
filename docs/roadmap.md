@@ -45,8 +45,13 @@ Last updated: June 23, 2026.
 4. Improve social/video imports where source text is thin.
    TikTok and Shorts often need on-screen text or frame understanding. Until that exists, keep the honest fallback. Later, evaluate video-frame OCR/transcription only if cost and privacy are acceptable.
 
-5. Do a mobile/native readiness pass.
-   Recheck import, recipe detail, notes, shopping list, cook mode, auth, and settings on phone-sized layouts before beta/native wrapping.
+5. Mobile/native readiness pass. **First pass done.**
+   - Audited the surfaces shipped in this work plus core chrome against phone layouts (code-level review; the modal/sheet system, safe-area insets, and `dvh`/`NAV_CLEARANCE` conventions were already in place from earlier commits).
+   - Touch targets: clickable tag chips now have a comfortable ~34px tap height in the Popular Tags row and recipe detail, a compact ~28px variant on dense library cards, plus `touch-action: manipulation`; the "+N more" and original-viewer Close controls were enlarged.
+   - The Original Recipe Card full-screen viewer got momentum/contained scrolling and a larger Close target (it already used safe-area padding).
+   - Cook Mode now uses `100dvh` (fixes iOS URL-bar overflow) and bottom safe-area padding so the Back/Next/Done controls clear the home indicator.
+   - Verified the multiple-recipe review modal and Category modal inherit the existing `≤560px` bottom-sheet behavior (scrollable, safe-area-aware).
+   - **Not yet done:** real on-device/emulator testing (no headless browser in this environment), and a deeper polish pass on the auth/splash screens. Recommend a quick physical-device spot-check before native wrapping.
 
 6. Keep expanding the private import suite.
    Add more URLs, YouTube links, PDFs, HEIC photos, screenshots, and handwritten cards. Mark expected impossible cases explicitly so trust-first fallback stays green.
