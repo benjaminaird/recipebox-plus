@@ -1614,6 +1614,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [accountMsg, setAccountMsg] = useState("");
       const [accountBusy, setAccountBusy] = useState(false);
       const [backupMsg, setBackupMsg] = useState("");
+      const [tagBusy, setTagBusy] = useState(false);
+      const [tagMsg, setTagMsg] = useState("");
       const [feedbackType, setFeedbackType] = useState("bug");
       const [feedbackText, setFeedbackText] = useState("");
       const [feedbackMsg, setFeedbackMsg] = useState("");
@@ -1819,6 +1821,33 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         } finally {
           if (importRef.current) importRef.current.value = "";
         }
+      }
+      // One-tap, non-destructive: merge deterministic tag suggestions into every
+      // existing recipe. Never removes tags the user added; no AI calls.
+      function tagKeySet(tags) {
+        return (tags || []).map((t) => RecipeBoxTags.normalizeTagKey(t)).filter(Boolean).sort().join("|");
+      }
+      async function backfillTags() {
+        setTagMsg("");
+        const list = Array.isArray(recipes) ? recipes : [];
+        if (!list.length) { setTagMsg("No recipes to tag yet — import or add one first."); return; }
+        let changed = 0;
+        const updated = list.map((r) => {
+          const tags = RecipeBoxTags.applyTagsOnCreate(r);
+          if (tagKeySet(tags) !== tagKeySet(r.tags)) changed++;
+          return { ...r, tags };
+        });
+        if (!changed) { setTagMsg("Your recipes already have suggested tags — nothing to add."); return; }
+        const ok = window.confirm("Suggest tags for your library? This adds tags to " + changed + " recipe" + (changed===1?"":"s") + " and never removes tags you added.");
+        if (!ok) return;
+        setTagBusy(true);
+        try {
+          await putJson("/api/recipes", { recipes: updated });
+          await onCloudData(updated, mealPlan);
+          setTagMsg("Added suggested tags to " + changed + " recipe" + (changed===1?"":"s") + ". Browse them from the Library search and Popular tags.");
+        } catch (err) {
+          setTagMsg(err.message || "Could not update tags. Please try again.");
+        } finally { setTagBusy(false); }
       }
       const placeholder = [
         { title:"Appearance", text:"RecipeBox display and card preferences coming soon." },
@@ -2041,6 +2070,15 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 </div>
               </div>
             )}
+
+            <div style={{...S.card,padding:16}}>
+              <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark,marginBottom:4}}>Tag your library</div>
+              <div style={{fontSize:"0.82em",color:C.light,lineHeight:1.5,marginBottom:12}}>Add smart tags (like Copycat, Quick, or Air Fryer) to recipes you saved earlier, so you can filter and browse your whole box. It only adds tags that clearly fit and never removes tags you added.</div>
+              <button onClick={backfillTags} disabled={tagBusy} style={{...S.primaryBtn,borderRadius:9,padding:"10px 14px",fontSize:"0.8em",opacity:tagBusy?0.65:1,cursor:tagBusy?"not-allowed":"pointer"}}>
+                {tagBusy ? "Tagging your recipes..." : "Suggest tags for my recipes"}
+              </button>
+              {tagMsg && <div style={{marginTop:10,color:tagMsg.includes("Could not")?C.red:C.green,fontSize:"0.78em",fontWeight:700,lineHeight:1.4}}>{tagMsg}</div>}
+            </div>
 
             <div style={{...S.card,padding:16}}>
               <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark,marginBottom:4}}>Data & Backup</div>
