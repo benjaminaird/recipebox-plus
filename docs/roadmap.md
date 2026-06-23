@@ -2,6 +2,20 @@
 
 RecipeBox is moving toward beta-readiness first, then wider iOS and Google Play release. The product direction is a household food-management system: recipe saving, intelligent organization, AI-assisted adaptation, meal planning, shopping lists, and family coordination.
 
+## Current Status
+
+Last updated: June 23, 2026.
+
+- Production is deployed at `https://recipebox-kappa.vercel.app`.
+- Latest checkpoint branch: `codex/import-reliability-notes`.
+- Latest checkpoint commit: `b189edb Improve recipe import reliability and notes`.
+- Import reliability is much stronger across URLs, YouTube, PDFs, photos, HEIC uploads, scanned PDFs, and sideways PDF pages.
+- The private 35-case import suite from the Desktop testing document passed locally. The repo keeps that suite local/ignored so personal recipe photos, PDFs, and notes are not pushed.
+- A safe committed import harness now exists with synthetic fixtures for non-private regression checks.
+- Recipe notes are now part of imported and edited recipes, shown above ingredients/directions, and source URLs in notes are clickable.
+- Shopping lists now use deterministic local aggregation and grocery categories instead of another AI call.
+- Known honest fallbacks are now part of the expected product behavior: blocked recipe pages, low-information social/video sources, and multiple-recipe sources should not become invented or silently merged recipes.
+
 ## Near-Term Beta Priorities
 
 - Keep recipe import reliable across links, YouTube, social captions, images, screenshots, and PDFs.
@@ -9,6 +23,26 @@ RecipeBox is moving toward beta-readiness first, then wider iOS and Google Play 
 - Keep mobile layouts compact, readable, and safe for native wrapping.
 - Continue production security, privacy, and account-readiness work.
 - Keep AI credit behavior simple, fair, and trust-first: users should never lose extra credits because RecipeBox needed hidden detection, cleanup, or JSON repair passes.
+
+## Next Recommended Steps
+
+1. Build the multiple-recipe import review screen.
+   When AI returns `multiple_recipes_detected`, RecipeBox should show the detected names and let the user import one, treat the source as one combined recipe, or import all. The credit disclosure should be clear before any paid extraction continues.
+
+2. Add original source preservation for photo/PDF imports.
+   Save a lightweight original-source attachment with imported handwritten cards, family photos, screenshots, and PDFs. Recipe detail should show a warm "Original Recipe Card" or "Let's see what the original says" entry that opens the original image/PDF page.
+
+3. Add real user-visible AI credit ledger behavior.
+   Separate user credits from provider-call logs. Users should see fair outcomes; admins should still see provider cost, hidden repair passes, and abuse/cost signals.
+
+4. Improve social/video imports where source text is thin.
+   TikTok and Shorts often need on-screen text or frame understanding. Until that exists, keep the honest fallback. Later, evaluate video-frame OCR/transcription only if cost and privacy are acceptable.
+
+5. Do a mobile/native readiness pass.
+   Recheck import, recipe detail, notes, shopping list, cook mode, auth, and settings on phone-sized layouts before beta/native wrapping.
+
+6. Keep expanding the private import suite.
+   Add more URLs, YouTube links, PDFs, HEIC photos, screenshots, and handwritten cards. Mark expected impossible cases explicitly so trust-first fallback stays green.
 
 ## Near-Term AI Credits Policy
 
