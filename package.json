@@ -4,6 +4,10 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "shopping-list-test": "node scripts/shopping-list-test.js",
+    "notes-import-test": "node scripts/notes-import-test.js",
+    "import-test:estimate": "node scripts/import-test/run.js --estimate",
+    "import-test:run": "node scripts/import-test/run.js --run",
     "smoke-test": "node scripts/smoke-test.js",
     "security-smoke-test": "node scripts/security-smoke-test.js",
     "youtube-parser-test": "node scripts/youtube-parser-test.js"

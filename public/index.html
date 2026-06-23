@@ -15,6 +15,7 @@
   <meta name="format-detection" content="telephone=no">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;600;700&display=swap" />
   <script src="/app-config.js"></script>
+  <script src="/shopping-list.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -260,6 +261,17 @@
 
     function scaleAmount(amount, factor) {
       const original = normalizeFractions(amount).trim();
+      if (!original || Number(factor) === 1) return original;
+      const compound = original.match(/^(.+?)\s*\+\s*(.+)$/);
+      if (compound) {
+        const scaled = [compound[1], compound[2]].map((part) =>
+          part.replace(/(?:\d+\s+)?\d+\/\d+|\d+(?:\.\d+)?/, (value) => {
+            const n = amountToNumber(value);
+            return n === null ? value : numberToFraction(n * factor);
+          }).trim()
+        );
+        return scaled.join(" + ");
+      }
       const n = amountToNumber(original);
       if (n === null) return original;
       return numberToFraction(n * factor);
@@ -481,15 +493,21 @@
 
     async function fileToBase64(file) {
       const converted = await convertToJpeg(file);
+      return fileToBase64Payload(converted);
+    }
+
+    function fileToDataUrl(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = (e) => {
-          const base64 = e.target.result.split(",")[1];
-          resolve({ data: base64, type: converted.type || "image/jpeg" });
-        };
+        reader.onload = (e) => resolve(e.target.result);
         reader.onerror = reject;
-        reader.readAsDataURL(converted);
+        reader.readAsDataURL(file);
       });
+    }
+
+    async function fileToBase64Payload(file) {
+      const dataUrl = await fileToDataUrl(file);
+      return { data: dataUrl.split(",")[1], type:file.type || "image/jpeg" };
     }
 
     // Storage
@@ -656,22 +674,46 @@ function downloadJson(filename, data) {
 
     const EXTRACT_PROMPT = `You are a recipe extraction assistant. Return ONLY a raw JSON object. No markdown, no backticks, no explanation. Start with { and end with }.
 
-Structure: {"title":"string","cookTime":"string","servings":4,"description":"string","heroImage":"URL or empty string","macros":{"calories":0,"protein":0,"carbs":0,"fat":0,"fiber":0},"sections":[{"name":"Main","ingredients":[{"id":"i1","amount":"1","unit":"cup","name":"flour","weightAmount":"","weightUnit":""}],"steps":[{"id":"s1","text":"Mix {i1} flour with water.","ingredientRefs":["i1"]}]}],"tags":["tag1"]}
+Structure: {"title":"string","cookTime":"string","servings":4,"description":"string","notes":"string","heroImage":"URL or empty string","macros":{"calories":0,"protein":0,"carbs":0,"fat":0,"fiber":0},"sections":[{"name":"Main","ingredients":[{"id":"i1","amount":"1","unit":"cup","name":"flour","weightAmount":"","weightUnit":""}],"steps":[{"id":"s1","text":"Mix {i1} with water.","ingredientRefs":["i1"]}]}],"tags":["tag1"]}
+
+For title:
+- Prefer the name of the recipe itself.
+- For URL or YouTube imports, if the source/author/channel is clear and useful, title should be "Recipe Name - Source" unless the origin is already part of the recipe name.
+- For PDFs, photos, screenshots, and handwritten cards, use only the recipe title unless the source/person/place is explicit in the source material.
+- Do not add generic words like "recipe" or "(adjusted)" unless they are truly part of the title.
+
+For notes:
+- Use ONLY helpful cooking information explicitly present in the source material, page text, PDF text, image text, caption, transcript, description, or provided source links.
+- Include tips, storage/make-ahead guidance, substitution notes, doneness cues, ingredient prep details, or author warnings when they would help someone cook the recipe.
+- Do not invent tips or infer advice from general knowledge. If the source does not include useful extra notes, use an empty string.
+- If the source provides related recipe/helper links, include only links that are directly useful for this recipe, with the original URL. Example: "Rib rub recipe: https://example.com/rib-rub".
+- Do not include ads, unrelated blog story, newsletter links, or generic navigation links.
+
+For sources with multiple recipes or variants:
+- Extract one primary recipe card that best matches the title/source.
+- Do not merge separate variants into one giant recipe. Mention alternate variants briefly in notes only if source-grounded and useful.
+- If an uploaded photo, rendered PDF page, video, article, or transcript clearly contains multiple distinct recipe cards, standalone recipes, or full variants, do not merge them or choose one silently. Return {"error":"multiple_recipes_detected","recipes":["name 1","name 2"]} so RecipeBox can ask the user whether to import one or all.
 
 For heroImage: if you can identify a direct image URL from the source, include it. Otherwise leave as empty string.
 
 For ingredient amounts:
 - Preserve the source quantity exactly as a string.
 - Use fractions and mixed numbers, not decimals. Use "1/4", "1/2", "3/4", "1 1/4", "1 1/2", etc.
+- Preserve compound measures exactly. "1/3 cup + 3 Tablespoons sugar" should become amount "1/3 cup + 3 Tablespoons", unit "", name "sugar".
+- Preserve descriptive measures exactly. "1 heaping Tbsp brown sugar" should become amount "1", unit "heaping Tbsp", name "brown sugar". "1 scant cup flour" should become amount "1", unit "scant cup", name "flour".
+- Preserve common package/count measures. "1 stick butter" should become amount "1", unit "stick", name "butter".
+- Include visible add-ins and optional food items as ingredients, marking optional when the source says optional.
+- Never include equipment, tools, bowls, pans, knives, measuring cups/spoons, oven mitts, appliances, or serving utensils as ingredients.
 - Never collapse package sizes. "1 (14-ounce) can full-fat coconut milk" must become amount "1", unit "can", name "(14-ounce) full-fat coconut milk".
 - If the source includes a parenthetical weight like "1 cup (200g) sugar", store amount "1", unit "cup", name "sugar", weightAmount "200", weightUnit "g".
 - If no source weight is listed, leave weightAmount and weightUnit empty.
+- Do not normalize compound measures into less readable units. Do not turn "1/3 cup + 3 Tbsp" into "31 Tbsp" or any other collapsed equivalent.
 - Do not invent weights.
 
-Embed ingredient IDs like {i1} inside step text. Macros are per serving. Return ONLY the JSON.`;
+Embed ingredient IDs like {i1} inside step text, but do not repeat the ingredient name right after the placeholder. Example: use "Mix {i1} with water", not "Mix {i1} flour with water". Macros are per serving. Return ONLY the JSON.`;
 
     const ADJUST_PROMPT = `You are a culinary assistant. Modify the provided RecipeBox recipe JSON as requested. Return ONLY one complete raw JSON object starting with { and ending with }. No markdown, comments, or explanation. Preserve the RecipeBox shape: title, description, heroImage, prepTime, cookTime, totalTime, servings, category, tags, macros, notes, rating, favorite, createdAt, and sections with ingredients and steps. Preserve ids when present. Do not omit sections.`;
-    const REPAIR_JSON_PROMPT = `You repair malformed recipe JSON. Return ONLY one valid raw JSON object. Preserve all recipe content you can. Do not add markdown, comments, or explanation. The JSON must match the RecipeBox recipe structure with sections, ingredients, and steps.`;
+    const REPAIR_JSON_PROMPT = `You repair malformed recipe JSON. Return ONLY one valid raw JSON object. Preserve all recipe content you can, including source-grounded notes. Do not add markdown, comments, or explanation. The JSON must match the RecipeBox recipe structure with notes, sections, ingredients, and steps.`;
     const PANTRY_PROMPT = `You are Pantry Chef inside RecipeBox. Help users decide what to cook from ingredients they have, cravings, time, or a pantry photo.
 
 Always prioritize saved RecipeBox recipes from the provided context. Do not invent saved recipes. If saved matches exist, start with "Recipes from your RecipeBox" and mention exact saved recipe titles. Then add "New ideas" only when useful.
@@ -681,7 +723,7 @@ For saved recipes, explain whether they look like: "You can make this now", "You
 Ask concise clarifying questions only when needed. Keep advice home-cook friendly and scannable.
 
 If the user asks to save, add, or make one of your new ideas into a recipe, return the full recipe JSON wrapped in <RECIPE_JSON>...</RECIPE_JSON> at the end. Use the RecipeBox recipe shape with sections, ingredients, steps, tags, macros, servings, cookTime, description, and heroImage.`;
-    const EDITOR_AI_PROMPT = `You are a culinary assistant helping edit a recipe. The user will describe a change they want. Apply it to the recipe JSON and return ONLY the complete updated recipe JSON starting with {. No markdown, no explanation.`;
+    const EDITOR_AI_PROMPT = `You are a culinary assistant helping edit a recipe. The user will describe a change they want. Apply it to the recipe JSON and return ONLY the complete updated recipe JSON starting with {. Preserve notes unless the user asks to change them. Do not invent source notes or links. No markdown, no explanation.`;
 
     // Shared UI
     function Spinner() {
@@ -757,6 +799,55 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         .slice(0, 4);
     }
 
+    function escapeRegExp(value) {
+      return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+    function duplicateIngredientNameLength(text, name) {
+      const cleanName = String(name || "").replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
+      if (!cleanName) return 0;
+      const match = String(text || "").match(new RegExp("^\\s+" + escapeRegExp(cleanName) + "(?=\\b|\\s|[,.):;])", "i"));
+      return match ? match[0].length : 0;
+    }
+    function displayIngredientText(ing, scale=1, metric=false) {
+      const measure = displayIngredientMeasure(ing, scale, metric);
+      return ((measure.amount || "") + (measure.unit ? " " + measure.unit : "") + " " + (ing.name || "")).trim();
+    }
+    function plainStepText(text, ingredients, scale=1, metric=false) {
+      const list = ingredients || [];
+      const regex = /\{([^}]+)\}/g;
+      let out = "";
+      let last = 0;
+      let match;
+      while ((match = regex.exec(String(text || ""))) !== null) {
+        out += String(text || "").slice(last, match.index);
+        const ing = list.find((item) => item.id === match[1]);
+        if (ing) {
+          out += displayIngredientText(ing, scale, metric);
+          const duplicateLen = duplicateIngredientNameLength(String(text || "").slice(regex.lastIndex), ing.name);
+          if (duplicateLen) regex.lastIndex += duplicateLen;
+        } else {
+          out += match[0];
+        }
+        last = regex.lastIndex;
+      }
+      out += String(text || "").slice(last);
+      return out.replace(/\s+/g, " ").trim();
+    }
+    const IMPORT_EQUIPMENT_WORDS = /\b(grater|bowl|cutting board|chef'?s knife|knife|scissors|measuring spoon|measuring cup|oven mitt|spatula|ladle|pan\b|pie plate|microwave-safe bowl|stove-top pan|wire cooling rack|wooden spoon|fork|whisk|parchment|foil)\b/i;
+    function sanitizeImportedRecipe(recipe) {
+      if (!recipe || !Array.isArray(recipe.sections)) return recipe;
+      return {
+        ...recipe,
+        sections: recipe.sections.map((section) => ({
+          ...section,
+          ingredients: (section.ingredients || []).filter((ingredient) => {
+            const text = [ingredient.amount, ingredient.unit, ingredient.name].filter(Boolean).join(" ");
+            return !IMPORT_EQUIPMENT_WORDS.test(text);
+          })
+        }))
+      };
+    }
+
     function StepText({ text, ingredients, scale, metric }) {
       const parts = [];
       const regex = /\{([^}]+)\}/g;
@@ -765,9 +856,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         if (match.index > last) parts.push({ type:"text", value:text.slice(last, match.index) });
         const ing = ingredients.find((i) => i.id === match[1]);
         if (ing) {
-          const measure = displayIngredientMeasure(ing, scale, metric);
-          let amt = measure.amount, unit = measure.unit || "";
-          parts.push({ type:"chip", value:`${amt}${unit?" "+unit:""} ${ing.name}` });
+          parts.push({ type:"chip", value:displayIngredientText(ing, scale, metric) });
+          const duplicateLen = duplicateIngredientNameLength(text.slice(regex.lastIndex), ing.name);
+          if (duplicateLen) regex.lastIndex += duplicateLen;
         }
         last = regex.lastIndex;
       }
@@ -777,6 +868,26 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           {parts.map((p, i) => p.type === "chip"
             ? <span key={i} style={{background:C.goldPale,border:"1px solid "+C.goldLight,borderRadius:5,padding:"1px 6px",margin:"0 2px",fontSize:"0.87em",fontWeight:600,color:C.brown,whiteSpace:"normal",display:"inline",overflowWrap:"break-word",wordBreak:"normal",maxWidth:"100%",boxDecorationBreak:"clone",WebkitBoxDecorationBreak:"clone"}}>{p.value}</span>
             : <span key={i}>{p.value}</span>)}
+        </span>
+      );
+    }
+
+    function NoteText({ text }) {
+      const raw = String(text || "");
+      const parts = [];
+      const re = /(https?:\/\/[^\s),\]]+)/g;
+      let last = 0, match;
+      while ((match = re.exec(raw)) !== null) {
+        if (match.index > last) parts.push({ type:"text", value:raw.slice(last, match.index) });
+        parts.push({ type:"link", value:match[1] });
+        last = re.lastIndex;
+      }
+      if (last < raw.length) parts.push({ type:"text", value:raw.slice(last) });
+      return (
+        <span>
+          {parts.map((part, i) => part.type === "link"
+            ? <a key={i} href={part.value} target="_blank" rel="noreferrer" style={{color:C.green,fontWeight:800,overflowWrap:"anywhere"}}>{part.value}</a>
+            : <span key={i}>{part.value}</span>)}
         </span>
       );
     }
@@ -1097,50 +1208,14 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const plannedRecipes = plannedRecipeIds.map((id) => recipes.find((r) => r.id === id)).filter(Boolean);
       const totalCal = plannedRecipeIds.reduce((s, id) => { const r = recipes.find((x) => x.id === id); return s + (r?.macros?.calories || 0); }, 0);
 
-      function normalizeShoppingName(name) {
-        return String(name || "")
-          .toLowerCase()
-          .replace(/\([^)]*\)/g, " ")
-          .replace(/[^a-z0-9\s]/g, " ")
-          .replace(/\b(chopped|diced|minced|sliced|fresh|large|small|medium|optional)\b/g, " ")
-          .replace(/\s+/g, " ")
-          .trim();
-      }
-      function ingredientLine(amount, unit, name) {
-        const bits = [displayAmount(amount), unit, name].filter(Boolean);
-        return bits.join(" ").trim();
-      }
       function buildMealPlanShoppingList() {
-        const grouped = {};
-        plannedRecipes.forEach((recipe) => {
-          (recipe.sections || []).forEach((section) => {
-            (section.ingredients || []).forEach((ing) => {
-              const name = ing.name || "";
-              if (!name.trim()) return;
-              const unit = (ing.unit || "").trim().toLowerCase();
-              const key = normalizeShoppingName(name) + "|" + unit;
-              const amountText = String(ing.amount || "").trim();
-              const amountNumber = amountToNumber(amountText);
-              if (!grouped[key]) grouped[key] = { name, unit:ing.unit || "", total:0, canSum:true, parts:[], recipes:new Set() };
-              grouped[key].recipes.add(recipe.title || "Recipe");
-              grouped[key].parts.push({ amount:amountText, unit:ing.unit || "", name, recipe:recipe.title || "Recipe" });
-              if (amountText && amountNumber !== null && grouped[key].canSum) grouped[key].total += amountNumber;
-              else grouped[key].canSum = false;
-            });
-          });
-        });
-        const items = Object.values(grouped).map((group, idx) => {
-          let text;
-          if (group.canSum && group.total > 0) {
-            text = ingredientLine(numberToFraction(group.total), group.unit, group.name);
-          } else if (group.parts.length === 1) {
-            const p = group.parts[0];
-            text = ingredientLine(p.amount, p.unit, p.name);
-          } else {
-            text = group.name + " (" + group.parts.map((p) => ingredientLine(p.amount, p.unit, p.recipe)).join("; ") + ")";
-          }
-          return { id:idx+"-"+normalizeShoppingName(group.name), text, checked:false, recipes:[...group.recipes] };
-        }).sort((a, b) => a.text.localeCompare(b.text));
+        const sections = plannedRecipes.flatMap((recipe) =>
+          (recipe.sections || []).map((section) => ({
+            ...section,
+            name: recipe.title + (section.name ? " - " + section.name : "")
+          }))
+        );
+        const items = RecipeBoxShopping.buildShoppingListFromSections(sections);
         setShoppingItems(items);
       }
       function toggleShoppingItem(id) {
@@ -1177,13 +1252,20 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     <button onClick={() => setShoppingItems((items) => items.map((item) => ({ ...item, checked:false })))} style={{...S.ghostBtn,borderRadius:8,padding:"7px 10px",fontSize:"0.76em"}}>Reset</button>
                     <button onClick={() => setShoppingItems([])} style={{...S.ghostBtn,color:C.light,borderRadius:8,padding:"7px 10px",fontSize:"0.76em"}}>Clear</button>
                   </div>
-                  <div style={{display:"grid",gap:7}}>
-                    {shoppingItems.map((item) => (
-                      <label key={item.id} style={{display:"flex",alignItems:"center",gap:8,background:item.checked?C.greenPale:C.paper2,border:"1px solid "+(item.checked?C.green+"30":C.border),borderRadius:8,padding:"7px 9px"}}>
-                        <input type="checkbox" checked={item.checked} onChange={() => toggleShoppingItem(item.id)} />
-                        <input value={item.text} onChange={(e) => editShoppingItem(item.id, e.target.value)}
-                          style={{flex:1,minWidth:0,border:"none",background:"transparent",outline:"none",fontSize:"0.84em",color:item.checked?C.light:C.dark,textDecoration:item.checked?"line-through":"none",fontFamily:SANS}} />
-                      </label>
+                  <div style={{display:"grid",gap:11}}>
+                    {RecipeBoxShopping.groupShoppingItemsByCategory(shoppingItems).map((group) => (
+                      <div key={group.category}>
+                        <div style={{fontSize:"0.68em",letterSpacing:1.8,textTransform:"uppercase",fontWeight:800,color:C.brownLight,margin:"2px 0 6px"}}>{group.category}</div>
+                        <div style={{display:"grid",gap:7}}>
+                          {group.items.map((item) => (
+                            <label key={item.id} style={{display:"flex",alignItems:"center",gap:8,background:item.checked?C.greenPale:C.paper2,border:"1px solid "+(item.checked?C.green+"30":C.border),borderRadius:8,padding:"7px 9px"}}>
+                              <input type="checkbox" checked={item.checked} onChange={() => toggleShoppingItem(item.id)} />
+                              <input value={item.text} onChange={(e) => editShoppingItem(item.id, e.target.value)}
+                                style={{flex:1,minWidth:0,border:"none",background:"transparent",outline:"none",fontSize:"0.84em",color:item.checked?C.light:C.dark,textDecoration:item.checked?"line-through":"none",fontFamily:SANS}} />
+                            </label>
+                          ))}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -2130,6 +2212,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [text, setText] = useState("");
       const [images, setImages] = useState([]);
       const [pdfTexts, setPdfTexts] = useState([]);
+      const [pdfImages, setPdfImages] = useState([]);
       const [mediaFiles, setMediaFiles] = useState([]);
       const [loading, setLoading] = useState(false);
       const [loadingMsg, setLoadingMsg] = useState("");
@@ -2140,9 +2223,23 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const fileRef = useRef();
       const heroPromptRef = useRef();
 
+      function applyMediaItems(items) {
+        const next = items.slice(0, 4);
+        const hasPdf = next.some((item) => item.type === "pdf");
+        const hasImage = next.some((item) => item.type === "image");
+        if (hasPdf && hasImage) {
+          throw new Error("Choose either PDF files or photo/image files for one import, not both together.");
+        }
+        setMediaFiles(next);
+        setPdfTexts(next.filter((item) => item.type === "pdf").map((item) => item.pdfText || ""));
+        setPdfImages(next.filter((item) => item.type === "pdf").flatMap((item) => item.pdfImages || []));
+        setImages(next.filter((item) => item.type === "image").map((item) => item.imageData).filter(Boolean));
+      }
+
       function readyRecipeForSave(recipe, options = {}) {
-        setPendingRecipe(recipe);
-        if (recipe.heroImage || options.skipPhotoPrompt) setShowCategoryModal(true);
+        const enriched = RecipeBoxShopping.enrichRecipeIngredients(recipe);
+        setPendingRecipe(enriched);
+        if (enriched.heroImage || options.skipPhotoPrompt) setShowCategoryModal(true);
         else setShowPhotoPrompt(true);
       }
 
@@ -2180,11 +2277,12 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
             setLoadingMsg("Extracting recipe...");
             const prompt =
-              "Extract the recipe ONLY from the source material below. Do not use memory. Do not invent missing quantities, ingredients, steps, times, or servings. If something is missing, leave it blank. Return only valid JSON.\n\n" +
+              "Extract the recipe ONLY from the source material below. Do not use memory. Do not invent missing quantities, ingredients, steps, times, servings, or notes. If something is missing, leave it blank. Put source-grounded cooking tips, make-ahead/storage/substitution guidance, and directly useful helper links in notes only when they appear in the source. Return only valid JSON.\n\n" +
               "Source URL: " + (pageData.finalUrl || pageData.url || url) + "\n" +
               "Page title: " + (pageData.title || "") + "\n" +
               "Detected hero image: " + (pageData.image || "") + "\n\n" +
               "JSON-LD / structured data:\n" + JSON.stringify(pageData.jsonLd || []) + "\n\n" +
+              "Potentially useful source links:\n" + JSON.stringify(pageData.helpfulLinks || []) + "\n\n" +
               "Visible page text:\n" + (pageData.text || "");
             const raw = await callAI([{ role:"user", content:prompt }], EXTRACT_PROMPT, 2500);
             parsed = await parseImportedRecipe(raw);
@@ -2201,7 +2299,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             }
 
             setLoadingMsg("Extracting recipe from video text...");
-            let content = "Video title: " + transcriptData.title + "\n\n";
+            let content = "Video title: " + transcriptData.title + "\n";
+            if (transcriptData.author) content += "Video channel/source: " + transcriptData.author + "\n";
+            content += "\n";
             if (transcriptData.transcript) {
               content += "Transcript:\n" + transcriptData.transcript;
             } else if (transcriptData.description) {
@@ -2216,7 +2316,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               content += "\n\nImporter warnings: " + transcriptData.warnings.join("; ");
             }
 
-            const raw = await callAI([{ role:"user", content:"Extract the recipe from this YouTube video content:\n\n" + content }], EXTRACT_PROMPT, 2000);
+            const raw = await callAI([{ role:"user", content:"Extract the recipe from this YouTube video content. Use only the transcript, description, and metadata below. Put helpful source-grounded tips or warnings in notes; do not invent notes from general cooking knowledge. If the video contains multiple full recipe variants, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]} instead of merging them or choosing one silently.\n\n" + content }], EXTRACT_PROMPT, 6000);
             parsed = await parseImportedRecipe(raw);
             if (parsed.error === "unknown_recipe" || parsed.error === "not_enough_recipe_text") {
               throw new Error("We couldn't read enough recipe detail from this video. Try pasting the recipe text or using screenshots instead.");
@@ -2244,7 +2344,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
             setLoadingMsg("Extracting recipe from social post...");
             const prompt =
-              "Extract a recipe ONLY from the public social source data below. Do not use memory. Do not infer a recipe from the title, thumbnail, author, or platform. Do not invent missing ingredients, quantities, steps, times, or servings. If the source data does not include enough recipe details, return {\"error\":\"not_enough_recipe_text\",\"message\":\"Try Paste Text with the caption or upload screenshots.\"}.\n\n" +
+              "Extract a recipe ONLY from the public social source data below. Do not use memory. Do not infer a recipe from the title, thumbnail, author, or platform. Do not invent missing ingredients, quantities, steps, times, servings, or notes. Put helpful source-grounded tips in notes only when they appear in the caption or page text. If the source data does not include enough recipe details, return {\"error\":\"not_enough_recipe_text\",\"message\":\"Try Paste Text with the caption or upload screenshots.\"}.\n\n" +
               "Platform: " + (socialData.platform || "") + "\n" +
               "Source URL: " + (socialData.finalUrl || socialData.url || socialUrl) + "\n" +
               "Title: " + (socialData.title || "") + "\n" +
@@ -2264,37 +2364,55 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
           } else if (mode === "text") {
             setLoadingMsg("Extracting recipe...");
-            const raw = await callAI([{ role:"user", content:"Extract the recipe from this text:\n\n" + text }], EXTRACT_PROMPT, 2000);
+            const raw = await callAI([{ role:"user", content:"Extract the recipe from this text. Put source-grounded tips or extra cooking guidance in notes only when present in the text; do not invent notes.\n\n" + text }], EXTRACT_PROMPT, 2000);
             parsed = await parseImportedRecipe(raw);
 
           } else if (mode === "media" && pdfTexts.length > 0) {
             setLoadingMsg("Reading recipe from PDF...");
             const pdfContent = pdfTexts.join(" ");
-            if (!pdfContent.trim()) throw new Error("Could not read PDF text. Try a photo instead.");
-            const rawPdf = await callAI([{
-              role:"user",
-              content:
-                "Extract the recipe ONLY from the PDF text below. Do not invent missing details. Return valid JSON only.\n\n" +
-                pdfContent.slice(0, 24000)
-            }], EXTRACT_PROMPT, 3500);
-            parsed = await parseImportedRecipe(rawPdf);
+            if (pdfContent.trim()) {
+              const rawPdf = await callAI([{
+                role:"user",
+                content:
+                  "Extract the recipe ONLY from the PDF text below. Do not invent missing details or notes. Put helpful source-grounded tips in notes only when present in the PDF text. Return valid JSON only.\n\n" +
+                  pdfContent.slice(0, 24000)
+              }], EXTRACT_PROMPT, 3500);
+              parsed = await parseImportedRecipe(rawPdf);
+            } else if (pdfImages.length > 0) {
+              setLoadingMsg("Reading scanned PDF pages...");
+              const pdfArr = pdfImages.map((img) => ({
+                type: "image",
+                source: { type: "base64", media_type: img.type, data: img.data }
+              }));
+              pdfArr.push({ type: "text", text: "Extract the recipe from these rendered PDF page image(s). The PDF may be sideways, scanned, illustrated, handwritten, or a photo of a recipe card. Some images may be rotated duplicates of the same page; use the clearest orientation and do not duplicate recipe content. Carefully transcribe the visible recipe text first, preserve uncertain quantities as written, and do not invent missing details or notes. Include all visible ingredient-list items and visible add-ins mentioned in directions, such as garnishes, green onions, sauces, peppers, cheese, or variations, unless clearly optional; optional items should be marked optional. Do not include equipment/tools as ingredients. If the PDF page image(s) clearly show multiple distinct recipe cards or standalone recipes, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]} instead of merging them. If the pages are parts of the same recipe, extract one recipe. Put helpful notes only when they are visible in the PDF image text." });
+              const rawPdfImage = await callAI([{ role:"user", content: pdfArr }], EXTRACT_PROMPT, 3500);
+              parsed = await parseImportedRecipe(rawPdfImage);
+            } else {
+              throw new Error("Could not read PDF text or render PDF pages. Try a clearer PDF/photo.");
+            }
           } else if (mode === "media" && images.length > 0) {
             setLoadingMsg("Reading recipe from image...");
             const imgArr = images.map((img, i) => ({
               type: "image",
               source: { type: "base64", media_type: img.type, data: img.data }
             }));
-            imgArr.push({ type: "text", text: "Extract the recipe from these " + images.length + " image(s) of the same recipe. These may be handwritten recipe cards or cookbook pages. Carefully transcribe the visible text first, preserve uncertain quantities as written, and do not invent missing details." });
+            imgArr.push({ type: "text", text: "Extract the recipe from these " + images.length + " image(s). These may be handwritten recipe cards or cookbook pages. Carefully transcribe the visible text first, preserve uncertain quantities as written, and do not invent missing details or notes. Include all visible ingredient-list items and visible add-ins mentioned in directions, such as garnishes, green onions, sauces, peppers, cheese, or variations, unless clearly optional; optional items should be marked optional. Do not include equipment/tools as ingredients. If the image(s) clearly show multiple distinct recipe cards or standalone recipes, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]} instead of merging them. If the images are front/back or separate pages of the same recipe, extract one recipe. Put helpful notes only when they are visible in the image text." });
             const raw = await callAI([{ role:"user", content: imgArr }], EXTRACT_PROMPT, 3000);
             parsed = await parseImportedRecipe(raw);
           }
 
+          if (parsed?.error === "multiple_recipes_detected") {
+            const names = Array.isArray(parsed.recipes) && parsed.recipes.length ? " (" + parsed.recipes.join(", ") + ")" : "";
+            throw new Error("I found multiple recipes in this upload" + names + ". Import one recipe at a time for now, or crop/select the card you want.");
+          }
           if (!parsed || !parsed.title || !parsed.sections) throw new Error("Could not extract a complete recipe. Try Paste Text.");
+          parsed = sanitizeImportedRecipe(parsed);
           parsed.id = uid();
           parsed.createdAt = new Date().toISOString();
           parsed.rating = 0;
           parsed.favorite = false;
           if (!parsed.heroImage) parsed.heroImage = "";
+          if (!parsed.notes) parsed.notes = "";
 
           readyRecipeForSave(parsed, { skipPhotoPrompt: mode === "media" });
 
@@ -2418,32 +2536,100 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           reader.readAsArrayBuffer(file);
         });
       }
+      async function renderPdfPagesAsImages(file) {
+        return new Promise(function(resolve) {
+          const reader = new FileReader();
+          reader.onload = async function(e) {
+            try {
+              const lib = window["pdfjs-dist/build/pdf"];
+              lib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+              const pdf = await lib.getDocument({ data: e.target.result }).promise;
+              const pages = [];
+              for (let i = 1; i <= Math.min(pdf.numPages, 4); i++) {
+                const page = await pdf.getPage(i);
+                const viewport = page.getViewport({ scale: 2 });
+                const canvas = document.createElement("canvas");
+                canvas.width = Math.round(viewport.width);
+                canvas.height = Math.round(viewport.height);
+                const ctx = canvas.getContext("2d");
+                await page.render({ canvasContext: ctx, viewport }).promise;
+                const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+                pages.push({ data:dataUrl.split(",")[1], type:"image/jpeg", preview:dataUrl });
+                if (pdf.numPages <= 2) {
+                  const rotated = document.createElement("canvas");
+                  rotated.width = canvas.height;
+                  rotated.height = canvas.width;
+                  const rotatedCtx = rotated.getContext("2d");
+                  rotatedCtx.translate(rotated.width / 2, rotated.height / 2);
+                  rotatedCtx.rotate(Math.PI / 2);
+                  rotatedCtx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+                  const rotatedUrl = rotated.toDataURL("image/jpeg", 0.9);
+                  pages.push({ data:rotatedUrl.split(",")[1], type:"image/jpeg", preview:rotatedUrl });
+                }
+              }
+              resolve(pages.slice(0, 4));
+            } catch(err) { resolve([]); }
+          };
+          reader.readAsArrayBuffer(file);
+        });
+      }
       async function handleFiles(e) {
         setError("");
         try {
           const files = Array.from(e.target.files).slice(0, 4);
           if (!files.length) return;
-          setMediaFiles(files.map(function(f) {
-            const isPdf = f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf");
-            return { name: f.name || (isPdf ? "Recipe PDF" : "Recipe image"), type: isPdf ? "pdf" : "image" };
-          }));
-          const pdfs = files.filter(function(f) { return f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"); });
-          const imgs = files.filter(function(f) { return f.type !== "application/pdf" && !f.name.toLowerCase().endsWith(".pdf"); });
-          if (pdfs.length > 0) {
-            setPdfTexts(await Promise.all(pdfs.map(extractPdfText)));
-            setImages([]);
-          } else {
-            setImages(await Promise.all(imgs.map(fileToBase64)));
-            setPdfTexts([]);
+          const nextItems = [];
+          for (const file of files) {
+            const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+            if (isPdf) {
+              const pdfText = await extractPdfText(file);
+              const pdfImages = pdfText.trim() ? [] : await renderPdfPagesAsImages(file);
+              nextItems.push({
+                id:uid(),
+                name:file.name || "Recipe PDF",
+                type:"pdf",
+                pdfText,
+                pdfImages
+              });
+            } else {
+              const heic = isHeicFile(file);
+              const converted = await convertToJpeg(file);
+              const preview = await fileToDataUrl(converted);
+              nextItems.push({
+                id:uid(),
+                name:file.name || "Recipe image",
+                type:"image",
+                preview,
+                imageData:{ data:preview.split(",")[1], type:converted.type || "image/jpeg" },
+                badge:heic ? "HEIC converted" : "Image"
+              });
+            }
           }
+          applyMediaItems([...mediaFiles, ...nextItems]);
         } catch (err) {
-          setImages([]);
-          setPdfTexts([]);
-          setMediaFiles([]);
+          if (!mediaFiles.length) {
+            setImages([]);
+            setPdfTexts([]);
+            setPdfImages([]);
+            setMediaFiles([]);
+          }
           setError(err.message || "Could not read that upload. Try saving it as JPG or PNG first.");
         } finally {
           e.target.value = "";
         }
+      }
+      function removeMediaFile(id) {
+        try {
+          applyMediaItems(mediaFiles.filter((file) => file.id !== id));
+        } catch (err) {
+          setError(err.message || "Could not update uploads.");
+        }
+      }
+      function clearMediaFiles() {
+        setMediaFiles([]);
+        setImages([]);
+        setPdfTexts([]);
+        setPdfImages([]);
       }
 
       const tabs = [
@@ -2532,24 +2718,42 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   style={{border:"2px dashed "+(mediaFiles.length>0?C.green:C.border),borderRadius:14,padding:36,textAlign:"center",cursor:"pointer",color:mediaFiles.length>0?C.green:C.light,marginBottom:10,background:mediaFiles.length>0?C.greenPale:C.paper}}>
                   <div style={{display:"flex",justifyContent:"center",marginBottom:6}}><Icon name={mediaFiles.length>0?"check":"plus"} size={30} /></div>
                   <div style={{fontWeight:600,fontSize:"0.88em"}}>
-                    {mediaFiles.length>0 ? mediaFiles.length+" file"+(mediaFiles.length>1?"s":"")+" ready - tap to change" : "Upload a recipe card, screenshot, or PDF"}
+                    {mediaFiles.length>0 ? mediaFiles.length+" file"+(mediaFiles.length>1?"s":"")+" ready - tap to add more" : "Upload a recipe card, screenshot, or PDF"}
                   </div>
                   <div style={{fontSize:"0.75em",marginTop:4,color:C.light}}>Up to 4 images of the same recipe · HEIC, JPG, PNG, PDF</div>
                 </div>
                 {mediaFiles.length > 0 && (
-                  <div style={{display:"grid",gap:7,marginBottom:10}}>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(126px, 1fr))",gap:9,marginBottom:10}}>
                     {mediaFiles.map((file, i) => (
-                      <div key={i} style={{...S.cardSoft,display:"flex",alignItems:"center",gap:9,padding:"8px 10px",color:C.dark,fontSize:"0.78em"}}>
-                        <span style={{width:28,height:28,borderRadius:6,display:"inline-flex",alignItems:"center",justifyContent:"center",background:file.type==="pdf"?C.goldPale:C.greenPale,color:file.type==="pdf"?C.brown:C.green,flexShrink:0}}>{file.type==="pdf"?"PDF":"IMG"}</span>
-                        <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:600}}>{file.name}</span>
+                      <div key={file.id || i} style={{...S.cardSoft,padding:7,color:C.dark,fontSize:"0.76em",position:"relative",overflow:"hidden"}}>
+                        <button onClick={() => removeMediaFile(file.id)} aria-label={"Remove "+file.name} style={{position:"absolute",top:5,right:5,zIndex:2,width:24,height:24,borderRadius:"50%",border:"none",background:"rgba(32,20,14,0.72)",color:C.white,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1em",lineHeight:1}}>×</button>
+                        {file.type === "image" ? (
+                          <img src={file.preview} alt={file.name} style={{width:"100%",aspectRatio:"1 / 1",objectFit:"cover",borderRadius:7,display:"block",background:C.cream2,border:"1px solid "+C.border}} />
+                        ) : (
+                          <div style={{width:"100%",aspectRatio:"1 / 1",borderRadius:7,background:C.goldPale,border:"1px solid "+C.goldLight,display:"flex",alignItems:"center",justifyContent:"center",color:C.brown,fontWeight:900,fontSize:"1.05em"}}>PDF</div>
+                        )}
+                        <div style={{marginTop:6,fontWeight:800,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{file.name}</div>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:6,marginTop:2}}>
+                          <span style={{fontSize:"0.68em",color:C.light}}>{file.type==="pdf" ? "Text PDF" : (file.badge || "Image")}</span>
+                          <span style={{fontSize:"0.68em",color:C.light}}>#{i+1}</span>
+                        </div>
                       </div>
                     ))}
+                    {mediaFiles.length < 4 && (
+                      <button onClick={() => fileRef.current.click()} style={{...S.ghostBtn,minHeight:120,borderRadius:10,border:"1px dashed "+C.goldLight,background:C.paper,color:C.brown,padding:10,fontSize:"0.78em",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:5}}>
+                        <Icon name="plus" size={22} />
+                        Add another page
+                      </button>
+                    )}
                   </div>
                 )}
                 {images.length > 0 && (
                   <div style={{...S.cardSoft,background:C.goldPale,border:"1px solid "+C.goldLight,padding:"8px 12px",fontSize:"0.78em",color:C.brown,marginBottom:10}}>
-                    Please make sure all images are pages of the same recipe. Multiple different recipes cannot be imported at once.
+                    Please make sure all images are pages of the same recipe. HEIC/HEIF photos are converted to JPEG before RecipeBox reads them.
                   </div>
+                )}
+                {mediaFiles.length > 0 && (
+                  <button onClick={clearMediaFiles} style={{...S.ghostBtn,borderRadius:8,padding:"7px 10px",fontSize:"0.76em",marginBottom:10}}>Clear uploads</button>
                 )}
               </div>
             )}
@@ -2631,6 +2835,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
       const allSteps = displaySections.flatMap((s) => (s.steps || []).map((st) => ({ ...st, secName:s.name, ingredients:s.ingredients || [] })));
       const allIngredients = displaySections.flatMap((s) => s.ingredients || []);
+      const shoppingItems = RecipeBoxShopping.buildShoppingListFromSections(displaySections, { scale });
+      const shoppingGroups = RecipeBoxShopping.groupShoppingItemsByCategory(shoppingItems);
 
       useEffect(() => {
         const iv = setInterval(() => {
@@ -2764,23 +2970,90 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       function exportPDF() {
         if (!window.jspdf) { alert("PDF library loading. Try again."); return; }
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF(); let y=20;
-        const ingredientLine = (ing) => {
-          const measure = displayIngredientMeasure(ing, scale, metric);
-          return (measure.amount || "") + (measure.unit ? " " + measure.unit : "") + " " + ing.name;
+        const doc = new jsPDF();
+        const pageW = doc.internal.pageSize.getWidth();
+        const pageH = doc.internal.pageSize.getHeight();
+        const margin = 16;
+        let y = 20;
+        const rgb = (hex) => {
+          const value = hex.replace("#", "");
+          return [parseInt(value.slice(0, 2), 16), parseInt(value.slice(2, 4), 16), parseInt(value.slice(4, 6), 16)];
         };
-        doc.setFontSize(20); doc.setFont("helvetica","bold"); doc.text(recipe.title,14,y); y+=10;
-        doc.setFontSize(10); doc.setFont("helvetica","normal"); doc.text((recipe.cookTime||"")+" · Serves "+Math.round((recipe.servings||4)*scale),14,y); y+=12;
+        const setText = (hex) => doc.setTextColor(...rgb(hex));
+        const footer = () => {
+          doc.setFont("helvetica", "normal"); doc.setFontSize(8); setText(C.light);
+          doc.text("Exported from RecipeBox", margin, pageH - 10);
+        };
+        const ensure = (space = 14) => {
+          if (y + space <= pageH - 18) return;
+          footer();
+          doc.addPage();
+          y = 18;
+        };
+        const writeWrapped = (text, x, width, lineHeight = 5) => {
+          doc.splitTextToSize(String(text || ""), width).forEach((line) => {
+            ensure(lineHeight + 2);
+            doc.text(line, x, y);
+            y += lineHeight;
+          });
+        };
+        doc.setFillColor(...rgb(C.green));
+        doc.rect(0, 0, pageW, 34, "F");
+        doc.setFont("helvetica", "bold"); doc.setFontSize(10); setText(C.goldLight);
+        doc.text("RecipeBox", margin, 13);
+        doc.setFont("helvetica", "bold"); doc.setFontSize(21); setText(C.white);
+        writeWrapped(recipe.title, margin, pageW - margin * 2, 8);
+        y = Math.max(y + 4, 43);
+        const chips = [
+          recipe.category,
+          Math.round((recipe.servings || 4) * scale) + " servings",
+          recipe.prepTime && "Prep " + recipe.prepTime,
+          recipe.cookTime && "Cook " + recipe.cookTime,
+          recipe.totalTime && "Total " + recipe.totalTime,
+          recipe.rating > 0 && recipe.rating + "/5 stars"
+        ].filter(Boolean);
+        doc.setFont("helvetica", "normal"); doc.setFontSize(9); setText(C.brown);
+        let chipX = margin;
+        chips.forEach((chip) => {
+          const w = doc.getTextWidth(chip) + 8;
+          if (chipX + w > pageW - margin) { chipX = margin; y += 8; }
+          doc.setFillColor(...rgb(C.goldPale)); doc.roundedRect(chipX, y - 5, w, 7, 2, 2, "F");
+          doc.text(chip, chipX + 4, y);
+          chipX += w + 4;
+        });
+        y += chips.length ? 14 : 2;
+        if (recipe.description) {
+          doc.setFont("helvetica", "normal"); doc.setFontSize(10); setText(C.mid);
+          writeWrapped(recipe.description, margin, pageW - margin * 2, 5);
+          y += 4;
+        }
         displaySections.forEach((sec) => {
-          doc.setFontSize(13); doc.setFont("helvetica","bold"); doc.text("Ingredients",14,y); y+=7;
-          sec.ingredients.forEach((ing) => { doc.setFontSize(10); doc.setFont("helvetica","normal"); doc.text("• "+ingredientLine(ing),18,y); y+=5; if(y>270){doc.addPage();y=20;} });
-          y+=4; doc.setFontSize(13); doc.setFont("helvetica","bold"); doc.text("Directions",14,y); y+=7;
+          ensure(18);
+          if (displaySections.length > 1) {
+            doc.setFontSize(13); doc.setFont("helvetica", "bold"); setText(C.green);
+            doc.text(sec.name || "Main", margin, y); y += 8;
+          }
+          doc.setFontSize(13); doc.setFont("helvetica","bold"); setText(C.dark); doc.text("Ingredients",margin,y); y+=7;
+          sec.ingredients.forEach((ing) => {
+            doc.setFontSize(10); doc.setFont("helvetica","normal"); setText(C.mid);
+            writeWrapped("- " + displayIngredientText(ing, scale, metric), margin + 4, pageW - margin * 2 - 4, 5);
+          });
+          y+=4; doc.setFontSize(13); doc.setFont("helvetica","bold"); setText(C.dark); doc.text("Directions",margin,y); y+=7;
           sec.steps.forEach((step,idx) => {
-            doc.setFontSize(10); doc.setFont("helvetica","normal");
-            const t=step.text.replace(/\{([^}]+)\}/g,(m,id)=>{ const ing=sec.ingredients.find((x)=>x.id===id); return ing?ingredientLine(ing):m; });
-            doc.splitTextToSize((idx+1)+". "+t,180).forEach((l)=>{ doc.text(l,14,y); y+=5; if(y>270){doc.addPage();y=20;} }); y+=2;
+            doc.setFontSize(10); doc.setFont("helvetica","normal"); setText(C.mid);
+            const t = plainStepText(step.text, sec.ingredients, scale, metric);
+            writeWrapped((idx+1)+". "+t, margin, pageW - margin * 2, 5); y+=2;
           }); y+=8;
         });
+        if (recipe.macros && Object.values(recipe.macros).some(Boolean)) {
+          ensure(28);
+          doc.setFillColor(...rgb(C.cream2)); doc.roundedRect(margin, y - 5, pageW - margin * 2, 23, 3, 3, "F");
+          doc.setFont("helvetica", "bold"); doc.setFontSize(10); setText(C.dark); doc.text("Estimated nutrition per serving", margin + 5, y + 1);
+          doc.setFont("helvetica", "normal"); doc.setFontSize(9); setText(C.mid);
+          doc.text(["Calories " + Math.round(recipe.macros.calories || 0), "Protein " + Math.round(recipe.macros.protein || 0) + "g", "Carbs " + Math.round(recipe.macros.carbs || 0) + "g", "Fat " + Math.round(recipe.macros.fat || 0) + "g"].join("   "), margin + 5, y + 11);
+          y += 24;
+        }
+        footer();
         doc.save(recipe.title.replace(/\s+/g,"-")+".pdf");
       }
 
@@ -2868,7 +3141,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               {[
                 {label:"Adjust",action:()=>setShowAI(!showAI),bg:C.cream2,color:C.brown,border:"1px solid "+C.border},
                 {label:"Cook",action:()=>setCookMode(true),bg:C.green,color:C.white,border:"none"},
-                {label:"Shop List",action:()=>setShowShop(!showShop),bg:C.goldPale,color:C.brown,border:"1px solid "+C.goldLight},
+                {label:"Shopping List",action:()=>setShowShop(!showShop),bg:C.goldPale,color:C.brown,border:"1px solid "+C.goldLight},
                 {label:"What to Buy",action:()=>setShowWTB(!showWTB),bg:C.terraPale,color:C.terra,border:"1px solid "+C.terra+"25"},
                 {label:"PDF",icon:"pdf",action:exportPDF,bg:C.greenPale,color:C.green,border:"1px solid "+C.green+"25"},
               ].map((btn) => (
@@ -2938,7 +3211,17 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             {showShop && (
               <div style={{...S.cardSoft,background:C.greenPale,border:"1px solid "+C.green+"30",padding:16,marginBottom:18}}>
                 <div style={{fontFamily:SERIF,fontSize:"1.05em",marginBottom:11}}>Shopping List</div>
-                {allIngredients.map((ing,i)=>{ const measure=displayIngredientMeasure(ing,scale,metric),a=measure.amount,u=measure.unit||""; return <div key={i} style={{padding:"5px 0",borderBottom:"1px solid "+C.blue+"18",fontSize:"0.88em",color:C.dark,display:"flex",alignItems:"center",gap:8}}><span style={{width:14,height:14,border:"1.5px solid "+C.green,borderRadius:4,flexShrink:0}} />{a}{u?" "+u:""} {ing.name}</div>; })}
+                {shoppingGroups.map((group) => (
+                  <div key={group.category} style={{marginBottom:group.category===shoppingGroups[shoppingGroups.length-1]?.category?0:12}}>
+                    <div style={{fontSize:"0.68em",letterSpacing:1.8,textTransform:"uppercase",fontWeight:800,color:C.green,margin:"0 0 5px"}}>{group.category}</div>
+                    {group.items.map((item) => (
+                      <div key={item.id} title={item.warning || ""} style={{padding:"5px 0",borderBottom:"1px solid "+C.blue+"18",fontSize:"0.88em",color:C.dark,display:"flex",alignItems:"center",gap:8}}>
+                        <span style={{width:14,height:14,border:"1.5px solid "+C.green,borderRadius:4,flexShrink:0}} />
+                        <span>{item.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
               </div>
             )}
 
@@ -2970,6 +3253,15 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     <button onClick={()=>setWtbResult(null)} style={{background:"none",border:"1px solid "+C.border,color:C.mid,borderRadius:8,padding:"6px 14px",cursor:"pointer",fontSize:"0.82em",fontFamily:SANS}}>Try again</button>
                   </div>
                 )}
+              </div>
+            )}
+
+            {recipe.notes && String(recipe.notes).trim() && (
+              <div style={{...S.cardSoft,background:C.goldPale,border:"1px solid "+C.goldLight,padding:16,marginBottom:22}}>
+                <div style={{fontSize:"0.66em",letterSpacing:2.4,textTransform:"uppercase",fontWeight:800,color:C.brownLight,marginBottom:8}}>Notes</div>
+                <div style={{fontSize:"0.9em",lineHeight:1.7,color:C.mid,whiteSpace:"pre-wrap",overflowWrap:"break-word"}}>
+                  <NoteText text={recipe.notes} />
+                </div>
               </div>
             )}
 
@@ -3121,6 +3413,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               <input value={(draft.tags||[]).join(", ")} onChange={(e)=>set("tags",e.target.value.split(",").map((t)=>t.trim()).filter(Boolean))} placeholder="Tags: quick, vegetarian..." style={iStyle} />
             </div>
             <textarea value={draft.description||""} onChange={(e)=>set("description",e.target.value)} placeholder="Description" rows={2} style={{width:"100%",padding:"8px 11px",border:"1px solid "+C.border,borderRadius:8,fontSize:"0.86em",resize:"vertical",outline:"none",marginBottom:10,boxSizing:"border-box",fontFamily:SANS}} />
+            <textarea value={draft.notes||""} onChange={(e)=>set("notes",e.target.value)} placeholder="Notes, tips, source links, storage guidance..." rows={4} style={{width:"100%",padding:"8px 11px",border:"1px solid "+C.border,borderRadius:8,fontSize:"0.86em",resize:"vertical",outline:"none",marginBottom:10,boxSizing:"border-box",fontFamily:SANS}} />
 
             {/* Macros */}
             <div style={{background:C.goldPale,border:"1px solid "+C.goldLight,borderRadius:8,padding:13,marginBottom:12}}>

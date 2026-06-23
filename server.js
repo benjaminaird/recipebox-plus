@@ -508,6 +508,18 @@ function kbSeedEntries() {
       priority: 84,
     },
     {
+      id: 'original-recipe-card-future-milestone',
+      title: 'Future Milestone: Original Recipe Card Preservation',
+      category: 'Product Strategy',
+      useWhen: 'Planning import, handwritten recipe, PDF, screenshot, or recipe-detail source preservation features.',
+      appliesToFeatures: ['Import', 'Recipe Detail', 'Manual Recipe Entry'],
+      content: 'Future feature: when users import handwritten cards, family recipe photos, screenshots, or PDFs, optionally preserve the original source with the cleaned recipe. Recipe detail should expose this warmly, e.g. Original Recipe Card or Let’s see what the original says, with a small thumbnail that opens a full-screen viewer. The original should serve as both source of truth and sentimental artifact. Edit Recipe should allow adding, replacing, downloading, or removing the original source. Keep the first pass lightweight; avoid OCR history/versioning until import reliability is stronger. Long term, store originals in Blob/object storage instead of bloating recipe JSON with large base64 payloads.',
+      createdAt: now,
+      updatedAt: now,
+      ...common,
+      priority: 73,
+    },
+    {
       id: 'pantry-chef-rules',
       title: 'Pantry Chef Rules',
       category: 'Pantry Logic',
@@ -530,6 +542,66 @@ function kbSeedEntries() {
       updatedAt: now,
       ...common,
       priority: 76,
+    },
+    {
+      id: 'shopping-list-aggregation-rules',
+      title: 'Shopping List Aggregation Rules',
+      category: 'Product Strategy',
+      useWhen: 'Generating recipe or meal-plan shopping lists.',
+      appliesToFeatures: ['Shopping List', 'Meal Planner', 'Recipe Detail'],
+      content: 'Shopping lists should be deterministic at tap time and should not require a fresh AI call. Use structured ingredient fields when available, fall back to local parsing for older recipes, combine duplicate ingredients only when units and names are compatible, preserve prep notes, keep ambiguous items separate, and group items by grocery-store category.',
+      createdAt: now,
+      updatedAt: now,
+      ...common,
+      priority: 83,
+    },
+    {
+      id: 'referral-program-future-milestone',
+      title: 'Future Milestone: Referral Program',
+      category: 'Product Strategy',
+      useWhen: 'Planning monetization, AI credits, or account growth features.',
+      appliesToFeatures: ['Settings'],
+      content: 'Future referral program: users may receive a referral code or link. When a referred friend completes a qualifying RecipeBox+ signup or conversion, both accounts receive a one-time AI credit bonus. Referral credit grants must happen server-side only, be auditable, prevent self-referrals, prevent repeated bonuses from the same referred user, and track referral source, referred user, referrer user, qualification date, and granted credits. Possible future tables include referrals, ai_credit_ledger, and referral_events.',
+      createdAt: now,
+      updatedAt: now,
+      ...common,
+      priority: 64,
+    },
+    {
+      id: 'native-widgets-future-milestone',
+      title: 'Future Milestone: iOS and Android Widgets',
+      category: 'Product Strategy',
+      useWhen: 'Planning native app release or mobile quick-access features.',
+      appliesToFeatures: ['Meal Planner', 'Shopping List', 'Import', 'Pantry Chef', 'Cook Mode'],
+      content: 'Future native widgets should surface useful food decisions without opening the app. Candidate widgets: Tonight’s Meal with recipe/Cook Mode/missing-ingredient deep links, Shopping List preview, Quick Import/Add Recipe, Pantry Chef, and Cook Mode current step. Do not build widgets before native wrapping and release planning, but avoid architecture decisions that would make deep links and widget data hard later.',
+      createdAt: now,
+      updatedAt: now,
+      ...common,
+      priority: 62,
+    },
+    {
+      id: 'family-plan-future-milestone',
+      title: 'Future Milestone: Family Plan',
+      category: 'Product Strategy',
+      useWhen: 'Planning subscriptions, sharing, household accounts, or permissions.',
+      appliesToFeatures: ['Settings', 'Library', 'Meal Planner', 'Shopping List', 'Pantry Chef'],
+      content: 'Future Family Plan recommendation: cap at 4 members. Roles should include Owner, Adult, and Member. Owner controls billing and invites. Support shared library, favorites, meal plans, shopping lists, and pantry while preserving personal/private recipes unless explicitly shared. Sharing should be permission-based rather than a shared login, and members should not be required to live in the same household.',
+      createdAt: now,
+      updatedAt: now,
+      ...common,
+      priority: 61,
+    },
+    {
+      id: 'pdf-export-polish-future-milestone',
+      title: 'Future Milestone: Better PDF Export',
+      category: 'Product Strategy',
+      useWhen: 'Improving recipe PDF export design.',
+      appliesToFeatures: ['PDF Export', 'Recipe Detail'],
+      content: 'Recipe PDF exports should feel polished, branded, and worth sharing. Add RecipeBox branding and logo if available, stronger typography hierarchy, a title section, metadata chips, clean ingredient and directions sections, estimated nutrition when available, and an Exported from RecipeBox footer. Avoid imported recipe photos by default unless licensing or ownership is clear; if image inclusion exists, make it optional and default off.',
+      createdAt: now,
+      updatedAt: now,
+      ...common,
+      priority: 60,
     },
     {
       id: 'hero-image-rules',
@@ -999,6 +1071,16 @@ function cleanText(html) {
     .replace(/\s+/g, ' ')
     .trim();
 }
+function decodeHtmlText(text) {
+  return String(text || '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 function matchAttr(html, re) {
   const m = html.match(re);
   return m ? (m[1] || m[2] || '').trim() : '';
@@ -1046,6 +1128,26 @@ function bestImage(base, html, jsonLdNodes) {
   const imgMatches = [...html.matchAll(/<img[^>]+(?:src|data-src|data-lazy-src)=["']([^"']+)["'][^>]*>/gi)].slice(0, 20);
   imgMatches.forEach(m => candidates.push(m[1]));
   return candidates.map(x => absoluteUrl(base, x)).find(x => /^https?:\/\//i.test(x)) || '';
+}
+function extractHelpfulLinks(base, html) {
+  const keywords = /\b(rub|sauce|seasoning|marinade|dressing|stock|broth|jam|frosting|glaze|paste|mix|blend|homemade|how to|guide|tips?|substitutions?|ingredient|recipe)\b/i;
+  const seen = new Set();
+  return [...html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)]
+    .map((m) => {
+      const href = matchAttr(m[1], /\bhref=["']([^"']+)["']/i);
+      const text = decodeHtmlText(m[2]);
+      const url = absoluteUrl(base, href);
+      return { text, url };
+    })
+    .filter((link) => /^https?:\/\//i.test(link.url) && link.text && link.text.length <= 120)
+    .filter((link) => keywords.test(link.text) || keywords.test(link.url))
+    .filter((link) => {
+      const key = link.url.replace(/#.*$/, '');
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 20);
 }
 function detectSocialPlatform(rawUrl) {
   try {
@@ -1115,6 +1217,7 @@ async function youtubeOembed(videoUrl) {
   const data = await r.json();
   return {
     title: data.title || '',
+    author: data.author_name || '',
     thumbnail: data.thumbnail_url || '',
   };
 }
@@ -1226,7 +1329,7 @@ app.post('/api/auth/request-password-reset', async (req, res) => {
   try {
     if (!checkAuthLimit(req, res)) return;
     const db = await getPool();
-    if (!db) return res.status(500).json({ error: 'database not configured' });
+    if (!db) return res.status(503).json({ error: 'Password reset requires DATABASE_URL to be configured.' });
     if (!process.env.RESEND_API_KEY) return res.status(503).json({ error: 'Password reset email is not configured yet.' });
     const email = normalizeEmail(req.body.email);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.json({ ok: true });
@@ -1738,8 +1841,18 @@ app.get('/api/fetch-url', async (req, res) => {
       .replace(/\s+/g, ' ')
       .trim();
     const image = bestImage(target, html, jsonLd);
+    const helpfulLinks = extractHelpfulLinks(r.url || target, html);
     const text = cleanText(html).slice(0, 18000);
-    res.json({ url: target, finalUrl: r.url, title, image, jsonLd, text, htmlHash: crypto.createHash('sha256').update(html).digest('hex') });
+    if (/^just a moment/i.test(title) || /^just a moment/i.test(text) || text.length < 80) {
+      return res.status(422).json({
+        error: 'RecipeBox could not read this recipe page. The site may be blocking automated access. Try Paste Text or screenshots instead.',
+        url: target,
+        finalUrl: r.url,
+        title,
+        sourceQuality: 'blocked',
+      });
+    }
+    res.json({ url: target, finalUrl: r.url, title, image, jsonLd, text, helpfulLinks, htmlHash: crypto.createHash('sha256').update(html).digest('hex') });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1880,6 +1993,7 @@ app.get('/api/transcript', async function(req, res) {
     if (descMatch) description = descMatch[1].replace(/\\n/g, ' ').slice(0, 2000);
     let transcript = '';
     let thumbnail = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
+    let author = '';
     const debugInfo = {
       videoId,
       youtubeStatus: yt.status,
@@ -1956,9 +2070,20 @@ app.get('/api/transcript', async function(req, res) {
       try {
         const metadata = await youtubeOembed(videoUrl);
         if (metadata.title) title = metadata.title;
+        if (metadata.author) author = metadata.author;
         if (metadata.thumbnail) thumbnail = metadata.thumbnail;
       } catch (err) {
         debugInfo.oembedErrorName = err?.name || '';
+        debugInfo.oembedErrorMessage = err?.message || String(err);
+      }
+    }
+    if (!author) {
+      try {
+        const metadata = await youtubeOembed(videoUrl);
+        if (metadata.author) author = metadata.author;
+        if (metadata.thumbnail && thumbnail.endsWith('/maxresdefault.jpg')) thumbnail = metadata.thumbnail;
+      } catch (err) {
+        debugInfo.oembedErrorName = err?.name || debugInfo.oembedErrorName || '';
         debugInfo.oembedErrorMessage = err?.message || String(err);
       }
     }
@@ -1967,6 +2092,7 @@ app.get('/api/transcript', async function(req, res) {
     if (availableLength < 120) warnings.push('low confidence extraction');
     const payload = {
       title,
+      author,
       description,
       transcript,
       thumbnail,
@@ -2079,6 +2205,7 @@ app.get('*', function(req, res) { res.sendFile(path.join(__dirname, 'public', 'i
 
 module.exports = app;
 module.exports.extractYouTubeVideoId = extractYouTubeVideoId;
+module.exports._test = { extractHelpfulLinks };
 
 if (require.main === module) {
   app.listen(process.env.PORT || 3000, function() { console.log('RecipeBox running'); });

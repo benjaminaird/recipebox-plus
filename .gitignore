@@ -7,3 +7,10 @@ node_modules/
 .env.development.local
 .env.production.local
 .env.test.local
+scripts/import-test/node_modules/
+scripts/import-test/out/
+scripts/import-test/manifest.local.json
+scripts/import-test/sources/pdfs/
+scripts/import-test/sources/photos/
+scripts/import-test/sources/desktop-pdfs/
+scripts/import-test/sources/desktop-photos/

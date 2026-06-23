@@ -7,6 +7,7 @@ async function readJson(res) {
 
 async function main() {
   const results = [];
+  let databaseEnabled = false;
   async function check(name, fn) {
     try {
       await fn();
@@ -28,7 +29,15 @@ async function main() {
     }
   });
 
+  await check('health route reports database mode', async () => {
+    const res = await fetch(baseUrl + '/api/health');
+    const data = await readJson(res);
+    if (res.status !== 200) throw new Error(`health returned ${res.status}`);
+    databaseEnabled = data.database === true;
+  });
+
   await check('normal user cannot access admin', async () => {
+    if (!databaseEnabled) return;
     const email = `security-smoke-${Date.now()}@example.com`;
     const password = 'recipebox1';
     let cookie = '';

@@ -40,6 +40,11 @@ async function main() {
   });
   assert.ok(resetRes.ok || resetRes.status === 503, 'password reset route should respond predictably');
 
+  if (!health.database) {
+    console.log('Smoke test passed in no-database mode; account sync checks skipped.');
+    return;
+  }
+
   const signup = await request('/api/auth/signup', {
     method: 'POST',
     body: JSON.stringify({

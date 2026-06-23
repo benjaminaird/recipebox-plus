@@ -1,0 +1,21 @@
+{
+  "_comment": "Committed smoke manifest for the RecipeBox import harness. For private real-world suites, create manifest.local.json; run.js will prefer it automatically and .gitignore keeps it local.",
+  "tests": [
+    {
+      "category": "photo",
+      "id": "photo-synthetic-curry-card",
+      "files": ["cards/card-curry.png"],
+      "label": "Synthetic card - Weeknight Chickpea Curry",
+      "expectedTitle": "Weeknight Chickpea Curry",
+      "knownIngredients": ["olive oil", "yellow onion", "garlic", "curry powder", "chickpeas", "coconut milk", "spinach", "lime juice"]
+    },
+    {
+      "category": "photo",
+      "id": "photo-synthetic-cookies-card",
+      "files": ["cards/card-cookies.png"],
+      "label": "Synthetic card - Oatmeal Chocolate Chip Cookies",
+      "expectedTitle": "Oatmeal Chocolate Chip Cookies",
+      "knownIngredients": ["butter", "brown sugar", "egg", "vanilla", "flour", "oats", "chocolate chips"]
+    }
+  ]
+}

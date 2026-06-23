@@ -1,0 +1,3 @@
+{ "name": "recipebox-import-test", "private": true, "version": "1.0.0",
+  "description": "Isolated import-accuracy harness deps (pdf text extraction).",
+  "dependencies": { "pdfjs-dist": "3.11.174" } }
