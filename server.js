@@ -1704,6 +1704,14 @@ app.put('/api/admin/users/:id/entitlement', requireAuth, requireMasterAdmin, asy
 });
 
 app.get('/api/admin/app-control/meta', requireAuth, requireMasterAdmin, async (req, res) => {
+  let newFeedback = 0;
+  try {
+    const db = await getPool();
+    if (db) {
+      const r = await db.query(`SELECT count(*)::int AS n FROM user_feedback WHERE status='new'`);
+      newFeedback = r.rows[0]?.n || 0;
+    }
+  } catch {}
   res.json({
     user: publicUser(req.user),
     sections: ADMIN_SECTION_NAMES,
@@ -1711,7 +1719,56 @@ app.get('/api/admin/app-control/meta', requireAuth, requireMasterAdmin, async (r
     features: ADMIN_FEATURES,
     scopeTypes: ADMIN_SCOPE_TYPES,
     whatsNextSync: { configured: false, status: 'not_configured' },
+    newFeedback,
   });
+});
+
+// Master-admin-only feedback inbox. Beta feedback is captured into user_feedback
+// (write-only until now); these endpoints let the admin read it and triage status.
+app.get('/api/admin/feedback', requireAuth, requireMasterAdmin, async (req, res) => {
+  try {
+    const db = await getPool();
+    if (!db) return res.json({ unread: 0, total: 0, items: [] });
+    const items = await db.query(
+      `SELECT f.id, f.type, f.message, f.page, f.device, f.status, f.created_at,
+              p.email, p.display_name
+         FROM user_feedback f
+         LEFT JOIN profiles p ON p.user_id = f.user_id
+        ORDER BY (f.status = 'new') DESC, f.created_at DESC
+        LIMIT 200`
+    );
+    const counts = await db.query(
+      `SELECT count(*)::int AS total, count(*) FILTER (WHERE status='new')::int AS unread FROM user_feedback`
+    );
+    res.json({
+      unread: counts.rows[0]?.unread || 0,
+      total: counts.rows[0]?.total || 0,
+      items: items.rows.map((row) => ({
+        id: row.id,
+        type: row.type,
+        message: row.message,
+        page: row.page || '',
+        device: row.device || '',
+        status: row.status,
+        createdAt: row.created_at,
+        email: row.email || '',
+        displayName: row.display_name || '',
+      })),
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/admin/feedback/:id/status', requireAuth, requireMasterAdmin, async (req, res) => {
+  try {
+    const db = await getPool();
+    if (!db) return res.status(503).json({ error: 'Database unavailable.' });
+    const status = String(req.body?.status || '').trim().toLowerCase();
+    if (!['new', 'reviewed'].includes(status)) return res.status(400).json({ error: 'Invalid status.' });
+    const result = await db.query('UPDATE user_feedback SET status=$2 WHERE id=$1 RETURNING id, status', [req.params.id, status]);
+    if (!result.rows.length) return res.status(404).json({ error: 'Feedback not found.' });
+    await logUserActivity(req.user, 'admin_feedback_status', { feedbackId: req.params.id, status });
+    res.json({ ok: true, id: result.rows[0].id, status: result.rows[0].status });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.get('/api/admin/knowledge', requireAuth, requireMasterAdmin, async (req, res) => {

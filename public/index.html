@@ -1026,7 +1026,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     }
 
     // Bottom Nav
-    function BottomNav({ tab, setTab }) {
+    function BottomNav({ tab, setTab, badges }) {
       const items = [
         { id:"library", icon:"library", label:"Library" },
         { id:"plan", icon:"mealPlan", label:"Meal Plan" },
@@ -1037,10 +1037,16 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         <div style={{position:"fixed",bottom:0,left:0,right:0,background:C.paper,borderTop:"1px solid "+C.border,display:"flex",zIndex:30,boxShadow:"0 -8px 24px rgba(90,56,39,0.10)",paddingBottom:"calc(env(safe-area-inset-bottom) + 8px)",overflowX:"hidden"}}>
           {items.map((item) => {
             const active = tab === item.id;
+            const badge = badges && badges[item.id];
             return (
               <button key={item.id} onClick={() => setTab(item.id)}
                 style={{flex:"1 1 0",minWidth:0,padding:"12px 0 10px",border:"none",background:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,position:"relative",color:active?"#1f5a37":"#9a7a68",fontFamily:SANS,WebkitTapHighlightColor:"transparent"}}>
-                <Icon name={item.icon} size={23} style={{marginBottom:2}} />
+                <span style={{position:"relative",display:"inline-flex"}}>
+                  <Icon name={item.icon} size={23} style={{marginBottom:2}} />
+                  {badge > 0 && (
+                    <span aria-label={badge+" new"} style={{position:"absolute",top:-5,right:-9,minWidth:17,height:17,padding:"0 4px",borderRadius:999,background:"#c2402e",color:"#fff",fontSize:"0.6em",fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center",border:"1.5px solid "+C.paper,lineHeight:1}}>{badge > 9 ? "9+" : badge}</span>
+                  )}
+                </span>
                 <span style={{fontSize:"0.67em",fontWeight:active?700:500,color:"inherit",fontFamily:SANS}}>{item.label}</span>
                 {active && <div style={{position:"absolute",bottom:0,width:22,height:3,background:"#c2952e",borderRadius:2}} />}
               </button>
@@ -1593,7 +1599,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       );
     }
 
-    function Settings({ timerSound, setTimerSound, account, setAccount, recipes, mealPlan, aiUsage, onCloudData, onOpenAdmin }) {
+    function Settings({ timerSound, setTimerSound, account, setAccount, recipes, mealPlan, aiUsage, onCloudData, onOpenAdmin, newFeedback }) {
       const [mode, setMode] = useState("create");
       const [email, setEmail] = useState("");
       const [displayName, setDisplayName] = useState("");
@@ -1984,9 +1990,17 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.white}}>App Control</div>
                     <div style={{fontSize:"0.78em",color:"rgba(255,249,238,0.68)",lineHeight:1.4}}>Master Admin operating brain for rules, prompts, limits, and knowledge.</div>
                   </div>
+                  {newFeedback > 0 && (
+                    <span style={{flexShrink:0,minWidth:22,height:22,padding:"0 7px",borderRadius:999,background:"#c2402e",color:"#fff",fontSize:"0.72em",fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1}}>{newFeedback > 99 ? "99+" : newFeedback}</span>
+                  )}
                 </div>
+                {newFeedback > 0 && (
+                  <div style={{marginTop:11,background:"rgba(194,64,46,0.16)",border:"1px solid rgba(194,64,46,0.4)",borderRadius:9,padding:"9px 12px",fontSize:"0.8em",color:"#ffd9d2",fontWeight:700}}>
+                    {newFeedback === 1 ? "1 new piece of beta feedback is waiting." : newFeedback + " new pieces of beta feedback are waiting."}
+                  </div>
+                )}
                 <button onClick={onOpenAdmin} style={{...S.goldBtn,width:"100%",marginTop:13,borderRadius:9,padding:"10px 12px",fontSize:"0.82em"}}>
-                  Open App Control
+                  {newFeedback > 0 ? "Open App Control · Read feedback" : "Open App Control"}
                 </button>
               </div>
             )}
@@ -2088,9 +2102,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       return { title:"", category:"Methodology", useWhen:"", scopeType:"Global", scopeValue:"", appliesToFeatures:[], priority:50, active:true, content:"", sourceOrigin:"RecipeBox" };
     }
 
-    function AppControl({ account, onBack }) {
+    function AppControl({ account, onBack, onFeedbackChange }) {
       const [sources, setSources] = useState([]);
       const [changes, setChanges] = useState([]);
+      const [feedback, setFeedback] = useState([]);
+      const [feedbackUnread, setFeedbackUnread] = useState(0);
       const [filter, setFilter] = useState("All");
       const [editor, setEditor] = useState(null);
       const [draft, setDraft] = useState(() => emptyAdminDraft());
@@ -2106,17 +2122,33 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       async function loadAdmin() {
         setBusy(true);
         try {
-          const [knowledgeData, logData] = await Promise.all([
+          const [knowledgeData, logData, feedbackData] = await Promise.all([
             fetchJson("/api/admin/knowledge", { sources:[] }),
             fetchJson("/api/admin/change-log", { changes:[] }),
+            fetchJson("/api/admin/feedback", { items:[], unread:0 }),
           ]);
           setSources(knowledgeData.sources || []);
           setChanges(logData.changes || []);
+          setFeedback(feedbackData.items || []);
+          setFeedbackUnread(feedbackData.unread || 0);
+          if (onFeedbackChange) onFeedbackChange(feedbackData.unread || 0);
         } catch (err) {
           setMessage(err.message || "Could not load App Control.");
         } finally { setBusy(false); }
       }
       useEffect(() => { loadAdmin(); }, []);
+      async function markFeedback(id, status) {
+        try {
+          await postJson("/api/admin/feedback/" + encodeURIComponent(id) + "/status", { status });
+          setFeedback((prev) => {
+            const next = prev.map((f) => f.id === id ? { ...f, status } : f);
+            const unread = next.filter((f) => f.status === "new").length;
+            setFeedbackUnread(unread);
+            if (onFeedbackChange) onFeedbackChange(unread);
+            return next;
+          });
+        } catch (err) { setMessage(err.message || "Could not update feedback."); }
+      }
       async function loadUsers() {
         setBusy(true);
         try {
@@ -2218,8 +2250,14 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               {[
                 ["knowledge","Knowledge"],
                 ["users","Users"],
+                ["feedback","Feedback"],
               ].map(([id,label]) => (
-                <button key={id} onClick={() => setSection(id)} style={{...chip(section === id),padding:"9px 13px"}}>{label}</button>
+                <button key={id} onClick={() => setSection(id)} style={{...chip(section === id),padding:"9px 13px",display:"inline-flex",alignItems:"center",gap:7}}>
+                  {label}
+                  {id === "feedback" && feedbackUnread > 0 && (
+                    <span style={{minWidth:18,height:18,padding:"0 5px",borderRadius:999,background:"#c2402e",color:"#fff",fontSize:"0.86em",fontWeight:900,display:"inline-flex",alignItems:"center",justifyContent:"center",lineHeight:1}}>{feedbackUnread > 99 ? "99+" : feedbackUnread}</span>
+                  )}
+                </button>
               ))}
             </div>
 
@@ -2336,6 +2374,47 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                       </div>
                     ))}
                     {!users.length && <div style={{padding:18,textAlign:"center",color:dark.muted}}>No users match those filters.</div>}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {section === "feedback" && (
+              <div style={{display:"grid",gap:14}}>
+                <div className="admin-stats-grid">
+                  {[["New",feedbackUnread],["Total",feedback.length]].map(([label,value]) => (
+                    <div key={label} style={{background:dark.panel,border:"1px solid "+dark.line,borderRadius:14,padding:14,minWidth:0}}>
+                      <div style={{fontSize:"0.72em",textTransform:"uppercase",letterSpacing:1.4,color:dark.muted,fontWeight:800}}>{label}</div>
+                      <div style={{fontFamily:SERIF,fontSize:"2em",lineHeight:1,color:label==="New"&&value>0?dark.red:dark.text}}>{value}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="admin-panel" style={{background:dark.panel,border:"1px solid "+dark.line,borderRadius:16,padding:14,display:"grid",gap:12}}>
+                  <div style={{minWidth:0}}>
+                    <div style={{fontFamily:SERIF,fontSize:"1.4em"}}>Beta Feedback</div>
+                    <div style={{fontSize:"0.8em",color:dark.muted}}>What beta users sent from Settings. Only you can see this.</div>
+                  </div>
+                  {message && <div style={{color:message.includes("Could not")?dark.red:dark.green,fontWeight:900,fontSize:"0.82em"}}>{message}</div>}
+                  <div style={{display:"grid",gap:9}}>
+                    {feedback.map((f) => (
+                      <div key={f.id} style={{background:dark.panel2,border:"1px solid "+(f.status==="new"?"rgba(224,120,109,0.45)":dark.line),borderRadius:13,padding:13,display:"grid",gap:8,minWidth:0}}>
+                        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                          <span style={{border:"1px solid rgba(216,179,95,0.3)",borderRadius:999,padding:"3px 9px",color:dark.gold,fontWeight:900,fontSize:"0.72em",textTransform:"capitalize"}}>{f.type}</span>
+                          {f.status==="new" && <span style={{borderRadius:999,padding:"3px 9px",background:"#c2402e",color:"#fff",fontWeight:900,fontSize:"0.7em"}}>NEW</span>}
+                          <span style={{fontSize:"0.74em",color:dark.muted,marginLeft:"auto"}}>{fmtDate(f.createdAt)}</span>
+                        </div>
+                        <div style={{color:dark.text,fontSize:"0.9em",lineHeight:1.5,whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{f.message}</div>
+                        <div style={{fontSize:"0.72em",color:dark.muted,overflowWrap:"anywhere"}}>
+                          {(f.displayName || "Unnamed") + (f.email ? " · " + f.email : "")}{f.page ? " · " + f.page : ""}{f.device ? " · " + f.device : ""}
+                        </div>
+                        <div style={{display:"flex",justifyContent:"flex-end"}}>
+                          {f.status==="new"
+                            ? <button onClick={() => markFeedback(f.id, "reviewed")} style={{...S.goldBtn,borderRadius:9,padding:"8px 13px",fontSize:"0.76em"}}>Mark reviewed</button>
+                            : <button onClick={() => markFeedback(f.id, "new")} style={{...S.ghostBtn,borderColor:dark.line,background:"rgba(255,249,238,0.04)",color:dark.muted,borderRadius:9,padding:"8px 13px",fontSize:"0.76em"}}>Mark unread</button>}
+                        </div>
+                      </div>
+                    ))}
+                    {!feedback.length && <div style={{padding:18,textAlign:"center",color:dark.muted}}>No feedback yet. When beta users send notes from Settings, they show up here.</div>}
                   </div>
                 </div>
               </div>
@@ -4009,6 +4088,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [libraryTag, setLibraryTag] = useState("");
       const [account, setAccount] = useState(() => loadAccountSession().user || null);
       const [aiUsage, setAiUsage] = useState(() => defaultAiUsage());
+      const [newFeedback, setNewFeedback] = useState(0);
       const [showSplash, setShowSplash] = useState(true);
       const swipeRef = useRef(null);
       const pointerSwipeRef = useRef(null);
@@ -4026,6 +4106,12 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         window.addEventListener("recipebox-ai-usage", handler);
         return () => window.removeEventListener("recipebox-ai-usage", handler);
       }, [account?.id]);
+      async function refreshAdminAlerts() {
+        if (!account?.isMasterAdmin) { setNewFeedback(0); return; }
+        try { const m = await fetchJson("/api/admin/app-control/meta", {}); setNewFeedback(m?.newFeedback || 0); }
+        catch { /* leave count as-is */ }
+      }
+      useEffect(() => { refreshAdminAlerts(); }, [account?.id]);
       useEffect(() => {
         const t = setTimeout(() => setShowSplash(false), 2400);
         return () => clearTimeout(t);
@@ -4117,13 +4203,13 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       if (showSplash) return <SplashScreen />;
       if (resetToken) return <AuthScreen recipes={recipes} mealPlan={mealPlan} setAccount={setAccount} onCloudData={loadCloudData} initialMode="newpass" resetToken={resetToken} />;
       if (!account) return <AuthScreen recipes={recipes} mealPlan={mealPlan} setAccount={setAccount} onCloudData={loadCloudData} />;
-      if (screen==="admin" && account?.isMasterAdmin) return <AppControl account={account} onBack={()=>setScreen("library")} />;
+      if (screen==="admin" && account?.isMasterAdmin) return <AppControl account={account} onBack={()=>{refreshAdminAlerts();setScreen("library");}} onFeedbackChange={setNewFeedback} />;
       if (screen==="import") return <ImportScreen onDone={(r)=>{(Array.isArray(r)?r:[r]).forEach(addRecipe);setScreen("library");}} onCancel={()=>setScreen("library")} />;
       if (screen==="edit"&&current) return <EditRecipe recipe={current} onSave={(r)=>{ if(recipes.find((x)=>x.id===r.id)) updateRecipe(r); else addRecipe(r); setScreen("view"); }} onCancel={()=>setScreen("view")} />;
       if (screen==="view"&&current) return (
         <>
           <RecipeView recipe={current} onBack={()=>setScreen("library")} onEdit={()=>setScreen("edit")} onDelete={()=>deleteRecipe(current.id)} onUpdate={(r)=>{updateRecipe(r);setCurrent(r);}} onImport={(r)=>{addRecipe(r);setCurrent(r);}} onTagClick={(t)=>{setLibraryTag(t);setMainTab("library");}} timerSound={timerSound} />
-          <BottomNav tab={tab} setTab={(t)=>{setTab(t);setScreen("library");}} />
+          <BottomNav tab={tab} setTab={(t)=>{setTab(t);setScreen("library");}} badges={{settings:newFeedback}} />
         </>
       );
 
@@ -4132,8 +4218,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>{setCurrent(r);setScreen("view");}} onAdd={()=>setScreen("import")} onFavorite={toggleFavorite} setTab={setMainTab} tagFilter={libraryTag} onTagFilter={setLibraryTag} />}
           {tab==="plan" && <MealPlanner recipes={recipes} mealPlan={mealPlan} setMealPlan={updateMealPlan} onOpen={(r)=>{setCurrent(r);setScreen("view");}} />}
           {tab==="pantry" && <PantryChef recipes={recipes} onImport={(r)=>{addRecipe(r);setTab("library");}} onOpenRecipe={(r)=>{setCurrent(r);setScreen("view");}} />}
-          {tab==="settings" && <Settings timerSound={timerSound} setTimerSound={setTimerSound} account={account} setAccount={setAccount} recipes={recipes} mealPlan={mealPlan} aiUsage={aiUsage} onCloudData={loadCloudData} onOpenAdmin={()=>setScreen("admin")} />}
-          <BottomNav tab={tab} setTab={setMainTab} />
+          {tab==="settings" && <Settings timerSound={timerSound} setTimerSound={setTimerSound} account={account} setAccount={setAccount} recipes={recipes} mealPlan={mealPlan} aiUsage={aiUsage} onCloudData={loadCloudData} onOpenAdmin={()=>setScreen("admin")} newFeedback={newFeedback} />}
+          <BottomNav tab={tab} setTab={setMainTab} badges={{settings:newFeedback}} />
         </div>
       );
     }

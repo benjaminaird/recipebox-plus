@@ -16,6 +16,7 @@ Last updated: June 23, 2026.
 - Recipe notes are now part of imported and edited recipes, shown above ingredients/directions, and source URLs in notes are clickable.
 - Shopping lists now use deterministic local aggregation and grocery categories instead of another AI call.
 - Known honest fallbacks are now part of the expected product behavior: blocked recipe pages, low-information social/video sources, and multiple-recipe sources should not become invented or silently merged recipes.
+- Beta feedback (Settings → Beta Feedback) is now readable: a master-admin-only inbox in App Control shows each message with submitter, page, and device, supports new/reviewed triage, and surfaces an unread badge on the Settings tab and App Control card. Stored in `user_feedback`; no email/webhook — visible only to the master admin (server-enforced).
 
 ## Near-Term Beta Priorities
 
