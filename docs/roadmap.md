@@ -6,9 +6,10 @@ RecipeBox is moving toward beta-readiness first, then wider iOS and Google Play 
 
 Last updated: June 23, 2026.
 
-- Production is deployed at `https://recipebox-kappa.vercel.app`.
+- Production is deployed at `https://recipebox-kappa.vercel.app` (Vercel production target, aliased; deployed from the `codex/import-reliability-notes` branch via `vercel --prod`).
 - Latest checkpoint branch: `codex/import-reliability-notes`.
-- Latest checkpoint commit: `b189edb Improve recipe import reliability and notes`.
+- Latest checkpoint commit: `c52da90 Add multiple-recipe import review screen` (live in production).
+- The multiple-recipe import review screen is shipped: when extraction returns `multiple_recipes_detected`, the user sees the detected recipes and can import one, combine them into a single card, or import all separately. Each option re-runs a focused extraction against the original source and discloses that it uses AI credits. All AI calls still go through `/api/ai`, so server-side credit metering and tier/rate-limit enforcement are unchanged.
 - Import reliability is much stronger across URLs, YouTube, PDFs, photos, HEIC uploads, scanned PDFs, and sideways PDF pages.
 - The private 35-case import suite from the Desktop testing document passed locally. The repo keeps that suite local/ignored so personal recipe photos, PDFs, and notes are not pushed.
 - A safe committed import harness now exists with synthetic fixtures for non-private regression checks.
@@ -26,8 +27,7 @@ Last updated: June 23, 2026.
 
 ## Next Recommended Steps
 
-1. Build the multiple-recipe import review screen.
-   When AI returns `multiple_recipes_detected`, RecipeBox should show the detected names and let the user import one, treat the source as one combined recipe, or import all. The credit disclosure should be clear before any paid extraction continues.
+1. ~~Build the multiple-recipe import review screen.~~ **Done (c52da90).** Detected recipes are shown with import-one / combine / import-all options and a credit disclosure before any paid extraction. Possible follow-ups: let the user preview a recipe before committing the paid re-extraction, and add a private-suite case that exercises the selection flow end to end.
 
 2. Add original source preservation for photo/PDF imports.
    Save a lightweight original-source attachment with imported handwritten cards, family photos, screenshots, and PDFs. Recipe detail should show a warm "Original Recipe Card" or "Let's see what the original says" entry that opens the original image/PDF page.
