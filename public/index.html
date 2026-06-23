@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;600;700&display=swap" />
   <script src="/app-config.js"></script>
   <script src="/shopping-list.js"></script>
+  <script src="/recipe-tags.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -694,6 +695,13 @@ For sources with multiple recipes or variants:
 - Do not merge separate variants into one giant recipe. Mention alternate variants briefly in notes only if source-grounded and useful.
 - If an uploaded photo, rendered PDF page, video, article, or transcript clearly contains multiple distinct recipe cards, standalone recipes, or full variants, do not merge them or choose one silently. Return {"error":"multiple_recipes_detected","recipes":["name 1","name 2"]} so RecipeBox can ask the user whether to import one or all.
 
+For category and tags (these are SEPARATE fields, never mix them):
+- "category" is the single real food type. Use one of: Breakfast, Appetizers, Entrées, Sides, Condiments & Sauces, Beverages, Desserts. Pick the closest real type. "Copycat" is NEVER a category.
+- "tags" is a short list of useful labels for searching and filtering, not SEO spam. Keep each tag concise and in Title Case. Deduplicate. Use at most 8 tags.
+- Only add a tag when the title, source, ingredients, or instructions clearly support it. Do not guess diet or allergy tags (Vegan, Vegetarian, Gluten-Free, Dairy-Free) unless the source explicitly says so or the recipe clearly meets it.
+- Add the "Copycat" tag (not category) when the title/source clearly indicates a homemade recreation of a restaurant or brand dish (e.g. "copycat", "restaurant-style", "better than takeout", "Starbucks-style", "Olive Garden inspired"). The tag is descriptive only; never claim official affiliation or add brand logos.
+- Other useful tags when clearly supported: Quick, Weeknight, Kid-Friendly, Meal Prep, Freezer-Friendly, One-Pot, Slow Cooker, Instant Pot, Air Fryer, Grill, No-Bake, Make-Ahead, High-Protein, Low-Carb, Spicy, Comfort Food, Holiday, Party, Budget-Friendly.
+
 For heroImage: if you can identify a direct image URL from the source, include it. Otherwise leave as empty string.
 
 For ingredient amounts:
@@ -712,7 +720,7 @@ For ingredient amounts:
 
 Embed ingredient IDs like {i1} inside step text, but do not repeat the ingredient name right after the placeholder. Example: use "Mix {i1} with water", not "Mix {i1} flour with water". Macros are per serving. Return ONLY the JSON.`;
 
-    const ADJUST_PROMPT = `You are a culinary assistant. Modify the provided RecipeBox recipe JSON as requested. Return ONLY one complete raw JSON object starting with { and ending with }. No markdown, comments, or explanation. Preserve the RecipeBox shape: title, description, heroImage, prepTime, cookTime, totalTime, servings, category, tags, macros, notes, rating, favorite, createdAt, and sections with ingredients and steps. Preserve ids when present. Do not omit sections.`;
+    const ADJUST_PROMPT = `You are a culinary assistant. Modify the provided RecipeBox recipe JSON as requested. Return ONLY one complete raw JSON object starting with { and ending with }. No markdown, comments, or explanation. Preserve the RecipeBox shape: title, description, heroImage, prepTime, cookTime, totalTime, servings, category, tags, macros, notes, rating, favorite, createdAt, and sections with ingredients and steps. Preserve ids when present. Do not omit sections. Keep "category" as the real food type (never "Copycat"); keep "tags" as a separate concise, deduplicated, Title Case list. "Copycat" may be a tag, never a category.`;
     const REPAIR_JSON_PROMPT = `You repair malformed recipe JSON. Return ONLY one valid raw JSON object. Preserve all recipe content you can, including source-grounded notes. Do not add markdown, comments, or explanation. The JSON must match the RecipeBox recipe structure with notes, sections, ingredients, and steps.`;
     const PANTRY_PROMPT = `You are Pantry Chef inside RecipeBox. Help users decide what to cook from ingredients they have, cravings, time, or a pantry photo.
 
@@ -722,16 +730,24 @@ For saved recipes, explain whether they look like: "You can make this now", "You
 
 Ask concise clarifying questions only when needed. Keep advice home-cook friendly and scannable.
 
-If the user asks to save, add, or make one of your new ideas into a recipe, return the full recipe JSON wrapped in <RECIPE_JSON>...</RECIPE_JSON> at the end. Use the RecipeBox recipe shape with sections, ingredients, steps, tags, macros, servings, cookTime, description, and heroImage.`;
-    const EDITOR_AI_PROMPT = `You are a culinary assistant helping edit a recipe. The user will describe a change they want. Apply it to the recipe JSON and return ONLY the complete updated recipe JSON starting with {. Preserve notes unless the user asks to change them. Do not invent source notes or links. No markdown, no explanation.`;
+If the user asks to save, add, or make one of your new ideas into a recipe, return the full recipe JSON wrapped in <RECIPE_JSON>...</RECIPE_JSON> at the end. Use the RecipeBox recipe shape with sections, ingredients, steps, tags, macros, servings, cookTime, description, and heroImage. Keep "category" as the real food type (never "Copycat") and "tags" as a separate concise, deduplicated, Title Case list of useful labels; "Copycat" may be a tag, never a category.`;
+    const EDITOR_AI_PROMPT = `You are a culinary assistant helping edit a recipe. The user will describe a change they want. Apply it to the recipe JSON and return ONLY the complete updated recipe JSON starting with {. Preserve notes unless the user asks to change them. Do not invent source notes or links. Keep "category" as the real food type and "tags" as a separate concise, deduplicated, Title Case list; "Copycat" may be a tag, never a category. No markdown, no explanation.`;
 
     // Shared UI
     function Spinner() {
       return <span style={{display:"inline-block",width:16,height:16,border:"2.5px solid rgba(255,255,255,0.4)",borderTopColor:"currentColor",borderRadius:"50%",animation:"spin 0.7s linear infinite"}} />;
     }
 
-    function Tag({ label, bg, color }) {
-      return <span style={{background:bg||C.cream3,color:color||C.brown,borderRadius:20,padding:"2px 10px",fontSize:"0.73em",fontWeight:600,display:"inline-block"}}>{label}</span>;
+    function Tag({ label, bg, color, onClick, active }) {
+      const base = {background:active?C.green:(bg||C.cream3),color:active?C.white:(color||C.brown),borderRadius:20,padding:"3px 11px",fontSize:"0.73em",fontWeight:600,display:"inline-flex",alignItems:"center",lineHeight:1.4};
+      if (!onClick) return <span style={{...base,padding:"2px 10px"}}>{label}</span>;
+      return (
+        <button type="button" onClick={(e) => { e.stopPropagation(); onClick(label); }}
+          style={{...base,border:"1px solid "+(active?C.green:C.border),cursor:"pointer",fontFamily:SANS,WebkitTapHighlightColor:"transparent"}}
+          aria-label={(active?"Clear ":"Filter by ")+"tag "+label}>
+          {label}{active && <span style={{marginLeft:5,fontWeight:800}}>×</span>}
+        </button>
+      );
     }
 
     function Stars({ value, onChange, size }) {
@@ -1003,7 +1019,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     }
 
     // Recipe Card
-    function RecipeCard({ recipe, onClick, onFavorite }) {
+    function RecipeCard({ recipe, onClick, onFavorite, onTagClick }) {
       const color = cardColor(recipe.title);
       const fallbackImage = CATEGORY_IMAGES[recipe.category] || "";
       const cardImage = recipe.heroImage || fallbackImage;
@@ -1032,8 +1048,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             {recipe.rating > 0 && <Stars value={recipe.rating} size={11} />}
             {recipe.description && <div style={{color:C.light,fontSize:"0.76em",lineHeight:1.5,marginTop:4,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{recipe.description}</div>}
             {recipe.tags?.length > 0 && (
-              <div style={{display:"flex",flexWrap:"wrap",gap:3,marginTop:7}}>
-                {recipe.tags.slice(0,3).map((t) => <Tag key={t} label={t} />)}
+              <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:7}}>
+                {recipe.tags.slice(0,3).map((t) => <Tag key={t} label={t} onClick={onTagClick} />)}
               </div>
             )}
           </div>
@@ -1042,10 +1058,17 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     }
 
     // Library
-    function Library({ recipes, mealPlan, onOpen, onAdd, onFavorite, setTab }) {
+    function Library({ recipes, mealPlan, onOpen, onAdd, onFavorite, setTab, tagFilter, onTagFilter }) {
       const [search, setSearch] = useState("");
       const [cat, setCat] = useState("All");
       const [filter, setFilter] = useState("all");
+      const [showAllTags, setShowAllTags] = useState(false);
+      const tagKey = (t) => RecipeBoxTags.normalizeTagKey(t);
+      const activeTag = tagFilter || "";
+      const activeTagKey = tagKey(activeTag);
+      // Selecting a tag clears the other filters so the tag view is clean.
+      const selectTag = (t) => { onTagFilter && onTagFilter(t); setCat("All"); setFilter("all"); setSearch(""); setShowAllTags(false); };
+      const clearTag = () => { onTagFilter && onTagFilter(""); };
 
       const today = DAYS[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
       const todayRecipes = (mealPlan[today] || []).map((id) => recipes.find((r) => r.id === id)).filter(Boolean);
@@ -1055,7 +1078,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         const matchCat = cat === "All" || r.category === cat;
         const matchFilter = filter === "all" || (filter === "favorites" && r.favorite) || (filter === "recent" && Date.now() - new Date(r.createdAt).getTime() < 7 * 86400000);
         const matchSearch = !q || r.title.toLowerCase().includes(q) || (r.tags||[]).some((t) => t.toLowerCase().includes(q)) || (r.sections||[]).some((s) => s.ingredients.some((i) => i.name.toLowerCase().includes(q)));
-        return matchCat && matchFilter && matchSearch;
+        const matchTag = !activeTagKey || (r.tags||[]).some((t) => tagKey(t) === activeTagKey);
+        return matchCat && matchFilter && matchSearch && matchTag;
       });
 
       const sortedRecipes = [...recipes].sort((a,b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
@@ -1066,7 +1090,24 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         { label:"Favorites", count:favoriteCount, image:CATEGORY_IMAGES["Favorites"], onClick:() => { setCat("All"); setFilter("favorites"); } },
         ...CATEGORIES.map((c) => ({ label:c, count:categoryCounts[c], image:CATEGORY_IMAGES[c], onClick:() => { setCat(c); setFilter("all"); } }))
       ];
-      const isDashboard = cat === "All" && filter === "all" && !search.trim();
+
+      // Popular tags from the user's own recipes: dedupe by normalized key,
+      // sort by frequency then alphabetically. No global tag table.
+      const tagCounts = {};
+      const tagDisplay = {};
+      recipes.forEach((r) => (r.tags || []).forEach((t) => {
+        const key = tagKey(t);
+        if (!key) return;
+        tagCounts[key] = (tagCounts[key] || 0) + 1;
+        if (!tagDisplay[key]) tagDisplay[key] = RecipeBoxTags.displayTag(t);
+      }));
+      const popularTags = Object.keys(tagCounts)
+        .sort((a, b) => (tagCounts[b] - tagCounts[a]) || tagDisplay[a].localeCompare(tagDisplay[b]))
+        .map((key) => ({ key, label: tagDisplay[key], count: tagCounts[key] }));
+      const TAG_ROW_LIMIT = 8;
+      const visibleTags = showAllTags ? popularTags : popularTags.slice(0, TAG_ROW_LIMIT);
+
+      const isDashboard = cat === "All" && filter === "all" && !search.trim() && !activeTagKey;
 
       return (
         <div style={{...S.page,paddingBottom:NAV_CLEARANCE}}>
@@ -1110,10 +1151,30 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               ))}
             </div>
 
+            {activeTag ? (
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap",marginTop:14,background:C.greenPale,border:"1px solid "+C.green+"40",borderRadius:12,padding:"10px 14px"}}>
+                <div style={{fontSize:"0.86em",color:C.dark,fontWeight:700}}>Showing recipes tagged <span style={{color:C.green}}>{RecipeBoxTags.displayTag(activeTag)}</span></div>
+                <button onClick={clearTag} style={{...S.ghostBtn,borderRadius:999,padding:"6px 13px",fontSize:"0.78em"}}>Clear tag filter</button>
+              </div>
+            ) : popularTags.length > 0 && (
+              <div style={{marginTop:16}}>
+                <div style={{fontSize:"0.72em",fontWeight:800,letterSpacing:"0.04em",textTransform:"uppercase",color:C.light,marginBottom:8}}>Popular tags</div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
+                  {visibleTags.map((t) => <Tag key={t.key} label={t.label} onClick={() => selectTag(t.label)} />)}
+                  {popularTags.length > TAG_ROW_LIMIT && (
+                    <button onClick={() => setShowAllTags((v) => !v)}
+                      style={{background:"transparent",border:"1px dashed "+C.border,color:C.brown,borderRadius:20,padding:"3px 11px",fontSize:"0.73em",fontWeight:700,cursor:"pointer",fontFamily:SANS}}>
+                      {showAllTags ? "Less" : "+" + (popularTags.length - TAG_ROW_LIMIT) + " more"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {filtered.length === 0 && !isDashboard ? (
               <div style={{padding:"36px 0 60px"}}>
                 {!isDashboard && (
-                  <button onClick={() => { setCat("All"); setFilter("all"); setSearch(""); }}
+                  <button onClick={() => { setCat("All"); setFilter("all"); setSearch(""); clearTag(); }}
                     style={{...S.ghostBtn,borderRadius:999,padding:"7px 13px",fontSize:"0.78em",marginBottom:24}}>
                     ← Back to Your RecipeBox
                   </button>
@@ -1164,7 +1225,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                       <span style={{fontSize:"0.78em",color:C.light}}>{recipes.length} total</span>
                     </div>
                     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(195px, 1fr))",gap:14}}>
-                      {sortedRecipes.map((r) => <RecipeCard key={r.id} recipe={r} onClick={() => onOpen(r)} onFavorite={() => onFavorite(r.id)} />)}
+                      {sortedRecipes.map((r) => <RecipeCard key={r.id} recipe={r} onClick={() => onOpen(r)} onFavorite={() => onFavorite(r.id)} onTagClick={selectTag} />)}
                     </div>
                   </div>
                 ) : (
@@ -1175,19 +1236,19 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               </div>
             ) : (
               <div style={{marginTop:24}}>
-                <button onClick={() => { setCat("All"); setFilter("all"); setSearch(""); }}
+                <button onClick={() => { setCat("All"); setFilter("all"); setSearch(""); clearTag(); }}
                   style={{...S.ghostBtn,borderRadius:999,padding:"7px 13px",fontSize:"0.78em",marginBottom:14}}>
                   ← Back to Your RecipeBox
                 </button>
 
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:13}}>
                   <h3 style={{margin:0,fontFamily:SERIF,fontSize:"1.25em",color:C.dark,fontWeight:400}}>
-                    {cat !== "All" ? cat : filter === "favorites" ? "Favorites" : filter === "recent" ? "Recent Recipes" : "Search Results"}
+                    {activeTag ? RecipeBoxTags.displayTag(activeTag) : cat !== "All" ? cat : filter === "favorites" ? "Favorites" : filter === "recent" ? "Recent Recipes" : "Search Results"}
                   </h3>
                   <span style={{fontSize:"0.78em",color:C.light}}>{filtered.length} recipe{filtered.length!==1?"s":""}</span>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(195px, 1fr))",gap:14}}>
-                  {filtered.map((r) => <RecipeCard key={r.id} recipe={r} onClick={() => onOpen(r)} onFavorite={() => onFavorite(r.id)} />)}
+                  {filtered.map((r) => <RecipeCard key={r.id} recipe={r} onClick={() => onOpen(r)} onFavorite={() => onFavorite(r.id)} onTagClick={selectTag} />)}
                 </div>
               </div>
             )}
@@ -2928,7 +2989,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     }
 
     // Recipe View
-    function RecipeView({ recipe, onBack, onEdit, onDelete, onUpdate, onImport, timerSound }) {
+    function RecipeView({ recipe, onBack, onEdit, onDelete, onUpdate, onImport, onTagClick, timerSound }) {
       const [scale, setScale] = useState(1);
       const [metric, setMetric] = useState(false);
       const [cookMode, setCookMode] = useState(false);
@@ -3305,7 +3366,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             </div>
 
             {recipe.description && <p style={{color:C.mid,lineHeight:1.7,margin:"0 0 14px",fontSize:"0.92em"}}>{recipe.description}</p>}
-            {recipe.tags?.length>0 && <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:14}}>{recipe.tags.map((t)=><Tag key={t} label={t} />)}</div>}
+            {recipe.tags?.length>0 && <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:14}}>{recipe.tags.map((t)=><Tag key={t} label={t} onClick={onTagClick} />)}</div>}
 
             {/* Macros */}
             {recipe.macros && (
@@ -3789,6 +3850,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [mealPlan, setMealPlanState] = useState(() => loadMealPlan());
       const [timerSound, setTimerSound] = useState(() => loadTimerSound());
       const [current, setCurrent] = useState(null);
+      const [libraryTag, setLibraryTag] = useState("");
       const [account, setAccount] = useState(() => loadAccountSession().user || null);
       const [aiUsage, setAiUsage] = useState(() => defaultAiUsage());
       const [showSplash, setShowSplash] = useState(true);
@@ -3839,8 +3901,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         try { localStorage.setItem(RECIPES_KEY, JSON.stringify(Array.isArray(cloudRecipes) ? cloudRecipes : [])); } catch {}
         try { localStorage.setItem(MEALPLAN_KEY, JSON.stringify(cloudMealPlan && typeof cloudMealPlan === "object" ? cloudMealPlan : {})); } catch {}
       }
-      function addRecipe(r) { setRecipes((p) => [r, ...p]); setCurrent(r); setScreen("view"); }
-      function updateRecipe(r) { setRecipes((p) => p.map((x) => x.id===r.id?r:x)); setCurrent(r); }
+      function addRecipe(r) { const t = { ...r, tags: RecipeBoxTags.applyTagsOnCreate(r) }; setRecipes((p) => [t, ...p]); setCurrent(t); setScreen("view"); }
+      function updateRecipe(r) { const t = { ...r, tags: RecipeBoxTags.normalizeRecipeTags(r.tags) }; setRecipes((p) => p.map((x) => x.id===t.id?t:x)); setCurrent(t); }
       function deleteRecipe(id) { if (!window.confirm("Delete this recipe?")) return; setRecipes((p) => p.filter((r) => r.id!==id)); setScreen("library"); }
       function toggleFavorite(id) { setRecipes((p) => p.map((r) => r.id===id?{...r,favorite:!r.favorite}:r)); }
       function setMainTab(nextTab) {
@@ -3904,14 +3966,14 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       if (screen==="edit"&&current) return <EditRecipe recipe={current} onSave={(r)=>{ if(recipes.find((x)=>x.id===r.id)) updateRecipe(r); else addRecipe(r); setScreen("view"); }} onCancel={()=>setScreen("view")} />;
       if (screen==="view"&&current) return (
         <>
-          <RecipeView recipe={current} onBack={()=>setScreen("library")} onEdit={()=>setScreen("edit")} onDelete={()=>deleteRecipe(current.id)} onUpdate={(r)=>{updateRecipe(r);setCurrent(r);}} onImport={(r)=>{addRecipe(r);setCurrent(r);}} timerSound={timerSound} />
+          <RecipeView recipe={current} onBack={()=>setScreen("library")} onEdit={()=>setScreen("edit")} onDelete={()=>deleteRecipe(current.id)} onUpdate={(r)=>{updateRecipe(r);setCurrent(r);}} onImport={(r)=>{addRecipe(r);setCurrent(r);}} onTagClick={(t)=>{setLibraryTag(t);setMainTab("library");}} timerSound={timerSound} />
           <BottomNav tab={tab} setTab={(t)=>{setTab(t);setScreen("library");}} />
         </>
       );
 
       return (
         <div onTouchStart={handleSwipeStart} onTouchEnd={handleSwipeEnd} onPointerDown={handlePointerStart} onPointerUp={handlePointerEnd} style={{width:"100%",maxWidth:"100%",overflowX:"hidden",background:C.cream}}>
-          {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>{setCurrent(r);setScreen("view");}} onAdd={()=>setScreen("import")} onFavorite={toggleFavorite} setTab={setMainTab} />}
+          {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>{setCurrent(r);setScreen("view");}} onAdd={()=>setScreen("import")} onFavorite={toggleFavorite} setTab={setMainTab} tagFilter={libraryTag} onTagFilter={setLibraryTag} />}
           {tab==="plan" && <MealPlanner recipes={recipes} mealPlan={mealPlan} setMealPlan={updateMealPlan} onOpen={(r)=>{setCurrent(r);setScreen("view");}} />}
           {tab==="pantry" && <PantryChef recipes={recipes} onImport={(r)=>{addRecipe(r);setTab("library");}} onOpenRecipe={(r)=>{setCurrent(r);setScreen("view");}} />}
           {tab==="settings" && <Settings timerSound={timerSound} setTimerSound={setTimerSound} account={account} setAccount={setAccount} recipes={recipes} mealPlan={mealPlan} aiUsage={aiUsage} onCloudData={loadCloudData} onOpenAdmin={()=>setScreen("admin")} />}
