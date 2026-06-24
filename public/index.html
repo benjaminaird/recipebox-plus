@@ -25,8 +25,8 @@
   <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html { height: 100%; overflow-x: hidden; background-color: #2C4A33; background: linear-gradient(135deg, #234B32 0%, #5A3827 100%); overscroll-behavior: none; }
-    body { margin: 0; min-height: 100%; overflow-x: hidden; font-family: 'DM Sans', sans-serif; background-color: #2C4A33; background: linear-gradient(135deg, #234B32 0%, #5A3827 100%); color: #2A1B13; overscroll-behavior: none; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; -webkit-text-size-adjust: 100%; -webkit-touch-callout: none; }
+    html { min-height: 100%; overflow-x: hidden; background-color: #2C4A33; background: linear-gradient(135deg, #234B32 0%, #5A3827 100%); overscroll-behavior: none; }
+    body { margin: 0; min-height: 100dvh; overflow-x: hidden; font-family: 'DM Sans', sans-serif; background-color: #2C4A33; background: linear-gradient(135deg, #234B32 0%, #5A3827 100%); color: #2A1B13; overscroll-behavior: none; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; -webkit-text-size-adjust: 100%; -webkit-touch-callout: none; }
     #root { min-height: 100vh; min-height: 100dvh; overflow-x: hidden; background-color: #2C4A33; background: linear-gradient(135deg, #234B32 0%, #5A3827 100%); }
     input, textarea, select, [contenteditable="true"] { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
     button { -webkit-touch-callout: none; touch-action: manipulation; }
@@ -4261,7 +4261,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
     function SplashScreen() {
       return (
-        <div style={{minHeight:"100dvh",background:`linear-gradient(135deg, ${C.green} 0%, ${C.brown} 100%)`,display:"flex",alignItems:"center",justifyContent:"center",padding:28}}>
+        <div style={{position:"fixed",inset:0,zIndex:200,background:`linear-gradient(135deg, ${C.green} 0%, ${C.brown} 100%)`,display:"flex",alignItems:"center",justifyContent:"center",padding:28}}>
           <div style={{textAlign:"center",animation:"splashIn 0.55s ease both"}}>
             <img src="/icon-192.png" alt="" style={{width:118,height:118,borderRadius:28,display:"block",margin:"0 auto 18px",boxShadow:"0 18px 55px rgba(28,20,16,0.32)",animation:"splashGlow 2.2s ease-in-out infinite"}} />
             <div style={{fontFamily:SERIF,fontSize:"2.45em",color:C.white,lineHeight:1,letterSpacing:"0.01em"}}>RecipeBox</div>
