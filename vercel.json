@@ -20,7 +20,7 @@
       ]
     },
     {
-      "source": "/(index.html|recipe-tags.js|shopping-list.js|app-config.js)",
+      "source": "/(index.html|app.js|recipe-tags.js|shopping-list.js|app-config.js)",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache, max-age=0, must-revalidate" }
       ]

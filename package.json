@@ -4,6 +4,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "build:app": "npx --yes esbuild@0.20.2 src/app.jsx --jsx=transform --minify --target=es2020 --legal-comments=none --outfile=public/app.js",
     "shopping-list-test": "node scripts/shopping-list-test.js",
     "notes-import-test": "node scripts/notes-import-test.js",
     "recipe-tags-test": "node scripts/recipe-tags-test.js",
