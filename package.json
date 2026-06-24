@@ -8,6 +8,7 @@
     "notes-import-test": "node scripts/notes-import-test.js",
     "recipe-tags-test": "node scripts/recipe-tags-test.js",
     "ai-credits-test": "node scripts/ai-credits-test.js",
+    "entitlements-test": "node scripts/entitlements-test.js",
     "import-test:estimate": "node scripts/import-test/run.js --estimate",
     "import-test:run": "node scripts/import-test/run.js --run",
     "smoke-test": "node scripts/smoke-test.js",

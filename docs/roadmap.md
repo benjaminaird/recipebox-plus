@@ -17,6 +17,7 @@ Last updated: June 23, 2026.
 - Shopping lists now use deterministic local aggregation and grocery categories instead of another AI call.
 - Known honest fallbacks are now part of the expected product behavior: blocked recipe pages, low-information social/video sources, and multiple-recipe sources should not become invented or silently merged recipes.
 - Beta feedback (Settings → Beta Feedback) is now readable: a master-admin-only inbox in App Control shows each message with submitter, page, and device, supports new/reviewed triage, and surfaces an unread badge on the Settings tab and App Control card. Stored in `user_feedback`; no email/webhook — visible only to the master admin (server-enforced).
+- Monetization/entitlement infrastructure is in place (server-side, source of truth): tier config (Free/Plus/Family/Founder/Beta), an `ai_credit_ledger` for non-monthly buckets (purchased + bonus), and `/api/ai` now enforces a credit balance and spends monthly → bonus → purchased. We are in `LAUNCH_PHASE=beta`, so beta stays unlimited (with abuse rate limits) and the tier caps are inert for current users until launch. No payments/ads wired. See the Monetization milestone below.
 
 ## Near-Term Beta Priorities
 
@@ -142,3 +143,45 @@ Recipe exports should feel polished, branded, and worth sharing.
 - Avoid imported recipe photos by default unless ownership/licensing is clear.
 - If image inclusion is added, make it optional and default off.
 - Use warm RecipeBox styling: cream, deep green, soft gold, and walnut accents.
+
+## Milestone: Monetization & Entitlements
+
+Tiers: **Free, Plus, Family, Founder, Beta.** All values are server-side and never client-trustable.
+
+Built now (server-authoritative):
+- Central config (`ENTITLEMENT_CONFIG` / `PLAN_ENTITLEMENTS`) for tier names, monthly credits, placeholder pricing, credit packs, referral amounts/cap, family member cap (4), an ads-enabled flag (default off, no ad network), and credit rules.
+- Monthly included credits: Free 10, Plus 100, Family 250 (shared — see below), Founder 150, Beta unlimited during beta. `LAUNCH_PHASE` flag (`beta` | `launched`) controls whether beta is unlimited; defaults to `beta`.
+- `ai_credit_ledger` table for non-monthly buckets (`purchased`, `bonus`) with debits; monthly usage stays in `ai_usage_monthly`. Purchased and bonus credits never expire; monthly does not roll over.
+- `/api/ai` checks total remaining (monthly + bonus + purchased) before calling the model and debits one credit in spend order **monthly → bonus → purchased**. Internal repair passes remain non-billable. Beta is unlimited but still IP + per-user daily abuse-rate-limited.
+- `GET /api/me/credits` (auth) returns plan, monthly used/remaining/reset date, bonus, purchased, total. `GET /api/config/entitlements` exposes read-only display config. `POST /api/admin/credits/grant` (master-admin) grants bonus/purchased credits manually until billing exists. Settings shows plan, remaining, bonus/purchased, reset date, and a "coming soon" note (no fake purchase buttons).
+- Referral foundation: `grantReferralBonus()` grants 25 credits to each side, capped at 10 paid conversions per referrer per month (`referralBonusAllowed`). Not yet wired to a live conversion event.
+
+Pricing placeholders: Plus $4.99/mo or $39.99/yr; Family $7.99/mo or $69.99/yr; Founder $29.99/yr forever (beta converts only, 150 credits/mo after launch). Packs: 25/$1.99, 75/$4.99, 200/$9.99, 500/$19.99.
+
+Documented for later (not built now):
+- **Payments**: Stripe (and later App Store / Play billing). `user_entitlements` already has `stripe_customer_id`/`stripe_subscription_id` columns. On a successful subscription/purchase webhook: set the plan or write a `purchase` ledger grant. No billing UI or purchase buttons until this is live.
+- **Founder conversion workflow**: at launch, offer beta users Founder ($29.99/yr forever, 150/mo). Mark eligibility, capture conversion, set plan `founder`.
+- **Family household sharing**: Family tier config exists (250 credits, cap 4) but sharing is not enforced. Build a household model (owner/adult/member, invites, shared library/meal-plan/shopping-list/pantry, private-by-default recipes) and make the 250 credits a shared household pool. See "Future Subscription: Family Plan".
+- **Referral end-to-end**: per-user referral code/link, self-referral and duplicate-referred protection, conversion detection tied to payments, audit events. Possible tables: `referrals`, `referral_events`. See "Future Monetization: Referral Program".
+- **Optional free-tier ads**: keep the `adsEnabled` config and entitlement shape ready; do not integrate an ad network unless we choose to.
+- **App Control entitlement UI**: a master-admin screen to view/edit tier config, grant credits, and inspect ledgers (extend the existing admin endpoints; keep all enforcement server-side).
+- **Feature gates by tier**: AI features are already credit-gated. Non-AI gates (e.g. PDF export / meal planning as Plus perks) are encoded in config but not enforced during beta; enforce at launch if desired without breaking current users.
+
+## Milestone: Desktop / Web Companion (recipeboxapp.com)
+
+A responsive desktop/web experience sharing the same account, sign-in, and synced recipe data as mobile.
+
+- Start as a **web app / PWA**, not a downloadable Mac/PC app. Packaged Mac/Windows wrappers can be optional future add-ons if demand exists.
+- Desktop is prioritized for the heavier workflows: import review, editing, organizing, **batch imports**, source preservation, PDF/card/photo review, printing/export, meal planning, and household management.
+- Same Postgres-backed account and recipe sync; no separate data model.
+- Reuse the existing API; build a desktop-optimized layout (multi-column, keyboard-friendly) rather than stretching the mobile layout.
+
+## Milestone: Local Source Archive (optional desktop feature)
+
+A future competitive advantage and storage-cost control feature — not a launch blocker.
+
+- Cleaned recipe data continues to sync through the cloud as today.
+- Large **original source files** can stay local on the user's desktop: original recipe-card scans, cookbook photos, screenshots, imported PDFs, and raw source images. (Today the lightweight original-source archive is cloud-stored and compressed; this milestone adds an optional larger local-only tier.)
+- The UI must clearly distinguish cloud-synced recipe data from local-only original archive files.
+- Mobile still shows the usable recipe and source info, but may indicate that full-resolution original source files are available only on desktop.
+- Needs a sync/ownership model that tracks which originals are cloud vs local, and graceful handling when a desktop is offline.

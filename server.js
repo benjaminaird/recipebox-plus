@@ -81,12 +81,62 @@ const ADMIN_SECTION_NAMES = [
   'Change Log / Rollback',
 ];
 const DEFAULT_PLAN = process.env.DEFAULT_ACCOUNT_PLAN || 'beta';
+// 'beta' = pre-launch (beta tier has unlimited AI). 'launched' = enforce tier caps.
+const LAUNCH_PHASE = (process.env.LAUNCH_PHASE || 'beta').toLowerCase();
+const BETA_UNLIMITED = LAUNCH_PHASE === 'beta';
+// Monthly included AI credits per tier are the source of truth here, server-side.
+// 1 AI action = 1 credit. Beta is unlimited only while LAUNCH_PHASE === 'beta'.
 const PLAN_ENTITLEMENTS = {
-  free: { aiMonthlyLimit: 10, aiDailyLimit: 8, importDailyLimit: 6, adjustDailyLimit: 8, pantryDailyLimit: 12 },
-  beta: { aiMonthlyLimit: AI_MONTHLY_LIMIT, aiDailyLimit: 60, importDailyLimit: 35, adjustDailyLimit: 40, pantryDailyLimit: 50 },
-  plus: { aiMonthlyLimit: 300, aiDailyLimit: 150, importDailyLimit: 100, adjustDailyLimit: 100, pantryDailyLimit: 120 },
+  free:    { aiMonthlyLimit: 10,  aiDailyLimit: 8,   importDailyLimit: 6,   adjustDailyLimit: 8,   pantryDailyLimit: 12 },
+  plus:    { aiMonthlyLimit: 100, aiDailyLimit: 60,  importDailyLimit: 60,  adjustDailyLimit: 60,  pantryDailyLimit: 80 },
+  family:  { aiMonthlyLimit: 250, aiDailyLimit: 120, importDailyLimit: 120, adjustDailyLimit: 120, pantryDailyLimit: 150 },
+  founder: { aiMonthlyLimit: 150, aiDailyLimit: 80,  importDailyLimit: 80,  adjustDailyLimit: 80,  pantryDailyLimit: 100 },
+  beta:    { aiMonthlyLimit: BETA_UNLIMITED ? null : 50, aiDailyLimit: 60, importDailyLimit: 35, adjustDailyLimit: 40, pantryDailyLimit: 50, unlimited: BETA_UNLIMITED },
   master_admin: { aiMonthlyLimit: null, aiDailyLimit: null, importDailyLimit: null, adjustDailyLimit: null, pantryDailyLimit: null, unlimited: true },
 };
+// Referral bonus foundation. Triggered (later) only on a referred user's paid
+// conversion; both sides get bonusCredits, capped per referrer per month.
+const REFERRAL_CONFIG = { bonusCredits: 25, monthlyCap: 10, triggersOn: 'paid_conversion' };
+// Family household sharing is config-only for now (enforcement is a future milestone).
+const FAMILY_MEMBER_CAP = 4;
+// Single source of truth for tiers/pricing/packs/flags. Safe to expose a
+// read-only copy to clients for display; it is NEVER trusted for enforcement.
+const ENTITLEMENT_CONFIG = {
+  launchPhase: LAUNCH_PHASE,
+  adsEnabled: String(process.env.ADS_ENABLED || 'false').toLowerCase() === 'true', // ads-ready flag; no network at launch
+  creditRules: { unit: '1 action = 1 credit', monthlyRollover: false, purchasedExpire: false, bonusExpire: false, spendOrder: ['monthly', 'bonus', 'purchased'] },
+  familyMemberCap: FAMILY_MEMBER_CAP,
+  referral: REFERRAL_CONFIG,
+  tiers: {
+    free:    { name: 'Free',    monthlyCredits: 10,  manualRecipes: 'unlimited', price: null, features: ['Unlimited manual recipes', 'Library, search, categories, tags', 'Basic shopping list', 'Limited AI credits'] },
+    plus:    { name: 'Plus',    monthlyCredits: 100, price: { monthly: 4.99, yearly: 39.99 }, features: ['Everything in Free', 'AI imports within credits', 'AI adjust & chat editor', 'Pantry Chef', 'Meal planning', 'PDF exports'] },
+    family:  { name: 'Family',  monthlyCredits: 250, shared: true, memberCap: FAMILY_MEMBER_CAP, price: { monthly: 7.99, yearly: 69.99 }, features: ['Everything in Plus', 'Up to 4 household members', 'Shared library, meal plan, shopping list', '250 shared monthly credits'] },
+    founder: { name: 'Founder', monthlyCredits: 150, price: { yearly: 29.99, note: 'Forever, beta converts only' }, features: ['Founder pricing locked forever', '150 monthly AI credits', 'Beta perks carried forward'] },
+    beta:    { name: 'Beta',    monthlyCredits: BETA_UNLIMITED ? 'unlimited' : 50, unlimitedDuringBeta: true, features: ['Unlimited AI during beta', 'Founder conversion offer after launch'] },
+  },
+  creditPacks: [
+    { id: 'pack_25',  credits: 25,  price: 1.99 },
+    { id: 'pack_75',  credits: 75,  price: 4.99 },
+    { id: 'pack_200', credits: 200, price: 9.99 },
+    { id: 'pack_500', credits: 500, price: 19.99 },
+  ],
+};
+// Pure spend-order helper (testable, no DB): monthly credits first, then bonus,
+// then purchased. Returns the bucket to debit, or null when out of credits.
+function chooseSpendBucket({ monthlyRemaining = 0, bonus = 0, purchased = 0 } = {}) {
+  if (monthlyRemaining > 0) return 'monthly';
+  if (bonus > 0) return 'bonus';
+  if (purchased > 0) return 'purchased';
+  return null;
+}
+function planMonthlyCredits(plan) {
+  const p = PLAN_ENTITLEMENTS[plan];
+  if (!p) return null;
+  return p.unlimited ? null : (p.aiMonthlyLimit ?? null);
+}
+function referralBonusAllowed(grantsThisMonth) {
+  return Number(grantsThisMonth || 0) < REFERRAL_CONFIG.monthlyCap;
+}
 const AI_FEATURE_PATTERNS = [
   // 'repair' must be checked before 'import': a malformed-JSON cleanup pass is an
   // internal helper for an already-billed action, so it is logged but never costs
@@ -251,6 +301,25 @@ async function getPool() {
     )`);
     await pool.query('CREATE INDEX IF NOT EXISTS ai_usage_events_user_created_idx ON ai_usage_events (user_id, created_at desc)');
     await pool.query('CREATE INDEX IF NOT EXISTS ai_usage_events_created_idx ON ai_usage_events (created_at desc)');
+    // Non-monthly AI credit ledger: purchased + bonus buckets, plus debits.
+    // Monthly allowance is tracked separately by ai_usage_monthly. Purchased and
+    // bonus grants never expire (expires_at null); positive amount = grant,
+    // negative = debit. The client can never write here.
+    await pool.query(`CREATE TABLE IF NOT EXISTS ai_credit_ledger (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id text NOT NULL REFERENCES profiles(user_id) ON DELETE CASCADE,
+      kind text NOT NULL,
+      bucket text NOT NULL,
+      amount integer NOT NULL,
+      reason text,
+      request_id text,
+      expires_at timestamptz,
+      created_by text,
+      metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+      created_at timestamptz NOT NULL DEFAULT now()
+    )`);
+    await pool.query('CREATE INDEX IF NOT EXISTS ai_credit_ledger_user_idx ON ai_credit_ledger (user_id, created_at desc)');
+    await pool.query("CREATE INDEX IF NOT EXISTS ai_credit_ledger_referral_idx ON ai_credit_ledger (user_id, kind) WHERE kind = 'referral_bonus'");
     await pool.query(`CREATE TABLE IF NOT EXISTS app_control_sources (
       id text PRIMARY KEY,
       title text NOT NULL,
@@ -1063,6 +1132,93 @@ async function incrementAiUsage(userId) {
   return readAiUsage(userId);
 }
 
+// --- AI credit ledger (purchased + bonus buckets) ---
+async function readLedgerBalances(userId) {
+  const db = await getPool();
+  if (!db || !userId) return { bonus: 0, purchased: 0 };
+  const result = await db.query(
+    `SELECT bucket, COALESCE(SUM(amount), 0)::int AS bal
+       FROM ai_credit_ledger
+      WHERE user_id=$1 AND bucket IN ('bonus','purchased')
+      GROUP BY bucket`,
+    [userId]
+  );
+  const out = { bonus: 0, purchased: 0 };
+  result.rows.forEach((row) => { out[row.bucket] = Math.max(0, Number(row.bal) || 0); });
+  return out;
+}
+
+async function grantCredits(userId, bucket, amount, kind, reason, createdBy) {
+  const db = await getPool();
+  if (!db || !userId) return false;
+  if (!['bonus', 'purchased'].includes(bucket)) throw new Error('Invalid credit bucket.');
+  await db.query(
+    `INSERT INTO ai_credit_ledger(user_id, kind, bucket, amount, reason, created_by) VALUES($1,$2,$3,$4,$5,$6)`,
+    [userId, kind || 'admin_grant', bucket, Math.round(Number(amount) || 0), reason || null, createdBy || null]
+  );
+  return true;
+}
+
+// Spend one credit using the spend order: monthly allowance first, then bonus,
+// then purchased. Monthly is tracked by ai_usage_monthly; bonus/purchased are
+// recorded as negative ledger rows. No-op for unlimited (master) accounts.
+async function debitAiCredit(userId, requestId) {
+  const db = await getPool();
+  if (!db || !userId) return;
+  const usage = await readAiUsage(userId);
+  if (usage.unlimited) { return; }
+  const monthlyRemaining = Math.max(0, (Number(usage.limit) || 0) - (Number(usage.count) || 0));
+  const balances = await readLedgerBalances(userId);
+  const bucket = chooseSpendBucket({ monthlyRemaining, bonus: balances.bonus, purchased: balances.purchased });
+  if (bucket === 'monthly' || bucket === null) {
+    // null shouldn't happen (gated upstream); fall back to monthly so the call isn't free.
+    await incrementAiUsage(userId);
+    return;
+  }
+  await db.query(
+    `INSERT INTO ai_credit_ledger(user_id, kind, bucket, amount, reason, request_id) VALUES($1,'debit',$2,-1,'ai_action',$3)`,
+    [userId, bucket, requestId || null]
+  );
+}
+
+function nextMonthlyResetISO() {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString();
+}
+
+async function readCreditStatus(user) {
+  const usage = await readAiUsage(user.user_id);
+  const balances = await readLedgerBalances(user.user_id);
+  const monthlyRemaining = usage.unlimited ? null : Math.max(0, (Number(usage.limit) || 0) - (Number(usage.count) || 0));
+  const totalRemaining = usage.unlimited ? null : (monthlyRemaining + balances.bonus + balances.purchased);
+  return {
+    plan: usage.plan || (usage.unlimited ? 'beta' : DEFAULT_PLAN),
+    unlimited: !!usage.unlimited,
+    launchPhase: LAUNCH_PHASE,
+    monthly: { limit: usage.limit ?? null, used: usage.count || 0, remaining: monthlyRemaining, period: usage.period, resetsAt: nextMonthlyResetISO() },
+    bonusCredits: balances.bonus,
+    purchasedCredits: balances.purchased,
+    totalRemaining,
+    rollsOver: false,
+  };
+}
+
+// Referral foundation: grant the bonus to both sides, capped per referrer/month.
+// Not yet wired to a live conversion event (payments are not integrated).
+async function grantReferralBonus(referrerId, referredId, createdBy) {
+  const db = await getPool();
+  if (!db) return { ok: false, reason: 'no_db' };
+  const period = currentAiPeriod();
+  const r = await db.query(
+    `SELECT count(*)::int AS n FROM ai_credit_ledger WHERE user_id=$1 AND kind='referral_bonus' AND to_char(created_at,'YYYY-MM')=$2`,
+    [referrerId, period]
+  );
+  if (!referralBonusAllowed(r.rows[0]?.n || 0)) return { ok: false, reason: 'cap_reached' };
+  await grantCredits(referrerId, 'bonus', REFERRAL_CONFIG.bonusCredits, 'referral_bonus', 'referral', createdBy || 'system');
+  await grantCredits(referredId, 'bonus', REFERRAL_CONFIG.bonusCredits, 'referral_bonus', 'referral', createdBy || 'system');
+  return { ok: true, granted: REFERRAL_CONFIG.bonusCredits };
+}
+
 function absoluteUrl(base, maybeUrl) {
   try { return new URL(maybeUrl, base).href; } catch { return ''; }
 }
@@ -1677,7 +1833,7 @@ app.put('/api/admin/users/:id/entitlement', requireAuth, requireMasterAdmin, asy
   try {
     const db = await getPool();
     const plan = String(req.body?.plan || '').trim().toLowerCase();
-    if (!['free', 'beta', 'plus'].includes(plan)) return res.status(400).json({ error: 'Plan must be free, beta, or plus.' });
+    if (!['free', 'beta', 'plus', 'family', 'founder'].includes(plan)) return res.status(400).json({ error: 'Plan must be free, beta, plus, family, or founder.' });
     const target = await db.query('SELECT user_id, role FROM profiles WHERE user_id=$1', [req.params.id]);
     if (!target.rows[0]) return res.status(404).json({ error: 'user not found' });
     if (target.rows[0].role === 'master_admin') return res.status(400).json({ error: 'Master admin tier cannot be changed here.' });
@@ -1700,6 +1856,28 @@ app.put('/api/admin/users/:id/entitlement', requireAuth, requireMasterAdmin, asy
     );
     await logUserActivity(req.user, 'admin_user_tier_changed', { targetUserId: req.params.id, plan });
     res.json({ ok: true, userId: req.params.id, plan });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Master-admin: grant bonus/purchased AI credits to a user (until billing is
+// wired). Writes the ledger; never expires. Lets the admin honor founder
+// conversions, referral bonuses, or comped credit packs manually.
+app.post('/api/admin/credits/grant', requireAuth, requireMasterAdmin, async (req, res) => {
+  try {
+    const db = await getPool();
+    if (!db) return res.status(503).json({ error: 'Database unavailable.' });
+    const userId = String(req.body?.userId || '').trim();
+    const bucket = String(req.body?.bucket || 'bonus').trim().toLowerCase();
+    const amount = Math.round(Number(req.body?.amount));
+    const kind = ['purchase', 'referral_bonus', 'admin_grant'].includes(req.body?.kind) ? req.body.kind : 'admin_grant';
+    if (!userId) return res.status(400).json({ error: 'userId is required.' });
+    if (!['bonus', 'purchased'].includes(bucket)) return res.status(400).json({ error: 'bucket must be bonus or purchased.' });
+    if (!Number.isFinite(amount) || amount === 0 || Math.abs(amount) > 100000) return res.status(400).json({ error: 'amount must be a non-zero integer.' });
+    const target = await db.query('SELECT user_id FROM profiles WHERE user_id=$1', [userId]);
+    if (!target.rows[0]) return res.status(404).json({ error: 'user not found' });
+    await grantCredits(userId, bucket, amount, kind, String(req.body?.reason || 'admin grant').slice(0, 240), req.user.user_id);
+    await logUserActivity(req.user, 'admin_credits_granted', { targetUserId: userId, bucket, amount, kind });
+    res.json({ ok: true, userId, bucket, amount, balances: await readLedgerBalances(userId) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -2243,6 +2421,20 @@ app.get('/api/me/ai-ledger', requireAuth, async function(req, res) {
   } catch(err) { res.status(500).json({ error: err.message }); }
 });
 
+// Server-authoritative credit status for the signed-in user (monthly + bonus +
+// purchased). Read-only; the client never sets these values.
+app.get('/api/me/credits', requireAuth, async function(req, res) {
+  try {
+    res.json(await readCreditStatus(req.user));
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+// Read-only display config (tier names, prices, packs, flags). Safe to expose;
+// never used for enforcement, which always uses the server-side entitlement.
+app.get('/api/config/entitlements', function(req, res) {
+  res.json(ENTITLEMENT_CONFIG);
+});
+
 app.post('/api/ai', async function(req, res) {
   const requestId = crypto.randomUUID();
   let user = null;
@@ -2256,6 +2448,7 @@ app.post('/api/ai', async function(req, res) {
     model = String(req.body?.model || '');
     const entitlement = await readEntitlements(user);
     tier = entitlement.plan;
+    const isMaster = isMasterAdminUser(user);
     if (!entitlement.unlimited) {
       const ipLimit = await checkRateLimit(`ip:${clientIp(req)}`, `ai:${feature}`, 80, 'day');
       if (!ipLimit.allowed) return res.status(429).json({ error: 'Slow down a bit before using more RecipeBox AI.' });
@@ -2263,17 +2456,25 @@ app.post('/api/ai', async function(req, res) {
       if (!perUserLimit.allowed) return res.status(429).json({ error: 'Daily AI limit reached for your account.', limit: perUserLimit.limit, resetAt: perUserLimit.resetAt });
       if (feature === 'import' && String(process.env.AI_IMPORTS_ENABLED || 'true').toLowerCase() === 'false') return res.status(503).json({ error: 'Recipe imports are temporarily paused.' });
       if (feature === 'adjust' && String(process.env.AI_ADJUST_ENABLED || 'true').toLowerCase() === 'false') return res.status(503).json({ error: 'Recipe adjustments are temporarily paused.' });
+    } else if (!isMaster) {
+      // Beta = unlimited credits, but still abuse / rate-limit protected.
+      const ipLimit = await checkRateLimit(`ip:${clientIp(req)}`, `ai:${feature}`, 120, 'day');
+      if (!ipLimit.allowed) return res.status(429).json({ error: 'Slow down a bit before using more RecipeBox AI.' });
+      const betaCap = Number(process.env.AI_BETA_DAILY_ABUSE_CAP || 200);
+      const perUserLimit = await checkRateLimit(`user:${user.user_id}`, `ai:${feature}`, betaCap, 'day');
+      if (!perUserLimit.allowed) return res.status(429).json({ error: 'Daily AI limit reached for your account.', limit: perUserLimit.limit, resetAt: perUserLimit.resetAt });
     }
     const globalControls = await checkGlobalAiControls();
     if (!entitlement.unlimited && !globalControls.allowed) return res.status(503).json({ error: globalControls.error });
     const billable = isBillableAiFeature(feature);
-    const usage = await readAiUsage(user.user_id);
-    // Don't block internal helper passes (e.g. JSON repair) on the monthly cap —
-    // they belong to an action that already passed the gate and was billed.
-    if (billable && !usage.unlimited && usage.remaining <= 0) {
+    const credits = await readCreditStatus(user);
+    // Block only billable user actions when out of total credits (monthly + bonus +
+    // purchased). Internal helper passes (repair) and unlimited accounts pass through.
+    if (billable && !credits.unlimited && credits.totalRemaining <= 0) {
       return res.status(429).json({
-        error: `Monthly AI beta limit reached (${usage.count}/${usage.limit}).`,
-        aiUsage: usage,
+        error: `You're out of AI credits. Monthly credits reset ${new Date(credits.monthly.resetsAt).toLocaleDateString()}.`,
+        credits,
+        aiUsage: await readAiUsage(user.user_id),
       });
     }
     const key = process.env.ANTHROPIC_API_KEY;
@@ -2288,7 +2489,12 @@ app.post('/api/ai', async function(req, res) {
       await logAiUsageEvent({ requestId, user, feature, model, tier, success: false, errorMessage: d.error?.message || d.error || 'Anthropic request failed' });
       return res.status(r.status).json(d);
     }
-    const nextUsage = billable ? await incrementAiUsage(user.user_id) : await readAiUsage(user.user_id);
+    // Spend a credit only for billable user actions. Spend order (monthly -> bonus
+    // -> purchased) lives in debitAiCredit. Beta tracks usage for stats only.
+    if (billable) {
+      if (!entitlement.unlimited) await debitAiCredit(user.user_id, requestId);
+      else if (!isMaster) await incrementAiUsage(user.user_id);
+    }
     await logAiUsageEvent({
       requestId,
       user,
@@ -2299,7 +2505,7 @@ app.post('/api/ai', async function(req, res) {
       outputTokens: d.usage?.output_tokens,
       success: true,
     });
-    res.status(r.status).json({ ...d, aiUsage: nextUsage, requestId });
+    res.status(r.status).json({ ...d, aiUsage: await readAiUsage(user.user_id), credits: await readCreditStatus(user), requestId });
   } catch(err) {
     try { await logAiUsageEvent({ requestId, user, feature, model, tier, success: false, errorMessage: err.message }); } catch {}
     res.status(500).json({ error: err.message });
@@ -2310,7 +2516,11 @@ app.get('*', function(req, res) { res.sendFile(path.join(__dirname, 'public', 'i
 
 module.exports = app;
 module.exports.extractYouTubeVideoId = extractYouTubeVideoId;
-module.exports._test = { extractHelpfulLinks, detectAiFeature, isBillableAiFeature };
+module.exports._test = {
+  extractHelpfulLinks, detectAiFeature, isBillableAiFeature,
+  ENTITLEMENT_CONFIG, PLAN_ENTITLEMENTS, REFERRAL_CONFIG, LAUNCH_PHASE,
+  chooseSpendBucket, planMonthlyCredits, referralBonusAllowed,
+};
 
 if (require.main === module) {
   app.listen(process.env.PORT || 3000, function() { console.log('RecipeBox running'); });
