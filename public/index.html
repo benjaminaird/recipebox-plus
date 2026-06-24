@@ -25,13 +25,16 @@
   <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html { min-height: 100%; overflow-x: hidden; background-color: #2C4A33; background: linear-gradient(135deg, #234B32 0%, #5A3827 100%); overscroll-behavior: none; }
-    body { margin: 0; min-height: 100dvh; overflow-x: hidden; font-family: 'DM Sans', sans-serif; background-color: #2C4A33; background: linear-gradient(135deg, #234B32 0%, #5A3827 100%); color: #2A1B13; overscroll-behavior: none; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; -webkit-text-size-adjust: 100%; -webkit-touch-callout: none; }
-    #root { min-height: 100vh; min-height: 100dvh; overflow-x: hidden; background-color: #2C4A33; background: linear-gradient(135deg, #234B32 0%, #5A3827 100%); }
-    /* Full-screen brand backdrop pinned behind everything. Independent of any
-       vh/dvh quirk, so the bottom (incl. the iOS home-indicator strip in a
-       standalone PWA) is never the browser's white default. */
-    body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: linear-gradient(135deg, #234B32 0%, #5A3827 100%); }
+    html { min-height: 100%; overflow-x: hidden; background-color: #2C4A33; overscroll-behavior: none; }
+    body { margin: 0; min-height: 100dvh; overflow-x: hidden; font-family: 'DM Sans', sans-serif; background-color: #2C4A33; color: #2A1B13; overscroll-behavior: none; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; -webkit-text-size-adjust: 100%; -webkit-touch-callout: none; }
+    #root { min-height: 100vh; min-height: 100dvh; overflow-x: hidden; background: transparent; }
+    /* The ONE brand gradient for the entire app: a single fixed layer, oversized
+       past every edge so the iOS home-indicator / safe-area strip can never
+       reveal a second gradient box (which caused the seam near the bottom in the
+       standalone PWA). Every full-screen brand surface (splash, auth, cook mode)
+       is transparent and shows this through, so there is only ever ONE gradient
+       in the whole app = no seam, no white. */
+    body::before { content: ""; position: fixed; top: -100px; left: -40px; right: -40px; bottom: -100px; z-index: -1; background: linear-gradient(150deg, #234B32 0%, #5A3827 100%); }
     input, textarea, select, [contenteditable="true"] { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
     button { -webkit-touch-callout: none; touch-action: manipulation; }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
@@ -753,6 +756,16 @@ For sources with multiple recipes or variants:
 - Extract one primary recipe card that best matches the title/source.
 - Do not merge separate variants into one giant recipe. Mention alternate variants briefly in notes only if source-grounded and useful.
 - If an uploaded photo, rendered PDF page, video, article, or transcript clearly contains multiple distinct recipe cards, standalone recipes, or full variants, do not merge them or choose one silently. Return {"error":"multiple_recipes_detected","recipes":["name 1","name 2"]} so RecipeBox can ask the user whether to import one or all.
+
+For servings:
+- Use the recipe's stated yield/servings when present (e.g. "Serves 8", "Makes 24 cookies", "Yield: 12").
+- When servings are NOT stated, estimate a realistic number from the total quantities — a large-batch recipe (e.g. several pounds of meat, 9x13 pan, a whole sheet cake, a big pot of soup) serves many more than 4. Do NOT default to 4. A reasonable estimate from the ingredient amounts is expected and useful.
+- Return servings as a positive integer.
+
+For macros (nutrition) — always fill these in, never leave them at 0:
+- If the source lists nutrition, use it. If it is given for the whole recipe, divide by the servings so the stored values are PER SERVING.
+- If the source does NOT list nutrition, estimate per-serving calories, protein, carbs, fat, and fiber from the ingredients and the servings count. A sensible approximation is expected and helpful — do not return zeros just because the source omitted nutrition.
+- macros are ALWAYS stored per single serving (not the whole recipe). Use realistic whole numbers.
 
 For category and tags (these are SEPARATE fields, never mix them):
 - "category" is the single real food type. Use one of: Breakfast, Appetizers, Entrées, Sides, Condiments & Sauces, Beverages, Desserts. Pick the closest real type. "Copycat" is NEVER a category.
@@ -2773,7 +2786,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
             setLoadingMsg("Extracting recipe...");
             const prompt =
-              "Extract the recipe ONLY from the source material below. Do not use memory. Do not invent missing quantities, ingredients, steps, times, servings, or notes. If something is missing, leave it blank. Put source-grounded cooking tips, make-ahead/storage/substitution guidance, and directly useful helper links in notes only when they appear in the source. Return only valid JSON.\n\n" +
+              "Extract the recipe ONLY from the source material below. Do not use memory for ingredients, steps, quantities, or times. Do not invent missing ingredients, steps, quantities, times, or notes; if one of those is missing, leave it blank. EXCEPTION: always set realistic servings (use the stated yield, otherwise estimate from the quantities — never default to 4) and always fill per-serving macros (use the source's nutrition if present, otherwise estimate from the ingredients — never leave them 0). Put source-grounded cooking tips, make-ahead/storage/substitution guidance, and directly useful helper links in notes only when they appear in the source. Return only valid JSON.\n\n" +
               "Source URL: " + (pageData.finalUrl || pageData.url || url) + "\n" +
               "Page title: " + (pageData.title || "") + "\n" +
               "Detected hero image: " + (pageData.image || "") + "\n\n" +
@@ -2814,7 +2827,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               content += "\n\nImporter warnings: " + transcriptData.warnings.join("; ");
             }
 
-            const ytMessages = [{ role:"user", content:"Extract the recipe from this YouTube video content. Use only the transcript, description, and metadata below. Put helpful source-grounded tips or warnings in notes; do not invent notes from general cooking knowledge. If the video contains multiple full recipe variants, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]} instead of merging them or choosing one silently.\n\n" + content }];
+            const ytMessages = [{ role:"user", content:"Extract the recipe from this YouTube video content. Use only the transcript, description, and metadata below. Put helpful source-grounded tips or warnings in notes; do not invent notes from general cooking knowledge. Always set realistic servings (estimate from the quantities if not stated — never default to 4) and always fill per-serving macros (estimate from the ingredients if not stated — never leave them 0). If the video contains multiple full recipe variants, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]} instead of merging them or choosing one silently.\n\n" + content }];
             const raw = await callAI(ytMessages, EXTRACT_PROMPT, 6000);
             extractCtx = { messages: ytMessages, maxTokens: 6000, heroFallback: transcriptData.thumbnail || "" };
             parsed = await parseImportedRecipe(raw);
@@ -2844,7 +2857,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
             setLoadingMsg("Extracting recipe from social post...");
             const prompt =
-              "Extract a recipe ONLY from the public social source data below. Do not use memory. Do not infer a recipe from the title, thumbnail, author, or platform. Do not invent missing ingredients, quantities, steps, times, servings, or notes. Put helpful source-grounded tips in notes only when they appear in the caption or page text. If the source data does not include enough recipe details, return {\"error\":\"not_enough_recipe_text\",\"message\":\"Try Paste Text with the caption or upload screenshots.\"}.\n\n" +
+              "Extract a recipe ONLY from the public social source data below. Do not use memory. Do not infer a recipe from the title, thumbnail, author, or platform. Do not invent missing ingredients, quantities, steps, times, or notes. Once the recipe itself is grounded in the source, always set realistic servings (estimate from the quantities — never default to 4) and always fill per-serving macros (estimate from the ingredients when not stated — never leave them 0). Put helpful source-grounded tips in notes only when they appear in the caption or page text. If the source data does not include enough recipe details, return {\"error\":\"not_enough_recipe_text\",\"message\":\"Try Paste Text with the caption or upload screenshots.\"}.\n\n" +
               "Platform: " + (socialData.platform || "") + "\n" +
               "Source URL: " + (socialData.finalUrl || socialData.url || socialUrl) + "\n" +
               "Title: " + (socialData.title || "") + "\n" +
@@ -2866,7 +2879,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
           } else if (mode === "text") {
             setLoadingMsg("Extracting recipe...");
-            const textMessages = [{ role:"user", content:"Extract the recipe from this text. Put source-grounded tips or extra cooking guidance in notes only when present in the text; do not invent notes.\n\n" + text }];
+            const textMessages = [{ role:"user", content:"Extract the recipe from this text. Put source-grounded tips or extra cooking guidance in notes only when present in the text; do not invent notes. Always set realistic servings (use the stated yield, otherwise estimate from the quantities — never default to 4) and always fill per-serving macros (use stated nutrition if present, otherwise estimate from the ingredients — never leave them 0).\n\n" + text }];
             const raw = await callAI(textMessages, EXTRACT_PROMPT, 2000);
             extractCtx = { messages: textMessages, maxTokens: 2000, heroFallback: "" };
             parsed = await parseImportedRecipe(raw);
@@ -2878,7 +2891,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               const pdfMessages = [{
                 role:"user",
                 content:
-                  "Extract the recipe ONLY from the PDF text below. Do not invent missing details or notes. Put helpful source-grounded tips in notes only when present in the PDF text. Return valid JSON only.\n\n" +
+                  "Extract the recipe ONLY from the PDF text below. Do not invent missing ingredients, steps, or notes. Always set realistic servings (use the stated yield, otherwise estimate from the quantities — never default to 4) and always fill per-serving macros (use the PDF's nutrition if present, otherwise estimate from the ingredients — never leave them 0). Put helpful source-grounded tips in notes only when present in the PDF text. Return valid JSON only.\n\n" +
                   pdfContent.slice(0, 24000)
               }];
               const rawPdf = await callAI(pdfMessages, EXTRACT_PROMPT, 3500);
@@ -2890,7 +2903,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 type: "image",
                 source: { type: "base64", media_type: img.type, data: img.data }
               }));
-              pdfArr.push({ type: "text", text: "Extract the recipe from these rendered PDF page image(s). The PDF may be sideways, scanned, illustrated, handwritten, or a photo of a recipe card. Some images may be rotated duplicates of the same page; use the clearest orientation and do not duplicate recipe content. Carefully transcribe the visible recipe text first, preserve uncertain quantities as written, and do not invent missing details or notes. Include all visible ingredient-list items and visible add-ins mentioned in directions, such as garnishes, green onions, sauces, peppers, cheese, or variations, unless clearly optional; optional items should be marked optional. Do not include equipment/tools as ingredients. If the PDF page image(s) clearly show multiple distinct recipe cards or standalone recipes, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]} instead of merging them. If the pages are parts of the same recipe, extract one recipe. Put helpful notes only when they are visible in the PDF image text." });
+              pdfArr.push({ type: "text", text: "Extract the recipe from these rendered PDF page image(s). The PDF may be sideways, scanned, illustrated, handwritten, or a photo of a recipe card. Some images may be rotated duplicates of the same page; use the clearest orientation and do not duplicate recipe content. Carefully transcribe the visible recipe text first, preserve uncertain quantities as written, and do not invent missing details or notes. Include all visible ingredient-list items and visible add-ins mentioned in directions, such as garnishes, green onions, sauces, peppers, cheese, or variations, unless clearly optional; optional items should be marked optional. Do not include equipment/tools as ingredients. If the PDF page image(s) clearly show multiple distinct recipe cards or standalone recipes, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]} instead of merging them. If the pages are parts of the same recipe, extract one recipe. Put helpful notes only when they are visible in the PDF image text. Always set realistic servings (use the stated yield, otherwise estimate from the quantities — never default to 4) and always fill per-serving macros (use visible nutrition if present, otherwise estimate from the ingredients — never leave them 0)." });
               const pdfImgMessages = [{ role:"user", content: pdfArr }];
               const rawPdfImage = await callAI(pdfImgMessages, EXTRACT_PROMPT, 3500);
               extractCtx = { messages: pdfImgMessages, maxTokens: 3500, heroFallback: "" };
@@ -2904,7 +2917,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               type: "image",
               source: { type: "base64", media_type: img.type, data: img.data }
             }));
-            imgArr.push({ type: "text", text: "Extract the recipe from these " + images.length + " image(s). These may be handwritten recipe cards or cookbook pages. Carefully transcribe the visible text first, preserve uncertain quantities as written, and do not invent missing details or notes. Include all visible ingredient-list items and visible add-ins mentioned in directions, such as garnishes, green onions, sauces, peppers, cheese, or variations, unless clearly optional; optional items should be marked optional. Do not include equipment/tools as ingredients. If the image(s) clearly show multiple distinct recipe cards or standalone recipes, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]} instead of merging them. If the images are front/back or separate pages of the same recipe, extract one recipe. Put helpful notes only when they are visible in the image text." });
+            imgArr.push({ type: "text", text: "Extract the recipe from these " + images.length + " image(s). These may be handwritten recipe cards or cookbook pages. Carefully transcribe the visible text first, preserve uncertain quantities as written, and do not invent missing details or notes. Include all visible ingredient-list items and visible add-ins mentioned in directions, such as garnishes, green onions, sauces, peppers, cheese, or variations, unless clearly optional; optional items should be marked optional. Do not include equipment/tools as ingredients. If the image(s) clearly show multiple distinct recipe cards or standalone recipes, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]} instead of merging them. If the images are front/back or separate pages of the same recipe, extract one recipe. Put helpful notes only when they are visible in the image text. Always set realistic servings (use the stated yield, otherwise estimate from the quantities — never default to 4) and always fill per-serving macros (use visible nutrition if present, otherwise estimate from the ingredients — never leave them 0)." });
             const imgMessages = [{ role:"user", content: imgArr }];
             const raw = await callAI(imgMessages, EXTRACT_PROMPT, 3000);
             extractCtx = { messages: imgMessages, maxTokens: 3000, heroFallback: "" };
@@ -3373,6 +3386,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [showShop, setShowShop] = useState(false);
       const [showOriginal, setShowOriginal] = useState(false);
       const [showWTB, setShowWTB] = useState(false);
+      const [macroWhole, setMacroWhole] = useState(false);
       const [aiQuery, setAiQuery] = useState("");
       const [aiLoading, setAiLoading] = useState(false);
       const [aiResult, setAiResult] = useState(null);
@@ -3676,7 +3690,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       if (cookMode && allSteps.length > 0) {
         const cur=allSteps[cookStep], tMeta=timerOptions(cur.text), tK="cook-"+cookStep, timer=timers[tK];
         return (
-          <div style={{minHeight:"100dvh",background:`linear-gradient(135deg, ${C.green} 0%, ${C.brown} 100%)`,color:C.dark,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:SANS,padding:"max(env(safe-area-inset-top),20px) 20px calc(env(safe-area-inset-bottom) + 24px)"}}>
+          <div style={{minHeight:"100dvh",background:"transparent",color:C.dark,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:SANS,padding:"max(env(safe-area-inset-top),20px) 20px calc(env(safe-area-inset-bottom) + 24px)"}}>
             {timerAlert}
             <div style={{maxWidth:600,width:"100%",textAlign:"center"}}>
               <div style={{color:"rgba(255,249,238,0.72)",fontSize:"0.72em",letterSpacing:3,textTransform:"uppercase",fontFamily:SANS,fontWeight:800,marginBottom:6}}>{cur.secName}</div>
@@ -3801,17 +3815,32 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             )}
 
             {/* Macros */}
-            {recipe.macros && (
-              <div style={{...S.cardSoft,display:"flex",gap:7,flexWrap:"wrap",marginBottom:18,padding:"12px 14px"}}>
-                {[["Calories",recipe.macros.calories,"",C.terra],["Protein",recipe.macros.protein,"g",C.blue],["Carbs",recipe.macros.carbs,"g",C.gold],["Fat",recipe.macros.fat,"g",C.greenMid||"#4A7C2F"],["Fiber",recipe.macros.fiber,"g",C.brown]].map(([label,val,unit,clr])=>(
-                  <div key={label} style={{textAlign:"center",minWidth:56}}>
-                    <div style={{fontSize:"1.05em",fontWeight:700,color:clr,fontFamily:SERIF}}>{Math.round((val||0)*scale)}{unit}</div>
-                    <div style={{fontSize:"0.65em",color:C.light,letterSpacing:1,textTransform:"uppercase"}}>{label}</div>
+            {recipe.macros && Object.values(recipe.macros).some((v)=>Number(v)>0) && (() => {
+              const totalServings = Math.max(1, Math.round((Number(recipe.servings)||1) * scale));
+              const factor = macroWhole ? totalServings : 1;
+              return (
+              <div style={{...S.cardSoft,marginBottom:18,padding:"12px 14px"}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:10,flexWrap:"wrap"}}>
+                  <div style={{fontSize:"0.66em",color:C.light,letterSpacing:1,textTransform:"uppercase",fontWeight:800}}>Nutrition · estimated</div>
+                  <div style={{display:"inline-flex",background:C.cream2,border:"1px solid "+C.border,borderRadius:999,padding:2}}>
+                    {[["serving","Per serving"],["whole","Whole recipe"]].map(([k,lbl])=>{
+                      const active = (k==="whole") === macroWhole;
+                      return <button key={k} onClick={()=>setMacroWhole(k==="whole")} style={{border:"none",borderRadius:999,padding:"5px 11px",fontSize:"0.7em",fontWeight:800,cursor:"pointer",fontFamily:SANS,background:active?C.green:"transparent",color:active?C.white:C.light,touchAction:"manipulation"}}>{lbl}</button>;
+                    })}
                   </div>
-                ))}
-                <div style={{fontSize:"0.68em",color:C.light,alignSelf:"flex-end",marginLeft:"auto"}}>per serving</div>
+                </div>
+                <div style={{display:"flex",gap:7,flexWrap:"wrap",alignItems:"flex-end"}}>
+                  {[["Calories",recipe.macros.calories,"",C.terra],["Protein",recipe.macros.protein,"g",C.blue],["Carbs",recipe.macros.carbs,"g",C.gold],["Fat",recipe.macros.fat,"g",C.greenMid||"#4A7C2F"],["Fiber",recipe.macros.fiber,"g",C.brown]].map(([label,val,unit,clr])=>(
+                    <div key={label} style={{textAlign:"center",minWidth:56}}>
+                      <div style={{fontSize:"1.05em",fontWeight:700,color:clr,fontFamily:SERIF}}>{Math.round((val||0)*factor)}{unit}</div>
+                      <div style={{fontSize:"0.65em",color:C.light,letterSpacing:1,textTransform:"uppercase"}}>{label}</div>
+                    </div>
+                  ))}
+                  <div style={{fontSize:"0.68em",color:C.light,alignSelf:"flex-end",marginLeft:"auto"}}>{macroWhole ? "whole recipe ("+totalServings+" servings)" : "per serving"}</div>
+                </div>
               </div>
-            )}
+              );
+            })()}
 
             {/* Scale */}
             <div style={{...S.cardSoft,display:"flex",gap:5,alignItems:"center",flexWrap:"wrap",marginBottom:18,padding:"9px 13px"}}>
@@ -4183,7 +4212,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const isResetRequest = mode === "reset";
       const isNewPassword = mode === "newpass";
       return (
-        <div style={{minHeight:"100dvh",background:`linear-gradient(135deg, ${C.green} 0%, ${C.brown} 100%)`,display:"flex",alignItems:"center",justifyContent:"center",padding:"max(env(safe-area-inset-top),20px) 20px max(env(safe-area-inset-bottom),20px)"}}>
+        <div style={{minHeight:"100dvh",background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",padding:"max(env(safe-area-inset-top),20px) 20px max(env(safe-area-inset-bottom),20px)"}}>
           <div style={{width:"100%",maxWidth:430}}>
             <div style={{textAlign:"center",marginBottom:20}}>
               <img src="/icon-192.png" alt="" style={{width:92,height:92,borderRadius:22,display:"block",margin:"0 auto 14px",boxShadow:"0 18px 55px rgba(28,20,16,0.28)"}} />
@@ -4265,7 +4294,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
     function SplashScreen() {
       return (
-        <div style={{position:"fixed",inset:0,zIndex:200,background:`linear-gradient(135deg, ${C.green} 0%, ${C.brown} 100%)`,display:"flex",alignItems:"center",justifyContent:"center",padding:28}}>
+        <div style={{position:"fixed",inset:0,zIndex:200,background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",padding:28}}>
           <div style={{textAlign:"center",animation:"splashIn 0.55s ease both"}}>
             <img src="/icon-192.png" alt="" style={{width:118,height:118,borderRadius:28,display:"block",margin:"0 auto 18px",boxShadow:"0 18px 55px rgba(28,20,16,0.32)",animation:"splashGlow 2.2s ease-in-out infinite"}} />
             <div style={{fontFamily:SERIF,fontSize:"2.45em",color:C.white,lineHeight:1,letterSpacing:"0.01em"}}>RecipeBox</div>
