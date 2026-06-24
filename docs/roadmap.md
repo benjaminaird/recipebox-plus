@@ -147,6 +147,19 @@ Recommended cap: 4 members.
 - Household sharing should be permission-based, not a shared login.
 - Do not require members to live in the same household; support roommates, couples, separated families, college students, and caretaking relationships.
 
+## Future: Swipe Navigation (back burner)
+
+Swipe-to-navigate was tried on the web/PWA and disabled — it felt unreliable
+(direction confusion, edge detection, color flash, conflicts with the browser's
+own edge-swipe). Navigation is currently tap-driven (bottom nav + back buttons)
+with directional slide transitions, which is solid.
+
+Revisit gesture navigation when building the **native iOS/Android** app, where
+the platform provides reliable, interactive swipe-back (and a real page view
+controller). Intended behavior to restore then: edge-initiated, interactive
+finger-follow; recipe detail swipe-from-edge to go back; tab swipes only between
+adjacent tabs with clamped ends. The disabled code/notes live in `src/app.jsx`.
+
 ## Future Polish: PDF Export
 
 Recipe exports should feel polished, branded, and worth sharing.

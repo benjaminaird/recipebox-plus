@@ -4311,44 +4311,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         setTab(nextTab);
         setScreen("library");
       }
-      function goTab(delta) {
-        const i = MAIN_TABS.indexOf(tab);
-        if (i < 0) return;
-        const next = Math.min(MAIN_TABS.length - 1, Math.max(0, i + delta));
-        if (next !== i) setMainTab(MAIN_TABS[next]);
-      }
-      // Nav swipes must START within SWIPE_EDGE px of the left/right screen edge
-      // (not the middle), be mostly horizontal, and travel at least SWIPE_MIN px.
-      const SWIPE_EDGE = 44;
-      const SWIPE_MIN = 55;
-      function swipeBegin(ref, e) {
-        const p = e.touches ? e.touches[0] : e;
-        if (!p) { ref.current = null; return; }
-        const tag = e.target?.tagName?.toLowerCase();
-        if (["input","textarea","select"].includes(tag) || hasHorizontalScrollParent(e.target, e.currentTarget)) { ref.current = null; return; }
-        const w = window.innerWidth || document.documentElement.clientWidth || 0;
-        if (p.clientX > SWIPE_EDGE && p.clientX < w - SWIPE_EDGE) { ref.current = null; return; }
-        ref.current = { x:p.clientX, y:p.clientY };
-      }
-      function swipeResolve(ref, e) {
-        const start = ref.current; ref.current = null;
-        const p = e.changedTouches ? e.changedTouches[0] : e;
-        if (!start || !p) return 0;
-        const dx = p.clientX - start.x, dy = p.clientY - start.y;
-        if (Math.abs(dx) < SWIPE_MIN || Math.abs(dx) < Math.abs(dy) * 1.4) return 0;
-        return dx;
-      }
-      // Main tabs: swipe-left -> tab to the left (lower index), swipe-right ->
-      // tab to the right. Ends are clamped, so the outermost swipe does nothing.
-      function tabTouchStart(e) { swipeBegin(swipeRef, e); }
-      function tabTouchEnd(e) { const dx = swipeResolve(swipeRef, e); if (dx) goTab(dx < 0 ? -1 : 1); }
-      function tabPointerStart(e) { if (e.pointerType === "touch") return; swipeBegin(pointerSwipeRef, e); }
-      function tabPointerEnd(e) { if (e.pointerType === "touch") return; const dx = swipeResolve(pointerSwipeRef, e); if (dx) goTab(dx < 0 ? -1 : 1); }
-      // Recipe detail: swipe-left goes back to where you came from; swipe-right does nothing.
-      function recipeTouchStart(e) { swipeBegin(swipeRef, e); }
-      function recipeTouchEnd(e) { const dx = swipeResolve(swipeRef, e); if (dx < 0) closeToOrigin(); }
-      function recipePointerStart(e) { if (e.pointerType === "touch") return; swipeBegin(pointerSwipeRef, e); }
-      function recipePointerEnd(e) { if (e.pointerType === "touch") return; const dx = swipeResolve(pointerSwipeRef, e); if (dx < 0) closeToOrigin(); }
+      // Swipe-to-navigate is intentionally DISABLED for now — it felt unreliable
+      // on the web/PWA. Navigation is tap-driven (bottom nav + back buttons),
+      // which still uses the directional slide transitions below. Revisit
+      // gesture navigation when we build the native iOS/Android app, where the
+      // platform provides reliable, interactive swipe-back. (Back burner.)
 
       // Build the active screen, then wrap it in ONE keyed, directionally-animated
       // container so every navigation/swipe eases in instead of hard-cutting.
@@ -4363,16 +4330,12 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       else if (screen==="edit"&&current) { body = <EditRecipe recipe={current} onSave={(r)=>{ if(recipes.find((x)=>x.id===r.id)) updateRecipe(r); else addRecipe(r); setScreen("view"); }} onCancel={()=>setScreen("view")} />; navName = "edit"; }
       else if (screen==="view"&&current) {
         navName = "view"; showNav = true;
-        body = (
-          <div onTouchStart={recipeTouchStart} onTouchEnd={recipeTouchEnd} onPointerDown={recipePointerStart} onPointerUp={recipePointerEnd}>
-            <RecipeView recipe={current} onBack={closeToOrigin} onEdit={()=>setScreen("edit")} onDelete={()=>deleteRecipe(current.id)} onUpdate={(r)=>{updateRecipe(r);setCurrent(r);}} onImport={(r)=>{addRecipe(r);setCurrent(r);}} onTagClick={(t)=>{setLibraryTag(t);setMainTab("library");}} timerSound={timerSound} />
-          </div>
-        );
+        body = <RecipeView recipe={current} onBack={closeToOrigin} onEdit={()=>setScreen("edit")} onDelete={()=>deleteRecipe(current.id)} onUpdate={(r)=>{updateRecipe(r);setCurrent(r);}} onImport={(r)=>{addRecipe(r);setCurrent(r);}} onTagClick={(t)=>{setLibraryTag(t);setMainTab("library");}} timerSound={timerSound} />;
       }
       else {
         navName = "main"; showNav = true;
         body = (
-          <div onTouchStart={tabTouchStart} onTouchEnd={tabTouchEnd} onPointerDown={tabPointerStart} onPointerUp={tabPointerEnd} style={{width:"100%",maxWidth:"100%",overflowX:"hidden"}}>
+          <div style={{width:"100%",maxWidth:"100%",overflowX:"hidden"}}>
             {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>openRecipe(r,"library")} onAdd={openImport} onFavorite={toggleFavorite} setTab={setMainTab} tagFilter={libraryTag} onTagFilter={setLibraryTag} />}
             {tab==="plan" && <MealPlanner recipes={recipes} mealPlan={mealPlan} setMealPlan={updateMealPlan} onOpen={(r)=>openRecipe(r,"plan")} />}
             {tab==="pantry" && <PantryChef recipes={recipes} onImport={(r)=>{addRecipe(r);setTab("library");}} onOpenRecipe={(r)=>openRecipe(r,"pantry")} />}
