@@ -1219,6 +1219,42 @@ async function grantReferralBonus(referrerId, referredId, createdBy) {
   return { ok: true, granted: REFERRAL_CONFIG.bonusCredits };
 }
 
+// External fetch with a hard timeout so a slow/hanging source can't stall the
+// whole serverless request. Throws an AbortError on timeout (caught upstream).
+async function fetchWithTimeout(url, options = {}, timeoutMs = 9000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+function isAbortError(err) {
+  return err && (err.name === 'AbortError' || /aborted|abort/i.test(String(err.message || '')));
+}
+// Read a response body but stop after maxBytes so a huge/malicious page cannot
+// exhaust memory. Recipe pages are small; this just bounds the worst case.
+async function readBodyCapped(response, maxBytes = 6000000) {
+  const declared = Number(response.headers.get('content-length') || 0);
+  if (declared && declared > maxBytes) { try { await response.body?.cancel(); } catch {} return null; }
+  const reader = response.body && typeof response.body.getReader === 'function' ? response.body.getReader() : null;
+  if (!reader) {
+    const text = await response.text();
+    return text.length > maxBytes ? null : text;
+  }
+  const chunks = [];
+  let received = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    received += value.length;
+    if (received > maxBytes) { try { await reader.cancel(); } catch {} return null; }
+    chunks.push(Buffer.from(value));
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
+
 function absoluteUrl(base, maybeUrl) {
   try { return new URL(maybeUrl, base).href; } catch { return ''; }
 }
@@ -1343,15 +1379,15 @@ function socialQuality(text, caption, description, warnings) {
   return 'low';
 }
 async function fetchHtmlMetadata(target, warnings) {
-  const r = await fetch(target, {
+  const r = await fetchWithTimeout(target, {
     headers: {
       'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/124 Safari/537.36',
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
       'Accept-Language': 'en-US,en;q=0.9',
     },
     redirect: 'follow',
-  });
-  const html = await r.text();
+  }, 9000);
+  const html = (await readBodyCapped(r)) || '';
   if (!r.ok) warnings.push('Generic page fetch returned HTTP ' + r.status + '.');
   const jsonLd = parseJsonLd(html);
   const title = cleanSocialCaption(metaContent(html, 'og:title') || metaContent(html, 'twitter:title') || matchAttr(html, /<title[^>]*>([\s\S]*?)<\/title>/i));
@@ -1376,7 +1412,7 @@ async function youtubeiMetadata(videoId) {
   };
 }
 async function youtubeOembed(videoUrl) {
-  const r = await fetch('https://www.youtube.com/oembed?url=' + encodeURIComponent(videoUrl) + '&format=json');
+  const r = await fetchWithTimeout('https://www.youtube.com/oembed?url=' + encodeURIComponent(videoUrl) + '&format=json', {}, 7000);
   if (!r.ok) throw new Error('YouTube oEmbed failed with status ' + r.status);
   const data = await r.json();
   return {
@@ -1391,7 +1427,7 @@ async function youtubeDataApiMetadata(videoId) {
   url.searchParams.set('part', 'snippet');
   url.searchParams.set('id', videoId);
   url.searchParams.set('key', process.env.YOUTUBE_API_KEY);
-  const r = await fetch(url);
+  const r = await fetchWithTimeout(url, {}, 7000);
   if (!r.ok) throw new Error('YouTube Data API failed with status ' + r.status);
   const data = await r.json();
   const snippet = data.items?.[0]?.snippet;
@@ -2079,15 +2115,22 @@ app.get('/api/fetch-url', async (req, res) => {
   const target = req.query.url;
   if (!target || !/^https?:\/\//i.test(target)) return res.status(400).json({ error: 'bad url' });
   try {
-    const r = await fetch(target, {
+    const r = await fetchWithTimeout(target, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/124 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
       },
       redirect: 'follow',
-    });
-    const html = await r.text();
+    }, 9000);
+    const contentType = String(r.headers.get('content-type') || '');
+    if (contentType && !/text\/html|application\/(xhtml|xml)|text\/plain/i.test(contentType)) {
+      return res.status(422).json({ error: 'That link is not a readable recipe page. Paste the recipe text or upload a screenshot instead.', url: target, finalUrl: r.url, sourceQuality: 'blocked' });
+    }
+    const html = await readBodyCapped(r);
+    if (html === null) {
+      return res.status(422).json({ error: 'This page is too large to read automatically. Try Paste Text or screenshots instead.', url: target, finalUrl: r.url, sourceQuality: 'blocked' });
+    }
     const jsonLd = parseJsonLd(html);
     const title = matchAttr(html, /<title[^>]*>([\s\S]*?)<\/title>/i)
       .replace(/\s+/g, ' ')
@@ -2106,7 +2149,10 @@ app.get('/api/fetch-url', async (req, res) => {
     }
     res.json({ url: target, finalUrl: r.url, title, image, jsonLd, text, helpfulLinks, htmlHash: crypto.createHash('sha256').update(html).digest('hex') });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    if (isAbortError(err)) {
+      return res.status(504).json({ error: 'That recipe site took too long to respond. Try again, or use Paste Text or screenshots.', url: target, sourceQuality: 'blocked' });
+    }
+    res.status(502).json({ error: 'RecipeBox could not reach that page. Check the link, or try Paste Text or screenshots.', url: target, sourceQuality: 'blocked' });
   }
 });
 
@@ -2141,12 +2187,12 @@ app.get('/api/fetch-social', async (req, res) => {
     if (platform === 'tiktok') {
       try {
         const oembedUrl = 'https://www.tiktok.com/oembed?url=' + encodeURIComponent(target);
-        const o = await fetch(oembedUrl, {
+        const o = await fetchWithTimeout(oembedUrl, {
           headers: {
             'User-Agent': 'Mozilla/5.0',
             'Accept': 'application/json,text/plain,*/*',
           },
-        });
+        }, 8000);
         oEmbedStatus = o.status;
         if (o.ok) {
           const data = await o.json();
@@ -2237,7 +2283,7 @@ app.get('/api/transcript', async function(req, res) {
     const videoId = extractYouTubeVideoId(videoUrl);
     if (!videoId) return res.status(400).json({ error: 'bad url', warnings: ['Paste a full YouTube watch, Shorts, embed, or youtu.be link.'] });
     const userAgent = 'Mozilla/5.0';
-    const yt = await fetch('https://www.youtube.com/watch?v=' + videoId, { headers: { 'User-Agent': userAgent, 'Accept-Language': 'en-US' } });
+    const yt = await fetchWithTimeout('https://www.youtube.com/watch?v=' + videoId, { headers: { 'User-Agent': userAgent, 'Accept-Language': 'en-US' } }, 9000);
     const html = await yt.text();
     let title = matchAttr(html, /<title[^>]*>([\s\S]*?)<\/title>/i).replace(' - YouTube', '').trim() || 'YouTube Recipe';
     let description = '';
@@ -2286,7 +2332,7 @@ app.get('/api/transcript', async function(req, res) {
     if (cap) {
       try {
         const cu = cap[1].replace(/\\u0026/g, '&');
-        const cr = await fetch(cu);
+        const cr = await fetchWithTimeout(cu, {}, 8000);
         const cx = await cr.text();
         transcript = [...cx.matchAll(/<text[^>]*>([\s\S]*?)<\/text>/g)].map(m => m[1].replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&quot;/g, '"')).join(' ').slice(0, 6000);
       } catch (err) {
@@ -2479,11 +2525,20 @@ app.post('/api/ai', async function(req, res) {
     }
     const key = process.env.ANTHROPIC_API_KEY;
     if (!key) return res.status(500).json({ error: 'no key' });
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify(req.body),
-    });
+    let r;
+    try {
+      // Hard timeout under the function's maxDuration so a stuck generation
+      // returns a clean error (and, being a failure, costs the user no credit).
+      r = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify(req.body),
+      }, 55000);
+    } catch (err) {
+      await logAiUsageEvent({ requestId, user, feature, model, tier, success: false, errorMessage: isAbortError(err) ? 'anthropic timeout' : err.message });
+      if (isAbortError(err)) return res.status(504).json({ error: 'That took longer than expected. Please try again — you were not charged a credit.' });
+      throw err;
+    }
     const d = await r.json();
     if (!r.ok) {
       await logAiUsageEvent({ requestId, user, feature, model, tier, success: false, errorMessage: d.error?.message || d.error || 'Anthropic request failed' });
@@ -2520,6 +2575,7 @@ module.exports._test = {
   extractHelpfulLinks, detectAiFeature, isBillableAiFeature,
   ENTITLEMENT_CONFIG, PLAN_ENTITLEMENTS, REFERRAL_CONFIG, LAUNCH_PHASE,
   chooseSpendBucket, planMonthlyCredits, referralBonusAllowed,
+  fetchWithTimeout, readBodyCapped, isAbortError,
 };
 
 if (require.main === module) {

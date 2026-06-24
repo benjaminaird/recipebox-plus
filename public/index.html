@@ -2659,7 +2659,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             setLoadingMsg("Fetching recipe page...");
             const pageRes = await apiFetch("/api/fetch-url?url=" + encodeURIComponent(url));
             const pageData = await pageRes.json();
-            if (pageData.error) throw new Error("Could not fetch recipe page: " + pageData.error);
+            if (pageData.error) throw new Error(pageData.error);
 
             setLoadingMsg("Extracting recipe...");
             const prompt =

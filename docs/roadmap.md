@@ -19,6 +19,14 @@ Last updated: June 23, 2026.
 - Beta feedback (Settings → Beta Feedback) is now readable: a master-admin-only inbox in App Control shows each message with submitter, page, and device, supports new/reviewed triage, and surfaces an unread badge on the Settings tab and App Control card. Stored in `user_feedback`; no email/webhook — visible only to the master admin (server-enforced).
 - Monetization/entitlement infrastructure is in place (server-side, source of truth): tier config (Free/Plus/Family/Founder/Beta), an `ai_credit_ledger` for non-monthly buckets (purchased + bonus), and `/api/ai` now enforces a credit balance and spends monthly → bonus → purchased. We are in `LAUNCH_PHASE=beta`, so beta stays unlimited (with abuse rate limits) and the tier caps are inert for current users until launch. No payments/ads wired. See the Monetization milestone below.
 
+## Import Reliability (hardening pass — done)
+
+- Raised the Vercel function `maxDuration` to 60s (`vercel.json`). The default (~15s) was too short for large photo/PDF/vision extractions (often 20–40s), so those imports were timing out at the platform layer. This is the biggest single import-reliability fix.
+- All external fetches (recipe pages, YouTube oembed/page/captions, social oembed/metadata, and the Anthropic call) now use `fetchWithTimeout` with hard timeouts (7–9s for sources, 55s for the model) so a slow/hanging source fails fast with a clear message instead of stalling the whole request.
+- `readBodyCapped` bounds response bodies (~6MB) so an oversized/malicious page can't exhaust memory; non-HTML links are rejected with a friendly message.
+- Honest, specific errors: timeouts → "took too long…", unreachable → "could not reach that page…", too-large/non-readable → "not a readable recipe page…", each pointing to Paste Text / screenshots. Zero credits are charged on any pre-AI fetch failure or AI timeout (verified by design: the model is only debited on success).
+- Covered by `npm run import-reliability-test` (timeout aborts promptly, size cap, abort detection).
+
 ## Near-Term Beta Priorities
 
 - Keep recipe import reliable across links, YouTube, social captions, images, screenshots, and PDFs.
