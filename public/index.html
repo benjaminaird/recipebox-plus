@@ -8,7 +8,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <meta name="theme-color" content="#204b2f">
+  <meta name="theme-color" content="#2C4A33">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="RecipeBox">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -25,13 +25,12 @@
   <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    /* The ONE brand gradient lives on the root element only. Per spec the root
-       background is propagated to the whole viewport canvas (incl. overscroll and
-       the iOS home-indicator strip), so it's a single continuous paint — no seam.
-       Everything else (body, #root, splash, auth, cook mode) is transparent and
-       shows it through, so there is never a second gradient box to seam against.
-       The solid background-color is the pre-paint fallback (never white). */
-    html { min-height: 100%; overflow-x: hidden; background-color: #2C4A33; background: linear-gradient(150deg, #234B32 0%, #5A3827 100%) no-repeat; background-attachment: fixed; overscroll-behavior: none; }
+    /* Brand background is a single SOLID color on the root element, propagated
+       across the whole viewport canvas (incl. overscroll + the iOS home-indicator
+       strip). A solid color has no gradient endpoints, so it can never seam — the
+       bottom line is impossible. Everything else (body, #root, splash, auth, cook
+       mode) is transparent and shows this through. */
+    html { min-height: 100%; overflow-x: hidden; background-color: #2C4A33; overscroll-behavior: none; }
     body { margin: 0; min-height: 100dvh; overflow-x: hidden; font-family: 'DM Sans', sans-serif; background: transparent; color: #2A1B13; overscroll-behavior: none; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; -webkit-text-size-adjust: 100%; -webkit-touch-callout: none; }
     #root { min-height: 100vh; min-height: 100dvh; overflow-x: hidden; background: transparent; }
     input, textarea, select, [contenteditable="true"] { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }

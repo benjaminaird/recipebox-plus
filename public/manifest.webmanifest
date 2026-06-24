@@ -7,8 +7,8 @@
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "browser"],
-  "background_color": "#234B32",
-  "theme_color": "#204b2f",
+  "background_color": "#2C4A33",
+  "theme_color": "#2C4A33",
   "categories": ["food", "lifestyle", "productivity"],
   "lang": "en-US",
   "icons": [
