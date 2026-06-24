@@ -2184,6 +2184,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [changes, setChanges] = useState([]);
       const [feedback, setFeedback] = useState([]);
       const [feedbackUnread, setFeedbackUnread] = useState(0);
+      const [usage, setUsage] = useState(null);
+      const [usageLoading, setUsageLoading] = useState(false);
       const [filter, setFilter] = useState("All");
       const [editor, setEditor] = useState(null);
       const [draft, setDraft] = useState(() => emptyAdminDraft());
@@ -2242,6 +2244,13 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         const t = setTimeout(loadUsers, 220);
         return () => clearTimeout(t);
       }, [section, userSearch, userTier]);
+      async function loadUsage() {
+        setUsageLoading(true);
+        try { setUsage(await fetchJson("/api/admin/ai-usage-summary", null)); }
+        catch (err) { setMessage(err.message || "Could not load usage."); }
+        finally { setUsageLoading(false); }
+      }
+      useEffect(() => { if (section === "usage" && !usage && !usageLoading) loadUsage(); }, [section]);
 
       const visibleSources = sources.filter((source) => filter === "All" || source.category === filter);
       const chip = (active) => ({ border:"1px solid "+(active?dark.gold:dark.line), background:active?"rgba(216,179,95,0.16)":"rgba(255,249,238,0.04)", color:active?dark.gold:dark.muted, borderRadius:999, padding:"8px 11px", fontSize:"0.76em", fontWeight:900, fontFamily:SANS, cursor:"pointer", whiteSpace:"nowrap" });
@@ -2327,6 +2336,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               {[
                 ["knowledge","Knowledge"],
                 ["users","Users"],
+                ["usage","Usage"],
                 ["feedback","Feedback"],
               ].map(([id,label]) => (
                 <button key={id} onClick={() => setSection(id)} style={{...chip(section === id),padding:"9px 13px",display:"inline-flex",alignItems:"center",gap:7}}>
@@ -2455,6 +2465,82 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 </div>
               </div>
             )}
+
+            {section === "usage" && (() => {
+              const map = {};
+              (usage?.daily || []).forEach((d) => { map[d.day] = d; });
+              const days14 = [];
+              for (let i = 13; i >= 0; i--) {
+                const dt = new Date(Date.now() - i * 86400000);
+                const key = dt.toISOString().slice(0, 10);
+                const e = map[key];
+                days14.push({ key, label: String(dt.getUTCDate()), billable: e ? e.billable : 0 });
+              }
+              const maxDay = Math.max(1, ...days14.map((d) => d.billable));
+              const t = usage?.totals || {};
+              const at = usage?.allTime || {};
+              const per = usage?.perUser || {};
+              const usd = (n) => "$" + Number(n || 0).toFixed(2);
+              return (
+                <div style={{display:"grid",gap:14}}>
+                  {usageLoading && !usage ? (
+                    <div style={{textAlign:"center",color:dark.muted,padding:24}}>Loading usage…</div>
+                  ) : (
+                    <React.Fragment>
+                      <div className="admin-stats-grid">
+                        {[["Billable actions (30d)", t.billable || 0], ["Provider cost (30d)", usd(t.cost)], ["Failed (30d)", t.failed || 0], ["All-time cost", usd(at.cost)]].map(([label, value]) => (
+                          <div key={label} style={{background:dark.panel,border:"1px solid "+dark.line,borderRadius:14,padding:14,minWidth:0}}>
+                            <div style={{fontSize:"0.72em",textTransform:"uppercase",letterSpacing:1.4,color:dark.muted,fontWeight:800}}>{label}</div>
+                            <div style={{fontFamily:SERIF,fontSize:"1.9em",lineHeight:1.1}}>{value}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="admin-panel" style={{background:dark.panel,border:"1px solid "+dark.line,borderRadius:16,padding:14,display:"grid",gap:6}}>
+                        <div style={{fontFamily:SERIF,fontSize:"1.3em"}}>Credit tuning ({usage?.period})</div>
+                        <div style={{fontSize:"0.84em",color:dark.muted,lineHeight:1.5}}>
+                          This month {per.activeUsers || 0} user{(per.activeUsers === 1 ? "" : "s")} used AI. Average <strong style={{color:dark.text}}>{Number(per.avgBillable || 0).toFixed(1)}</strong> billable actions each; heaviest used <strong style={{color:dark.text}}>{per.maxBillable || 0}</strong>. Compare against the tier caps to set the right monthly credits: <span style={{color:dark.gold}}>Free 10 · Plus 100 · Family 250 · Founder 150</span>. Beta is unlimited until launch.
+                        </div>
+                      </div>
+
+                      <div className="admin-panel" style={{background:dark.panel,border:"1px solid "+dark.line,borderRadius:16,padding:14}}>
+                        <div style={{fontFamily:SERIF,fontSize:"1.2em",marginBottom:12}}>Daily AI actions (14 days)</div>
+                        <div style={{display:"flex",alignItems:"flex-end",gap:4,height:110}}>
+                          {days14.map((d) => (
+                            <div key={d.key} title={d.key + ": " + d.billable} style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+                              <div style={{width:"100%",height:Math.round((d.billable / maxDay) * 84) + 2,background:d.billable ? dark.green : "rgba(255,249,238,0.12)",borderRadius:3}} />
+                              <span style={{fontSize:"0.6em",color:dark.muted}}>{d.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="admin-panel" style={{background:dark.panel,border:"1px solid "+dark.line,borderRadius:16,padding:14,display:"grid",gap:10}}>
+                        <div style={{fontFamily:SERIF,fontSize:"1.2em"}}>By feature (30 days)</div>
+                        {(usage?.byFeature || []).map((f) => (
+                          <div key={f.feature} style={{display:"flex",justifyContent:"space-between",gap:10,fontSize:"0.84em",color:dark.text,borderBottom:"1px solid "+dark.line,paddingBottom:6}}>
+                            <span style={{textTransform:"capitalize"}}>{f.feature}{f.feature === "repair" ? " (free)" : ""}</span>
+                            <span style={{color:dark.muted}}>{f.calls} calls · {usd(f.cost)}</span>
+                          </div>
+                        ))}
+                        {!(usage?.byFeature || []).length && <div style={{color:dark.muted,fontSize:"0.84em"}}>No AI activity in the last 30 days.</div>}
+                      </div>
+
+                      <div className="admin-panel" style={{background:dark.panel,border:"1px solid "+dark.line,borderRadius:16,padding:14,display:"grid",gap:9}}>
+                        <div style={{fontFamily:SERIF,fontSize:"1.2em"}}>Heaviest users ({usage?.period})</div>
+                        {(usage?.topUsers || []).map((u, i) => (
+                          <div key={i} style={{display:"flex",justifyContent:"space-between",gap:10,fontSize:"0.84em"}}>
+                            <span style={{color:dark.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.displayName || u.email || "Unknown"}</span>
+                            <span style={{color:dark.muted,whiteSpace:"nowrap"}}>{u.billable} credits · {usd(u.cost)}</span>
+                          </div>
+                        ))}
+                        {!(usage?.topUsers || []).length && <div style={{color:dark.muted,fontSize:"0.84em"}}>No AI usage yet this month.</div>}
+                      </div>
+                    </React.Fragment>
+                  )}
+                </div>
+              );
+            })()}
 
             {section === "feedback" && (
               <div style={{display:"grid",gap:14}}>

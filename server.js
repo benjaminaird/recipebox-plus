@@ -2066,6 +2066,56 @@ app.post('/api/admin/feedback/:id/status', requireAuth, requireMasterAdmin, asyn
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Master-admin AI usage dashboard: real consumption to tune the tier credit
+// numbers from beta data before launch. Read-only aggregation; no PII beyond
+// the admin's own user list (email already visible to the admin).
+app.get('/api/admin/ai-usage-summary', requireAuth, requireMasterAdmin, async (req, res) => {
+  try {
+    const db = await getPool();
+    if (!db) return res.json({ period: currentAiPeriod(), totals: {}, allTime: {}, byFeature: [], daily: [], topUsers: [], perUser: {} });
+    const period = currentAiPeriod();
+    const totalsSql = (where) => `SELECT
+        count(*)::int AS calls,
+        count(*) FILTER (WHERE feature <> 'repair')::int AS billable,
+        count(*) FILTER (WHERE feature = 'repair')::int AS repair,
+        count(*) FILTER (WHERE success = false)::int AS failed,
+        COALESCE(sum(estimated_cost_usd), 0)::numeric AS cost
+      FROM ai_usage_events ${where}`;
+    const [win, all, feat, daily, top, per] = await Promise.all([
+      db.query(totalsSql("WHERE created_at >= now() - interval '30 days'")),
+      db.query(totalsSql('')),
+      db.query(`SELECT feature, count(*)::int AS calls, COALESCE(sum(estimated_cost_usd),0)::numeric AS cost
+                FROM ai_usage_events WHERE created_at >= now() - interval '30 days'
+                GROUP BY feature ORDER BY calls DESC`),
+      db.query(`SELECT to_char(created_at::date,'YYYY-MM-DD') AS day, count(*)::int AS calls,
+                count(*) FILTER (WHERE feature <> 'repair')::int AS billable
+                FROM ai_usage_events WHERE created_at >= now() - interval '14 days'
+                GROUP BY day ORDER BY day`),
+      db.query(`SELECT e.user_id, p.email, p.display_name,
+                count(*) FILTER (WHERE e.feature <> 'repair')::int AS billable,
+                COALESCE(sum(e.estimated_cost_usd),0)::numeric AS cost
+                FROM ai_usage_events e LEFT JOIN profiles p ON p.user_id = e.user_id
+                WHERE to_char(e.created_at,'YYYY-MM') = $1
+                GROUP BY e.user_id, p.email, p.display_name
+                ORDER BY billable DESC LIMIT 12`, [period]),
+      db.query(`SELECT COALESCE(AVG(c),0)::numeric AS avg_billable, COALESCE(MAX(c),0)::int AS max_billable, count(*)::int AS active_users
+                FROM (SELECT user_id, count(*) FILTER (WHERE feature <> 'repair') AS c
+                      FROM ai_usage_events WHERE to_char(created_at,'YYYY-MM') = $1
+                      GROUP BY user_id) t WHERE c > 0`, [period]),
+    ]);
+    const num = (row) => ({ calls: row.calls || 0, billable: row.billable || 0, repair: row.repair || 0, failed: row.failed || 0, cost: Number(row.cost || 0) });
+    res.json({
+      period,
+      totals: num(win.rows[0] || {}),
+      allTime: num(all.rows[0] || {}),
+      byFeature: feat.rows.map((r) => ({ feature: r.feature, calls: r.calls, cost: Number(r.cost || 0) })),
+      daily: daily.rows.map((r) => ({ day: r.day, calls: r.calls, billable: r.billable })),
+      topUsers: top.rows.map((r) => ({ email: r.email || '', displayName: r.display_name || '', billable: r.billable, cost: Number(r.cost || 0) })),
+      perUser: { avgBillable: Number(per.rows[0]?.avg_billable || 0), maxBillable: per.rows[0]?.max_billable || 0, activeUsers: per.rows[0]?.active_users || 0 },
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.get('/api/admin/knowledge', requireAuth, requireMasterAdmin, async (req, res) => {
   try {
     const db = await getPool();
