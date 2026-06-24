@@ -1,6 +1,8 @@
 const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
+const net = require('net');
+const dns = require('dns').promises;
 const { fetchTranscript } = require('youtube-transcript');
 
 const app = express();
@@ -1233,6 +1235,68 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 9000) {
 function isAbortError(err) {
   return err && (err.name === 'AbortError' || /aborted|abort/i.test(String(err.message || '')));
 }
+
+// --- SSRF protection for user-supplied import URLs ---
+// Block loopback, private, link-local (incl. cloud metadata 169.254.169.254),
+// CGNAT, and reserved ranges so the server-side fetchers can't be aimed at
+// internal services.
+function isPrivateIp(ip) {
+  if (net.isIPv4(ip)) {
+    const p = ip.split('.').map(Number);
+    if (p[0] === 0 || p[0] === 10 || p[0] === 127) return true;
+    if (p[0] === 169 && p[1] === 254) return true;
+    if (p[0] === 172 && p[1] >= 16 && p[1] <= 31) return true;
+    if (p[0] === 192 && p[1] === 168) return true;
+    if (p[0] === 100 && p[1] >= 64 && p[1] <= 127) return true;
+    if (p[0] >= 224) return true;
+    return false;
+  }
+  if (net.isIPv6(ip)) {
+    const lower = ip.toLowerCase().replace(/^\[|\]$/g, '');
+    if (lower === '::1' || lower === '::') return true;
+    if (lower.startsWith('fe80') || lower.startsWith('fc') || lower.startsWith('fd')) return true;
+    const mapped = lower.match(/::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
+    if (mapped) return isPrivateIp(mapped[1]);
+    return false;
+  }
+  return false;
+}
+function ssrfError(message) {
+  return Object.assign(new Error(message), { ssrf: true });
+}
+async function assertPublicHost(hostname) {
+  const host = String(hostname || '').toLowerCase().replace(/^\[|\]$/g, '');
+  if (!host) throw ssrfError('blocked host');
+  if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.internal') || host.endsWith('.local')) throw ssrfError('blocked host');
+  if (net.isIP(host)) {
+    if (isPrivateIp(host)) throw ssrfError('blocked host');
+    return;
+  }
+  let addrs;
+  try { addrs = await dns.lookup(host, { all: true }); } catch { throw ssrfError('unresolvable host'); }
+  if (!addrs || !addrs.length) throw ssrfError('unresolvable host');
+  for (const a of addrs) { if (isPrivateIp(a.address)) throw ssrfError('blocked host'); }
+}
+// Like fetchWithTimeout, but validates the host (and every redirect hop) against
+// the SSRF guard. Use this for any fetch whose host is user-controlled.
+async function safeFetch(rawUrl, options = {}, timeoutMs = 9000, maxRedirects = 5) {
+  let current = String(rawUrl);
+  for (let hop = 0; hop <= maxRedirects; hop++) {
+    let u;
+    try { u = new URL(current); } catch { throw ssrfError('bad url'); }
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') throw ssrfError('blocked protocol');
+    await assertPublicHost(u.hostname);
+    const resp = await fetchWithTimeout(current, { ...options, redirect: 'manual' }, timeoutMs);
+    if (resp.status >= 300 && resp.status < 400 && resp.headers.get('location')) {
+      const next = new URL(resp.headers.get('location'), current).href;
+      try { await resp.body?.cancel(); } catch {}
+      current = next;
+      continue;
+    }
+    return resp;
+  }
+  throw new Error('too many redirects');
+}
 // Read a response body but stop after maxBytes so a huge/malicious page cannot
 // exhaust memory. Recipe pages are small; this just bounds the worst case.
 async function readBodyCapped(response, maxBytes = 6000000) {
@@ -1379,13 +1443,12 @@ function socialQuality(text, caption, description, warnings) {
   return 'low';
 }
 async function fetchHtmlMetadata(target, warnings) {
-  const r = await fetchWithTimeout(target, {
+  const r = await safeFetch(target, {
     headers: {
       'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/124 Safari/537.36',
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
       'Accept-Language': 'en-US,en;q=0.9',
     },
-    redirect: 'follow',
   }, 9000);
   const html = (await readBodyCapped(r)) || '';
   if (!r.ok) warnings.push('Generic page fetch returned HTTP ' + r.status + '.');
@@ -2115,13 +2178,12 @@ app.get('/api/fetch-url', async (req, res) => {
   const target = req.query.url;
   if (!target || !/^https?:\/\//i.test(target)) return res.status(400).json({ error: 'bad url' });
   try {
-    const r = await fetchWithTimeout(target, {
+    const r = await safeFetch(target, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/124 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
       },
-      redirect: 'follow',
     }, 9000);
     const contentType = String(r.headers.get('content-type') || '');
     if (contentType && !/text\/html|application\/(xhtml|xml)|text\/plain/i.test(contentType)) {
@@ -2149,6 +2211,9 @@ app.get('/api/fetch-url', async (req, res) => {
     }
     res.json({ url: target, finalUrl: r.url, title, image, jsonLd, text, helpfulLinks, htmlHash: crypto.createHash('sha256').update(html).digest('hex') });
   } catch (err) {
+    if (err && err.ssrf) {
+      return res.status(400).json({ error: 'That link can’t be imported. Enter a public recipe URL, or use Paste Text or screenshots.', url: target, sourceQuality: 'blocked' });
+    }
     if (isAbortError(err)) {
       return res.status(504).json({ error: 'That recipe site took too long to respond. Try again, or use Paste Text or screenshots.', url: target, sourceQuality: 'blocked' });
     }
@@ -2576,6 +2641,7 @@ module.exports._test = {
   ENTITLEMENT_CONFIG, PLAN_ENTITLEMENTS, REFERRAL_CONFIG, LAUNCH_PHASE,
   chooseSpendBucket, planMonthlyCredits, referralBonusAllowed,
   fetchWithTimeout, readBodyCapped, isAbortError,
+  isPrivateIp, assertPublicHost,
 };
 
 if (require.main === module) {

@@ -25,7 +25,8 @@ Last updated: June 23, 2026.
 - All external fetches (recipe pages, YouTube oembed/page/captions, social oembed/metadata, and the Anthropic call) now use `fetchWithTimeout` with hard timeouts (7–9s for sources, 55s for the model) so a slow/hanging source fails fast with a clear message instead of stalling the whole request.
 - `readBodyCapped` bounds response bodies (~6MB) so an oversized/malicious page can't exhaust memory; non-HTML links are rejected with a friendly message.
 - Honest, specific errors: timeouts → "took too long…", unreachable → "could not reach that page…", too-large/non-readable → "not a readable recipe page…", each pointing to Paste Text / screenshots. Zero credits are charged on any pre-AI fetch failure or AI timeout (verified by design: the model is only debited on success).
-- Covered by `npm run import-reliability-test` (timeout aborts promptly, size cap, abort detection).
+- SSRF protection: user-supplied import URLs (`/api/fetch-url` and the social generic-page fallback) now go through `safeFetch`, which resolves the host and blocks loopback, private, link-local (incl. cloud metadata `169.254.169.254`), CGNAT, and reserved ranges — and re-validates every redirect hop (`redirect: manual`). Blocked links return a clean "can't be imported" message; public recipe sites are unaffected. YouTube/social platform calls use fixed trusted hosts.
+- Covered by `npm run import-reliability-test` (timeout aborts promptly, size cap, abort detection, private-IP/host blocking).
 
 ## Near-Term Beta Priorities
 
