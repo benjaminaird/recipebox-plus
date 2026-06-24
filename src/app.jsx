@@ -4233,6 +4233,18 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const swipeRef = useRef(null);
       const pointerSwipeRef = useRef(null);
       const navStateRef = useRef("");
+      const backTabRef = useRef("library");
+      // Close any detail screen back to wherever the user opened it from.
+      function closeToOrigin() {
+        const t = MAIN_TABS.includes(backTabRef.current) ? backTabRef.current : "library";
+        setTab(t);
+        setScreen("library");
+      }
+      function openRecipe(r, fromTab) {
+        backTabRef.current = fromTab || "library";
+        setCurrent(r);
+        setScreen("view");
+      }
       const resetToken = (() => { try { return new URLSearchParams(window.location.search).get("reset"); } catch { return null; } })();
 
       useEffect(() => { saveRecipes(recipes); }, [recipes]);
@@ -4256,6 +4268,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         const t = setTimeout(() => setShowSplash(false), 2400);
         return () => clearTimeout(t);
       }, []);
+      // Cream backdrop while signed in and inside the app (no green flash behind
+      // screen transitions); transparent (green) on splash/auth.
+      useEffect(() => {
+        try { document.body.classList.toggle("in-app", !!account && !showSplash && !resetToken); } catch {}
+      }, [account?.id, showSplash, resetToken]);
       useEffect(() => {
         if (!account || resetToken || showSplash) return;
         const key = screen + ":" + tab;
@@ -4263,11 +4280,10 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           navStateRef.current = key;
           try { window.history.pushState({ recipebox:true, screen, tab }, ""); } catch {}
         }
+        // The OS back gesture / back button (popstate) always returns to where the
+        // user came from (their tab), never forward into another recipe.
         const onPop = () => {
-          if (screen !== "library") {
-            setScreen("library");
-            return;
-          }
+          if (screen !== "library") { closeToOrigin(); return; }
           if (tab !== "library") setMainTab("library");
         };
         window.addEventListener("popstate", onPop);
@@ -4348,16 +4364,16 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       if (screen==="edit"&&current) return <EditRecipe recipe={current} onSave={(r)=>{ if(recipes.find((x)=>x.id===r.id)) updateRecipe(r); else addRecipe(r); setScreen("view"); }} onCancel={()=>setScreen("view")} />;
       if (screen==="view"&&current) return (
         <>
-          <RecipeView recipe={current} onBack={()=>setScreen("library")} onEdit={()=>setScreen("edit")} onDelete={()=>deleteRecipe(current.id)} onUpdate={(r)=>{updateRecipe(r);setCurrent(r);}} onImport={(r)=>{addRecipe(r);setCurrent(r);}} onTagClick={(t)=>{setLibraryTag(t);setMainTab("library");}} timerSound={timerSound} />
+          <RecipeView recipe={current} onBack={closeToOrigin} onEdit={()=>setScreen("edit")} onDelete={()=>deleteRecipe(current.id)} onUpdate={(r)=>{updateRecipe(r);setCurrent(r);}} onImport={(r)=>{addRecipe(r);setCurrent(r);}} onTagClick={(t)=>{setLibraryTag(t);setMainTab("library");}} timerSound={timerSound} />
           <BottomNav tab={tab} setTab={(t)=>{setTab(t);setScreen("library");}} badges={{settings:newFeedback}} />
         </>
       );
 
       return (
         <div onTouchStart={handleSwipeStart} onTouchEnd={handleSwipeEnd} onPointerDown={handlePointerStart} onPointerUp={handlePointerEnd} style={{width:"100%",maxWidth:"100%",overflowX:"hidden",background:C.cream}}>
-          {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>{setCurrent(r);setScreen("view");}} onAdd={openImport} onFavorite={toggleFavorite} setTab={setMainTab} tagFilter={libraryTag} onTagFilter={setLibraryTag} />}
-          {tab==="plan" && <MealPlanner recipes={recipes} mealPlan={mealPlan} setMealPlan={updateMealPlan} onOpen={(r)=>{setCurrent(r);setScreen("view");}} />}
-          {tab==="pantry" && <PantryChef recipes={recipes} onImport={(r)=>{addRecipe(r);setTab("library");}} onOpenRecipe={(r)=>{setCurrent(r);setScreen("view");}} />}
+          {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>openRecipe(r,"library")} onAdd={openImport} onFavorite={toggleFavorite} setTab={setMainTab} tagFilter={libraryTag} onTagFilter={setLibraryTag} />}
+          {tab==="plan" && <MealPlanner recipes={recipes} mealPlan={mealPlan} setMealPlan={updateMealPlan} onOpen={(r)=>openRecipe(r,"plan")} />}
+          {tab==="pantry" && <PantryChef recipes={recipes} onImport={(r)=>{addRecipe(r);setTab("library");}} onOpenRecipe={(r)=>openRecipe(r,"pantry")} />}
           {tab==="settings" && <Settings timerSound={timerSound} setTimerSound={setTimerSound} account={account} setAccount={setAccount} recipes={recipes} mealPlan={mealPlan} aiUsage={aiUsage} onCloudData={loadCloudData} onOpenAdmin={()=>setScreen("admin")} newFeedback={newFeedback} />}
           <BottomNav tab={tab} setTab={setMainTab} badges={{settings:newFeedback}} />
         </div>
