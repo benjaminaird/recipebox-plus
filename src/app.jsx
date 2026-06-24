@@ -690,13 +690,7 @@ For category and tags (these are SEPARATE fields, never mix them):
 
 For heroImage: if you can identify a direct image URL from the source, include it. Otherwise leave as empty string.
 
-Ingredient fidelity (critical — wrong ingredients ruin a recipe, especially baking and ice cream):
-- Use the EXACT ingredient the source states. Do NOT substitute, replace, simplify, or "normalize" an ingredient into a more common one.
-- If the source says half-and-half, keep "half-and-half" — never change it to milk or cream. Likewise keep heavy cream, whipping cream, buttermilk, evaporated milk, condensed milk, crème fraîche, sour cream, ricotta, mascarpone, whole vs 2% vs skim milk, cake vs bread vs all-purpose flour, brown vs white vs powdered sugar, baking soda vs baking powder, kosher vs table salt, butter vs margarine vs oil, etc. exactly as stated.
-- Preserve the source's exact ingredient wording, including brand, fat percentage, and descriptors.
-- Do not merge two distinct ingredients into one, and do not split one into assumed parts.
-- If you are unsure what an ingredient is (e.g., a muddy transcript), keep the source's wording as-is; if it is truly unreadable, note the uncertainty in "notes" rather than guessing a common substitute.
-- You may clean spelling/formatting and structure the list, but never change ingredient identity or quantity to a "more typical" value.
+Ingredient fidelity: use the exact ingredient the source states; do not substitute, simplify, or "normalize" it into a more common one. Keep half-and-half as half-and-half (never milk or cream), and likewise keep heavy cream, buttermilk, evaporated/condensed milk, sour cream, cake/bread/all-purpose flour, brown/powdered sugar, and baking soda vs baking powder exactly as stated. You may fix spelling and formatting, but never change an ingredient's identity.
 
 For ingredient amounts:
 - Preserve the source quantity exactly as a string.
@@ -2759,7 +2753,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             }
             if (Array.isArray(transcriptData.warnings)) importWarnings = importWarnings.concat(transcriptData.warnings.filter((w) => /transcript|caption/i.test(w)));
 
-            const ytMessages = [{ role:"user", content:"Extract the recipe from this YouTube video content. Use only the transcript, description, and metadata below. Use the EXACT ingredients the transcript states — never substitute or simplify an ingredient into a more common one (e.g. if they say half-and-half, do NOT write milk or cream; keep heavy cream, buttermilk, cake flour, brown sugar, etc. exactly). Transcripts can be noisy: if an ingredient is unclear, keep the source's wording or note the uncertainty in notes rather than guessing a common substitute. Put helpful source-grounded tips or warnings in notes; do not invent notes from general cooking knowledge. Always set realistic servings (estimate from the quantities if not stated — never default to 4) and always fill per-serving macros (estimate from the ingredients if not stated — never leave them 0). If the video contains multiple full recipe variants, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]} instead of merging them or choosing one silently.\n\n" + content }];
+            const ytMessages = [{ role:"user", content:"Extract the recipe from this YouTube video content. Use only the transcript, description, and metadata below. Use the exact ingredients the transcript states — do not substitute one for a more common one (e.g. keep half-and-half, do not write milk or cream). Put helpful source-grounded tips or warnings in notes; do not invent notes from general cooking knowledge. Always set realistic servings (estimate from the quantities if not stated — never default to 4) and always fill per-serving macros (estimate from the ingredients if not stated — never leave them 0). If the video contains multiple full recipe variants, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]} instead of merging them or choosing one silently.\n\n" + content }];
             const raw = await callAI(ytMessages, EXTRACT_PROMPT, 6000);
             extractCtx = { messages: ytMessages, maxTokens: 6000, heroFallback: transcriptData.thumbnail || "" };
             parsed = await parseImportedRecipe(raw);
