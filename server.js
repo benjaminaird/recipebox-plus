@@ -392,7 +392,21 @@ function authLimitKey(req) {
   return `${clientIp(req)}|${normalizeEmail(req.body?.email)}`;
 }
 
-function checkAuthLimit(req, res) {
+// Auth attempt throttling. DB-backed (rate_limit_counters) so it actually works
+// across serverless instances; falls back to the in-memory map when there is no
+// database (local dev). Per IP+email, max AUTH_LIMIT_MAX per 15 minutes.
+async function checkAuthLimit(req, res) {
+  const db = await getPool();
+  if (db) {
+    try {
+      const rl = await checkRateLimit(authLimitKey(req), 'auth', AUTH_LIMIT_MAX, 'quarterhour');
+      if (!rl.allowed) {
+        res.status(429).json({ error: 'Too many sign-in attempts. Wait a few minutes and try again.' });
+        return false;
+      }
+      return true;
+    } catch { /* fall through to in-memory */ }
+  }
   const key = authLimitKey(req);
   const now = Date.now();
   const entry = authAttempts.get(key) || { count: 0, resetAt: now + AUTH_LIMIT_WINDOW_MS };
@@ -816,12 +830,16 @@ async function logAppControlChange(db, sourceId, action, user, previousValue, ne
 function periodKey(scope = 'day') {
   const now = new Date();
   if (scope === 'month') return now.toISOString().slice(0, 7);
+  if (scope === 'hour') return now.toISOString().slice(0, 13);
+  if (scope === 'quarterhour') return now.toISOString().slice(0, 13) + ':' + Math.floor(now.getUTCMinutes() / 15);
   return now.toISOString().slice(0, 10);
 }
 
 function resetAfter(scope = 'day') {
   const now = new Date();
   if (scope === 'month') return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+  if (scope === 'hour') return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), now.getUTCHours() + 1));
+  if (scope === 'quarterhour') return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), now.getUTCHours(), (Math.floor(now.getUTCMinutes() / 15) + 1) * 15));
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
 }
 
@@ -1540,7 +1558,7 @@ app.get('/api/auth/session', async (req, res) => {
 
 app.post('/api/auth/signup', async (req, res) => {
   try {
-    if (!checkAuthLimit(req, res)) return;
+    if (!(await checkAuthLimit(req, res))) return;
     const db = await getPool();
     if (!db) return res.status(500).json({ error: 'database not configured' });
     const email = normalizeEmail(req.body.email);
@@ -1570,7 +1588,7 @@ app.post('/api/auth/signup', async (req, res) => {
 
 app.post('/api/auth/signin', async (req, res) => {
   try {
-    if (!checkAuthLimit(req, res)) return;
+    if (!(await checkAuthLimit(req, res))) return;
     const db = await getPool();
     if (!db) return res.status(500).json({ error: 'database not configured' });
     await ensureConfiguredMasterAdmin(db);
@@ -1590,7 +1608,7 @@ app.post('/api/auth/signin', async (req, res) => {
 
 app.post('/api/auth/request-password-reset', async (req, res) => {
   try {
-    if (!checkAuthLimit(req, res)) return;
+    if (!(await checkAuthLimit(req, res))) return;
     const db = await getPool();
     if (!db) return res.status(503).json({ error: 'Password reset requires DATABASE_URL to be configured.' });
     if (!process.env.RESEND_API_KEY) return res.status(503).json({ error: 'Password reset email is not configured yet.' });
@@ -1615,7 +1633,7 @@ app.post('/api/auth/request-password-reset', async (req, res) => {
 
 app.post('/api/auth/reset-password', async (req, res) => {
   try {
-    if (!checkAuthLimit(req, res)) return;
+    if (!(await checkAuthLimit(req, res))) return;
     const db = await getPool();
     if (!db) return res.status(500).json({ error: 'database not configured' });
     const token = String(req.body.token || '');
@@ -1647,7 +1665,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
 
 app.post('/api/auth/change-password', async (req, res) => {
   try {
-    if (!checkAuthLimit(req, res)) return;
+    if (!(await checkAuthLimit(req, res))) return;
     const db = await getPool();
     if (!db) return res.status(500).json({ error: 'database not configured' });
     const user = await currentUser(req);
@@ -1691,7 +1709,7 @@ app.post('/api/auth/signout', async (req, res) => {
 
 app.post('/api/auth/delete-account', async (req, res) => {
   try {
-    if (!checkAuthLimit(req, res)) return;
+    if (!(await checkAuthLimit(req, res))) return;
     const db = await getPool();
     if (!db) return res.status(500).json({ error: 'database not configured' });
     const user = await currentUser(req);
@@ -2642,6 +2660,7 @@ module.exports._test = {
   chooseSpendBucket, planMonthlyCredits, referralBonusAllowed,
   fetchWithTimeout, readBodyCapped, isAbortError,
   isPrivateIp, assertPublicHost,
+  periodKey, resetAfter,
 };
 
 if (require.main === module) {
