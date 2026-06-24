@@ -3250,6 +3250,17 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [wtbResult, setWtbResult] = useState(null);
       const [wtbLoading, setWtbLoading] = useState(false);
       const wtbImgRef = useRef();
+
+      // Always open a recipe at the very top, no matter where the Library/search
+      // was scrolled. Keyed on recipe.id so it fires when a new recipe opens but
+      // not when toggling internal state like Cook Mode. useLayoutEffect resets
+      // before paint to avoid a scroll flash.
+      React.useLayoutEffect(() => {
+        try { window.scrollTo(0, 0); } catch {}
+        if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+        if (document.documentElement) document.documentElement.scrollTop = 0;
+        if (document.body) document.body.scrollTop = 0;
+      }, [recipe.id]);
       const heroImgRef = useRef();
 
       function normalizeViewSections(recipe) {
@@ -3585,13 +3596,13 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 onError={(e) => { e.target.style.display="none"; }} />
             )}
             <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.65))"}} />
-            <div style={{position:"absolute",top:14,left:14}}>
-              <button onClick={onBack} style={{background:"rgba(0,0,0,0.38)",border:"none",borderRadius:8,padding:"7px 13px",color:C.white,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS}}>← Library</button>
+            <div style={{position:"absolute",top:"calc(env(safe-area-inset-top, 0px) + 12px)",left:"max(env(safe-area-inset-left, 0px), 14px)"}}>
+              <button onClick={onBack} style={{background:"rgba(0,0,0,0.42)",border:"none",borderRadius:8,padding:"9px 14px",minHeight:38,color:C.white,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS,touchAction:"manipulation"}}>← Library</button>
             </div>
-            <div style={{position:"absolute",top:14,right:14,display:"flex",gap:7}}>
-              <button onClick={() => onUpdate({...recipe,favorite:!recipe.favorite})} style={{background:"rgba(0,0,0,0.38)",border:"none",borderRadius:8,padding:"7px 11px",color:recipe.favorite?C.goldLight:C.white,cursor:"pointer",fontSize:"1em",display:"inline-flex",alignItems:"center",justifyContent:"center"}}><Icon name="favorite" size={17} strokeWidth={recipe.favorite?2.5:2} /></button>
-              <button onClick={onEdit} style={{background:"rgba(0,0,0,0.38)",border:"none",borderRadius:8,padding:"7px 11px",color:C.white,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS}}>Edit</button>
-              <button onClick={onDelete} style={{background:"rgba(180,0,0,0.45)",border:"none",borderRadius:8,padding:"7px 11px",color:C.white,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS}}>Delete</button>
+            <div style={{position:"absolute",top:"calc(env(safe-area-inset-top, 0px) + 12px)",right:"max(env(safe-area-inset-right, 0px), 14px)",display:"flex",gap:7}}>
+              <button onClick={() => onUpdate({...recipe,favorite:!recipe.favorite})} style={{background:"rgba(0,0,0,0.42)",border:"none",borderRadius:8,padding:"8px 11px",minHeight:38,color:recipe.favorite?C.goldLight:C.white,cursor:"pointer",fontSize:"1em",display:"inline-flex",alignItems:"center",justifyContent:"center",touchAction:"manipulation"}}><Icon name="favorite" size={17} strokeWidth={recipe.favorite?2.5:2} /></button>
+              <button onClick={onEdit} style={{background:"rgba(0,0,0,0.42)",border:"none",borderRadius:8,padding:"9px 13px",minHeight:38,color:C.white,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS,touchAction:"manipulation"}}>Edit</button>
+              <button onClick={onDelete} style={{background:"rgba(180,0,0,0.48)",border:"none",borderRadius:8,padding:"9px 13px",minHeight:38,color:C.white,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS,touchAction:"manipulation"}}>Delete</button>
             </div>
             <div style={{position:"relative",padding:"0 20px 18px",width:"100%"}}>
               <div style={{fontSize:"0.7em",color:"rgba(255,255,255,0.65)",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>{recipe.category}</div>
