@@ -49,6 +49,16 @@
     .card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(92,61,46,0.15); }
     @media (hover: none) { .card:hover { transform: none; box-shadow: none; } }
     .card:active { transform: scale(0.985); transition: transform 0.08s ease; }
+    /* Screen/tab transitions: ease content in directionally so navigation and
+       swipes feel smooth instead of a hard cut. Forward slides from the right,
+       back from the left, lateral/unknown fades. */
+    @keyframes navFwd { from { opacity: 0; transform: translate3d(26px,0,0); } to { opacity: 1; transform: none; } }
+    @keyframes navBack { from { opacity: 0; transform: translate3d(-26px,0,0); } to { opacity: 1; transform: none; } }
+    @keyframes navFade { from { opacity: 0; } to { opacity: 1; } }
+    .nav-fwd { animation: navFwd 0.24s cubic-bezier(0.33,1,0.68,1) both; will-change: transform, opacity; }
+    .nav-back { animation: navBack 0.24s cubic-bezier(0.33,1,0.68,1) both; will-change: transform, opacity; }
+    .nav-fade { animation: navFade 0.2s ease both; }
+    @media (prefers-reduced-motion: reduce) { .nav-fwd, .nav-back, .nav-fade { animation: none; } }
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-thumb { background: #DDD3C4; border-radius: 3px; }
     input::placeholder, textarea::placeholder { color: #C4A882; }

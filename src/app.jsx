@@ -4234,6 +4234,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const pointerSwipeRef = useRef(null);
       const navStateRef = useRef("");
       const backTabRef = useRef("library");
+      const navDepthRef = useRef(0);
+      const prevNavRef = useRef("splash");
+      const prevTabIdxRef = useRef(0);
       // Close any detail screen back to wherever the user opened it from.
       function closeToOrigin() {
         const t = MAIN_TABS.includes(backTabRef.current) ? backTabRef.current : "library";
@@ -4356,27 +4359,53 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         goTab(dx < 0 ? 1 : -1);
       }
 
-      if (showSplash) return <SplashScreen />;
-      if (resetToken) return <AuthScreen recipes={recipes} mealPlan={mealPlan} setAccount={setAccount} onCloudData={loadCloudData} initialMode="newpass" resetToken={resetToken} />;
-      if (!account) return <AuthScreen recipes={recipes} mealPlan={mealPlan} setAccount={setAccount} onCloudData={loadCloudData} />;
-      if (screen==="admin" && account?.isMasterAdmin) return <AppControl account={account} onBack={()=>{refreshAdminAlerts();setScreen("library");}} onFeedbackChange={setNewFeedback} />;
-      if (screen==="import") return <ImportScreen initialMode={importMode} onDone={(r)=>{ const list=Array.isArray(r)?r:[r]; list.forEach(addRecipe); if(list.length!==1) setScreen("library"); /* single import: addRecipe already opens the recipe for review */ }} onCancel={()=>setScreen("library")} />;
-      if (screen==="edit"&&current) return <EditRecipe recipe={current} onSave={(r)=>{ if(recipes.find((x)=>x.id===r.id)) updateRecipe(r); else addRecipe(r); setScreen("view"); }} onCancel={()=>setScreen("view")} />;
-      if (screen==="view"&&current) return (
-        <>
-          <RecipeView recipe={current} onBack={closeToOrigin} onEdit={()=>setScreen("edit")} onDelete={()=>deleteRecipe(current.id)} onUpdate={(r)=>{updateRecipe(r);setCurrent(r);}} onImport={(r)=>{addRecipe(r);setCurrent(r);}} onTagClick={(t)=>{setLibraryTag(t);setMainTab("library");}} timerSound={timerSound} />
-          <BottomNav tab={tab} setTab={(t)=>{setTab(t);setScreen("library");}} badges={{settings:newFeedback}} />
-        </>
-      );
+      // Build the active screen, then wrap it in ONE keyed, directionally-animated
+      // container so every navigation/swipe eases in instead of hard-cutting.
+      let body = null;
+      let navName = "main";
+      let showNav = false;
+      if (showSplash) { body = <SplashScreen />; navName = "splash"; }
+      else if (resetToken) { body = <AuthScreen recipes={recipes} mealPlan={mealPlan} setAccount={setAccount} onCloudData={loadCloudData} initialMode="newpass" resetToken={resetToken} />; navName = "auth"; }
+      else if (!account) { body = <AuthScreen recipes={recipes} mealPlan={mealPlan} setAccount={setAccount} onCloudData={loadCloudData} />; navName = "auth"; }
+      else if (screen==="admin" && account?.isMasterAdmin) { body = <AppControl account={account} onBack={()=>{refreshAdminAlerts();setScreen("library");}} onFeedbackChange={setNewFeedback} />; navName = "admin"; }
+      else if (screen==="import") { body = <ImportScreen initialMode={importMode} onDone={(r)=>{ const list=Array.isArray(r)?r:[r]; list.forEach(addRecipe); if(list.length!==1) setScreen("library"); /* single import: addRecipe already opens the recipe for review */ }} onCancel={()=>setScreen("library")} />; navName = "import"; }
+      else if (screen==="edit"&&current) { body = <EditRecipe recipe={current} onSave={(r)=>{ if(recipes.find((x)=>x.id===r.id)) updateRecipe(r); else addRecipe(r); setScreen("view"); }} onCancel={()=>setScreen("view")} />; navName = "edit"; }
+      else if (screen==="view"&&current) {
+        navName = "view"; showNav = true;
+        body = <RecipeView recipe={current} onBack={closeToOrigin} onEdit={()=>setScreen("edit")} onDelete={()=>deleteRecipe(current.id)} onUpdate={(r)=>{updateRecipe(r);setCurrent(r);}} onImport={(r)=>{addRecipe(r);setCurrent(r);}} onTagClick={(t)=>{setLibraryTag(t);setMainTab("library");}} timerSound={timerSound} />;
+      }
+      else {
+        navName = "main"; showNav = true;
+        body = (
+          <div onTouchStart={handleSwipeStart} onTouchEnd={handleSwipeEnd} onPointerDown={handlePointerStart} onPointerUp={handlePointerEnd} style={{width:"100%",maxWidth:"100%",overflowX:"hidden"}}>
+            {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>openRecipe(r,"library")} onAdd={openImport} onFavorite={toggleFavorite} setTab={setMainTab} tagFilter={libraryTag} onTagFilter={setLibraryTag} />}
+            {tab==="plan" && <MealPlanner recipes={recipes} mealPlan={mealPlan} setMealPlan={updateMealPlan} onOpen={(r)=>openRecipe(r,"plan")} />}
+            {tab==="pantry" && <PantryChef recipes={recipes} onImport={(r)=>{addRecipe(r);setTab("library");}} onOpenRecipe={(r)=>openRecipe(r,"pantry")} />}
+            {tab==="settings" && <Settings timerSound={timerSound} setTimerSound={setTimerSound} account={account} setAccount={setAccount} recipes={recipes} mealPlan={mealPlan} aiUsage={aiUsage} onCloudData={loadCloudData} onOpenAdmin={()=>setScreen("admin")} newFeedback={newFeedback} />}
+          </div>
+        );
+      }
+
+      // Pick transition direction from screen "depth" (deeper = forward), with
+      // tab index deciding direction for lateral tab switches.
+      const DEPTH = { splash:0, auth:0, main:1, import:2, admin:2, view:2, edit:3 };
+      const depth = DEPTH[navName] ?? 1;
+      const tabIdx = MAIN_TABS.indexOf(tab);
+      let navClass = "nav-fade";
+      if (navName === "main" && prevNavRef.current === "main") {
+        navClass = tabIdx > prevTabIdxRef.current ? "nav-fwd" : tabIdx < prevTabIdxRef.current ? "nav-back" : "nav-fade";
+      } else if (depth > navDepthRef.current) navClass = "nav-fwd";
+      else if (depth < navDepthRef.current) navClass = "nav-back";
+      navDepthRef.current = depth;
+      prevNavRef.current = navName;
+      if (tabIdx >= 0) prevTabIdxRef.current = tabIdx;
+      const navKey = navName + ":" + tab + ":" + (current?.id || "");
 
       return (
-        <div onTouchStart={handleSwipeStart} onTouchEnd={handleSwipeEnd} onPointerDown={handlePointerStart} onPointerUp={handlePointerEnd} style={{width:"100%",maxWidth:"100%",overflowX:"hidden",background:C.cream}}>
-          {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>openRecipe(r,"library")} onAdd={openImport} onFavorite={toggleFavorite} setTab={setMainTab} tagFilter={libraryTag} onTagFilter={setLibraryTag} />}
-          {tab==="plan" && <MealPlanner recipes={recipes} mealPlan={mealPlan} setMealPlan={updateMealPlan} onOpen={(r)=>openRecipe(r,"plan")} />}
-          {tab==="pantry" && <PantryChef recipes={recipes} onImport={(r)=>{addRecipe(r);setTab("library");}} onOpenRecipe={(r)=>openRecipe(r,"pantry")} />}
-          {tab==="settings" && <Settings timerSound={timerSound} setTimerSound={setTimerSound} account={account} setAccount={setAccount} recipes={recipes} mealPlan={mealPlan} aiUsage={aiUsage} onCloudData={loadCloudData} onOpenAdmin={()=>setScreen("admin")} newFeedback={newFeedback} />}
-          <BottomNav tab={tab} setTab={setMainTab} badges={{settings:newFeedback}} />
-        </div>
+        <>
+          <div key={navKey} className={navClass} style={{minHeight:"100dvh"}}>{body}</div>
+          {showNav && <BottomNav tab={tab} setTab={setMainTab} badges={{settings:newFeedback}} />}
+        </>
       );
     }
 
