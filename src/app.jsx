@@ -632,12 +632,13 @@ function downloadJson(filename, data) {
 }
 
     // AI
-    async function callAI(messages, system, maxTokens) {
+    async function callAI(messages, system, maxTokens, temperature) {
       if (typeof navigator !== "undefined" && navigator.onLine === false) {
         throw new Error("You're offline. Reconnect to use RecipeBox AI — your saved recipes are still available.");
       }
       const body = { model: "claude-sonnet-4-5-20250929", max_tokens: maxTokens || 2000, messages };
       if (system) body.system = system;
+      if (typeof temperature === "number") body.temperature = temperature;
       const res = await apiFetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -841,6 +842,33 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       return out.replace(/\s+/g, " ").trim();
     }
     const IMPORT_EQUIPMENT_WORDS = /\b(grater|bowl|cutting board|chef'?s knife|knife|scissors|measuring spoon|measuring cup|oven mitt|spatula|ladle|pan\b|pie plate|microwave-safe bowl|stove-top pan|wire cooling rack|wooden spoon|fork|whisk|parchment|foil)\b/i;
+    // Distinctive ingredients that are easy for AI to "round off" to a common one
+    // (e.g. half-and-half -> milk). If the source text clearly names one but the
+    // extracted recipe doesn't, we flag it so the user can double-check.
+    const HIGH_SIGNAL_INGREDIENTS = [
+      "half and half", "heavy cream", "heavy whipping cream", "whipping cream", "light cream",
+      "buttermilk", "evaporated milk", "sweetened condensed milk", "condensed milk",
+      "creme fraiche", "sour cream", "mascarpone", "ricotta", "cream cheese",
+      "coconut milk", "coconut cream", "almond milk", "oat milk", "soy milk",
+      "cake flour", "bread flour", "self rising flour", "almond flour", "whole wheat flour",
+      "powdered sugar", "confectioners sugar", "brown sugar", "cornstarch", "corn starch", "cream of tartar",
+    ];
+    function findSourceIngredientMismatches(sourceText, recipe) {
+      const norm = (s) => String(s || "").toLowerCase().replace(/[-]+/g, " ").replace(/&/g, "and").replace(/\s+/g, " ");
+      const src = norm(sourceText);
+      if (!src) return [];
+      const ing = norm((recipe && recipe.sections || []).flatMap((s) => (s.ingredients || []).map((i) => (i && i.name) || "")).join(" "));
+      const seen = new Set();
+      const out = [];
+      HIGH_SIGNAL_INGREDIENTS.forEach((term) => {
+        if (src.includes(term) && !ing.includes(term)) {
+          const pretty = term === "half and half" ? "half-and-half" : term;
+          if (!seen.has(pretty)) { seen.add(pretty); out.push(pretty); }
+        }
+      });
+      return out.slice(0, 5);
+    }
+
     function sanitizeImportedRecipe(recipe) {
       if (!recipe || !Array.isArray(recipe.sections)) return recipe;
       return {
@@ -908,7 +936,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           content:
             "Repair this malformed RecipeBox recipe JSON from " + (contextLabel || "AI") + ". Return only valid JSON, with no markdown or explanation.\n\n" +
             raw
-        }], REPAIR_JSON_PROMPT, 3500);
+        }], REPAIR_JSON_PROMPT, 3500, 0);
         return parseAIJson(repaired);
       }
     }
@@ -2617,7 +2645,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
       async function extractNamedRecipe(ctx, name) {
         const instruction = "The source below contains multiple distinct recipes. Extract ONLY the single recipe titled \"" + name + "\". Ignore every other recipe in the source. Do not merge recipes together. Return one complete recipe as valid JSON, and do NOT return multiple_recipes_detected.";
-        const raw = await callAI(buildFocusedMessages(ctx.messages, instruction), EXTRACT_PROMPT, ctx.maxTokens);
+        const raw = await callAI(buildFocusedMessages(ctx.messages, instruction), EXTRACT_PROMPT, ctx.maxTokens, 0);
         const parsed = await parseImportedRecipe(raw);
         return prepImportedRecipe(parsed, ctx.heroFallback, ctx.originalSource);
       }
@@ -2631,7 +2659,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           if (choice.type === "combined") {
             setLoadingMsg("Combining recipes into one card...");
             const instruction = "The source below contains multiple related recipes or variants. Combine them into ONE recipe card. Keep each component as its own labeled section under \"sections\" (use the component name as the section name). Do not drop any ingredients or steps. Return one complete recipe as valid JSON, and do NOT return multiple_recipes_detected.";
-            const raw = await callAI(buildFocusedMessages(ctx.messages, instruction), EXTRACT_PROMPT, Math.max(ctx.maxTokens, 4000));
+            const raw = await callAI(buildFocusedMessages(ctx.messages, instruction), EXTRACT_PROMPT, Math.max(ctx.maxTokens, 4000), 0);
             const parsed = await parseImportedRecipe(raw);
             const recipe = prepImportedRecipe(parsed, ctx.heroFallback, ctx.originalSource);
             if (!recipe) throw new Error("Could not combine these recipes. Try importing one at a time.");
@@ -2673,7 +2701,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             content:
               "Repair this malformed RecipeBox recipe JSON. Return only valid JSON, with no markdown or explanation.\n\n" +
               raw
-          }], REPAIR_JSON_PROMPT, 3500);
+          }], REPAIR_JSON_PROMPT, 3500, 0);
           try {
             return parseAIJson(repaired);
           } catch {
@@ -2696,6 +2724,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           // Source-confidence metadata for thin YouTube/social imports.
           let importSourceQuality = "high";
           let importWarnings = [];
+          let importSourceText = "";
 
           if (mode === "url") {
             setLoadingMsg("Fetching recipe page...");
@@ -2713,7 +2742,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               "Potentially useful source links:\n" + JSON.stringify(pageData.helpfulLinks || []) + "\n\n" +
               "Visible page text:\n" + (pageData.text || "");
             const urlMessages = [{ role:"user", content:prompt }];
-            const raw = await callAI(urlMessages, EXTRACT_PROMPT, 2500);
+            const raw = await callAI(urlMessages, EXTRACT_PROMPT, 2500, 0);
             extractCtx = { messages: urlMessages, maxTokens: 2500, heroFallback: pageData.image || "" };
             parsed = await parseImportedRecipe(raw);
             if (parsed.error === "unknown_recipe") throw new Error("Recipe not found. Please use Paste Text instead.");
@@ -2745,6 +2774,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             if (transcriptData.warnings?.length) {
               content += "\n\nImporter warnings: " + transcriptData.warnings.join("; ");
             }
+            importSourceText = content;
             importSourceQuality = transcriptData.sourceQuality === "good" ? "high" : (transcriptData.sourceQuality || "medium");
             if (transcriptData.sourceUsed && transcriptData.sourceUsed !== "transcript") {
               // No real transcript — built from description/metadata, lower confidence.
@@ -2754,7 +2784,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             if (Array.isArray(transcriptData.warnings)) importWarnings = importWarnings.concat(transcriptData.warnings.filter((w) => /transcript|caption/i.test(w)));
 
             const ytMessages = [{ role:"user", content:"Extract the recipe from this YouTube video content. Use only the transcript, description, and metadata below. Use the exact ingredients the transcript states — do not substitute one for a more common one (e.g. keep half-and-half, do not write milk or cream). Put helpful source-grounded tips or warnings in notes; do not invent notes from general cooking knowledge. Always set realistic servings (estimate from the quantities if not stated — never default to 4) and always fill per-serving macros (estimate from the ingredients if not stated — never leave them 0). If the video contains multiple full recipe variants, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]} instead of merging them or choosing one silently.\n\n" + content }];
-            const raw = await callAI(ytMessages, EXTRACT_PROMPT, 6000);
+            const raw = await callAI(ytMessages, EXTRACT_PROMPT, 6000, 0);
             extractCtx = { messages: ytMessages, maxTokens: 6000, heroFallback: transcriptData.thumbnail || "" };
             parsed = await parseImportedRecipe(raw);
             if (parsed.error === "unknown_recipe" || parsed.error === "not_enough_recipe_text") {
@@ -2780,6 +2810,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             if (availableText.length < 120 || socialData.sourceQuality === "low") {
               throw new Error("RecipeBox could not access the full caption or recipe text from this social post. Try Paste Text with the caption or upload screenshots.");
             }
+            importSourceText = [socialData.caption, socialData.description, socialData.text].filter(Boolean).join("\n");
             importSourceQuality = socialData.sourceQuality === "good" ? "high" : (socialData.sourceQuality || "medium");
             if (Array.isArray(socialData.warnings)) importWarnings = importWarnings.concat(socialData.warnings);
 
@@ -2796,7 +2827,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               "Source quality: " + (socialData.sourceQuality || "") + "\n" +
               "Warnings: " + (socialData.warnings || []).join("; ");
             const socialMessages = [{ role:"user", content:prompt }];
-            const raw = await callAI(socialMessages, EXTRACT_PROMPT, 2500);
+            const raw = await callAI(socialMessages, EXTRACT_PROMPT, 2500, 0);
             extractCtx = { messages: socialMessages, maxTokens: 2500, heroFallback: socialData.image || socialData.thumbnail || "" };
             parsed = await parseImportedRecipe(raw);
             if (parsed.error === "not_enough_recipe_text" || parsed.error === "unknown_recipe") {
@@ -2808,7 +2839,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           } else if (mode === "text") {
             setLoadingMsg("Extracting recipe...");
             const textMessages = [{ role:"user", content:"Extract the recipe from this text. Put source-grounded tips or extra cooking guidance in notes only when present in the text; do not invent notes. Always set realistic servings (use the stated yield, otherwise estimate from the quantities — never default to 4) and always fill per-serving macros (use stated nutrition if present, otherwise estimate from the ingredients — never leave them 0).\n\n" + text }];
-            const raw = await callAI(textMessages, EXTRACT_PROMPT, 2000);
+            const raw = await callAI(textMessages, EXTRACT_PROMPT, 2000, 0);
             extractCtx = { messages: textMessages, maxTokens: 2000, heroFallback: "" };
             parsed = await parseImportedRecipe(raw);
 
@@ -2822,7 +2853,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   "Extract the recipe ONLY from the PDF text below. Do not invent missing ingredients, steps, or notes. Always set realistic servings (use the stated yield, otherwise estimate from the quantities — never default to 4) and always fill per-serving macros (use the PDF's nutrition if present, otherwise estimate from the ingredients — never leave them 0). Put helpful source-grounded tips in notes only when present in the PDF text. Return valid JSON only.\n\n" +
                   pdfContent.slice(0, 24000)
               }];
-              const rawPdf = await callAI(pdfMessages, EXTRACT_PROMPT, 3500);
+              const rawPdf = await callAI(pdfMessages, EXTRACT_PROMPT, 3500, 0);
               extractCtx = { messages: pdfMessages, maxTokens: 3500, heroFallback: "" };
               parsed = await parseImportedRecipe(rawPdf);
             } else if (pdfImages.length > 0) {
@@ -2833,7 +2864,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               }));
               pdfArr.push({ type: "text", text: "Extract the recipe from these rendered PDF page image(s). The PDF may be sideways, scanned, illustrated, handwritten, or a photo of a recipe card. Some images may be rotated duplicates of the same page; use the clearest orientation and do not duplicate recipe content. Carefully transcribe the visible recipe text first, preserve uncertain quantities as written, and do not invent missing details or notes. Include all visible ingredient-list items and visible add-ins mentioned in directions, such as garnishes, green onions, sauces, peppers, cheese, or variations, unless clearly optional; optional items should be marked optional. Do not include equipment/tools as ingredients. If the PDF page image(s) clearly show multiple distinct recipe cards or standalone recipes, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]} instead of merging them. If the pages are parts of the same recipe, extract one recipe. Put helpful notes only when they are visible in the PDF image text. Always set realistic servings (use the stated yield, otherwise estimate from the quantities — never default to 4) and always fill per-serving macros (use visible nutrition if present, otherwise estimate from the ingredients — never leave them 0)." });
               const pdfImgMessages = [{ role:"user", content: pdfArr }];
-              const rawPdfImage = await callAI(pdfImgMessages, EXTRACT_PROMPT, 3500);
+              const rawPdfImage = await callAI(pdfImgMessages, EXTRACT_PROMPT, 3500, 0);
               extractCtx = { messages: pdfImgMessages, maxTokens: 3500, heroFallback: "" };
               parsed = await parseImportedRecipe(rawPdfImage);
             } else {
@@ -2847,7 +2878,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             }));
             imgArr.push({ type: "text", text: "Extract the recipe from these " + images.length + " image(s). These may be handwritten recipe cards or cookbook pages. Carefully transcribe the visible text first, preserve uncertain quantities as written, and do not invent missing details or notes. Include all visible ingredient-list items and visible add-ins mentioned in directions, such as garnishes, green onions, sauces, peppers, cheese, or variations, unless clearly optional; optional items should be marked optional. Do not include equipment/tools as ingredients. If the image(s) clearly show multiple distinct recipe cards or standalone recipes, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]} instead of merging them. If the images are front/back or separate pages of the same recipe, extract one recipe. Put helpful notes only when they are visible in the image text. Always set realistic servings (use the stated yield, otherwise estimate from the quantities — never default to 4) and always fill per-serving macros (use visible nutrition if present, otherwise estimate from the ingredients — never leave them 0)." });
             const imgMessages = [{ role:"user", content: imgArr }];
-            const raw = await callAI(imgMessages, EXTRACT_PROMPT, 3000);
+            const raw = await callAI(imgMessages, EXTRACT_PROMPT, 3000, 0);
             extractCtx = { messages: imgMessages, maxTokens: 3000, heroFallback: "" };
             parsed = await parseImportedRecipe(raw);
           }
@@ -2889,15 +2920,24 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           if (!parsed.heroImage) parsed.heroImage = "";
           if (!parsed.notes) parsed.notes = "";
           if (originalSource) parsed.originalSource = originalSource;
-          // For thin YouTube/social sources, record confidence + a visible review
-          // warning so the user double-checks ingredients (high-quality imports
-          // get no warning, so good recipes stay uncluttered).
-          if ((mode === "youtube" || mode === "social") && (importSourceQuality !== "high" || importWarnings.length)) {
-            parsed.sourceQuality = importSourceQuality;
-            parsed.importWarnings = Array.from(new Set(importWarnings)).slice(0, 4);
-            const review = "⚠️ Reconstructed from limited " + (mode === "youtube" ? "video/transcript" : "social post") + " information — please review the ingredients before cooking.";
-            const existing = String(parsed.notes || "").trim();
-            if (!existing.toLowerCase().includes("please review the ingredients")) parsed.notes = existing ? (review + "\n\n" + existing) : review;
+          // YouTube/social: warn when the source clearly names a distinctive
+          // ingredient that didn't make it into the recipe (likely an AI
+          // round-off, e.g. half-and-half -> milk), or when the source was thin.
+          // Clean, complete imports get no warning, so good recipes stay tidy.
+          if (mode === "youtube" || mode === "social") {
+            const mismatches = findSourceIngredientMismatches(importSourceText, parsed);
+            if (mismatches.length || importSourceQuality !== "high" || importWarnings.length) {
+              parsed.sourceQuality = importSourceQuality;
+              if (mismatches.length) importWarnings.unshift("The " + (mode === "youtube" ? "video" : "post") + " mentions " + mismatches.join(", ") + " — make sure the ingredients match.");
+              parsed.importWarnings = Array.from(new Set(importWarnings)).slice(0, 4);
+              const review = mismatches.length
+                ? "⚠️ Double-check the ingredients against the original — the " + (mode === "youtube" ? "video" : "post") + " mentions " + mismatches.join(", ") + ", which may have been read differently."
+                : "⚠️ Reconstructed from limited " + (mode === "youtube" ? "video/transcript" : "social post") + " information — please review the ingredients before cooking.";
+              const existing = String(parsed.notes || "").trim();
+              if (!existing.toLowerCase().includes("double-check the ingredients") && !existing.toLowerCase().includes("please review the ingredients")) {
+                parsed.notes = existing ? (review + "\n\n" + existing) : review;
+              }
+            }
           }
 
           readyRecipeForSave(parsed, { skipPhotoPrompt: mode === "media" });

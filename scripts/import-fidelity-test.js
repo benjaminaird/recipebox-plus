@@ -25,4 +25,11 @@ assert.ok(/half-and-half/i.test(src), "prompt names half-and-half explicitly");
 assert.ok(/do\s*not\s*substitut/i.test(src) || /never substitute/i.test(src), "prompt forbids substitution");
 assert.ok(/never substitute or simplify an ingredient/i.test(src), "YouTube/social prompts forbid substitution");
 
+// 3) Extraction calls must run at temperature 0 (literal, not paraphrasing).
+assert.ok(/EXTRACT_PROMPT, \d+, 0\)/.test(src) || /EXTRACT_PROMPT, ctx\.maxTokens, 0\)/.test(src), "extraction calls pass temperature 0");
+
+// 4) The distinctive-ingredient source-vs-recipe safety net exists.
+assert.ok(/findSourceIngredientMismatches/.test(src), "source/recipe ingredient mismatch check exists");
+assert.ok(/HIGH_SIGNAL_INGREDIENTS/.test(src) && /half and half/i.test(src), "high-signal ingredient list includes half-and-half");
+
 console.log("import-fidelity-test: ok");
