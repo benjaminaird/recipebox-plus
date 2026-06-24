@@ -1202,14 +1202,16 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               </div>
             )}
 
-            <div style={{display:"flex",gap:7,marginTop:16,overflowX:"auto",paddingBottom:4}}>
-              {["all","favorites","recent"].map((f) => (
-                <button key={f} onClick={() => setFilter(f)}
-                  style={{border:"1.5px solid "+(filter===f?C.green:C.border),background:filter===f?C.green:C.paper,color:filter===f?C.white:C.mid,borderRadius:20,padding:"6px 14px",fontSize:"0.78em",fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",fontFamily:SANS,flexShrink:0}}>
-                  {f==="all"?"All":f==="favorites"?<span style={{display:"inline-flex",alignItems:"center",gap:5}}><Icon name="favorite" size={13} /> Favorites</span>:"Recent"}
-                </button>
-              ))}
-            </div>
+            {recipes.length > 0 && (
+              <div style={{display:"flex",gap:7,marginTop:16,overflowX:"auto",paddingBottom:4}}>
+                {["all","favorites","recent"].map((f) => (
+                  <button key={f} onClick={() => setFilter(f)}
+                    style={{border:"1.5px solid "+(filter===f?C.green:C.border),background:filter===f?C.green:C.paper,color:filter===f?C.white:C.mid,borderRadius:20,padding:"6px 14px",fontSize:"0.78em",fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",fontFamily:SANS,flexShrink:0}}>
+                    {f==="all"?"All":f==="favorites"?<span style={{display:"inline-flex",alignItems:"center",gap:5}}><Icon name="favorite" size={13} /> Favorites</span>:"Recent"}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {activeTag ? (
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap",marginTop:14,background:C.greenPale,border:"1px solid "+C.green+"40",borderRadius:12,padding:"10px 14px"}}>
@@ -1243,21 +1245,41 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   No recipes match your search
                 </div>
               </div>
+            ) : isDashboard && recipes.length === 0 ? (
+              <div className="fade-up" style={{marginTop:22}}>
+                <div style={{...S.card,padding:"24px 20px"}}>
+                  <div style={{fontFamily:SERIF,fontSize:"1.5em",color:C.dark,lineHeight:1.15,marginBottom:6}}>Welcome to your RecipeBox</div>
+                  <div style={{color:C.light,fontSize:"0.9em",lineHeight:1.5,marginBottom:18}}>Start your box with a recipe you love. Pick a way to add the first one — it only takes a few seconds.</div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(150px, 1fr))",gap:12}}>
+                    {[
+                      { mode:"url", icon:"import", label:"Import from the web", hint:"Paste a recipe link" },
+                      { mode:"media", icon:"camera", label:"Snap a photo or card", hint:"Cards, screenshots, PDFs" },
+                      { mode:"text", icon:"recipeCard", label:"Paste recipe text", hint:"Type or paste from anywhere" },
+                    ].map((tile) => (
+                      <button key={tile.mode} onClick={() => onAdd(tile.mode)}
+                        style={{textAlign:"left",border:"1px solid "+C.border,background:C.paper,borderRadius:14,padding:"15px 14px",cursor:"pointer",fontFamily:SANS,display:"flex",flexDirection:"column",gap:8,minHeight:118,WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>
+                        <span style={{width:40,height:40,borderRadius:11,background:C.greenPale,color:C.green,display:"inline-flex",alignItems:"center",justifyContent:"center",border:"1px solid "+C.green+"33"}}><Icon name={tile.icon} size={21} /></span>
+                        <span style={{fontWeight:800,color:C.dark,fontSize:"0.92em",lineHeight:1.2}}>{tile.label}</span>
+                        <span style={{color:C.light,fontSize:"0.76em",lineHeight:1.4}}>{tile.hint}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={() => setTab("pantry")}
+                    style={{marginTop:12,width:"100%",border:"1px solid "+C.goldLight,background:C.goldPale,borderRadius:14,padding:"14px 16px",cursor:"pointer",fontFamily:SANS,display:"flex",alignItems:"center",gap:12,textAlign:"left",WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>
+                    <span style={{width:40,height:40,borderRadius:11,background:C.paper,color:C.brown,display:"inline-flex",alignItems:"center",justifyContent:"center",border:"1px solid "+C.goldLight,flexShrink:0}}><Icon name="chef" size={21} /></span>
+                    <span style={{flex:1,minWidth:0}}>
+                      <span style={{display:"block",fontWeight:800,color:C.brown,fontSize:"0.92em"}}>Not sure yet? Ask Pantry Chef</span>
+                      <span style={{display:"block",color:C.brownLight||C.light,fontSize:"0.76em",marginTop:2}}>Tell it what you have and get a recipe idea</span>
+                    </span>
+                    <span style={{color:C.gold,fontWeight:900,fontSize:"1.1em"}}>›</span>
+                  </button>
+                  <div style={{marginTop:16,fontSize:"0.76em",color:C.light,lineHeight:1.5,display:"flex",alignItems:"center",gap:7}}>
+                    <Icon name="sync" size={14} /> Everything saves to your account and syncs across your devices.
+                  </div>
+                </div>
+              </div>
             ) : isDashboard ? (
               <div>
-                {recipes.length === 0 && (
-                  <div className="fade-up" style={{...S.card,padding:"22px 18px",marginTop:22,display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
-                    <div style={{width:54,height:54,borderRadius:14,background:C.greenPale,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.9em",flexShrink:0}}>+</div>
-                    <div style={{flex:"1 1 240px",minWidth:0}}>
-                      <div style={{fontFamily:SERIF,fontSize:"1.35em",color:C.dark,lineHeight:1.1,marginBottom:5}}>Add your first recipe</div>
-                      <div style={{color:C.light,fontSize:"0.88em",lineHeight:1.45}}>Bring in a family favorite, save a recipe from the web, or ask Pantry Chef for a dinner idea.</div>
-                    </div>
-                    <div style={{display:"flex",gap:10,flexWrap:"wrap",flex:"1 1 220px"}}>
-                      <button onClick={onAdd} style={{...S.primaryBtn,padding:"11px 16px",flex:"1 1 132px"}}>Add a Recipe</button>
-                      <button onClick={() => setTab("pantry")} style={{...S.goldBtn,padding:"11px 16px",flex:"1 1 132px"}}>Ask Pantry Chef</button>
-                    </div>
-                  </div>
-                )}
                 <div style={{marginTop:24}}>
                   <h3 style={{margin:"0 0 13px",fontFamily:SERIF,fontSize:"1.25em",color:C.dark,fontWeight:400}}>Browse your box</h3>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(150px, 1fr))",gap:12}}>
@@ -1278,21 +1300,15 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   </div>
                 </div>
 
-                {recipes.length > 0 ? (
-                  <div style={{marginTop:30}}>
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:13}}>
-                      <h3 style={{margin:0,fontFamily:SERIF,fontSize:"1.25em",color:C.dark,fontWeight:400}}>Recipe cards</h3>
-                      <span style={{fontSize:"0.78em",color:C.light}}>{recipes.length} total</span>
-                    </div>
-                    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(195px, 1fr))",gap:14}}>
-                      {sortedRecipes.map((r) => <RecipeCard key={r.id} recipe={r} onClick={() => onOpen(r)} onFavorite={() => onFavorite(r.id)} onTagClick={selectTag} />)}
-                    </div>
+                <div style={{marginTop:30}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:13}}>
+                    <h3 style={{margin:0,fontFamily:SERIF,fontSize:"1.25em",color:C.dark,fontWeight:400}}>Recipe cards</h3>
+                    <span style={{fontSize:"0.78em",color:C.light}}>{recipes.length} total</span>
                   </div>
-                ) : (
-                  <div style={{textAlign:"center",padding:"26px 0 18px",color:C.light,fontSize:"0.86em"}}>
-                    Your recipe cards will appear here after the first import.
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(195px, 1fr))",gap:14}}>
+                    {sortedRecipes.map((r) => <RecipeCard key={r.id} recipe={r} onClick={() => onOpen(r)} onFavorite={() => onFavorite(r.id)} onTagClick={selectTag} />)}
                   </div>
-                )}
+                </div>
               </div>
             ) : (
               <div style={{marginTop:24}}>
@@ -2510,8 +2526,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     }
 
     // Import Screen
-    function ImportScreen({ onDone, onCancel }) {
-      const [mode, setMode] = useState("url");
+    function ImportScreen({ onDone, onCancel, initialMode }) {
+      const [mode, setMode] = useState(["url","youtube","social","text","media"].includes(initialMode) ? initialMode : "url");
       const [url, setUrl] = useState("");
       const [ytUrl, setYtUrl] = useState("");
       const [socialUrl, setSocialUrl] = useState("");
@@ -4174,6 +4190,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [timerSound, setTimerSound] = useState(() => loadTimerSound());
       const [current, setCurrent] = useState(null);
       const [libraryTag, setLibraryTag] = useState("");
+      const [importMode, setImportMode] = useState("url");
+      function openImport(mode) { setImportMode(typeof mode === "string" ? mode : "url"); setScreen("import"); }
       const [account, setAccount] = useState(() => loadAccountSession().user || null);
       const [aiUsage, setAiUsage] = useState(() => defaultAiUsage());
       const [newFeedback, setNewFeedback] = useState(0);
@@ -4292,7 +4310,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       if (resetToken) return <AuthScreen recipes={recipes} mealPlan={mealPlan} setAccount={setAccount} onCloudData={loadCloudData} initialMode="newpass" resetToken={resetToken} />;
       if (!account) return <AuthScreen recipes={recipes} mealPlan={mealPlan} setAccount={setAccount} onCloudData={loadCloudData} />;
       if (screen==="admin" && account?.isMasterAdmin) return <AppControl account={account} onBack={()=>{refreshAdminAlerts();setScreen("library");}} onFeedbackChange={setNewFeedback} />;
-      if (screen==="import") return <ImportScreen onDone={(r)=>{(Array.isArray(r)?r:[r]).forEach(addRecipe);setScreen("library");}} onCancel={()=>setScreen("library")} />;
+      if (screen==="import") return <ImportScreen initialMode={importMode} onDone={(r)=>{(Array.isArray(r)?r:[r]).forEach(addRecipe);setScreen("library");}} onCancel={()=>setScreen("library")} />;
       if (screen==="edit"&&current) return <EditRecipe recipe={current} onSave={(r)=>{ if(recipes.find((x)=>x.id===r.id)) updateRecipe(r); else addRecipe(r); setScreen("view"); }} onCancel={()=>setScreen("view")} />;
       if (screen==="view"&&current) return (
         <>
@@ -4303,7 +4321,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
       return (
         <div onTouchStart={handleSwipeStart} onTouchEnd={handleSwipeEnd} onPointerDown={handlePointerStart} onPointerUp={handlePointerEnd} style={{width:"100%",maxWidth:"100%",overflowX:"hidden",background:C.cream}}>
-          {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>{setCurrent(r);setScreen("view");}} onAdd={()=>setScreen("import")} onFavorite={toggleFavorite} setTab={setMainTab} tagFilter={libraryTag} onTagFilter={setLibraryTag} />}
+          {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>{setCurrent(r);setScreen("view");}} onAdd={openImport} onFavorite={toggleFavorite} setTab={setMainTab} tagFilter={libraryTag} onTagFilter={setLibraryTag} />}
           {tab==="plan" && <MealPlanner recipes={recipes} mealPlan={mealPlan} setMealPlan={updateMealPlan} onOpen={(r)=>{setCurrent(r);setScreen("view");}} />}
           {tab==="pantry" && <PantryChef recipes={recipes} onImport={(r)=>{addRecipe(r);setTab("library");}} onOpenRecipe={(r)=>{setCurrent(r);setScreen("view");}} />}
           {tab==="settings" && <Settings timerSound={timerSound} setTimerSound={setTimerSound} account={account} setAccount={setAccount} recipes={recipes} mealPlan={mealPlan} aiUsage={aiUsage} onCloudData={loadCloudData} onOpenAdmin={()=>setScreen("admin")} newFeedback={newFeedback} />}
