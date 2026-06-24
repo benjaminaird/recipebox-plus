@@ -633,6 +633,9 @@ function downloadJson(filename, data) {
 
     // AI
     async function callAI(messages, system, maxTokens) {
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        throw new Error("You're offline. Reconnect to use RecipeBox AI — your saved recipes are still available.");
+      }
       const body = { model: "claude-sonnet-4-5-20250929", max_tokens: maxTokens || 2000, messages };
       if (system) body.system = system;
       const res = await apiFetch("/api/ai", {
@@ -4369,3 +4372,19 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
     const root = ReactDOM.createRoot(document.getElementById("root"));
     root.render(<App />);
+
+    // Register the service worker for instant launch + offline. On an update, a
+    // new worker activates and takes control; reload once to get the fresh app.
+    // (No reload on the very first install, when there was no controller yet.)
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        const hadController = !!navigator.serviceWorker.controller;
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (!hadController || refreshing) return;
+          refreshing = true;
+          window.location.reload();
+        });
+        navigator.serviceWorker.register("/sw.js").catch(() => {});
+      });
+    }
