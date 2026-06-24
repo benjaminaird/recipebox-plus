@@ -25,16 +25,15 @@
   <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html { min-height: 100%; overflow-x: hidden; background-color: #2C4A33; overscroll-behavior: none; }
-    body { margin: 0; min-height: 100dvh; overflow-x: hidden; font-family: 'DM Sans', sans-serif; background-color: #2C4A33; color: #2A1B13; overscroll-behavior: none; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; -webkit-text-size-adjust: 100%; -webkit-touch-callout: none; }
+    /* The ONE brand gradient lives on the root element only. Per spec the root
+       background is propagated to the whole viewport canvas (incl. overscroll and
+       the iOS home-indicator strip), so it's a single continuous paint — no seam.
+       Everything else (body, #root, splash, auth, cook mode) is transparent and
+       shows it through, so there is never a second gradient box to seam against.
+       The solid background-color is the pre-paint fallback (never white). */
+    html { min-height: 100%; overflow-x: hidden; background-color: #2C4A33; background: linear-gradient(150deg, #234B32 0%, #5A3827 100%) no-repeat; background-attachment: fixed; overscroll-behavior: none; }
+    body { margin: 0; min-height: 100dvh; overflow-x: hidden; font-family: 'DM Sans', sans-serif; background: transparent; color: #2A1B13; overscroll-behavior: none; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; -webkit-text-size-adjust: 100%; -webkit-touch-callout: none; }
     #root { min-height: 100vh; min-height: 100dvh; overflow-x: hidden; background: transparent; }
-    /* The ONE brand gradient for the entire app: a single fixed layer, oversized
-       past every edge so the iOS home-indicator / safe-area strip can never
-       reveal a second gradient box (which caused the seam near the bottom in the
-       standalone PWA). Every full-screen brand surface (splash, auth, cook mode)
-       is transparent and shows this through, so there is only ever ONE gradient
-       in the whole app = no seam, no white. */
-    body::before { content: ""; position: fixed; top: -100px; left: -40px; right: -40px; bottom: -100px; z-index: -1; background: linear-gradient(150deg, #234B32 0%, #5A3827 100%); }
     input, textarea, select, [contenteditable="true"] { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
     button { -webkit-touch-callout: none; touch-action: manipulation; }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
@@ -4433,7 +4432,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       if (resetToken) return <AuthScreen recipes={recipes} mealPlan={mealPlan} setAccount={setAccount} onCloudData={loadCloudData} initialMode="newpass" resetToken={resetToken} />;
       if (!account) return <AuthScreen recipes={recipes} mealPlan={mealPlan} setAccount={setAccount} onCloudData={loadCloudData} />;
       if (screen==="admin" && account?.isMasterAdmin) return <AppControl account={account} onBack={()=>{refreshAdminAlerts();setScreen("library");}} onFeedbackChange={setNewFeedback} />;
-      if (screen==="import") return <ImportScreen initialMode={importMode} onDone={(r)=>{(Array.isArray(r)?r:[r]).forEach(addRecipe);setScreen("library");}} onCancel={()=>setScreen("library")} />;
+      if (screen==="import") return <ImportScreen initialMode={importMode} onDone={(r)=>{ const list=Array.isArray(r)?r:[r]; list.forEach(addRecipe); if(list.length!==1) setScreen("library"); /* single import: addRecipe already opens the recipe for review */ }} onCancel={()=>setScreen("library")} />;
       if (screen==="edit"&&current) return <EditRecipe recipe={current} onSave={(r)=>{ if(recipes.find((x)=>x.id===r.id)) updateRecipe(r); else addRecipe(r); setScreen("view"); }} onCancel={()=>setScreen("view")} />;
       if (screen==="view"&&current) return (
         <>
