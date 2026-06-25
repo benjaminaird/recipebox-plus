@@ -1133,6 +1133,31 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const TAG_ROW_LIMIT = 8;
       const visibleTags = showAllTags ? popularTags : popularTags.slice(0, TAG_ROW_LIMIT);
 
+      // Smart collections: curated, good-looking entry points that each apply an
+      // existing tag filter. Built only from tags the user actually has (no fake
+      // shelves), sorted by how many recipes they hold, capped to a tidy row.
+      const SMART_COLLECTIONS = [
+        { tag:"Copycat", emoji:"🍔", blurb:"Restaurant-style at home" },
+        { tag:"Weeknight", emoji:"🌙", blurb:"Fast enough for a school night" },
+        { tag:"Quick", emoji:"⚡", blurb:"In and out of the kitchen" },
+        { tag:"Meal Prep", emoji:"🥡", blurb:"Make ahead, eat all week" },
+        { tag:"Comfort Food", emoji:"🍲", blurb:"Cozy and familiar" },
+        { tag:"One-Pot", emoji:"🥘", blurb:"Less to wash up" },
+        { tag:"Air Fryer", emoji:"🍟", blurb:"Crispy and fast" },
+        { tag:"Slow Cooker", emoji:"🍯", blurb:"Set it and forget it" },
+        { tag:"Sheet Pan", emoji:"🥧", blurb:"One pan, done" },
+        { tag:"Healthy", emoji:"🥗", blurb:"Lighter picks" },
+        { tag:"Budget-Friendly", emoji:"💰", blurb:"Easy on the wallet" },
+        { tag:"Holiday", emoji:"🎄", blurb:"Special occasions" },
+        { tag:"Party", emoji:"🎉", blurb:"Crowd pleasers" },
+        { tag:"Kid-Friendly", emoji:"🧒", blurb:"Picky-eater approved" },
+      ];
+      const collectionCards = SMART_COLLECTIONS
+        .map((c) => ({ ...c, key: tagKey(c.tag), count: tagCounts[tagKey(c.tag)] || 0 }))
+        .filter((c) => c.count > 0)
+        .sort((a, b) => (b.count - a.count) || a.tag.localeCompare(b.tag))
+        .slice(0, 6);
+
       const isDashboard = cat === "All" && filter === "all" && !search.trim() && !activeTagKey;
 
       return (
@@ -1246,6 +1271,24 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               </div>
             ) : isDashboard ? (
               <div>
+                {collectionCards.length > 0 && (
+                  <div style={{marginTop:24}}>
+                    <h3 style={{margin:"0 0 13px",fontFamily:SERIF,fontSize:"1.25em",color:C.dark,fontWeight:400}}>Collections</h3>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(150px, 1fr))",gap:12}}>
+                      {collectionCards.map((c) => (
+                        <button key={c.key} onClick={() => selectTag(c.tag)}
+                          style={{textAlign:"left",border:"1px solid "+C.goldLight,background:`linear-gradient(135deg, ${C.goldPale}, ${C.paper})`,borderRadius:14,padding:"14px 14px",cursor:"pointer",fontFamily:SANS,display:"flex",flexDirection:"column",gap:8,minHeight:104,WebkitTapHighlightColor:"transparent",touchAction:"manipulation",boxShadow:"0 6px 16px rgba(90,56,39,0.08)"}}>
+                          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+                            <span style={{width:36,height:36,borderRadius:10,background:C.paper,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:"1.15em",border:"1px solid "+C.goldLight,flexShrink:0}}>{c.emoji}</span>
+                            <span style={{background:C.green,color:C.white,borderRadius:999,padding:"2px 9px",fontSize:"0.72em",fontWeight:900}}>{c.count}</span>
+                          </div>
+                          <span style={{fontWeight:900,color:C.dark,fontSize:"0.92em",lineHeight:1.2}}>{RecipeBoxTags.displayTag(c.tag)}</span>
+                          <span style={{color:C.light,fontSize:"0.74em",lineHeight:1.35}}>{c.blurb}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div style={{marginTop:24}}>
                   <h3 style={{margin:"0 0 13px",fontFamily:SERIF,fontSize:"1.25em",color:C.dark,fontWeight:400}}>Browse your box</h3>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(150px, 1fr))",gap:12}}>
