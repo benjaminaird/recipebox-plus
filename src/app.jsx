@@ -863,15 +863,28 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       "cake flour", "bread flour", "self rising flour", "almond flour", "whole wheat flour",
       "powdered sugar", "confectioners sugar", "brown sugar", "cornstarch", "corn starch", "cream of tartar",
     ];
+    // Same-product synonyms: if the recipe already contains any member of a
+    // group, a source mention of another member is NOT a substitution (e.g.
+    // "heavy cream" and "heavy whipping cream" are the same thing). Prevents
+    // false "double-check the ingredients" warnings from polluting saved notes.
+    const INGREDIENT_EQUIVALENTS = [
+      ["heavy cream", "heavy whipping cream", "whipping cream"],
+      ["powdered sugar", "confectioners sugar"],
+      ["cornstarch", "corn starch"],
+    ];
     function findSourceIngredientMismatches(sourceText, recipe) {
       const norm = (s) => String(s || "").toLowerCase().replace(/[-]+/g, " ").replace(/&/g, "and").replace(/\s+/g, " ");
       const src = norm(sourceText);
       if (!src) return [];
       const ing = norm((recipe && recipe.sections || []).flatMap((s) => (s.ingredients || []).map((i) => (i && i.name) || "")).join(" "));
+      const equivPresent = (term) => {
+        const group = INGREDIENT_EQUIVALENTS.find((g) => g.includes(term));
+        return group ? group.some((t) => ing.includes(t)) : false;
+      };
       const seen = new Set();
       const out = [];
       HIGH_SIGNAL_INGREDIENTS.forEach((term) => {
-        if (src.includes(term) && !ing.includes(term)) {
+        if (src.includes(term) && !ing.includes(term) && !equivPresent(term)) {
           const pretty = term === "half and half" ? "half-and-half" : term;
           if (!seen.has(pretty)) { seen.add(pretty); out.push(pretty); }
         }

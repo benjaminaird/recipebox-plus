@@ -16,6 +16,9 @@
     "request-guards-test": "node scripts/request-guards-test.js",
     "import-test:estimate": "node scripts/import-test/run.js --estimate",
     "import-test:run": "node scripts/import-test/run.js --run",
+    "import-test:analyze": "node scripts/import-test/analyze.js",
+    "import-test:compare": "node scripts/import-test/compare.js",
+    "import-test:gate": "node scripts/import-test/gate.js",
     "smoke-test": "node scripts/smoke-test.js",
     "security-smoke-test": "node scripts/security-smoke-test.js",
     "youtube-parser-test": "node scripts/youtube-parser-test.js"

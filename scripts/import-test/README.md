@@ -43,6 +43,49 @@ ANTHROPIC_API_KEY=sk-ant-... npm run import-test:run -- --budget=4
 
 The harness hard-stops before a call that could exceed the budget.
 
+## Deeper accuracy analysis
+
+A live run also records the full structured recipe and (for text-based sources)
+the exact source text fed to the model, so we can check far more than "were the
+right ingredients listed?":
+
+```sh
+node scripts/import-test/analyze.js <tag>     # e.g. analyze.js deep
+```
+
+It reports, per import and in aggregate:
+
+- **over-extraction / hallucination** — extracted ingredients whose key nouns
+  never appear in the source (text modes).
+- **amount grounding** — distinctive quantities (fractions, multi-digit, ranges)
+  the model wrote that aren't in the source (unicode fractions normalized).
+- **substitution audit** — high-signal ingredients present in source but missing
+  from the recipe (mirrors the app's `findSourceIngredientMismatches`, including
+  same-product equivalence; skips blog-noisy `url` pages).
+- **structural integrity** — step `ingredientRefs` resolve, no empty names.
+- **servings / macros sanity** — positive integer servings, non-zero per-serving
+  macros (both promised by the prompt).
+
+## Comparing models / regression gate
+
+```sh
+node scripts/import-test/compare.js haiku sonnet opus   # side-by-side recall/title/cost
+node scripts/import-test/gate.js <tag>                  # fail (exit 1) if a run regressed vs baseline.json
+node scripts/import-test/gate.js --save <tag>           # (re)write baseline.json from a known-good run
+```
+
+The harness model + pricing are overridable for A/B testing the same pipeline:
+`--model=`, `--price-in=`, `--price-out=`, `--out=<tag>`. `EXTRACT_PROMPT` is read
+live from `src/app.jsx` so the test can never drift from production.
+
+Typical workflow after a prompt change:
+
+```sh
+npm start                                                  # scrapers
+node scripts/import-test/run.js --run --out=check --only=url,pdf,text
+node scripts/import-test/gate.js check                     # blocks accuracy regressions
+```
+
 ## Adding Sources
 
 For public/non-sensitive fixtures, edit `manifest.json`.

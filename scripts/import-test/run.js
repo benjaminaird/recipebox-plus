@@ -62,46 +62,16 @@ const INCLUDE_SKIPPED = args.includes('--include-skipped');
 const MANIFEST_ARG = (args.find(a => a.startsWith('--manifest=')) || '').split('=')[1];
 const MANIFEST_FILE = MANIFEST_ARG || (fs.existsSync(path.join(ROOT, 'manifest.local.json')) ? 'manifest.local.json' : 'manifest.json');
 
-// ── EXACT system prompt from public/index.html (EXTRACT_PROMPT) ───────────────
-const EXTRACT_PROMPT = `You are a recipe extraction assistant. Return ONLY a raw JSON object. No markdown, no backticks, no explanation. Start with { and end with }.
-
-Structure: {"title":"string","cookTime":"string","servings":4,"description":"string","notes":"string","heroImage":"URL or empty string","macros":{"calories":0,"protein":0,"carbs":0,"fat":0,"fiber":0},"sections":[{"name":"Main","ingredients":[{"id":"i1","amount":"1","unit":"cup","name":"flour","weightAmount":"","weightUnit":""}],"steps":[{"id":"s1","text":"Mix {i1} with water.","ingredientRefs":["i1"]}]}],"tags":["tag1"]}
-
-For title:
-- Prefer the name of the recipe itself.
-- For URL or YouTube imports, if the source/author/channel is clear and useful, title should be "Recipe Name - Source" unless the origin is already part of the recipe name.
-- For PDFs, photos, screenshots, and handwritten cards, use only the recipe title unless the source/person/place is explicit in the source material.
-- Do not add generic words like "recipe" or "(adjusted)" unless they are truly part of the title.
-
-For notes:
-- Use ONLY helpful cooking information explicitly present in the source material, page text, PDF text, image text, caption, transcript, description, or provided source links.
-- Include tips, storage/make-ahead guidance, substitution notes, doneness cues, ingredient prep details, or author warnings when they would help someone cook the recipe.
-- Do not invent tips or infer advice from general knowledge. If the source does not include useful extra notes, use an empty string.
-- If the source provides related recipe/helper links, include only links that are directly useful for this recipe, with the original URL. Example: "Rib rub recipe: https://example.com/rib-rub".
-- Do not include ads, unrelated blog story, newsletter links, or generic navigation links.
-
-For sources with multiple recipes or variants:
-- Extract one primary recipe card that best matches the title/source.
-- Do not merge separate variants into one giant recipe. Mention alternate variants briefly in notes only if source-grounded and useful.
-- If an uploaded photo, rendered PDF page, video, article, or transcript clearly contains multiple distinct recipe cards, standalone recipes, or full variants, do not merge them or choose one silently. Return {"error":"multiple_recipes_detected","recipes":["name 1","name 2"]} so RecipeBox can ask the user whether to import one or all.
-
-For heroImage: if you can identify a direct image URL from the source, include it. Otherwise leave as empty string.
-
-For ingredient amounts:
-- Preserve the source quantity exactly as a string.
-- Use fractions and mixed numbers, not decimals. Use "1/4", "1/2", "3/4", "1 1/4", "1 1/2", etc.
-- Preserve compound measures exactly. "1/3 cup + 3 Tablespoons sugar" should become amount "1/3 cup + 3 Tablespoons", unit "", name "sugar".
-- Preserve descriptive measures exactly. "1 heaping Tbsp brown sugar" should become amount "1", unit "heaping Tbsp", name "brown sugar". "1 scant cup flour" should become amount "1", unit "scant cup", name "flour".
-- Preserve common package/count measures. "1 stick butter" should become amount "1", unit "stick", name "butter".
-- Include visible add-ins and optional food items as ingredients, marking optional when the source says optional.
-- Never include equipment, tools, bowls, pans, knives, measuring cups/spoons, oven mitts, appliances, or serving utensils as ingredients.
-- Never collapse package sizes. "1 (14-ounce) can full-fat coconut milk" must become amount "1", unit "can", name "(14-ounce) full-fat coconut milk".
-- If the source includes a parenthetical weight like "1 cup (200g) sugar", store amount "1", unit "cup", name "sugar", weightAmount "200", weightUnit "g".
-- If no source weight is listed, leave weightAmount and weightUnit empty.
-- Do not normalize compound measures into less readable units. Do not turn "1/3 cup + 3 Tbsp" into "31 Tbsp" or any other collapsed equivalent.
-- Do not invent weights.
-
-Embed ingredient IDs like {i1} inside step text, but do not repeat the ingredient name right after the placeholder. Example: use "Mix {i1} with water", not "Mix {i1} flour with water". Macros are per serving. Return ONLY the JSON.`;
+// ── Live system prompt: read the REAL EXTRACT_PROMPT from src/app.jsx so the
+// harness can never drift from production. The app prompt is a static template
+// literal (no ${} interpolation), so the raw text between backticks IS the prompt.
+function loadExtractPrompt() {
+  const appSrc = fs.readFileSync(path.resolve(ROOT, '..', '..', 'src', 'app.jsx'), 'utf8');
+  const m = appSrc.match(/const EXTRACT_PROMPT = \`([\s\S]*?)\`;/);
+  if (!m) throw new Error('Could not find EXTRACT_PROMPT in src/app.jsx — harness fidelity check failed.');
+  return m[1];
+}
+const EXTRACT_PROMPT = loadExtractPrompt();
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -270,7 +240,7 @@ function parseRecipe(raw) {
       if (txt) steps.push(txt);
     }
   }
-  return { title: obj.title || '', servings: obj.servings, cookTime: obj.cookTime || '', notes: obj.notes || '', ingredients, steps };
+  return { title: obj.title || '', servings: obj.servings, cookTime: obj.cookTime || '', notes: obj.notes || '', macros: obj.macros || null, ingredients, steps, recipe: obj };
 }
 
 // ── ground truth from JSON-LD Recipe (for URL imports) ────────────────────────
@@ -373,7 +343,10 @@ function expectationScore(test, got) {
 
 // ── per-source message builders (faithful to public/index.html) ───────────────
 async function prepare(test) {
-  const out = { test, mode: test.category, sourceView: '', groundTruth: null, messages: null, system: EXTRACT_PROMPT, maxTokens: 2000, prepError: null, images: 0 };
+  // sourceText = the plain text actually fed to the model (text modes only). Used
+  // by analyze.js to ground extracted ingredients/amounts against the source and
+  // to run the substitution audit. Empty for photo / rendered-PDF (vision) inputs.
+  const out = { test, mode: test.category, sourceView: '', sourceText: '', groundTruth: null, messages: null, system: EXTRACT_PROMPT, maxTokens: 2000, prepError: null, images: 0 };
   try {
     if (test.category === 'url') {
       const { ok, data } = await getJson(`${SERVER}/api/fetch-url?url=${encodeURIComponent(test.url)}`);
@@ -389,6 +362,7 @@ async function prepare(test) {
         "Visible page text:\n" + (data.text || "");
       out.messages = [{ role: 'user', content: prompt }];
       out.maxTokens = 4096;
+      out.sourceText = (data.title || "") + "\n" + JSON.stringify(data.jsonLd || []) + "\n" + (data.text || "");
       out.sourceView = `<a href="${test.url}">${test.url}</a><div class="meta">page title: ${esc(data.title || '')}</div>`;
     } else if (test.category === 'youtube') {
       const { ok, data } = await getJson(`${SERVER}/api/transcript?url=${encodeURIComponent(test.url)}`);
@@ -404,6 +378,7 @@ async function prepare(test) {
       if (data.warnings?.length) content += "\n\nImporter warnings: " + data.warnings.join('; ');
       out.messages = [{ role: 'user', content: "Extract the recipe from this YouTube video content. Use only the transcript, description, and metadata below. Put helpful source-grounded tips or warnings in notes; do not invent notes from general cooking knowledge. If the video contains multiple full recipe variants, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]} instead of merging them or choosing one silently.\n\n" + content }];
       out.maxTokens = 6000;
+      out.sourceText = content;
       out.groundTruth = { title: data.title || '', ingredients: [], steps: [], raw: (data.transcript || data.description || '') };
       out.sourceView = `<a href="${test.url}">${test.url}</a><div class="meta">title: ${esc(data.title || '')}${data.author ? ' · channel: ' + esc(data.author) : ''} · source: ${data.transcript ? 'transcript' : 'description'}</div>`;
     } else if (test.category === 'social') {
@@ -416,6 +391,7 @@ async function prepare(test) {
         "Platform: " + (data.platform || "") + "\nSource URL: " + (data.finalUrl || data.url || test.url) + "\nTitle: " + (data.title || "") + "\nAuthor: " + (data.author || "") + "\nCaption/description:\n" + (data.caption || data.description || "") + "\n\nPublic page text:\n" + (data.text || "");
       out.messages = [{ role: 'user', content: prompt }];
       out.maxTokens = 4096;
+      out.sourceText = availableText;
       out.groundTruth = { title: data.title || '', ingredients: [], steps: [], raw: availableText };
       out.sourceView = `<a href="${test.url}">${test.url}</a><div class="meta">platform: ${esc(data.platform || '?')}</div>`;
     } else if (test.category === 'pdf') {
@@ -424,6 +400,7 @@ async function prepare(test) {
       if (text.trim()) {
         out.messages = [{ role: 'user', content: "Extract the recipe ONLY from the PDF text below. Do not invent missing details or notes. Put helpful source-grounded tips in notes only when present in the PDF text. Return valid JSON only.\n\n" + text }];
         out.maxTokens = 6000;
+        out.sourceText = text;
         out.groundTruth = loadTruth(test) || { title: '', ingredients: [], steps: [], raw: text };
         out.sourceView = `<div class="meta">file: ${esc(test.file)}</div><pre class="src">${esc(text.slice(0, 1800))}${text.length > 1800 ? '\n…(truncated)' : ''}</pre>`;
       } else {
@@ -459,6 +436,14 @@ async function prepare(test) {
       out.images = files.length;
       out.groundTruth = loadTruth(test);
       out.sourceView = previews.map((img, idx) => `<div class="meta">file ${idx + 1}: ${esc(img.file)}${img.converted ? ' · HEIC converted to JPEG' : ''}</div><img class="srcimg" src="data:${img.mediaType};base64,${img.b64}" alt="source"/>`).join('');
+    } else if (test.category === 'text') {
+      const text = test.text || '';
+      if (!text.trim()) throw new Error('no inline text provided');
+      out.messages = [{ role: 'user', content: "Extract the recipe from this text. Put source-grounded tips or extra cooking guidance in notes only when present in the text; do not invent notes. Always set realistic servings (use the stated yield, otherwise estimate from the quantities — never default to 4) and always fill per-serving macros (use stated nutrition if present, otherwise estimate from the ingredients — never leave them 0).\n\n" + text }];
+      out.maxTokens = 4096;
+      out.sourceText = text;
+      out.groundTruth = loadTruth(test) || { title: '', ingredients: [], steps: [], raw: text };
+      out.sourceView = `<div class="meta">pasted text</div><pre class="src">${esc(text.slice(0, 1800))}${text.length > 1800 ? '\n…(truncated)' : ''}</pre>`;
     } else {
       throw new Error('unknown category ' + test.category);
     }
@@ -625,7 +610,7 @@ function renderReport(results, totals) {
       if (parsed.error) {
         rec.status = 'extracted but ' + parsed.error;
         rec.parsed = parsed;
-        if ((test.expectedBlocked && /not_enough_recipe_text|unknown_recipe/i.test(parsed.error)) ||
+        if ((test.expectedBlocked && /not_enough_recipe_text|unknown_recipe|no_recipe_detected/i.test(parsed.error)) ||
             (test.expectedMultipleRecipes && /multiple_recipes_detected/i.test(parsed.error))) {
           rec.ok = true;
           rec.status = 'expected honest fallback: ' + parsed.error;
@@ -660,6 +645,12 @@ function renderReport(results, totals) {
     importedSteps: r.parsed?.steps?.length,
     rawText: r.ok ? undefined : r.rawText,
     parsed: r.parsed ? { title:r.parsed.title, ingredients:r.parsed.ingredients, steps:r.parsed.steps, notes:r.parsed.notes } : null,
+    // Deeper-accuracy data (analyze.js): full structured recipe + the source text
+    // fed to the model (text modes only) for grounding/precision/substitution audit.
+    servings: r.parsed?.servings,
+    macros: r.parsed?.macros,
+    recipe: r.parsed?.recipe ? { servings:r.parsed.recipe.servings, macros:r.parsed.recipe.macros, sections:r.parsed.recipe.sections } : null,
+    sourceText: (r.prep?.sourceText || '').slice(0, 60000),
   })), null, 2));
 
   console.log(`\n──────────────────────────────────────────`);

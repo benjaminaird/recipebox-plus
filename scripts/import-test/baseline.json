@@ -1,0 +1,281 @@
+{
+  "generated": "2026-06-25T18:01:49.370Z",
+  "model": "claude-sonnet-4-5-20250929",
+  "tolerance": 0.1,
+  "note": "Per-test accuracy floor for the import pipeline. Regenerate with: node gate.js --save <tag>",
+  "tests": {
+    "url-heygrillhey-whiskey-peach-bbq-sauce": {
+      "category": "url",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "url-magnolia-banana-pudding": {
+      "category": "url",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "url-houseofnasheats-molasses-brown-bread": {
+      "category": "url",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "url-pioneerwoman-bbq-pulled-pork-pizza": {
+      "category": "url",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "url-recipegoldmine-panera-butternut-squash-soup": {
+      "category": "url",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "yt-howtobbqright-smoked-chili": {
+      "category": "youtube",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 0.81,
+      "titleMatch": false
+    },
+    "yt-preppy-kitchen-pavlova": {
+      "category": "youtube",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "yt-babish-brownies": {
+      "category": "youtube",
+      "expectFallback": true,
+      "parsed": true,
+      "recall": 0,
+      "titleMatch": false
+    },
+    "yt-joshua-weissman-dollar-lasagna": {
+      "category": "youtube",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "yt-ina-garten-raspberry-baked-french-toast": {
+      "category": "youtube",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "pdf-bens-banana-pudding": {
+      "category": "pdf",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "pdf-caramel-popcorn": {
+      "category": "pdf",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "pdf-german-gingerbread": {
+      "category": "pdf",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "pdf-old-fashioned-vanilla-ice-cream": {
+      "category": "pdf",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "pdf-peachin-to-the-choir": {
+      "category": "pdf",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "photo-pumpkin-gingerbread": {
+      "category": "photo",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "photo-ralphs-bbq-sauce": {
+      "category": "photo",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "photo-buttermilk-syrup": {
+      "category": "photo",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "yt-doubletree-chocolate-chip-cookies-transcript-only": {
+      "category": "youtube",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "photo-spudnuts-two-cards": {
+      "category": "photo",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "photo-mustard-sauce-artichokes": {
+      "category": "photo",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "photo-carrot-pudding-and-rum-sauce": {
+      "category": "photo",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "photo-hot-cakes-waffles-and-muffins": {
+      "category": "photo",
+      "expectFallback": true,
+      "parsed": true,
+      "recall": 0,
+      "titleMatch": false
+    },
+    "photo-french-breakfast-puffs": {
+      "category": "photo",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "photo-german-pancakes": {
+      "category": "photo",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "photo-pizza-gold-medal-flour": {
+      "category": "photo",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "photo-dinner-rolls": {
+      "category": "photo",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "pdf-cheesy-cornbread-sideways-photo": {
+      "category": "pdf",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "photo-festive-fudge": {
+      "category": "photo",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "photo-chocolate-gingerbread-cookies": {
+      "category": "photo",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "photo-mandis-dream-cookies": {
+      "category": "photo",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "tiktok-creamy-cajun-chicken-pasta": {
+      "category": "social",
+      "expectFallback": true,
+      "parsed": true,
+      "recall": 0,
+      "titleMatch": false
+    },
+    "tiktok-two-ingredient-gatorade-ice-cream": {
+      "category": "social",
+      "expectFallback": true,
+      "parsed": true,
+      "recall": 0,
+      "titleMatch": false
+    },
+    "tiktok-strawberry-peanut-butter-chocolate-bark": {
+      "category": "social",
+      "expectFallback": true,
+      "parsed": true,
+      "recall": 0,
+      "titleMatch": false
+    },
+    "yt-shorts-oreo-pizza": {
+      "category": "youtube",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "text-substitution-trap": {
+      "category": "text",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "text-ranges-compound-amounts": {
+      "category": "text",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "text-equipment-trap": {
+      "category": "text",
+      "expectFallback": false,
+      "parsed": true,
+      "recall": 1,
+      "titleMatch": true
+    },
+    "text-sparse-should-fail": {
+      "category": "text",
+      "expectFallback": true,
+      "parsed": false,
+      "recall": null,
+      "titleMatch": null
+    }
+  }
+}
