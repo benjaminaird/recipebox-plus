@@ -1110,12 +1110,12 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [search, setSearch] = useState("");
       const [cat, setCat] = useState("All");
       const [filter, setFilter] = useState("all");
-      const [showAllTags, setShowAllTags] = useState(false);
+      const [showAllCats, setShowAllCats] = useState(false);
       const tagKey = (t) => RecipeBoxTags.normalizeTagKey(t);
       const activeTag = tagFilter || "";
       const activeTagKey = tagKey(activeTag);
       // Selecting a tag clears the other filters so the tag view is clean.
-      const selectTag = (t) => { onTagFilter && onTagFilter(t); setCat("All"); setFilter("all"); setSearch(""); setShowAllTags(false); };
+      const selectTag = (t) => { onTagFilter && onTagFilter(t); setCat("All"); setFilter("all"); setSearch(""); };
       const clearTag = () => { onTagFilter && onTagFilter(""); };
 
       const today = DAYS[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
@@ -1125,7 +1125,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         const q = search.toLowerCase();
         const matchCat = cat === "All" || r.category === cat;
         const matchFilter = filter === "all" || (filter === "favorites" && r.favorite) || (filter === "recent" && Date.now() - new Date(r.createdAt).getTime() < 7 * 86400000);
-        const matchSearch = !q || r.title.toLowerCase().includes(q) || (r.tags||[]).some((t) => t.toLowerCase().includes(q)) || (r.sections||[]).some((s) => s.ingredients.some((i) => i.name.toLowerCase().includes(q)));
+        const matchSearch = !q || r.title.toLowerCase().includes(q) || (r.category||"").toLowerCase().includes(q) || (r.tags||[]).some((t) => t.toLowerCase().includes(q)) || (r.sections||[]).some((s) => s.ingredients.some((i) => i.name.toLowerCase().includes(q)));
         const matchTag = !activeTagKey || (r.tags||[]).some((t) => tagKey(t) === activeTagKey);
         return matchCat && matchFilter && matchSearch && matchTag;
       });
@@ -1134,13 +1134,16 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const categoryCounts = {};
       CATEGORIES.forEach((c) => { categoryCounts[c] = recipes.filter((r) => r.category === c).length; });
       const favoriteCount = recipes.filter((r) => r.favorite).length;
-      const browseCards = [
-        { label:"Favorites", count:favoriteCount, image:CATEGORY_IMAGES["Favorites"], onClick:() => { setCat("All"); setFilter("favorites"); } },
-        ...CATEGORIES.map((c) => ({ label:c, count:categoryCounts[c], image:CATEGORY_IMAGES[c], onClick:() => { setCat(c); setFilter("all"); } }))
-      ];
+      // Browse tiles: categories with recipes lead (by count), empty ones are
+      // tucked behind "Show all categories" so empty scaffolding never dominates.
+      const catCards = CATEGORIES.map((c) => ({ label:c, count:categoryCounts[c], image:CATEGORY_IMAGES[c], onClick:() => { setCat(c); setFilter("all"); } }));
+      const filledCats = catCards.filter((c) => c.count > 0).sort((a, b) => (b.count - a.count) || a.label.localeCompare(b.label));
+      const emptyCats = catCards.filter((c) => c.count === 0).sort((a, b) => a.label.localeCompare(b.label));
+      const favCard = favoriteCount > 0 ? [{ label:"Favorites", count:favoriteCount, image:CATEGORY_IMAGES["Favorites"], onClick:() => { setCat("All"); setFilter("favorites"); } }] : [];
+      const primaryBrowse = [...favCard, ...filledCats];
 
-      // Popular tags from the user's own recipes: dedupe by normalized key,
-      // sort by frequency then alphabetically. No global tag table.
+      // Tag frequency from the user's own recipes: dedupe by normalized key.
+      // Feeds Quick Finds (below). No global tag table.
       const tagCounts = {};
       const tagDisplay = {};
       recipes.forEach((r) => (r.tags || []).forEach((t) => {
@@ -1149,36 +1152,17 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         tagCounts[key] = (tagCounts[key] || 0) + 1;
         if (!tagDisplay[key]) tagDisplay[key] = RecipeBoxTags.displayTag(t);
       }));
-      const popularTags = Object.keys(tagCounts)
+      // Quick Finds: the user's own tags as compact, warm shortcut chips
+      // (frequency, then alphabetical). One light section replaces the old
+      // Popular Tags row + heavy Collections grid; tapping filters the library.
+      const quickFinds = Object.keys(tagCounts)
         .sort((a, b) => (tagCounts[b] - tagCounts[a]) || tagDisplay[a].localeCompare(tagDisplay[b]))
         .map((key) => ({ key, label: tagDisplay[key], count: tagCounts[key] }));
-      const TAG_ROW_LIMIT = 8;
-      const visibleTags = showAllTags ? popularTags : popularTags.slice(0, TAG_ROW_LIMIT);
 
-      // Smart collections: curated, good-looking entry points that each apply an
-      // existing tag filter. Built only from tags the user actually has (no fake
-      // shelves), sorted by how many recipes they hold, capped to a tidy row.
-      const SMART_COLLECTIONS = [
-        { tag:"Copycat", emoji:"🍔", blurb:"Restaurant-style at home" },
-        { tag:"Weeknight", emoji:"🌙", blurb:"Fast enough for a school night" },
-        { tag:"Quick", emoji:"⚡", blurb:"In and out of the kitchen" },
-        { tag:"Meal Prep", emoji:"🥡", blurb:"Make ahead, eat all week" },
-        { tag:"Comfort Food", emoji:"🍲", blurb:"Cozy and familiar" },
-        { tag:"One-Pot", emoji:"🥘", blurb:"Less to wash up" },
-        { tag:"Air Fryer", emoji:"🍟", blurb:"Crispy and fast" },
-        { tag:"Slow Cooker", emoji:"🍯", blurb:"Set it and forget it" },
-        { tag:"Sheet Pan", emoji:"🥧", blurb:"One pan, done" },
-        { tag:"Healthy", emoji:"🥗", blurb:"Lighter picks" },
-        { tag:"Budget-Friendly", emoji:"💰", blurb:"Easy on the wallet" },
-        { tag:"Holiday", emoji:"🎄", blurb:"Special occasions" },
-        { tag:"Party", emoji:"🎉", blurb:"Crowd pleasers" },
-        { tag:"Kid-Friendly", emoji:"🧒", blurb:"Picky-eater approved" },
-      ];
-      const collectionCards = SMART_COLLECTIONS
-        .map((c) => ({ ...c, key: tagKey(c.tag), count: tagCounts[tagKey(c.tag)] || 0 }))
-        .filter((c) => c.count > 0)
-        .sort((a, b) => (b.count - a.count) || a.tag.localeCompare(b.tag))
-        .slice(0, 6);
+      // Recently Saved: fast re-entry into the latest imports — only once the box
+      // is big enough that it's distinct from the full feed below (no empty feel).
+      const recentRecipes = sortedRecipes.slice(0, 5);
+      const showRecent = recipes.length >= 6;
 
       const isDashboard = cat === "All" && filter === "all" && !search.trim() && !activeTagKey;
 
@@ -1231,17 +1215,17 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 <div style={{fontSize:"0.86em",color:C.dark,fontWeight:700}}>Showing recipes tagged <span style={{color:C.green}}>{RecipeBoxTags.displayTag(activeTag)}</span></div>
                 <button onClick={clearTag} style={{...S.ghostBtn,borderRadius:999,padding:"6px 13px",fontSize:"0.78em"}}>Clear tag filter</button>
               </div>
-            ) : popularTags.length > 0 && (
+            ) : isDashboard && quickFinds.length > 0 && (
               <div style={{marginTop:16}}>
-                <div style={{fontSize:"0.72em",fontWeight:800,letterSpacing:"0.04em",textTransform:"uppercase",color:C.light,marginBottom:8}}>Popular tags</div>
-                <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
-                  {visibleTags.map((t) => <Tag key={t.key} label={t.label} onClick={() => selectTag(t.label)} />)}
-                  {popularTags.length > TAG_ROW_LIMIT && (
-                    <button onClick={() => setShowAllTags((v) => !v)}
-                      style={{background:"transparent",border:"1px dashed "+C.border,color:C.brown,borderRadius:20,padding:"7px 13px",minHeight:34,fontSize:"0.73em",fontWeight:700,cursor:"pointer",fontFamily:SANS,touchAction:"manipulation"}}>
-                      {showAllTags ? "Less" : "+" + (popularTags.length - TAG_ROW_LIMIT) + " more"}
+                <div style={{fontSize:"0.72em",fontWeight:800,letterSpacing:"0.04em",textTransform:"uppercase",color:C.light,marginBottom:9}}>Quick Finds</div>
+                <div style={{display:"flex",gap:8,overflowX:"auto",WebkitOverflowScrolling:"touch",margin:"0 -16px",padding:"0 16px 4px"}}>
+                  {quickFinds.map((t) => (
+                    <button key={t.key} onClick={() => selectTag(t.label)}
+                      style={{flexShrink:0,display:"inline-flex",alignItems:"center",gap:7,background:C.goldPale,border:"1px solid "+C.goldLight,color:C.dark,borderRadius:999,padding:"8px 14px",minHeight:36,fontSize:"0.82em",fontWeight:700,cursor:"pointer",fontFamily:SANS,whiteSpace:"nowrap",WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>
+                      {t.label}
+                      <span style={{background:C.paper,color:C.brown,borderRadius:999,minWidth:18,height:18,padding:"0 5px",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:"0.74em",fontWeight:900,border:"1px solid "+C.goldLight}}>{t.count}</span>
                     </button>
-                  )}
+                  ))}
                 </div>
               </div>
             )}
@@ -1293,30 +1277,34 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               </div>
             ) : isDashboard ? (
               <div>
-                {collectionCards.length > 0 && (
+                {showRecent && (
                   <div style={{marginTop:24}}>
-                    <h3 style={{margin:"0 0 13px",fontFamily:SERIF,fontSize:"1.25em",color:C.dark,fontWeight:400}}>Collections</h3>
-                    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(150px, 1fr))",gap:12}}>
-                      {collectionCards.map((c) => (
-                        <button key={c.key} onClick={() => selectTag(c.tag)}
-                          style={{textAlign:"left",border:"1px solid "+C.goldLight,background:`linear-gradient(135deg, ${C.goldPale}, ${C.paper})`,borderRadius:14,padding:"14px 14px",cursor:"pointer",fontFamily:SANS,display:"flex",flexDirection:"column",gap:8,minHeight:104,WebkitTapHighlightColor:"transparent",touchAction:"manipulation",boxShadow:"0 6px 16px rgba(90,56,39,0.08)"}}>
-                          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
-                            <span style={{width:36,height:36,borderRadius:10,background:C.paper,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:"1.15em",border:"1px solid "+C.goldLight,flexShrink:0}}>{c.emoji}</span>
-                            <span style={{background:C.green,color:C.white,borderRadius:999,padding:"2px 9px",fontSize:"0.72em",fontWeight:900}}>{c.count}</span>
-                          </div>
-                          <span style={{fontWeight:900,color:C.dark,fontSize:"0.92em",lineHeight:1.2}}>{RecipeBoxTags.displayTag(c.tag)}</span>
-                          <span style={{color:C.light,fontSize:"0.74em",lineHeight:1.35}}>{c.blurb}</span>
-                        </button>
-                      ))}
+                    <h3 style={{margin:"0 0 13px",fontFamily:SERIF,fontSize:"1.25em",color:C.dark,fontWeight:400}}>Recently Saved</h3>
+                    <div style={{display:"flex",gap:13,overflowX:"auto",WebkitOverflowScrolling:"touch",margin:"0 -16px",padding:"0 16px 6px"}}>
+                      {recentRecipes.map((r) => {
+                        const img = r.heroImage || CATEGORY_IMAGES[r.category] || "";
+                        return (
+                          <button key={r.id} onClick={() => onOpen(r)}
+                            style={{flexShrink:0,width:150,textAlign:"left",border:"1px solid "+C.border,background:C.paper,borderRadius:14,overflow:"hidden",cursor:"pointer",fontFamily:SANS,padding:0,boxShadow:"0 6px 16px rgba(90,56,39,0.08)",WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>
+                            <div style={{height:92,position:"relative",overflow:"hidden",background:img?"#000":`linear-gradient(135deg, ${cardColor(r.title)}, ${C.brown})`}}>
+                              {img
+                                ? <img src={img} alt="" style={{width:"100%",height:"100%",objectFit:"cover",opacity:0.85}} onError={(e)=>{e.target.style.display="none";}} />
+                                : <span style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",fontFamily:SERIF,fontSize:"2.2em",color:"rgba(255,255,255,0.25)",fontStyle:"italic"}}>{r.title?.[0]}</span>}
+                              {r.cookTime && <span style={{position:"absolute",left:7,bottom:7,background:"rgba(32,20,14,0.55)",color:C.white,borderRadius:10,padding:"2px 7px",fontSize:"0.66em",fontWeight:700,display:"inline-flex",alignItems:"center",gap:3}}><Icon name="timer" size={10} /> {r.cookTime}</span>}
+                            </div>
+                            <div style={{padding:"9px 11px 11px",fontFamily:SERIF,fontSize:"0.9em",color:C.dark,lineHeight:1.25,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",minHeight:"2.4em"}}>{r.title}</div>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
                 <div style={{marginTop:24}}>
                   <h3 style={{margin:"0 0 13px",fontFamily:SERIF,fontSize:"1.25em",color:C.dark,fontWeight:400}}>Browse your box</h3>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(150px, 1fr))",gap:12}}>
-                    {browseCards.map((card) => (
+                    {(showAllCats ? [...primaryBrowse, ...emptyCats] : primaryBrowse).map((card) => (
                       <button key={card.label} onClick={card.onClick}
-                        style={{height:116,position:"relative",overflow:"hidden",background:C.dark,border:"1px solid rgba(216,199,174,0.95)",borderRadius:14,padding:0,textAlign:"left",cursor:"pointer",boxShadow:"0 10px 24px rgba(90,56,39,0.13)",fontFamily:SANS}}>
+                        style={{height:116,position:"relative",overflow:"hidden",background:C.dark,border:"1px solid rgba(216,199,174,0.95)",borderRadius:14,padding:0,textAlign:"left",cursor:"pointer",boxShadow:"0 10px 24px rgba(90,56,39,0.13)",fontFamily:SANS,opacity:card.count===0?0.82:1}}>
                         <img src={card.image} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:0.74}} />
                         <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg, rgba(32,20,14,0.06), rgba(32,20,14,0.48))"}} />
                         <div style={{position:"absolute",left:13,right:13,bottom:12,color:C.white}}>
@@ -1329,11 +1317,17 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                       </button>
                     ))}
                   </div>
+                  {emptyCats.length > 0 && (
+                    <button onClick={() => setShowAllCats((v) => !v)}
+                      style={{marginTop:12,background:"transparent",border:"1px dashed "+C.border,color:C.brown,borderRadius:999,padding:"8px 16px",minHeight:36,fontSize:"0.78em",fontWeight:700,cursor:"pointer",fontFamily:SANS,WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>
+                      {showAllCats ? "Show fewer categories" : "Show all categories (" + emptyCats.length + " empty)"}
+                    </button>
+                  )}
                 </div>
 
                 <div style={{marginTop:30}}>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:13}}>
-                    <h3 style={{margin:0,fontFamily:SERIF,fontSize:"1.25em",color:C.dark,fontWeight:400}}>Recipe cards</h3>
+                    <h3 style={{margin:0,fontFamily:SERIF,fontSize:"1.25em",color:C.dark,fontWeight:400}}>All Recipes</h3>
                     <span style={{fontSize:"0.78em",color:C.light}}>{recipes.length} total</span>
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(195px, 1fr))",gap:14}}>
@@ -1898,7 +1892,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         try {
           await putJson("/api/recipes", { recipes: updated });
           await onCloudData(updated, mealPlan);
-          setTagMsg("Added suggested tags to " + changed + " recipe" + (changed===1?"":"s") + ". Browse them from the Library search and Popular tags.");
+          setTagMsg("Added suggested tags to " + changed + " recipe" + (changed===1?"":"s") + ". Browse them from the Library search and Quick Finds.");
         } catch (err) {
           setTagMsg(err.message || "Could not update tags. Please try again.");
         } finally { setTagBusy(false); }
