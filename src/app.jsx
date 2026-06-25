@@ -2578,12 +2578,14 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     }
 
     // Import Screen
-    function ImportScreen({ onDone, onCancel, initialMode }) {
-      const [mode, setMode] = useState(["url","youtube","social","text","media"].includes(initialMode) ? initialMode : "url");
-      const [url, setUrl] = useState("");
-      const [ytUrl, setYtUrl] = useState("");
-      const [socialUrl, setSocialUrl] = useState("");
-      const [text, setText] = useState("");
+    function ImportScreen({ onDone, onCancel, initialMode, initialValue }) {
+      const startMode = ["url","youtube","social","text","media"].includes(initialMode) ? initialMode : "url";
+      const seed = (m) => (startMode === m && initialValue ? initialValue : "");
+      const [mode, setMode] = useState(startMode);
+      const [url, setUrl] = useState(seed("url"));
+      const [ytUrl, setYtUrl] = useState(seed("youtube"));
+      const [socialUrl, setSocialUrl] = useState(seed("social"));
+      const [text, setText] = useState(seed("text"));
       const [images, setImages] = useState([]);
       const [pdfTexts, setPdfTexts] = useState([]);
       const [pdfImages, setPdfImages] = useState([]);
@@ -4351,7 +4353,26 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [current, setCurrent] = useState(null);
       const [libraryTag, setLibraryTag] = useState("");
       const [importMode, setImportMode] = useState("url");
-      function openImport(mode) { setImportMode(typeof mode === "string" ? mode : "url"); setScreen("import"); }
+      const [importPrefill, setImportPrefill] = useState("");
+      function openImport(mode) { setImportMode(typeof mode === "string" ? mode : "url"); setImportPrefill(""); setScreen("import"); }
+      // Shared-in data from the OS share sheet (Web Share Target → /?url=&text=&title=).
+      const [pendingShare, setPendingShare] = useState(() => {
+        try {
+          const p = new URLSearchParams(window.location.search);
+          const url = p.get("url") || "", text = p.get("text") || "", title = p.get("title") || "";
+          if (!url && !text && !title) return null;
+          const found = (url || text || title).match(/https?:\/\/[^\s"'<>]+/);
+          const sharedUrl = url || (found ? found[0] : "");
+          let mode = "text", value = (text || title || "").trim();
+          if (sharedUrl) {
+            if (/youtube\.com|youtu\.be/i.test(sharedUrl)) mode = "youtube";
+            else if (/tiktok\.com|instagram\.com|facebook\.com|fb\.watch/i.test(sharedUrl)) mode = "social";
+            else mode = "url";
+            value = sharedUrl;
+          }
+          return { mode, value };
+        } catch { return null; }
+      });
       const [account, setAccount] = useState(() => loadAccountSession().user || null);
       const [aiUsage, setAiUsage] = useState(() => defaultAiUsage());
       const [newFeedback, setNewFeedback] = useState(0);
@@ -4402,6 +4423,19 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       useEffect(() => {
         try { document.body.classList.toggle("in-app", !!account && !showSplash && !resetToken); } catch {}
       }, [account?.id, showSplash, resetToken]);
+      // Strip share params from the URL once so refresh/back doesn't re-trigger.
+      useEffect(() => {
+        if (pendingShare) { try { window.history.replaceState({}, "", window.location.pathname); } catch {} }
+      }, []);
+      // Once signed in, open the importer pre-filled with the shared link/text.
+      useEffect(() => {
+        if (account && !showSplash && pendingShare) {
+          setImportMode(pendingShare.mode);
+          setImportPrefill(pendingShare.value);
+          setScreen("import");
+          setPendingShare(null);
+        }
+      }, [account?.id, showSplash, pendingShare]);
       useEffect(() => {
         if (!account || resetToken || showSplash) return;
         const key = screen + ":" + tab;
@@ -4452,7 +4486,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       else if (resetToken) { body = <AuthScreen recipes={recipes} mealPlan={mealPlan} setAccount={setAccount} onCloudData={loadCloudData} initialMode="newpass" resetToken={resetToken} />; navName = "auth"; }
       else if (!account) { body = <AuthScreen recipes={recipes} mealPlan={mealPlan} setAccount={setAccount} onCloudData={loadCloudData} />; navName = "auth"; }
       else if (screen==="admin" && account?.isMasterAdmin) { body = <AppControl account={account} onBack={()=>{refreshAdminAlerts();setScreen("library");}} onFeedbackChange={setNewFeedback} />; navName = "admin"; }
-      else if (screen==="import") { body = <ImportScreen initialMode={importMode} onDone={(r)=>{ const list=Array.isArray(r)?r:[r]; list.forEach(addRecipe); if(list.length!==1) setScreen("library"); /* single import: addRecipe already opens the recipe for review */ }} onCancel={()=>setScreen("library")} />; navName = "import"; }
+      else if (screen==="import") { body = <ImportScreen initialMode={importMode} initialValue={importPrefill} onDone={(r)=>{ const list=Array.isArray(r)?r:[r]; list.forEach(addRecipe); if(list.length!==1) setScreen("library"); /* single import: addRecipe already opens the recipe for review */ }} onCancel={()=>setScreen("library")} />; navName = "import"; }
       else if (screen==="edit"&&current) { body = <EditRecipe recipe={current} onSave={(r)=>{ if(recipes.find((x)=>x.id===r.id)) updateRecipe(r); else addRecipe(r); setScreen("view"); }} onCancel={()=>setScreen("view")} />; navName = "edit"; }
       else if (screen==="view"&&current) {
         navName = "view"; showNav = true;
