@@ -100,6 +100,7 @@
         camera:<svg {...common}>{title ? <title>{title}</title> : null}<path d="M8.5 6.5 10 4.75h4l1.5 1.75H18a2 2 0 0 1 2 2v8.75a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8.5a2 2 0 0 1 2-2h2.5Z" /><circle cx="12" cy="13" r="3.25" /></svg>,
         uploadPhoto:<svg {...common}>{title ? <title>{title}</title> : null}<rect x="4" y="5" width="16" height="14" rx="2" /><path d="M8 14.5 10.5 12l2 2 2.75-3.25L20 15.5" /><circle cx="8.5" cy="9" r="1" /><path d="M12 3.5v4" /><path d="m9.75 5.75 2.25-2.25 2.25 2.25" /></svg>,
         pdf:<svg {...common}>{title ? <title>{title}</title> : null}<path d="M7 3.75h7l3 3v13.5H7a2 2 0 0 1-2-2V5.75a2 2 0 0 1 2-2Z" /><path d="M14 3.75V7h3" /><path d="M8 13h8" /><path d="M8 16h5" /><path d="M8 10h2.5" /></svg>,
+        share:<svg {...common}>{title ? <title>{title}</title> : null}<path d="M12 14.5V4" /><path d="m8.25 7 3.75-3.75L15.75 7" /><path d="M7 11H5.5A1.5 1.5 0 0 0 4 12.5v6A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-6A1.5 1.5 0 0 0 18.5 11H17" /></svg>,
         website:<svg {...common}>{title ? <title>{title}</title> : null}<circle cx="12" cy="12" r="8" /><path d="M4 12h16" /><path d="M12 4a12 12 0 0 1 0 16" /><path d="M12 4a12 12 0 0 0 0 16" /></svg>,
         youtube:<svg {...common}>{title ? <title>{title}</title> : null}<rect x="3.75" y="6.5" width="16.5" height="11" rx="3" /><path d="m10.5 9.75 4.5 2.25-4.5 2.25v-4.5Z" /></svg>,
         textPaste:<svg {...common}>{title ? <title>{title}</title> : null}<path d="M9 4.5h6l1 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-10a2 2 0 0 1 2-2h2l1-2Z" /><path d="M9 6.5h6" /><path d="M8 11h8" /><path d="M8 14h8" /><path d="M8 17h5" /></svg>,
@@ -3556,8 +3557,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         setWtbLoading(false);
       }
 
-      function exportPDF() {
-        if (!window.jspdf) { alert("PDF library loading. Try again."); return; }
+      function buildRecipeDoc() {
+        if (!window.jspdf) { alert("PDF library loading. Try again."); return null; }
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         const pageW = doc.internal.pageSize.getWidth();
@@ -3659,7 +3660,64 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           y += 24;
         }
         stampFooters();
-        doc.save(recipe.title.replace(/\s+/g,"-")+".pdf");
+        return doc;
+      }
+      function recipeFileBase() {
+        return (String(recipe.title || "recipe").replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-") || "recipe");
+      }
+      function exportPDF() {
+        const doc = buildRecipeDoc();
+        if (doc) doc.save(recipeFileBase() + ".pdf");
+      }
+      // Plain-text version of the recipe for sharing into Messages/Mail/Notes etc.
+      function buildRecipeShareText() {
+        const lines = [];
+        lines.push(recipe.title || "Recipe");
+        const meta = [
+          recipe.category,
+          Math.round((Number(recipe.servings) || 4) * scale) + " servings",
+          recipe.totalTime ? "Total " + recipe.totalTime : (recipe.cookTime ? "Cook " + recipe.cookTime : ""),
+        ].filter(Boolean);
+        if (meta.length) lines.push(meta.join(" · "));
+        if (recipe.description) lines.push("", recipe.description);
+        displaySections.forEach((sec) => {
+          lines.push("");
+          if (displaySections.length > 1 && (sec.name || "").trim()) lines.push(sec.name.toUpperCase());
+          lines.push("INGREDIENTS");
+          (sec.ingredients || []).forEach((ing) => lines.push("• " + displayIngredientText(ing, scale, metric)));
+          lines.push("", "DIRECTIONS");
+          (sec.steps || []).forEach((step, i) => lines.push((i + 1) + ". " + plainStepText(step.text, sec.ingredients, scale, metric)));
+        });
+        if (recipe.notes && String(recipe.notes).trim()) lines.push("", "NOTES", String(recipe.notes).trim());
+        lines.push("", "Shared from RecipeBox");
+        return lines.join("\n");
+      }
+      async function shareRecipe() {
+        const text = buildRecipeShareText();
+        try {
+          // Prefer sharing the branded PDF (with a short text summary) when the
+          // platform supports file sharing; otherwise share the full text.
+          if (typeof navigator !== "undefined" && navigator.canShare) {
+            const doc = buildRecipeDoc();
+            if (doc) {
+              const file = new File([doc.output("blob")], recipeFileBase() + ".pdf", { type: "application/pdf" });
+              if (navigator.canShare({ files: [file] })) {
+                await navigator.share({ title: recipe.title || "Recipe", text: (recipe.title || "Recipe") + " — shared from RecipeBox", files: [file] });
+                return;
+              }
+            }
+          }
+          if (typeof navigator !== "undefined" && navigator.share) {
+            await navigator.share({ title: recipe.title || "Recipe", text });
+            return;
+          }
+          if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(text); alert("Recipe copied to clipboard."); return; }
+          exportPDF();
+        } catch (e) {
+          if (e && e.name === "AbortError") return; // user dismissed the share sheet
+          try { if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(text); alert("Recipe copied to clipboard."); return; } } catch (e2) {}
+          exportPDF();
+        }
       }
 
       const color = cardColor(recipe.title);
@@ -3744,8 +3802,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             {/* Action bar */}
             <div style={{display:"flex",gap:7,padding:"13px 0",overflowX:"auto",borderBottom:"1px solid "+C.border}}>
               {[
-                {label:"Adjust",action:()=>setShowAI(!showAI),bg:C.cream2,color:C.brown,border:"1px solid "+C.border},
                 {label:"Cook",action:()=>setCookMode(true),bg:C.green,color:C.white,border:"none"},
+                {label:"Share",icon:"share",action:shareRecipe,bg:C.cream2,color:C.brown,border:"1px solid "+C.border},
+                {label:"Adjust",action:()=>setShowAI(!showAI),bg:C.cream2,color:C.brown,border:"1px solid "+C.border},
                 {label:"Shopping List",action:()=>setShowShop(!showShop),bg:C.goldPale,color:C.brown,border:"1px solid "+C.goldLight},
                 {label:"What to Buy",action:()=>setShowWTB(!showWTB),bg:C.terraPale,color:C.terra,border:"1px solid "+C.terra+"25"},
                 {label:"PDF",icon:"pdf",action:exportPDF,bg:C.greenPale,color:C.green,border:"1px solid "+C.green+"25"},
