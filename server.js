@@ -27,7 +27,12 @@ app.use(function(req, res, next) {
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
 });
-app.use(express.json({ limit: '50mb' }));
+// Per-route body limits: only the routes that legitimately carry images get a
+// large limit; everything else (auth, feedback, admin, etc.) is capped small so
+// a single request can't push tens of MB at any endpoint.
+app.use(['/api/ai'], express.json({ limit: '16mb' }));           // photo/PDF imports (base64 images)
+app.use(['/api/recipes', '/api/auth/signup', '/api/auth/migrate'], express.json({ limit: '40mb' })); // full library w/ hero + original-source images
+app.use(express.json({ limit: '1mb' }));                          // default for all other JSON endpoints
 app.use(express.static(path.join(__dirname, 'public')));
 
 const SESSION_COOKIE = 'rb_session';
@@ -921,6 +926,15 @@ async function logAiUsageEvent({ requestId, user, feature, model, tier, inputTok
   );
 }
 
+// Wallet circuit breaker ceiling on total estimated Anthropic spend this month.
+// ON by default ($75) so a bug/abuse can't run up an unbounded bill; override
+// with AI_MONTHLY_GLOBAL_MAX_COST_USD (set to 0 to disable).
+function resolveMonthlyCostCap() {
+  return process.env.AI_MONTHLY_GLOBAL_MAX_COST_USD !== undefined
+    ? Number(process.env.AI_MONTHLY_GLOBAL_MAX_COST_USD)
+    : 75;
+}
+
 async function checkGlobalAiControls() {
   if (String(process.env.AI_FEATURES_ENABLED || 'true').toLowerCase() === 'false') {
     return { allowed: false, error: process.env.AI_EMERGENCY_DISABLE_REASON || 'RecipeBox AI is temporarily unavailable.' };
@@ -930,7 +944,7 @@ async function checkGlobalAiControls() {
     const daily = await checkRateLimit('global', 'ai-requests', dailyMax, 'day');
     if (!daily.allowed) return { allowed: false, error: 'RecipeBox AI is busy today. Please try again tomorrow.' };
   }
-  const monthlyCostCap = Number(process.env.AI_MONTHLY_GLOBAL_MAX_COST_USD || 0);
+  const monthlyCostCap = resolveMonthlyCostCap();
   if (monthlyCostCap > 0) {
     const db = await getPool();
     const result = await db.query(
@@ -2643,8 +2657,11 @@ app.post('/api/ai', async function(req, res) {
       const perUserLimit = await checkRateLimit(`user:${user.user_id}`, `ai:${feature}`, betaCap, 'day');
       if (!perUserLimit.allowed) return res.status(429).json({ error: 'Daily AI limit reached for your account.', limit: perUserLimit.limit, resetAt: perUserLimit.resetAt });
     }
+    // Global safety controls (emergency off, daily global cap, monthly cost cap)
+    // apply to everyone except the master admin — including beta/unlimited users,
+    // so the wallet circuit breaker actually protects during the unlimited beta.
     const globalControls = await checkGlobalAiControls();
-    if (!entitlement.unlimited && !globalControls.allowed) return res.status(503).json({ error: globalControls.error });
+    if (!isMaster && !globalControls.allowed) return res.status(503).json({ error: globalControls.error });
     const billable = isBillableAiFeature(feature);
     const credits = await readCreditStatus(user);
     // Block only billable user actions when out of total credits (monthly + bonus +
@@ -2702,6 +2719,18 @@ app.post('/api/ai', async function(req, res) {
 
 app.get('*', function(req, res) { res.sendFile(path.join(__dirname, 'public', 'index.html')); });
 
+// Clean error responses (esp. oversized request bodies) instead of a default dump.
+app.use(function(err, req, res, next) {
+  if (res.headersSent) return next(err);
+  if (err && (err.type === 'entity.too.large' || err.status === 413)) {
+    return res.status(413).json({ error: 'That request is too large.' });
+  }
+  if (err && (err.type === 'entity.parse.failed' || err.status === 400)) {
+    return res.status(400).json({ error: 'Invalid request.' });
+  }
+  res.status(500).json({ error: 'Server error.' });
+});
+
 module.exports = app;
 module.exports.extractYouTubeVideoId = extractYouTubeVideoId;
 module.exports._test = {
@@ -2711,6 +2740,7 @@ module.exports._test = {
   fetchWithTimeout, readBodyCapped, isAbortError,
   isPrivateIp, assertPublicHost,
   periodKey, resetAfter,
+  resolveMonthlyCostCap,
 };
 
 if (require.main === module) {

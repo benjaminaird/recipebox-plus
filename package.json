@@ -13,6 +13,7 @@
     "entitlements-test": "node scripts/entitlements-test.js",
     "import-reliability-test": "node scripts/import-reliability-test.js",
     "auth-rate-limit-test": "node scripts/auth-rate-limit-test.js",
+    "request-guards-test": "node scripts/request-guards-test.js",
     "import-test:estimate": "node scripts/import-test/run.js --estimate",
     "import-test:run": "node scripts/import-test/run.js --run",
     "smoke-test": "node scripts/smoke-test.js",
