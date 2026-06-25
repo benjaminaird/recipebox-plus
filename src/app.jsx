@@ -1361,14 +1361,42 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     // Meal Planner
     function MealPlanner({ recipes, mealPlan, setMealPlan, onOpen }) {
       const [picking, setPicking] = useState(null);
+      const [pickFilter, setPickFilter] = useState("all");
       const [search, setSearch] = useState("");
       const [shoppingItems, setShoppingItems] = useState([]);
       const compactHeader = useWindowCompactHeader();
       const today = DAYS[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
-      const filteredRecipes = recipes.filter((r) => !search || r.title.toLowerCase().includes(search.toLowerCase()));
       const plannedRecipeIds = Object.values(mealPlan).flat();
       const plannedRecipes = plannedRecipeIds.map((id) => recipes.find((r) => r.id === id)).filter(Boolean);
       const totalCal = plannedRecipeIds.reduce((s, id) => { const r = recipes.find((x) => x.id === id); return s + (r?.macros?.calories || 0); }, 0);
+      const mealCount = plannedRecipes.length;
+      const hasMeals = mealCount > 0;
+      const uniqueRecipeCount = new Set(plannedRecipes.map((r) => r.id)).size;
+
+      // Current calendar week (Mon–Sun) for context only — the plan itself is a
+      // single recurring week keyed by day name, so there is no week navigation.
+      const weekRange = (() => {
+        const now = new Date();
+        const dow = now.getDay() === 0 ? 6 : now.getDay() - 1;
+        const mon = new Date(now); mon.setDate(now.getDate() - dow);
+        const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+        const fmt = (d) => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+        return fmt(mon) + " – " + (mon.getMonth() === sun.getMonth() ? sun.getDate() : fmt(sun));
+      })();
+
+      const quickKey = RecipeBoxTags.normalizeTagKey("Quick");
+      const pickerRecipes = recipes.filter((r) => {
+        const q = search.toLowerCase();
+        const ms = !q || r.title.toLowerCase().includes(q) || (r.tags || []).some((t) => t.toLowerCase().includes(q));
+        const mf = pickFilter === "all"
+          || (pickFilter === "favorites" && r.favorite)
+          || (pickFilter === "recent" && Date.now() - new Date(r.createdAt).getTime() < 14 * 86400000)
+          || (pickFilter === "quick" && (r.tags || []).some((t) => RecipeBoxTags.normalizeTagKey(t) === quickKey));
+        return ms && mf;
+      });
+      const openPicker = (day, f) => { setPicking({ day }); setPickFilter(f || "all"); setSearch(""); };
+      const closePicker = () => { setPicking(null); setSearch(""); setPickFilter("all"); };
+      const addRecipe = (day, id) => { setMealPlan({ ...mealPlan, [day]: [...(mealPlan[day] || []), id] }); closePicker(); };
 
       function buildMealPlanShoppingList() {
         const sections = plannedRecipes.flatMap((recipe) =>
@@ -1394,64 +1422,96 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
       return (
         <div style={{...S.page,paddingBottom:NAV_CLEARANCE}}>
-          <PageHeader title="Weekly Meal Plan" subtitle={"Plan the week from your RecipeBox · ~"+totalCal.toLocaleString()+" calories planned"} compact={compactHeader} />
+          <PageHeader title="Weekly Meal Plan" subtitle="Plan the week from your RecipeBox" compact={compactHeader} />
           <div style={{maxWidth:900,margin:"20px auto",padding:"0 16px"}}>
-            <div style={{...S.card,padding:"13px 15px",marginBottom:14}}>
-              <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-                <div style={{flex:1,minWidth:180}}>
-                  <div style={{fontFamily:SERIF,fontSize:"1.05em",color:C.dark}}>Shopping List</div>
-                  <div style={{fontSize:"0.78em",color:C.light}}>{plannedRecipes.length ? plannedRecipes.length + " planned recipe" + (plannedRecipes.length === 1 ? "" : "s") : "Add recipes to your meal plan first."}</div>
-                </div>
-                <button onClick={buildMealPlanShoppingList} disabled={!plannedRecipes.length}
-                  style={{background:plannedRecipes.length?C.green:C.cream3,color:plannedRecipes.length?C.white:C.light,border:"none",borderRadius:9,padding:"9px 12px",fontWeight:800,cursor:plannedRecipes.length?"pointer":"not-allowed",fontSize:"0.78em",fontFamily:SANS}}>
-                  Generate Shopping List
-                </button>
+            <div style={{...S.cardSoft,padding:"12px 15px",marginBottom:14,display:"flex",alignItems:"center",gap:12}}>
+              <div style={{width:40,height:40,borderRadius:11,background:C.greenPale,color:C.green,display:"inline-flex",alignItems:"center",justifyContent:"center",border:"1px solid "+C.green+"22",flexShrink:0}}><Icon name="mealPlan" size={21} /></div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:800,color:C.dark,fontSize:"0.9em"}}>This week · {weekRange}</div>
+                <div style={{fontSize:"0.78em",color:C.light,marginTop:2}}>{hasMeals ? mealCount+" meal"+(mealCount===1?"":"s")+" planned · "+uniqueRecipeCount+" recipe"+(uniqueRecipeCount===1?"":"s")+" · ~"+totalCal.toLocaleString()+" cal" : "Nothing planned yet"}</div>
               </div>
-              {shoppingItems.length > 0 && (
-                <div style={{marginTop:13,borderTop:"1px solid "+C.cream3,paddingTop:10}}>
-                  <div style={{display:"flex",gap:8,marginBottom:9,flexWrap:"wrap"}}>
-                    <button onClick={copyShoppingList} style={{...S.goldBtn,border:"1px solid "+C.goldLight,borderRadius:8,padding:"7px 10px",fontSize:"0.76em"}}>Copy</button>
-                    <button onClick={() => setShoppingItems((items) => items.map((item) => ({ ...item, checked:false })))} style={{...S.ghostBtn,borderRadius:8,padding:"7px 10px",fontSize:"0.76em"}}>Reset</button>
-                    <button onClick={() => setShoppingItems([])} style={{...S.ghostBtn,color:C.light,borderRadius:8,padding:"7px 10px",fontSize:"0.76em"}}>Clear</button>
-                  </div>
-                  <div style={{display:"grid",gap:11}}>
-                    {RecipeBoxShopping.groupShoppingItemsByCategory(shoppingItems).map((group) => (
-                      <div key={group.category}>
-                        <div style={{fontSize:"0.68em",letterSpacing:1.8,textTransform:"uppercase",fontWeight:800,color:C.brownLight,margin:"2px 0 6px"}}>{group.category}</div>
-                        <div style={{display:"grid",gap:7}}>
-                          {group.items.map((item) => (
-                            <label key={item.id} style={{display:"flex",alignItems:"center",gap:8,background:item.checked?C.greenPale:C.paper2,border:"1px solid "+(item.checked?C.green+"30":C.border),borderRadius:8,padding:"7px 9px"}}>
-                              <input type="checkbox" checked={item.checked} onChange={() => toggleShoppingItem(item.id)} />
-                              <input value={item.text} onChange={(e) => editShoppingItem(item.id, e.target.value)}
-                                style={{flex:1,minWidth:0,border:"none",background:"transparent",outline:"none",fontSize:"0.84em",color:item.checked?C.light:C.dark,textDecoration:item.checked?"line-through":"none",fontFamily:SANS}} />
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
+
+            {hasMeals ? (
+              <div style={{...S.card,padding:"13px 15px",marginBottom:14}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                  <div style={{flex:1,minWidth:180}}>
+                    <div style={{fontFamily:SERIF,fontSize:"1.05em",color:C.dark}}>Shopping List</div>
+                    <div style={{fontSize:"0.78em",color:C.light}}>{"Ingredients from "+mealCount+" planned meal"+(mealCount===1?"":"s")+(uniqueRecipeCount!==mealCount?" · "+uniqueRecipeCount+" recipes":"")}</div>
+                  </div>
+                  <button onClick={buildMealPlanShoppingList}
+                    style={{background:C.green,color:C.white,border:"none",borderRadius:9,padding:"9px 12px",fontWeight:800,cursor:"pointer",fontSize:"0.78em",fontFamily:SANS}}>
+                    Generate Shopping List
+                  </button>
+                </div>
+                {shoppingItems.length > 0 && (
+                  <div style={{marginTop:13,borderTop:"1px solid "+C.cream3,paddingTop:10}}>
+                    <div style={{display:"flex",gap:8,marginBottom:9,flexWrap:"wrap"}}>
+                      <button onClick={copyShoppingList} style={{...S.goldBtn,border:"1px solid "+C.goldLight,borderRadius:8,padding:"7px 10px",fontSize:"0.76em"}}>Copy</button>
+                      <button onClick={() => setShoppingItems((items) => items.map((item) => ({ ...item, checked:false })))} style={{...S.ghostBtn,borderRadius:8,padding:"7px 10px",fontSize:"0.76em"}}>Reset</button>
+                      <button onClick={() => setShoppingItems([])} style={{...S.ghostBtn,color:C.light,borderRadius:8,padding:"7px 10px",fontSize:"0.76em"}}>Clear</button>
+                    </div>
+                    <div style={{display:"grid",gap:11}}>
+                      {RecipeBoxShopping.groupShoppingItemsByCategory(shoppingItems).map((group) => (
+                        <div key={group.category}>
+                          <div style={{fontSize:"0.68em",letterSpacing:1.8,textTransform:"uppercase",fontWeight:800,color:C.brownLight,margin:"2px 0 6px"}}>{group.category}</div>
+                          <div style={{display:"grid",gap:7}}>
+                            {group.items.map((item) => (
+                              <label key={item.id} style={{display:"flex",alignItems:"center",gap:8,background:item.checked?C.greenPale:C.paper2,border:"1px solid "+(item.checked?C.green+"30":C.border),borderRadius:8,padding:"7px 9px"}}>
+                                <input type="checkbox" checked={item.checked} onChange={() => toggleShoppingItem(item.id)} />
+                                <input value={item.text} onChange={(e) => editShoppingItem(item.id, e.target.value)}
+                                  style={{flex:1,minWidth:0,border:"none",background:"transparent",outline:"none",fontSize:"0.84em",color:item.checked?C.light:C.dark,textDecoration:item.checked?"line-through":"none",fontFamily:SANS}} />
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{...S.card,padding:"18px",marginBottom:14,background:`linear-gradient(135deg, ${C.greenPale}, ${C.goldPale})`,border:"1px solid "+C.goldLight}}>
+                <div style={{fontFamily:SERIF,fontSize:"1.2em",color:C.dark,marginBottom:5}}>Ready to plan your week?</div>
+                <div style={{fontSize:"0.84em",color:C.mid,lineHeight:1.5,marginBottom:recipes.length?14:0}}>{recipes.length ? "Start with a few favorites or quick recipes — RecipeBox builds the shopping list for you." : "Add a few recipes to your RecipeBox first, then plan your week here."}</div>
+                {recipes.length > 0 && (
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                    <button onClick={() => openPicker(today, "all")} style={{background:C.green,color:C.white,border:"none",borderRadius:999,padding:"9px 15px",minHeight:38,fontWeight:800,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS,WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>Add from RecipeBox</button>
+                    <button onClick={() => openPicker(today, "favorites")} style={{background:C.paper,color:C.dark,border:"1px solid "+C.goldLight,borderRadius:999,padding:"9px 15px",minHeight:38,fontWeight:700,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS,WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>Favorites</button>
+                    <button onClick={() => openPicker(today, "quick")} style={{background:C.paper,color:C.dark,border:"1px solid "+C.goldLight,borderRadius:999,padding:"9px 15px",minHeight:38,fontWeight:700,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS,WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>Quick</button>
+                  </div>
+                )}
+              </div>
+            )}
             {DAYS.map((day) => {
               const meals = (mealPlan[day]||[]).map((id) => recipes.find((r) => r.id===id)).filter(Boolean);
+              const isToday = day===today;
+              const empty = meals.length===0;
               return (
-                <div key={day} style={{...S.card,padding:"15px 17px",marginBottom:12,border:day===today?"2px solid "+C.green:"1px solid "+C.border}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                <div key={day} style={{...S.card,padding:empty?"13px 15px":"15px 17px",marginBottom:12,...(isToday?{border:"1px solid "+C.green+"40",boxShadow:"inset 3px 0 0 "+C.green}:{border:"1px solid "+C.border})}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:empty?0:10}}>
                     <div style={{fontWeight:700,color:C.dark,fontSize:"0.92em"}}>{day}</div>
-                    {day===today && <Tag label="Today" bg={C.greenPale} color={C.green} />}
+                    {isToday && <Tag label="Today" bg={C.greenPale} color={C.green} />}
                     <div style={{flex:1}} />
-                    <button onClick={() => setPicking({day})} style={{background:C.greenPale,border:"1px solid "+C.green+"30",borderRadius:8,padding:"6px 12px",color:C.green,fontWeight:800,cursor:"pointer",fontSize:"0.78em",fontFamily:SANS}}>+ Add</button>
+                    {!empty && <button onClick={() => openPicker(day)} style={{background:C.greenPale,border:"1px solid "+C.green+"30",borderRadius:8,padding:"6px 12px",color:C.green,fontWeight:800,cursor:"pointer",fontSize:"0.78em",fontFamily:SANS,minHeight:34,WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>+ Add</button>}
                   </div>
-                  {meals.length===0 ? (
-                    <button onClick={() => setPicking({day})} style={{width:"100%",background:C.paper2,border:"1px dashed "+C.border,borderRadius:10,padding:"12px",color:C.light,fontSize:"0.82em",fontStyle:"italic",textAlign:"left",cursor:"pointer",fontFamily:SANS}}>
-                      No recipes planned - tap to add one
+                  {empty ? (
+                    <button onClick={() => openPicker(day)} style={{width:"100%",marginTop:10,background:"transparent",border:"none",padding:0,textAlign:"left",cursor:"pointer",fontFamily:SANS,display:"flex",alignItems:"center",gap:11,WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>
+                      <span style={{width:38,height:38,borderRadius:10,border:"1.5px dashed "+(isToday?C.green+"66":C.border),color:isToday?C.green:C.light,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:"1.3em",flexShrink:0}}>+</span>
+                      <span style={{flex:1,minWidth:0}}>
+                        <span style={{display:"block",fontWeight:700,color:isToday?C.dark:C.mid,fontSize:"0.86em"}}>{isToday ? "What's for dinner tonight?" : "Open night"}</span>
+                        <span style={{display:"block",color:C.light,fontSize:"0.76em",marginTop:1}}>{isToday ? "Tap to add a recipe" : "Tap to plan dinner"}</span>
+                      </span>
                     </button>
                   ) : (
                     <div style={{display:"grid",gap:8}}>
-                      {meals.map((r, i) => (
+                      {meals.map((r, i) => {
+                        const img = r.heroImage || CATEGORY_IMAGES[r.category] || "";
+                        return (
                         <div key={i} className="meal-plan-row">
-                          <div style={{width:34,height:34,borderRadius:8,background:cardColor(r.title),display:"flex",alignItems:"center",justifyContent:"center",fontFamily:SERIF,color:"rgba(255,255,255,0.65)",fontSize:"1.05em",flexShrink:0}}>{r.title?.[0] || "R"}</div>
+                          <div style={{width:38,height:38,borderRadius:8,overflow:"hidden",background:img?"#000":cardColor(r.title),display:"flex",alignItems:"center",justifyContent:"center",fontFamily:SERIF,color:"rgba(255,255,255,0.7)",fontSize:"1.05em",flexShrink:0}}>
+                            {img ? <img src={img} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}} onError={(e)=>{e.target.style.display="none";e.target.parentNode.textContent=r.title?.[0]||"R";}} /> : (r.title?.[0] || "R")}
+                          </div>
                           <div style={{flex:1,minWidth:0}}>
                             <div className="meal-plan-title">{r.title}</div>
                             <div className="meal-plan-meta">
@@ -1460,38 +1520,58 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                           </div>
                           <div className="meal-plan-actions">
                             <button onClick={() => onOpen(r)} style={{...S.ghostBtn,borderRadius:7,padding:"7px 11px",fontSize:"0.74em",minHeight:34}}>Open</button>
-                            <button onClick={() => { const u={...mealPlan,[day]:(mealPlan[day]||[]).filter((_,j)=>j!==i)}; setMealPlan(u); }} style={{background:"none",border:"none",color:C.light,cursor:"pointer",padding:"5px 7px",fontSize:"1.1em",lineHeight:1,minHeight:34}}>×</button>
+                            <button onClick={() => { const u={...mealPlan,[day]:(mealPlan[day]||[]).filter((_,j)=>j!==i)}; setMealPlan(u); }} aria-label="Remove" style={{background:"none",border:"none",color:C.light,cursor:"pointer",padding:"5px 7px",fontSize:"1.1em",lineHeight:1,minHeight:34}}>×</button>
                           </div>
                         </div>
-                      ))}
+                      );})}
                     </div>
                   )}
                 </div>
               );
             })}
+            {!hasMeals && (
+              <div style={{...S.cardSoft,padding:"12px 15px",marginTop:2,display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                <div style={{flex:1,minWidth:160,fontSize:"0.8em",color:C.light,lineHeight:1.45}}>Plan a few meals and RecipeBox will combine the ingredients for you.</div>
+                <button disabled style={{background:C.cream3,color:C.light,border:"none",borderRadius:9,padding:"9px 12px",fontWeight:800,cursor:"not-allowed",fontSize:"0.76em",fontFamily:SANS}}>Generate after adding meals</button>
+              </div>
+            )}
           </div>
           {picking && (
-            <div style={{position:"fixed",inset:0,background:"rgba(32,20,14,0.55)",zIndex:50,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-              <div style={{background:C.paper,border:"1px solid "+C.border,borderRadius:"20px 20px 0 0",width:"100%",maxWidth:600,maxHeight:"70vh",display:"flex",flexDirection:"column"}}>
+            <div onClick={closePicker} style={{position:"fixed",inset:0,background:"rgba(32,20,14,0.55)",zIndex:50,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+              <div onClick={(e) => e.stopPropagation()} style={{background:C.paper,border:"1px solid "+C.border,borderRadius:"20px 20px 0 0",width:"100%",maxWidth:600,maxHeight:"78vh",display:"flex",flexDirection:"column"}}>
                 <div style={{padding:"18px 20px 12px",borderBottom:"1px solid "+C.border}}>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
                     <div style={{fontFamily:SERIF,fontSize:"1.15em"}}>Add a recipe to {picking.day}</div>
-                    <button onClick={() => setPicking(null)} style={{background:"none",border:"none",fontSize:"1.4em",cursor:"pointer",color:C.light}}>×</button>
+                    <button onClick={closePicker} style={{background:"none",border:"none",fontSize:"1.4em",cursor:"pointer",color:C.light,minHeight:34,minWidth:34}}>×</button>
                   </div>
-                  <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search recipes..." style={{...S.input,width:"100%",padding:"9px 14px",fontSize:"0.9em"}} />
+                  <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search recipes, tags..." style={{...S.input,width:"100%",padding:"9px 14px",fontSize:"0.9em"}} />
+                  <div style={{display:"flex",gap:7,marginTop:10,overflowX:"auto",paddingBottom:2}}>
+                    {[["all","All"],["favorites","Favorites"],["recent","Recent"],["quick","Quick"]].map(([f,label]) => (
+                      <button key={f} onClick={() => setPickFilter(f)}
+                        style={{flexShrink:0,border:"1.5px solid "+(pickFilter===f?C.green:C.border),background:pickFilter===f?C.green:C.paper,color:pickFilter===f?C.white:C.mid,borderRadius:20,padding:"5px 13px",fontSize:"0.76em",fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",fontFamily:SANS,minHeight:32,WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>{label}</button>
+                    ))}
+                  </div>
                 </div>
-                <div style={{flex:1,overflowY:"auto",padding:"8px 12px"}}>
-                  {filteredRecipes.map((r) => (
-                    <div key={r.id} onClick={() => { const u={...mealPlan,[picking.day]:[...(mealPlan[picking.day]||[]),r.id]}; setMealPlan(u); setPicking(null); setSearch(""); }}
-                      style={{display:"flex",alignItems:"center",gap:11,padding:"9px 8px",borderRadius:8,cursor:"pointer",borderBottom:"1px solid "+C.cream2}}>
-                      <div style={{width:34,height:34,borderRadius:8,background:cardColor(r.title),display:"flex",alignItems:"center",justifyContent:"center",fontFamily:SERIF,color:"rgba(255,255,255,0.45)",fontSize:"1.1em"}}>{r.title?.[0]}</div>
-                      <div style={{flex:1}}>
-                        <div style={{fontWeight:500,fontSize:"0.88em",color:C.dark}}>{r.title}</div>
-                        <div style={{fontSize:"0.73em",color:C.light}}>{r.category}</div>
-                      </div>
-                      <span style={{color:C.green,fontSize:"1.2em"}}>+</span>
+                <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",padding:"8px 12px",paddingBottom:"calc(env(safe-area-inset-bottom, 0px) + 14px)"}}>
+                  {pickerRecipes.length === 0 ? (
+                    <div style={{textAlign:"center",color:C.light,fontSize:"0.85em",padding:"34px 16px",lineHeight:1.5}}>
+                      {recipes.length === 0 ? "Your RecipeBox is empty — add a recipe first." : "No recipes match. Try a different filter or search."}
                     </div>
-                  ))}
+                  ) : pickerRecipes.map((r) => {
+                    const img = r.heroImage || CATEGORY_IMAGES[r.category] || "";
+                    return (
+                    <div key={r.id} onClick={() => addRecipe(picking.day, r.id)}
+                      style={{display:"flex",alignItems:"center",gap:11,padding:"9px 8px",borderRadius:8,cursor:"pointer",borderBottom:"1px solid "+C.cream2,WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>
+                      <div style={{width:38,height:38,borderRadius:8,overflow:"hidden",background:img?"#000":cardColor(r.title),display:"flex",alignItems:"center",justifyContent:"center",fontFamily:SERIF,color:"rgba(255,255,255,0.55)",fontSize:"1.1em",flexShrink:0}}>
+                        {img ? <img src={img} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}} onError={(e)=>{e.target.style.display="none";e.target.parentNode.textContent=r.title?.[0]||"R";}} /> : (r.title?.[0] || "R")}
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontWeight:600,fontSize:"0.88em",color:C.dark,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.title}</div>
+                        <div style={{fontSize:"0.73em",color:C.light}}>{[r.category, r.cookTime].filter(Boolean).join(" · ")}</div>
+                      </div>
+                      <span style={{color:C.green,fontSize:"1.2em",flexShrink:0}}>+</span>
+                    </div>
+                  );})}
                 </div>
               </div>
             </div>

@@ -10,6 +10,7 @@
     "import-fidelity-test": "node scripts/import-fidelity-test.js",
     "recipe-tags-test": "node scripts/recipe-tags-test.js",
     "library-view-test": "node scripts/library-view-test.js",
+    "meal-plan-test": "node scripts/meal-plan-test.js",
     "ai-credits-test": "node scripts/ai-credits-test.js",
     "entitlements-test": "node scripts/entitlements-test.js",
     "import-reliability-test": "node scripts/import-reliability-test.js",

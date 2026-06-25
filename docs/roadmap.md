@@ -132,6 +132,17 @@ Users should eventually be able to refer a friend and receive a one-time AI cred
 - Later abuse checks may include device, IP, and payment-method review.
 - Possible future tables: `referrals`, `ai_credit_ledger`, `referral_events`.
 
+## Meal Planner
+
+The Weekly Meal Plan is a single recurring week keyed by day name (`mealPlan = { Monday:[recipeId,…] }`), persisted to `/api/mealplan`.
+
+- **Mobile polish pass — Done.** Calmer, recipe-first layout: a compact week-summary strip ("This week · <date range> · N meals · ~cal"), a dynamic Shopping List card (prominent "Ingredients from N planned meals" when meals exist; a muted "Generate after adding meals" hint when empty), a "Ready to plan your week?" prompt with Add-from-RecipeBox / Favorites / Quick shortcuts on an empty week, single-tap empty day cards ("Open night · Tap to plan dinner"; "What's for dinner tonight?" for today) instead of a dashed box + competing +Add, a softened Today highlight (inset green accent + pill instead of a thick border), planned rows with recipe thumbnails, and an upgraded add-picker (Favorites/Recent/Quick filters, thumbnails, safe-area padding, tap-scrim to dismiss). No data-model change.
+- **Week navigation (future):** the plan is currently one recurring week with no dates. A real calendar with Previous / Today / Next would require date-keyed plan storage + migration — deferred.
+- **Non-recipe entries (future):** real planning isn't always a recipe. Leftovers, eating out, freezer meals, and free-text notes need the day arrays to hold typed entries (`{type:'note'|'leftovers'|'eatingOut'|'recipe', …}`) instead of bare recipe ids, plus a migration — deferred to avoid a risky schema change.
+- **Planned-row actions (future):** Move to… / Duplicate to… / Use leftovers tomorrow / Swap. (Open + Remove exist today; avoid drag-and-drop on mobile — prefer a simple action menu.)
+- **"Help me plan" (AI, future):** an opt-in flow that proposes a full week for the user to **review before saving** (never auto-fill). Options: quick meals, family-friendly, pantry-first, budget-friendly, high-protein, avoid repeats. Consumes AI credits; always shows the plan for approval first.
+- **Household / family (future):** assign who's cooking, "added by" labels, household notes, shared meal plans + shared shopping list, family preferences / kid-friendly planning. Pairs with the Family Plan subscription below.
+
 ## Future Native Apps: iOS / Android Widgets
 
 Widgets should help users make useful food decisions without opening the app.
