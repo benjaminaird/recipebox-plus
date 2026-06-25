@@ -633,11 +633,12 @@ function downloadJson(filename, data) {
 }
 
     // AI
-    async function callAI(messages, system, maxTokens, temperature) {
+    async function callAI(messages, system, maxTokens, temperature, _retried) {
       if (typeof navigator !== "undefined" && navigator.onLine === false) {
         throw new Error("You're offline. Reconnect to use RecipeBox AI — your saved recipes are still available.");
       }
-      const body = { model: "claude-sonnet-4-5-20250929", max_tokens: maxTokens || 2000, messages };
+      const requested = maxTokens || 2000;
+      const body = { model: "claude-sonnet-4-5-20250929", max_tokens: requested, messages };
       if (system) body.system = system;
       if (typeof temperature === "number") body.temperature = temperature;
       const res = await apiFetch("/api/ai", {
@@ -648,6 +649,14 @@ function downloadJson(filename, data) {
       const data = await res.json();
       if (data.aiUsage) window.dispatchEvent(new CustomEvent("recipebox-ai-usage", { detail:data.aiUsage }));
       if (data.error) throw new Error(typeof data.error === "string" ? data.error : JSON.stringify(data.error));
+      // If the model ran out of output room mid-answer, the JSON is truncated and
+      // unparseable. A JSON-repair pass can't recover the lost content — it needs
+      // more room — so retry once with a much higher ceiling. (Anthropic bills for
+      // generated tokens, not the ceiling, so this only costs more when it's used.)
+      if (data.stop_reason === "max_tokens" && !_retried) {
+        const bumped = Math.min(Math.max(requested * 2, 4096), 8000);
+        if (bumped > requested) return callAI(messages, system, bumped, temperature, true);
+      }
       return data.content.map((b) => b.text || "").join("");
     }
 
@@ -937,7 +946,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           content:
             "Repair this malformed RecipeBox recipe JSON from " + (contextLabel || "AI") + ". Return only valid JSON, with no markdown or explanation.\n\n" +
             raw
-        }], REPAIR_JSON_PROMPT, 3500, 0);
+        }], REPAIR_JSON_PROMPT, 6000, 0);
         return parseAIJson(repaired);
       }
     }
@@ -2747,7 +2756,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             content:
               "Repair this malformed RecipeBox recipe JSON. Return only valid JSON, with no markdown or explanation.\n\n" +
               raw
-          }], REPAIR_JSON_PROMPT, 3500, 0);
+          }], REPAIR_JSON_PROMPT, 6000, 0);
           try {
             return parseAIJson(repaired);
           } catch {
@@ -2789,7 +2798,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               "Visible page text:\n" + (pageData.text || "");
             const urlMessages = [{ role:"user", content:prompt }];
             const raw = await callAI(urlMessages, EXTRACT_PROMPT, 2500, 0);
-            extractCtx = { messages: urlMessages, maxTokens: 2500, heroFallback: pageData.image || "" };
+            extractCtx = { messages: urlMessages, maxTokens: 4096, heroFallback: pageData.image || "" };
             parsed = await parseImportedRecipe(raw);
             if (parsed.error === "unknown_recipe") throw new Error("Recipe not found. Please use Paste Text instead.");
             if (!parsed.heroImage && pageData.image) parsed.heroImage = pageData.image;
@@ -2874,7 +2883,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               "Warnings: " + (socialData.warnings || []).join("; ");
             const socialMessages = [{ role:"user", content:prompt }];
             const raw = await callAI(socialMessages, EXTRACT_PROMPT, 2500, 0);
-            extractCtx = { messages: socialMessages, maxTokens: 2500, heroFallback: socialData.image || socialData.thumbnail || "" };
+            extractCtx = { messages: socialMessages, maxTokens: 4096, heroFallback: socialData.image || socialData.thumbnail || "" };
             parsed = await parseImportedRecipe(raw);
             if (parsed.error === "not_enough_recipe_text" || parsed.error === "unknown_recipe") {
               throw new Error(parsed.message || "RecipeBox could not access the full caption or recipe text from this social post. Try Paste Text with the caption or upload screenshots.");
@@ -2886,7 +2895,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             setLoadingMsg("Extracting recipe...");
             const textMessages = [{ role:"user", content:"Extract the recipe from this text. Put source-grounded tips or extra cooking guidance in notes only when present in the text; do not invent notes. Always set realistic servings (use the stated yield, otherwise estimate from the quantities — never default to 4) and always fill per-serving macros (use stated nutrition if present, otherwise estimate from the ingredients — never leave them 0).\n\n" + text }];
             const raw = await callAI(textMessages, EXTRACT_PROMPT, 2000, 0);
-            extractCtx = { messages: textMessages, maxTokens: 2000, heroFallback: "" };
+            extractCtx = { messages: textMessages, maxTokens: 4096, heroFallback: "" };
             parsed = await parseImportedRecipe(raw);
 
           } else if (mode === "media" && pdfTexts.length > 0) {
@@ -2900,7 +2909,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   pdfContent.slice(0, 24000)
               }];
               const rawPdf = await callAI(pdfMessages, EXTRACT_PROMPT, 3500, 0);
-              extractCtx = { messages: pdfMessages, maxTokens: 3500, heroFallback: "" };
+              extractCtx = { messages: pdfMessages, maxTokens: 6000, heroFallback: "" };
               parsed = await parseImportedRecipe(rawPdf);
             } else if (pdfImages.length > 0) {
               setLoadingMsg("Reading scanned PDF pages...");
@@ -2911,7 +2920,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               pdfArr.push({ type: "text", text: "Extract the recipe from these rendered PDF page image(s). The PDF may be sideways, scanned, illustrated, handwritten, or a photo of a recipe card. Some images may be rotated duplicates of the same page; use the clearest orientation and do not duplicate recipe content. Carefully transcribe the visible recipe text first, preserve uncertain quantities as written, and do not invent missing details or notes. Include all visible ingredient-list items and visible add-ins mentioned in directions, such as garnishes, green onions, sauces, peppers, cheese, or variations, unless clearly optional; optional items should be marked optional. Do not include equipment/tools as ingredients. If the PDF page image(s) clearly show multiple distinct recipe cards or standalone recipes, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]} instead of merging them. If the pages are parts of the same recipe, extract one recipe. Put helpful notes only when they are visible in the PDF image text. Always set realistic servings (use the stated yield, otherwise estimate from the quantities — never default to 4) and always fill per-serving macros (use visible nutrition if present, otherwise estimate from the ingredients — never leave them 0)." });
               const pdfImgMessages = [{ role:"user", content: pdfArr }];
               const rawPdfImage = await callAI(pdfImgMessages, EXTRACT_PROMPT, 3500, 0);
-              extractCtx = { messages: pdfImgMessages, maxTokens: 3500, heroFallback: "" };
+              extractCtx = { messages: pdfImgMessages, maxTokens: 6000, heroFallback: "" };
               parsed = await parseImportedRecipe(rawPdfImage);
             } else {
               throw new Error("Could not read PDF text or render PDF pages. Try a clearer PDF/photo.");
@@ -2925,7 +2934,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             imgArr.push({ type: "text", text: "Extract the recipe from these " + images.length + " image(s). These may be handwritten recipe cards or cookbook pages. Carefully transcribe the visible text first, preserve uncertain quantities as written, and do not invent missing details or notes. Include all visible ingredient-list items and visible add-ins mentioned in directions, such as garnishes, green onions, sauces, peppers, cheese, or variations, unless clearly optional; optional items should be marked optional. Do not include equipment/tools as ingredients. If the image(s) clearly show multiple distinct recipe cards or standalone recipes, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]} instead of merging them. If the images are front/back or separate pages of the same recipe, extract one recipe. Put helpful notes only when they are visible in the image text. Always set realistic servings (use the stated yield, otherwise estimate from the quantities — never default to 4) and always fill per-serving macros (use visible nutrition if present, otherwise estimate from the ingredients — never leave them 0)." });
             const imgMessages = [{ role:"user", content: imgArr }];
             const raw = await callAI(imgMessages, EXTRACT_PROMPT, 3000, 0);
-            extractCtx = { messages: imgMessages, maxTokens: 3000, heroFallback: "" };
+            extractCtx = { messages: imgMessages, maxTokens: 6000, heroFallback: "" };
             parsed = await parseImportedRecipe(raw);
           }
 

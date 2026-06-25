@@ -28,9 +28,13 @@ const os = require('os');
 const { execFileSync } = require('child_process');
 
 const ROOT = __dirname;
-const MODEL = 'claude-sonnet-4-5-20250929';
-const PRICE_IN = 3 / 1e6;   // $3 / Mtok input  (Claude Sonnet 4.5)
-const PRICE_OUT = 15 / 1e6; // $15 / Mtok output
+// Model + pricing are overridable so we can A/B Haiku vs Sonnet vs Opus on the
+// SAME pipeline. Pricing is per-Mtok USD and only affects cost reporting / the
+// budget guard; actual spend is whatever Anthropic bills for the usage returned.
+const MODEL = (process.argv.find(a => a.startsWith('--model=')) || '').split('=')[1] || 'claude-sonnet-4-5-20250929';
+const PRICE_IN = (Number((process.argv.find(a => a.startsWith('--price-in=')) || '').split('=')[1]) || 3) / 1e6;
+const PRICE_OUT = (Number((process.argv.find(a => a.startsWith('--price-out=')) || '').split('=')[1]) || 15) / 1e6;
+const OUT_TAG = (process.argv.find(a => a.startsWith('--out=')) || '').split('=')[1] || '';
 const SERVER = process.env.RB_SERVER || 'http://localhost:3000';
 const BUNDLED_BIN = '/Users/benjaminaird/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin';
 function readEnvKey(name) {
@@ -218,8 +222,13 @@ async function pdfToText(absFile) {
 }
 
 // ── Anthropic call (identical body to what /api/ai forwards) ──────────────────
-async function callClaude(messages, system, maxTokens) {
-  const body = { model: MODEL, max_tokens: maxTokens || 2000, messages, system };
+async function callClaude(messages, system, maxTokens, _retried, _accCost) {
+  const requested = maxTokens || 2000;
+  // temperature 0 mirrors the app's extraction calls (deterministic, higher fidelity).
+  // Opus 4.x deprecates the temperature param (returns 400), so omit it there —
+  // itself a reason Opus can't drop into the temp-0 extraction path unchanged.
+  const body = { model: MODEL, max_tokens: requested, messages, system };
+  if (!/opus-4/.test(MODEL)) body.temperature = 0;
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': KEY, 'anthropic-version': '2023-06-01' },
@@ -229,7 +238,12 @@ async function callClaude(messages, system, maxTokens) {
   if (!r.ok) throw new Error('Anthropic ' + r.status + ': ' + (d.error?.message || JSON.stringify(d)));
   const text = (d.content || []).map(b => b.text || '').join('');
   const usage = d.usage || {};
-  const cost = (usage.input_tokens || 0) * PRICE_IN + (usage.output_tokens || 0) * PRICE_OUT;
+  const cost = (_accCost || 0) + (usage.input_tokens || 0) * PRICE_IN + (usage.output_tokens || 0) * PRICE_OUT;
+  // Mirror the app: if output was truncated mid-JSON, retry once with more room.
+  if (d.stop_reason === 'max_tokens' && !_retried) {
+    const bumped = Math.min(Math.max(requested * 2, 4096), 8000);
+    if (bumped > requested) return callClaude(messages, system, bumped, true, cost);
+  }
   return { text, usage, cost };
 }
 
@@ -374,7 +388,7 @@ async function prepare(test) {
         "Potentially useful source links:\n" + JSON.stringify(data.helpfulLinks || []) + "\n\n" +
         "Visible page text:\n" + (data.text || "");
       out.messages = [{ role: 'user', content: prompt }];
-      out.maxTokens = 2500;
+      out.maxTokens = 4096;
       out.sourceView = `<a href="${test.url}">${test.url}</a><div class="meta">page title: ${esc(data.title || '')}</div>`;
     } else if (test.category === 'youtube') {
       const { ok, data } = await getJson(`${SERVER}/api/transcript?url=${encodeURIComponent(test.url)}`);
@@ -401,7 +415,7 @@ async function prepare(test) {
         "Extract a recipe ONLY from the public social source data below. Do not use memory. Do not infer a recipe from the title, thumbnail, author, or platform. Do not invent missing ingredients, quantities, steps, times, servings, or notes. Put helpful source-grounded tips in notes only when they appear in the caption or page text. If the source data does not include enough recipe details, return {\"error\":\"not_enough_recipe_text\"}.\n\n" +
         "Platform: " + (data.platform || "") + "\nSource URL: " + (data.finalUrl || data.url || test.url) + "\nTitle: " + (data.title || "") + "\nAuthor: " + (data.author || "") + "\nCaption/description:\n" + (data.caption || data.description || "") + "\n\nPublic page text:\n" + (data.text || "");
       out.messages = [{ role: 'user', content: prompt }];
-      out.maxTokens = 2500;
+      out.maxTokens = 4096;
       out.groundTruth = { title: data.title || '', ingredients: [], steps: [], raw: availableText };
       out.sourceView = `<a href="${test.url}">${test.url}</a><div class="meta">platform: ${esc(data.platform || '?')}</div>`;
     } else if (test.category === 'pdf') {
@@ -409,7 +423,7 @@ async function prepare(test) {
       const text = await pdfToText(abs);
       if (text.trim()) {
         out.messages = [{ role: 'user', content: "Extract the recipe ONLY from the PDF text below. Do not invent missing details or notes. Put helpful source-grounded tips in notes only when present in the PDF text. Return valid JSON only.\n\n" + text }];
-        out.maxTokens = 3500;
+        out.maxTokens = 6000;
         out.groundTruth = loadTruth(test) || { title: '', ingredients: [], steps: [], raw: text };
         out.sourceView = `<div class="meta">file: ${esc(test.file)}</div><pre class="src">${esc(text.slice(0, 1800))}${text.length > 1800 ? '\n…(truncated)' : ''}</pre>`;
       } else {
@@ -421,7 +435,7 @@ async function prepare(test) {
         }));
         content.push({ type: 'text', text: 'Extract the recipe from these rendered PDF page image(s). The PDF may be sideways, scanned, illustrated, handwritten, or a photo of a recipe card. Some images may be rotated duplicates of the same page; use the clearest orientation and do not duplicate recipe content. Carefully transcribe the visible recipe text first, preserve uncertain quantities as written, and do not invent missing details or notes. Include all visible ingredient-list items and visible add-ins mentioned in directions, such as garnishes, green onions, sauces, peppers, cheese, or variations, unless clearly optional; optional items should be marked optional. Do not include equipment/tools as ingredients. If the PDF page image(s) clearly show multiple distinct recipe cards or standalone recipes, return {"error":"multiple_recipes_detected","recipes":["name 1","name 2"]} instead of merging them. If the pages are parts of the same recipe, extract one recipe. Put helpful notes only when they are visible in the PDF image text.' });
         out.messages = [{ role: 'user', content }];
-        out.maxTokens = 3500;
+        out.maxTokens = 6000;
         out.images = pages.length;
         out.groundTruth = loadTruth(test);
         out.sourceView = `<div class="meta">file: ${esc(test.file)} · rendered ${pages.length} page image(s)</div>` + pages.map((page, idx) => `<img class="srcimg" src="data:${page.mediaType};base64,${page.bytes.toString('base64')}" alt="pdf page ${idx + 1}"/>`).join('');
@@ -441,7 +455,7 @@ async function prepare(test) {
       }
       content.push({ type: 'text', text: "Extract the recipe from these " + files.length + " image(s). These may be handwritten recipe cards or cookbook pages. Carefully transcribe the visible text first, preserve uncertain quantities as written, and do not invent missing details or notes. Include all visible ingredient-list items and visible add-ins mentioned in directions, such as garnishes, green onions, sauces, peppers, cheese, or variations, unless clearly optional; optional items should be marked optional. Do not include equipment/tools as ingredients. If the image(s) clearly show multiple distinct recipe cards or standalone recipes, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]} instead of merging them. If the images are front/back or separate pages of the same recipe, extract one recipe. Put helpful notes only when they are visible in the image text." });
       out.messages = [{ role: 'user', content }];
-      out.maxTokens = 3000;
+      out.maxTokens = 6000;
       out.images = files.length;
       out.groundTruth = loadTruth(test);
       out.sourceView = previews.map((img, idx) => `<div class="meta">file ${idx + 1}: ${esc(img.file)}${img.converted ? ' · HEIC converted to JPEG' : ''}</div><img class="srcimg" src="data:${img.mediaType};base64,${img.b64}" alt="source"/>`).join('');
@@ -637,8 +651,8 @@ function renderReport(results, totals) {
   const html = renderReport(results, totals);
   const outHtml = path.join(ROOT, 'out', 'report.html');
   fs.writeFileSync(outHtml, html);
-  fs.writeFileSync(path.join(ROOT, 'out', 'results.json'), JSON.stringify(results.map(r => ({
-    id: r.test.id, category: r.test.category, ok: r.ok, status: r.status, cost: r.cost,
+  fs.writeFileSync(path.join(ROOT, 'out', OUT_TAG ? `results.${OUT_TAG}.json` : 'results.json'), JSON.stringify(results.map(r => ({
+    model: MODEL, id: r.test.id, category: r.test.category, ok: r.ok, status: r.status, cost: r.cost,
     score: r.scoreObj,
     expectation: r.expectation,
     importedTitle: r.parsed?.title,
