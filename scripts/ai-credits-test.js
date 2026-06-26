@@ -1,6 +1,6 @@
 const assert = require("assert");
 const app = require("../server");
-const { detectAiFeature, isBillableAiFeature } = app._test;
+const { detectAiFeature, isBillableAiFeature, aiAssistCost } = app._test;
 
 // The real extraction prompt the import flow sends.
 const importBody = {
@@ -30,5 +30,20 @@ assert.strictEqual(isBillableAiFeature("pantry"), true, "pantry is billable");
 // Unknown calls fall back to general-ai and remain billable (conservative).
 assert.strictEqual(detectAiFeature({ messages: [{ role: "user", content: "hello" }] }), "general-ai");
 assert.strictEqual(isBillableAiFeature("general-ai"), true);
+
+// New multi-cost features are classified before the broad 'adjust' pattern.
+const mealPlanBody = { system: "You are a meal planner.", messages: [{ role: "user", content: "Generate a meal plan for the week. Request: balanced dinners." }] };
+assert.strictEqual(detectAiFeature(mealPlanBody), "meal-plan", "weekly meal plan classified ahead of adjust");
+const nutritionBody = { messages: [{ role: "user", content: "Estimate the nutrition / macros for this recipe." }] };
+assert.strictEqual(detectAiFeature(nutritionBody), "nutrition", "nutrition classified");
+const shopBody = { messages: [{ role: "user", content: "Optimize this shopping list and consolidate duplicates." }] };
+assert.strictEqual(detectAiFeature(shopBody), "shopping-optimize", "shopping optimize classified");
+
+// Cost map: the billable cost of each classified action.
+assert.strictEqual(aiAssistCost(detectAiFeature(importBody)), 1, "import = 1 assist");
+assert.strictEqual(aiAssistCost(detectAiFeature(adjustBody)), 2, "adjust = 2 assists");
+assert.strictEqual(aiAssistCost(detectAiFeature(pantryBody)), 2, "pantry = 2 assists");
+assert.strictEqual(aiAssistCost(detectAiFeature(mealPlanBody)), 4, "meal plan = 4 assists");
+assert.strictEqual(aiAssistCost(detectAiFeature(repairBody)), 0, "repair = 0 assists (never billed)");
 
 console.log("ai-credits-test: ok");

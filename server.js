@@ -92,41 +92,60 @@ const DEFAULT_PLAN = process.env.DEFAULT_ACCOUNT_PLAN || 'beta';
 // 'beta' = pre-launch (beta tier has unlimited AI). 'launched' = enforce tier caps.
 const LAUNCH_PHASE = (process.env.LAUNCH_PHASE || 'beta').toLowerCase();
 const BETA_UNLIMITED = LAUNCH_PHASE === 'beta';
-// Monthly included AI credits per tier are the source of truth here, server-side.
-// 1 AI action = 1 credit. Beta is unlimited only while LAUNCH_PHASE === 'beta'.
+// Monthly included AI Assists per tier are the source of truth here, server-side.
+// Cost per action varies (see AI_ACTION_COSTS). Beta is unlimited only while
+// LAUNCH_PHASE === 'beta'. aiMonthlyLimit is the recurring monthly assist
+// allowance; Free's one-time welcome grant (FREE_WELCOME_ASSISTS) is separate.
 const PLAN_ENTITLEMENTS = {
-  free:    { aiMonthlyLimit: 10,  aiDailyLimit: 8,   importDailyLimit: 6,   adjustDailyLimit: 8,   pantryDailyLimit: 12 },
-  plus:    { aiMonthlyLimit: 100, aiDailyLimit: 60,  importDailyLimit: 60,  adjustDailyLimit: 60,  pantryDailyLimit: 80 },
-  family:  { aiMonthlyLimit: 250, aiDailyLimit: 120, importDailyLimit: 120, adjustDailyLimit: 120, pantryDailyLimit: 150 },
-  founder: { aiMonthlyLimit: 150, aiDailyLimit: 80,  importDailyLimit: 80,  adjustDailyLimit: 80,  pantryDailyLimit: 100 },
+  free:    { aiMonthlyLimit: 5,   aiDailyLimit: 10,  importDailyLimit: 8,    adjustDailyLimit: 8,   pantryDailyLimit: 10 },
+  plus:    { aiMonthlyLimit: 250, aiDailyLimit: 80,  importDailyLimit: 80,   adjustDailyLimit: 80,  pantryDailyLimit: 100 },
+  family:  { aiMonthlyLimit: 600, aiDailyLimit: 150, importDailyLimit: 150,  adjustDailyLimit: 150, pantryDailyLimit: 200 },
+  founder: { aiMonthlyLimit: 300, aiDailyLimit: 100, importDailyLimit: 100,  adjustDailyLimit: 100, pantryDailyLimit: 120 },
   beta:    { aiMonthlyLimit: BETA_UNLIMITED ? null : 50, aiDailyLimit: 60, importDailyLimit: 35, adjustDailyLimit: 40, pantryDailyLimit: 50, unlimited: BETA_UNLIMITED },
   master_admin: { aiMonthlyLimit: null, aiDailyLimit: null, importDailyLimit: null, adjustDailyLimit: null, pantryDailyLimit: null, unlimited: true },
 };
+// One-time welcome AI Assists granted to a new Free account on signup (bonus
+// bucket, never expires). After this is used, Free recurs at 5 assists/month.
+const FREE_WELCOME_ASSISTS = Number(process.env.FREE_WELCOME_ASSISTS || 15);
 // Referral bonus foundation. Triggered (later) only on a referred user's paid
-// conversion; both sides get bonusCredits, capped per referrer per month.
-const REFERRAL_CONFIG = { bonusCredits: 25, monthlyCap: 10, triggersOn: 'paid_conversion' };
+// conversion; both sides get bonusAssists, capped per referrer per month.
+const REFERRAL_CONFIG = { bonusAssists: 25, monthlyCap: 10, triggersOn: 'paid_conversion' };
 // Family household sharing is config-only for now (enforcement is a future milestone).
 const FAMILY_MEMBER_CAP = 4;
+// Burst protection: even a high-balance user can't script the AI endpoints.
+const AI_BURST_MAX = Number(process.env.AI_BURST_MAX || 20);        // actions / 10 min
+const AI_BURST_SCOPE = 'tenminutes';
 // Single source of truth for tiers/pricing/packs/flags. Safe to expose a
 // read-only copy to clients for display; it is NEVER trusted for enforcement.
 const ENTITLEMENT_CONFIG = {
   launchPhase: LAUNCH_PHASE,
   adsEnabled: String(process.env.ADS_ENABLED || 'false').toLowerCase() === 'true', // ads-ready flag; no network at launch
-  creditRules: { unit: '1 action = 1 credit', monthlyRollover: false, purchasedExpire: false, bonusExpire: false, spendOrder: ['monthly', 'bonus', 'purchased'] },
+  assistRules: { unit: 'AI Assists; cost varies by action', monthlyRollover: false, purchasedExpire: false, bonusExpire: false, spendOrder: ['monthly', 'bonus', 'purchased'] },
   familyMemberCap: FAMILY_MEMBER_CAP,
   referral: REFERRAL_CONFIG,
+  freeWelcomeAssists: FREE_WELCOME_ASSISTS,
   tiers: {
-    free:    { name: 'Free',    monthlyCredits: 10,  manualRecipes: 'unlimited', price: null, features: ['Unlimited manual recipes', 'Library, search, categories, tags', 'Basic shopping list', 'Limited AI credits'] },
-    plus:    { name: 'Plus',    monthlyCredits: 100, price: { monthly: 4.99, yearly: 39.99 }, features: ['Everything in Free', 'AI imports within credits', 'AI adjust & chat editor', 'Pantry Chef', 'Meal planning', 'PDF exports'] },
-    family:  { name: 'Family',  monthlyCredits: 250, shared: true, memberCap: FAMILY_MEMBER_CAP, price: { monthly: 7.99, yearly: 69.99 }, features: ['Everything in Plus', 'Up to 4 household members', 'Shared library, meal plan, shopping list', '250 shared monthly credits'] },
-    founder: { name: 'Founder', monthlyCredits: 150, price: { yearly: 29.99, note: 'Forever, beta converts only' }, features: ['Founder pricing locked forever', '150 monthly AI credits', 'Beta perks carried forward'] },
-    beta:    { name: 'Beta',    monthlyCredits: BETA_UNLIMITED ? 'unlimited' : 50, unlimitedDuringBeta: true, features: ['Unlimited AI during beta', 'Founder conversion offer after launch'] },
+    free:    { name: 'Free',    monthlyAssists: 5,   welcomeAssists: FREE_WELCOME_ASSISTS, manualRecipes: 'unlimited', price: null,
+               tagline: 'Start your RecipeBox with unlimited manual recipes, search, tags, favorites, shopping list basics, and 15 welcome AI Assists. After that, get 5 AI Assists each month.',
+               features: ['Unlimited manual recipes', 'Library, search, categories, tags, favorites', 'Basic shopping list & pantry tracking', '15 welcome AI Assists, then 5 each month'] },
+    plus:    { name: 'Plus',    monthlyAssists: 250, price: { monthly: 4.99, yearly: 39.99 },
+               tagline: 'For home cooks who want AI help all month. Includes 250 AI Assists/month for imports, recipe edits, Pantry Chef, meal planning, and more.',
+               features: ['Everything in Free', '250 AI Assists every month', 'AI imports (web, photo, PDF, text, video)', 'AI adjust & chat editor', 'Pantry Chef', 'Meal planning', 'PDF exports', 'Nutrition tools'] },
+    family:  { name: 'Family',  monthlyAssists: 600, shared: true, memberCap: FAMILY_MEMBER_CAP, price: { monthly: 7.99, yearly: 69.99 },
+               tagline: 'For households who cook together. Includes up to 4 members, shared recipe planning tools, and 600 shared AI Assists/month.',
+               features: ['Everything in Plus', 'Up to 4 household members', '600 shared AI Assists every month', 'Shared library, meal plan, shopping list & pantry'] },
+    founder: { name: 'Founder', monthlyAssists: 300, price: { yearly: 29.99, note: 'Beta-only, locked forever' },
+               tagline: 'Beta-only forever pricing. $29.99/year for 300 AI Assists/month and Plus features, locked for as long as the subscription remains active.',
+               features: ['Beta-only forever pricing', '300 AI Assists every month', 'All Plus features', 'Locked pricing while subscribed'] },
+    beta:    { name: 'Beta',    monthlyAssists: BETA_UNLIMITED ? 'unlimited' : 50, unlimitedDuringBeta: true,
+               tagline: 'Unlimited AI Assists during beta, with standard abuse protections.',
+               features: ['Unlimited AI Assists during beta', 'Founder conversion offer after launch'] },
   },
-  creditPacks: [
-    { id: 'pack_25',  credits: 25,  price: 1.99 },
-    { id: 'pack_75',  credits: 75,  price: 4.99 },
-    { id: 'pack_200', credits: 200, price: 9.99 },
-    { id: 'pack_500', credits: 500, price: 19.99 },
+  assistPacks: [
+    { id: 'pack_25',  assists: 25,  price: 1.99 },
+    { id: 'pack_75',  assists: 75,  price: 4.99 },
+    { id: 'pack_200', assists: 200, price: 9.99 },
+    { id: 'pack_500', assists: 500, price: 19.99 },
   ],
 };
 // Pure spend-order helper (testable, no DB): monthly credits first, then bonus,
@@ -148,17 +167,43 @@ function referralBonusAllowed(grantsThisMonth) {
 const AI_FEATURE_PATTERNS = [
   // 'repair' must be checked before 'import': a malformed-JSON cleanup pass is an
   // internal helper for an already-billed action, so it is logged but never costs
-  // the user another credit (see NON_BILLABLE_FEATURES).
+  // the user another AI Assist (see NON_BILLABLE_FEATURES).
   { feature: 'repair', patterns: ['you repair malformed recipe', 'repair this malformed recipebox recipe', 'repair malformed recipe json'] },
+  // Specific multi-cost features are matched before the broad 'adjust' pattern.
+  { feature: 'meal-plan', patterns: ['weekly meal plan', 'meal plan for the week', 'generate a meal plan', 'plan my week'] },
+  { feature: 'nutrition', patterns: ['nutrition estimate', 'estimate the nutrition', 'nutrition facts for', 'macros for this recipe'] },
+  { feature: 'shopping-optimize', patterns: ['optimize this shopping list', 'consolidate this shopping list', 'shopping list optimization'] },
   { feature: 'import', patterns: ['extract the recipe', 'recipe extraction'] },
-  { feature: 'adjust', patterns: ['adjust this recipe', 'request:'] },
   { feature: 'pantry', patterns: ['pantry chef', 'what i have', 'ingredients i have'] },
   { feature: 'chat-editor', patterns: ['recipe editor', 'chat editor'] },
+  { feature: 'adjust', patterns: ['adjust this recipe', 'request:'] },
 ];
 // Internal helper passes (detection, cleanup, JSON repair) are logged for admin
-// cost visibility but do not consume a user-facing AI credit.
+// cost visibility but do not consume a user-facing AI Assist.
 const NON_BILLABLE_FEATURES = new Set(['repair']);
 function isBillableAiFeature(feature) { return !NON_BILLABLE_FEATURES.has(feature); }
+
+// Central, configurable AI Assist cost map. Adjust here without hunting through
+// the code. Deterministic (non-AI) actions never reach /api/ai and cost 0.
+const AI_ACTION_COSTS = {
+  import: 1,             // URL / photo / PDF / pasted-text-cleanup / video import
+  'chat-editor': 1,      // one AI chat-editor message/action
+  nutrition: 1,          // nutrition/macros estimate
+  'shopping-optimize': 1,// shopping list optimization
+  adjust: 2,             // AI recipe adjustment
+  pantry: 2,             // Pantry Chef generation
+  'meal-plan': 4,        // weekly AI meal plan generation
+  'general-ai': 1,       // unknown billable call (conservative)
+  repair: 0,             // internal helper pass — never billed
+};
+const DEFAULT_AI_ASSIST_COST = Number(process.env.DEFAULT_AI_ASSIST_COST || 1);
+// AI Assists charged for a feature. Non-billable features cost 0.
+function aiAssistCost(feature) {
+  if (NON_BILLABLE_FEATURES.has(feature)) return 0;
+  const c = AI_ACTION_COSTS[feature];
+  return Number.isFinite(c) ? c : DEFAULT_AI_ASSIST_COST;
+}
+ENTITLEMENT_CONFIG.actionCosts = AI_ACTION_COSTS;
 
 // The /api/ai proxy forwards the client body to Anthropic, so the client could
 // otherwise pick an arbitrary (expensive) model or a huge max_tokens. Clamp
@@ -359,6 +404,27 @@ async function getPool() {
     )`);
     await pool.query('CREATE INDEX IF NOT EXISTS ai_credit_ledger_user_idx ON ai_credit_ledger (user_id, created_at desc)');
     await pool.query("CREATE INDEX IF NOT EXISTS ai_credit_ledger_referral_idx ON ai_credit_ledger (user_id, kind) WHERE kind = 'referral_bonus'");
+    // Per-action AI Assist audit ledger: one row per charge/refund attempt with
+    // the full accounting trail. The balance-affecting buckets live in
+    // ai_credit_ledger (bonus/purchased) + ai_usage_monthly (monthly); this table
+    // is the human-readable record. The client can never write here.
+    await pool.query(`CREATE TABLE IF NOT EXISTS ai_assist_ledger (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id text NOT NULL REFERENCES profiles(user_id) ON DELETE CASCADE,
+      household_id text,
+      action_type text NOT NULL,
+      assists_charged integer NOT NULL DEFAULT 0,
+      buckets jsonb NOT NULL DEFAULT '{}'::jsonb,
+      previous_balance integer,
+      new_balance integer,
+      recipe_id text,
+      request_id text,
+      status text NOT NULL DEFAULT 'charged',
+      error_reason text,
+      created_at timestamptz NOT NULL DEFAULT now()
+    )`);
+    await pool.query('CREATE INDEX IF NOT EXISTS ai_assist_ledger_user_idx ON ai_assist_ledger (user_id, created_at desc)');
+    await pool.query('CREATE INDEX IF NOT EXISTS ai_assist_ledger_request_idx ON ai_assist_ledger (request_id)');
     await pool.query(`CREATE TABLE IF NOT EXISTS app_control_sources (
       id text PRIMARY KEY,
       title text NOT NULL,
@@ -708,7 +774,7 @@ function kbSeedEntries() {
       id: 'referral-program-future-milestone',
       title: 'Future Milestone: Referral Program',
       category: 'Product Strategy',
-      useWhen: 'Planning monetization, AI credits, or account growth features.',
+      useWhen: 'Planning monetization, AI Assists, or account growth features.',
       appliesToFeatures: ['Settings'],
       content: 'Future referral program: users may receive a referral code or link. When a referred friend completes a qualifying RecipeBox+ signup or conversion, both accounts receive a one-time AI credit bonus. Referral credit grants must happen server-side only, be auditable, prevent self-referrals, prevent repeated bonuses from the same referred user, and track referral source, referred user, referrer user, qualification date, and granted credits. Possible future tables include referrals, ai_credit_ledger, and referral_events.',
       createdAt: now,
@@ -888,6 +954,8 @@ function periodKey(scope = 'day') {
   if (scope === 'month') return now.toISOString().slice(0, 7);
   if (scope === 'hour') return now.toISOString().slice(0, 13);
   if (scope === 'quarterhour') return now.toISOString().slice(0, 13) + ':' + Math.floor(now.getUTCMinutes() / 15);
+  if (scope === 'tenminutes') return now.toISOString().slice(0, 13) + ':' + Math.floor(now.getUTCMinutes() / 10);
+  if (scope === 'twominutes') return now.toISOString().slice(0, 13) + ':' + Math.floor(now.getUTCMinutes() / 2);
   return now.toISOString().slice(0, 10);
 }
 
@@ -896,6 +964,8 @@ function resetAfter(scope = 'day') {
   if (scope === 'month') return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
   if (scope === 'hour') return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), now.getUTCHours() + 1));
   if (scope === 'quarterhour') return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), now.getUTCHours(), (Math.floor(now.getUTCMinutes() / 15) + 1) * 15));
+  if (scope === 'tenminutes') return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), now.getUTCHours(), (Math.floor(now.getUTCMinutes() / 10) + 1) * 10));
+  if (scope === 'twominutes') return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), now.getUTCHours(), (Math.floor(now.getUTCMinutes() / 2) + 1) * 2));
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
 }
 
@@ -1257,17 +1327,19 @@ async function readAiUsage(userId) {
   return { period, count, limit, remaining: Math.max(0, limit - count), plan: entitlement.plan };
 }
 
-async function incrementAiUsage(userId) {
+async function incrementAiUsage(userId, amount = 1) {
   const db = await getPool();
   const period = currentAiPeriod();
+  const n = Math.round(Number(amount) || 0);
+  if (n === 0) return readAiUsage(userId);
   const profile = await db.query('SELECT role FROM profiles WHERE user_id=$1', [userId]);
   if (profile.rows[0]?.role === 'master_admin') return readAiUsage(userId);
   await db.query(
     `INSERT INTO ai_usage_monthly(user_id, period, request_count, updated_at)
-     VALUES($1, $2, 1, now())
+     VALUES($1, $2, $3, now())
      ON CONFLICT(user_id, period)
-     DO UPDATE SET request_count=ai_usage_monthly.request_count + 1, updated_at=now()`,
-    [userId, period]
+     DO UPDATE SET request_count=GREATEST(0, ai_usage_monthly.request_count + $3), updated_at=now()`,
+    [userId, period, n]
   );
   return readAiUsage(userId);
 }
@@ -1291,7 +1363,7 @@ async function readLedgerBalances(userId) {
 async function grantCredits(userId, bucket, amount, kind, reason, createdBy) {
   const db = await getPool();
   if (!db || !userId) return false;
-  if (!['bonus', 'purchased'].includes(bucket)) throw new Error('Invalid credit bucket.');
+  if (!['bonus', 'purchased'].includes(bucket)) throw new Error('Invalid AI Assist bucket.');
   await db.query(
     `INSERT INTO ai_credit_ledger(user_id, kind, bucket, amount, reason, created_by) VALUES($1,$2,$3,$4,$5,$6)`,
     [userId, kind || 'admin_grant', bucket, Math.round(Number(amount) || 0), reason || null, createdBy || null]
@@ -1299,26 +1371,86 @@ async function grantCredits(userId, bucket, amount, kind, reason, createdBy) {
   return true;
 }
 
-// Spend one credit using the spend order: monthly allowance first, then bonus,
-// then purchased. Monthly is tracked by ai_usage_monthly; bonus/purchased are
-// recorded as negative ledger rows. No-op for unlimited (master) accounts.
-async function debitAiCredit(userId, requestId) {
+// Pure spend-split: distribute a cost of `cost` AI Assists across buckets in
+// spend order (monthly allowance first, then bonus, then purchased). Returns the
+// per-bucket amounts plus any shortfall. Testable, no DB.
+function splitAssistCharge(cost, { monthlyRemaining = 0, bonus = 0, purchased = 0 } = {}) {
+  let remaining = Math.max(0, Math.round(Number(cost) || 0));
+  const take = (avail) => { const n = Math.min(remaining, Math.max(0, Math.round(Number(avail) || 0))); remaining -= n; return n; };
+  const fromMonthly = take(monthlyRemaining);
+  const fromBonus = take(bonus);
+  const fromPurchased = take(purchased);
+  return { monthly: fromMonthly, bonus: fromBonus, purchased: fromPurchased, shortfall: remaining, covered: remaining === 0 };
+}
+
+// Spend `cost` AI Assists using the spend order: monthly allowance first, then
+// bonus, then purchased. Monthly is tracked by ai_usage_monthly; bonus/purchased
+// are negative ai_credit_ledger rows. Writes a single ai_assist_ledger audit row
+// (action_type, per-bucket split, prev/new total, status). No-op for unlimited
+// (master/beta) accounts. Returns the charge summary (or null if uncharged).
+async function debitAiAssists(userId, { requestId, cost, actionType, recipeId, householdId } = {}) {
   const db = await getPool();
-  if (!db || !userId) return;
+  if (!db || !userId) return null;
   const usage = await readAiUsage(userId);
-  if (usage.unlimited) { return; }
+  if (usage.unlimited) return null;
+  const charge = Math.max(0, Math.round(Number(cost) || 0));
+  if (charge === 0) return null;
   const monthlyRemaining = Math.max(0, (Number(usage.limit) || 0) - (Number(usage.count) || 0));
   const balances = await readLedgerBalances(userId);
-  const bucket = chooseSpendBucket({ monthlyRemaining, bonus: balances.bonus, purchased: balances.purchased });
-  if (bucket === 'monthly' || bucket === null) {
-    // null shouldn't happen (gated upstream); fall back to monthly so the call isn't free.
-    await incrementAiUsage(userId);
-    return;
+  const prevTotal = monthlyRemaining + balances.bonus + balances.purchased;
+  const split = splitAssistCharge(charge, { monthlyRemaining, bonus: balances.bonus, purchased: balances.purchased });
+  if (split.monthly > 0) await incrementAiUsage(userId, split.monthly);
+  for (const bucket of ['bonus', 'purchased']) {
+    if (split[bucket] > 0) {
+      await db.query(
+        `INSERT INTO ai_credit_ledger(user_id, kind, bucket, amount, reason, request_id) VALUES($1,'debit',$2,$3,'ai_action',$4)`,
+        [userId, bucket, -split[bucket], requestId || null]
+      );
+    }
   }
+  const charged = split.monthly + split.bonus + split.purchased;
+  const newTotal = Math.max(0, prevTotal - charged);
   await db.query(
-    `INSERT INTO ai_credit_ledger(user_id, kind, bucket, amount, reason, request_id) VALUES($1,'debit',$2,-1,'ai_action',$3)`,
-    [userId, bucket, requestId || null]
+    `INSERT INTO ai_assist_ledger(user_id, household_id, action_type, assists_charged, buckets, previous_balance, new_balance, recipe_id, request_id, status)
+     VALUES($1,$2,$3,$4,$5::jsonb,$6,$7,$8,$9,'charged')`,
+    [userId, householdId || null, actionType || 'ai_action', charged,
+     JSON.stringify({ monthly: split.monthly, bonus: split.bonus, purchased: split.purchased }),
+     prevTotal, newTotal, recipeId || null, requestId || null]
   );
+  return { charged, split, previousBalance: prevTotal, newBalance: newTotal, shortfall: split.shortfall };
+}
+
+// Reverse an earlier charge (post-charge failure). Credits the same buckets back
+// and records a 'refunded' audit row so the trail is auditable.
+async function refundAiAssists(userId, requestId, errorReason) {
+  const db = await getPool();
+  if (!db || !userId || !requestId) return null;
+  const prior = await db.query(
+    `SELECT id, buckets, assists_charged FROM ai_assist_ledger
+      WHERE user_id=$1 AND request_id=$2 AND status='charged' ORDER BY created_at DESC LIMIT 1`,
+    [userId, requestId]
+  );
+  const row = prior.rows[0];
+  if (!row || Number(row.assists_charged) <= 0) return null;
+  const buckets = row.buckets || {};
+  const monthly = Math.max(0, Number(buckets.monthly) || 0);
+  if (monthly > 0) await incrementAiUsage(userId, -monthly);
+  for (const bucket of ['bonus', 'purchased']) {
+    const amt = Math.max(0, Number(buckets[bucket]) || 0);
+    if (amt > 0) {
+      await db.query(
+        `INSERT INTO ai_credit_ledger(user_id, kind, bucket, amount, reason, request_id) VALUES($1,'refund',$2,$3,'ai_refund',$4)`,
+        [userId, bucket, amt, requestId]
+      );
+    }
+  }
+  await db.query(`UPDATE ai_assist_ledger SET status='refunded', error_reason=$2 WHERE id=$1`, [row.id, String(errorReason || 'refund').slice(0, 240)]);
+  await db.query(
+    `INSERT INTO ai_assist_ledger(user_id, action_type, assists_charged, buckets, request_id, status, error_reason)
+     VALUES($1,$2,$3,$4::jsonb,$5,'refund',$6)`,
+    [userId, 'refund', -Number(row.assists_charged), JSON.stringify(buckets), requestId, String(errorReason || 'refund').slice(0, 240)]
+  );
+  return { refunded: Number(row.assists_charged) };
 }
 
 function nextMonthlyResetISO() {
@@ -1336,8 +1468,9 @@ async function readCreditStatus(user) {
     unlimited: !!usage.unlimited,
     launchPhase: LAUNCH_PHASE,
     monthly: { limit: usage.limit ?? null, used: usage.count || 0, remaining: monthlyRemaining, period: usage.period, resetsAt: nextMonthlyResetISO() },
-    bonusCredits: balances.bonus,
-    purchasedCredits: balances.purchased,
+    // Balances, user-facing terminology is "AI Assists".
+    bonusAssists: balances.bonus,
+    purchasedAssists: balances.purchased,
     totalRemaining,
     rollsOver: false,
   };
@@ -1354,9 +1487,9 @@ async function grantReferralBonus(referrerId, referredId, createdBy) {
     [referrerId, period]
   );
   if (!referralBonusAllowed(r.rows[0]?.n || 0)) return { ok: false, reason: 'cap_reached' };
-  await grantCredits(referrerId, 'bonus', REFERRAL_CONFIG.bonusCredits, 'referral_bonus', 'referral', createdBy || 'system');
-  await grantCredits(referredId, 'bonus', REFERRAL_CONFIG.bonusCredits, 'referral_bonus', 'referral', createdBy || 'system');
-  return { ok: true, granted: REFERRAL_CONFIG.bonusCredits };
+  await grantCredits(referrerId, 'bonus', REFERRAL_CONFIG.bonusAssists, 'referral_bonus', 'referral', createdBy || 'system');
+  await grantCredits(referredId, 'bonus', REFERRAL_CONFIG.bonusAssists, 'referral_bonus', 'referral', createdBy || 'system');
+  return { ok: true, granted: REFERRAL_CONFIG.bonusAssists };
 }
 
 // External fetch with a hard timeout so a slow/hanging source can't stall the
@@ -1712,6 +1845,11 @@ app.post('/api/auth/signup', async (req, res) => {
     );
     if (Array.isArray(req.body.recipes) && req.body.recipes.length) await replaceUserRecipes(userId, req.body.recipes);
     if (req.body.mealPlan && typeof req.body.mealPlan === 'object') await replaceUserMealPlan(userId, req.body.mealPlan);
+    // Welcome AI Assists for a new (non-master) account — one-time bonus grant
+    // that never expires. Best-effort; never blocks signup.
+    if (role !== 'master_admin' && FREE_WELCOME_ASSISTS > 0) {
+      try { await grantCredits(userId, 'bonus', FREE_WELCOME_ASSISTS, 'welcome', 'signup welcome assists', 'system'); } catch {}
+    }
     await createSession(req, res, userId);
     clearAuthLimit(req);
     if (!verified) await issueVerificationEmail(db, req, userId, email); // best-effort
@@ -2749,11 +2887,11 @@ app.get('/api/me/entitlements', requireAuth, async function(req, res) {
   } catch(err) { res.status(500).json({ error: err.message }); }
 });
 
-// User-facing AI credit ledger. Shows fair outcomes only: one credit per
-// completed user action, internal repair/cleanup passes hidden, failed
-// attempts marked "no charge". Provider cost and token counts are NEVER
-// returned here — those live in the admin-only views.
-const AI_LEDGER_LABELS = { import: 'Recipe import', adjust: 'Recipe adjustment', pantry: 'Pantry Chef', 'chat-editor': 'Recipe editor', 'general-ai': 'AI request' };
+// User-facing AI Assist ledger. Shows fair outcomes only: the AI Assists each
+// completed action cost, internal repair/cleanup passes hidden, failed attempts
+// marked "no charge". Provider cost and token counts are NEVER returned here —
+// those live in the admin-only views.
+const AI_LEDGER_LABELS = { import: 'Recipe import', adjust: 'Recipe adjustment', pantry: 'Pantry Chef', 'chat-editor': 'Recipe editor', 'meal-plan': 'Meal plan', nutrition: 'Nutrition estimate', 'shopping-optimize': 'Shopping list optimize', 'general-ai': 'AI request' };
 app.get('/api/me/ai-ledger', requireAuth, async function(req, res) {
   try {
     const usage = await readAiUsage(req.user.user_id);
@@ -2770,14 +2908,14 @@ app.get('/api/me/ai-ledger', requireAuth, async function(req, res) {
     const entries = result.rows.map((row) => ({
       at: row.created_at,
       label: AI_LEDGER_LABELS[row.feature] || 'AI request',
-      credits: row.success ? 1 : 0,
+      assists: row.success ? aiAssistCost(row.feature) : 0,
       status: row.success ? 'charged' : 'no_charge',
     }));
     res.json({ usage, entries });
   } catch(err) { res.status(500).json({ error: err.message }); }
 });
 
-// Server-authoritative credit status for the signed-in user (monthly + bonus +
+// Server-authoritative AI Assist status for the signed-in user (monthly + bonus +
 // purchased). Read-only; the client never sets these values.
 app.get('/api/me/credits', requireAuth, async function(req, res) {
   try {
@@ -2797,28 +2935,50 @@ app.post('/api/ai', async function(req, res) {
   let feature = 'general-ai';
   let model = '';
   let tier = 'unknown';
+  let charged = false;        // set once AI Assists are actually debited
+  let entitlement = null;
   try {
     user = await currentUser(req);
     if (!user) return res.status(401).json({ error: 'Sign in to use RecipeBox AI.' });
     feature = detectAiFeature(req.body);
     model = String(req.body?.model || '');
-    const entitlement = await readEntitlements(user);
+    const assistCost = aiAssistCost(feature);
+    entitlement = await readEntitlements(user);
     tier = entitlement.plan;
     const isMaster = isMasterAdminUser(user);
+    // Identical-request fingerprint (used only to guard against accidental
+    // double-submits of an expensive import; see the post-success marker below).
+    const dupHash = crypto.createHash('sha256').update(JSON.stringify(req.body?.messages || req.body || {})).digest('hex').slice(0, 32);
     if (!entitlement.unlimited) {
       const ipLimit = await checkRateLimit(`ip:${clientIp(req)}`, `ai:${feature}`, 80, 'day');
       if (!ipLimit.allowed) return res.status(429).json({ error: 'Slow down a bit before using more RecipeBox AI.' });
       const perUserLimit = await checkRateLimit(`user:${user.user_id}`, `ai:${feature}`, entitlement.aiDailyLimit || 60, 'day');
       if (!perUserLimit.allowed) return res.status(429).json({ error: 'Daily AI limit reached for your account.', limit: perUserLimit.limit, resetAt: perUserLimit.resetAt });
+      // Burst guard: even a high-balance user can't script the AI endpoints.
+      const burst = await checkRateLimit(`user:${user.user_id}`, 'ai:burst', AI_BURST_MAX, AI_BURST_SCOPE);
+      if (!burst.allowed) return res.status(429).json({ error: 'Too many AI actions in a short time. Give it a few minutes and try again.', limit: burst.limit, resetAt: burst.resetAt });
       if (feature === 'import' && String(process.env.AI_IMPORTS_ENABLED || 'true').toLowerCase() === 'false') return res.status(503).json({ error: 'Recipe imports are temporarily paused.' });
       if (feature === 'adjust' && String(process.env.AI_ADJUST_ENABLED || 'true').toLowerCase() === 'false') return res.status(503).json({ error: 'Recipe adjustments are temporarily paused.' });
     } else if (!isMaster) {
-      // Beta = unlimited credits, but still abuse / rate-limit protected.
+      // Beta = unlimited AI Assists, but still abuse / rate-limit protected.
       const ipLimit = await checkRateLimit(`ip:${clientIp(req)}`, `ai:${feature}`, 120, 'day');
       if (!ipLimit.allowed) return res.status(429).json({ error: 'Slow down a bit before using more RecipeBox AI.' });
       const betaCap = Number(process.env.AI_BETA_DAILY_ABUSE_CAP || 200);
       const perUserLimit = await checkRateLimit(`user:${user.user_id}`, `ai:${feature}`, betaCap, 'day');
       if (!perUserLimit.allowed) return res.status(429).json({ error: 'Daily AI limit reached for your account.', limit: perUserLimit.limit, resetAt: perUserLimit.resetAt });
+    }
+    // Duplicate-import guard: block an identical import only if an identical one
+    // *succeeded* in the last couple of minutes (a failed import leaves no marker,
+    // so retries after a failure are always allowed).
+    if (feature === 'import' && !isMaster) {
+      const db = await getPool();
+      if (db) {
+        const seen = await db.query(
+          `SELECT 1 FROM rate_limit_counters WHERE key=$1 AND bucket LIKE 'ai:dup:%' AND reset_at > now() LIMIT 1`,
+          [`dup:${user.user_id}:${dupHash}`]
+        );
+        if (seen.rows[0]) return res.status(429).json({ error: "Looks like you just imported this — check your library. Give it a moment before re-importing." });
+      }
     }
     // Global safety controls (emergency off, daily global cap, monthly cost cap)
     // apply to everyone except the master admin — including beta/unlimited users,
@@ -2827,11 +2987,13 @@ app.post('/api/ai', async function(req, res) {
     if (!isMaster && !globalControls.allowed) return res.status(503).json({ error: globalControls.error });
     const billable = isBillableAiFeature(feature);
     const credits = await readCreditStatus(user);
-    // Block only billable user actions when out of total credits (monthly + bonus +
-    // purchased). Internal helper passes (repair) and unlimited accounts pass through.
-    if (billable && !credits.unlimited && credits.totalRemaining <= 0) {
+    // Block a billable action when the user can't cover its AI Assist cost
+    // (monthly + bonus + purchased). Helper passes (repair) and unlimited
+    // accounts pass through. Cost varies by action (see AI_ACTION_COSTS).
+    if (billable && !credits.unlimited && credits.totalRemaining < assistCost) {
       return res.status(429).json({
-        error: `You're out of AI credits. Monthly credits reset ${new Date(credits.monthly.resetsAt).toLocaleDateString()}.`,
+        error: `You don't have enough AI Assists for this (needs ${assistCost}). Your monthly AI Assists reset ${new Date(credits.monthly.resetsAt).toLocaleDateString()}, or add a pack that never expires.`,
+        assistCost,
         credits,
         aiUsage: await readAiUsage(user.user_id),
       });
@@ -2849,7 +3011,7 @@ app.post('/api/ai', async function(req, res) {
       }, 55000);
     } catch (err) {
       await logAiUsageEvent({ requestId, user, feature, model, tier, success: false, errorMessage: isAbortError(err) ? 'anthropic timeout' : err.message });
-      if (isAbortError(err)) return res.status(504).json({ error: 'That took longer than expected. Please try again — you were not charged a credit.' });
+      if (isAbortError(err)) return res.status(504).json({ error: 'That took longer than expected. Please try again — you were not charged any AI Assists.' });
       throw err;
     }
     const d = await r.json();
@@ -2857,11 +3019,15 @@ app.post('/api/ai', async function(req, res) {
       await logAiUsageEvent({ requestId, user, feature, model, tier, success: false, errorMessage: d.error?.message || d.error || 'Anthropic request failed' });
       return res.status(r.status).json(d);
     }
-    // Spend a credit only for billable user actions. Spend order (monthly -> bonus
-    // -> purchased) lives in debitAiCredit. Beta tracks usage for stats only.
+    // Spend AI Assists only for billable user actions, only after a successful
+    // generation. Spend order (monthly -> bonus -> purchased) + the audit row
+    // live in debitAiAssists. Beta tracks usage for stats only.
     if (billable) {
-      if (!entitlement.unlimited) await debitAiCredit(user.user_id, requestId);
-      else if (!isMaster) await incrementAiUsage(user.user_id);
+      if (!entitlement.unlimited) { await debitAiAssists(user.user_id, { requestId, cost: assistCost, actionType: feature }); charged = true; }
+      else if (!isMaster) await incrementAiUsage(user.user_id, assistCost);
+      // Mark this exact import as recently completed so an accidental re-submit
+      // within ~2 min is caught before burning another expensive call.
+      if (feature === 'import' && !isMaster) { try { await checkRateLimit(`dup:${user.user_id}:${dupHash}`, 'ai:dup', 1, 'twominutes'); } catch {} }
     }
     await logAiUsageEvent({
       requestId,
@@ -2873,9 +3039,12 @@ app.post('/api/ai', async function(req, res) {
       outputTokens: d.usage?.output_tokens,
       success: true,
     });
-    res.status(r.status).json({ ...d, aiUsage: await readAiUsage(user.user_id), credits: await readCreditStatus(user), requestId });
+    res.status(r.status).json({ ...d, aiUsage: await readAiUsage(user.user_id), credits: await readCreditStatus(user), requestId, assistCost });
   } catch(err) {
     try { await logAiUsageEvent({ requestId, user, feature, model, tier, success: false, errorMessage: err.message }); } catch {}
+    // If we already debited AI Assists before failing, refund them — a post-charge
+    // error must never cost the user.
+    if (charged && entitlement && !entitlement.unlimited) { try { await refundAiAssists(user.user_id, requestId, err.message); } catch {} }
     res.status(500).json({ error: err.message });
   }
 });
@@ -2900,6 +3069,7 @@ module.exports._test = {
   extractHelpfulLinks, detectAiFeature, isBillableAiFeature,
   ENTITLEMENT_CONFIG, PLAN_ENTITLEMENTS, REFERRAL_CONFIG, LAUNCH_PHASE,
   chooseSpendBucket, planMonthlyCredits, referralBonusAllowed,
+  AI_ACTION_COSTS, aiAssistCost, splitAssistCharge, FREE_WELCOME_ASSISTS, AI_BURST_MAX,
   fetchWithTimeout, readBodyCapped, isAbortError,
   isPrivateIp, assertPublicHost,
   periodKey, resetAfter,

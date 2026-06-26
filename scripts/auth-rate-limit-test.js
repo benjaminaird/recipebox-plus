@@ -19,4 +19,12 @@ assert.ok(hDelta > 0 && hDelta <= 60 * 60 * 1000 + 1000, "hour resets within the
 assert.strictEqual(periodKey("month").length, 7, "month key is YYYY-MM");
 assert.strictEqual(periodKey("day").length, 10, "day key is YYYY-MM-DD");
 
+// AI burst window (10 min) + duplicate-import window (2 min) used by /api/ai.
+const tenKey = periodKey("tenminutes");
+assert.ok(/:\d$/.test(tenKey), "tenminutes key has a slot suffix: " + tenKey);
+const tenDelta = resetAfter("tenminutes").getTime() - Date.now();
+assert.ok(tenDelta > 0 && tenDelta <= 10 * 60 * 1000 + 1000, "burst window resets within the next 10 min");
+const twoDelta = resetAfter("twominutes").getTime() - Date.now();
+assert.ok(twoDelta > 0 && twoDelta <= 2 * 60 * 1000 + 1000, "dedupe window resets within the next 2 min");
+
 console.log("auth-rate-limit-test: ok");

@@ -3,18 +3,40 @@ const app = require("../server");
 const {
   ENTITLEMENT_CONFIG, PLAN_ENTITLEMENTS, REFERRAL_CONFIG, LAUNCH_PHASE,
   chooseSpendBucket, planMonthlyCredits, referralBonusAllowed,
+  AI_ACTION_COSTS, aiAssistCost, splitAssistCharge, FREE_WELCOME_ASSISTS,
 } = app._test;
 
-// --- Monthly included credits per tier ---
-assert.strictEqual(PLAN_ENTITLEMENTS.free.aiMonthlyLimit, 10, "Free gets 10 monthly credits");
-assert.strictEqual(PLAN_ENTITLEMENTS.plus.aiMonthlyLimit, 100, "Plus gets 100 monthly credits");
-assert.strictEqual(PLAN_ENTITLEMENTS.family.aiMonthlyLimit, 250, "Family gets 250 shared monthly credits");
-assert.strictEqual(PLAN_ENTITLEMENTS.founder.aiMonthlyLimit, 150, "Founder gets 150 monthly credits");
-assert.strictEqual(ENTITLEMENT_CONFIG.tiers.free.monthlyCredits, 10);
-assert.strictEqual(ENTITLEMENT_CONFIG.tiers.plus.monthlyCredits, 100);
-assert.strictEqual(ENTITLEMENT_CONFIG.tiers.family.monthlyCredits, 250);
-assert.strictEqual(ENTITLEMENT_CONFIG.tiers.founder.monthlyCredits, 150);
+// --- Monthly included AI Assists per tier ---
+assert.strictEqual(PLAN_ENTITLEMENTS.free.aiMonthlyLimit, 5, "Free recurs at 5 monthly AI Assists");
+assert.strictEqual(PLAN_ENTITLEMENTS.plus.aiMonthlyLimit, 250, "Plus gets 250 monthly AI Assists");
+assert.strictEqual(PLAN_ENTITLEMENTS.family.aiMonthlyLimit, 600, "Family gets 600 shared monthly AI Assists");
+assert.strictEqual(PLAN_ENTITLEMENTS.founder.aiMonthlyLimit, 300, "Founder gets 300 monthly AI Assists");
+assert.strictEqual(ENTITLEMENT_CONFIG.tiers.free.monthlyAssists, 5);
+assert.strictEqual(ENTITLEMENT_CONFIG.tiers.plus.monthlyAssists, 250);
+assert.strictEqual(ENTITLEMENT_CONFIG.tiers.family.monthlyAssists, 600);
+assert.strictEqual(ENTITLEMENT_CONFIG.tiers.founder.monthlyAssists, 300);
 assert.strictEqual(ENTITLEMENT_CONFIG.familyMemberCap, 4, "Family member cap is 4");
+
+// --- Free welcome grant: 15 one-time, then 5/month ---
+assert.strictEqual(FREE_WELCOME_ASSISTS, 15, "Free accounts get 15 welcome AI Assists");
+assert.strictEqual(ENTITLEMENT_CONFIG.tiers.free.welcomeAssists, 15);
+assert.strictEqual(ENTITLEMENT_CONFIG.freeWelcomeAssists, 15);
+
+// --- Founder is yearly-only forever pricing; no monthly price ---
+assert.strictEqual(ENTITLEMENT_CONFIG.tiers.founder.price.yearly, 29.99);
+assert.ok(!("monthly" in ENTITLEMENT_CONFIG.tiers.founder.price), "Founder has no monthly price (yearly only)");
+assert.strictEqual(ENTITLEMENT_CONFIG.tiers.plus.price.monthly, 4.99);
+assert.strictEqual(ENTITLEMENT_CONFIG.tiers.plus.price.yearly, 39.99);
+assert.strictEqual(ENTITLEMENT_CONFIG.tiers.family.price.monthly, 7.99);
+assert.strictEqual(ENTITLEMENT_CONFIG.tiers.family.price.yearly, 69.99);
+
+// --- Transparency: no "unlimited imports" claim on a paid tier ---
+for (const tier of ["plus", "family", "founder"]) {
+  const blob = JSON.stringify(ENTITLEMENT_CONFIG.tiers[tier]).toLowerCase();
+  assert.ok(!/unlimited\s+import/.test(blob), tier + " must not advertise unlimited imports");
+}
+// --- No user-facing "credit" wording leaks through the public config ---
+assert.ok(!/credit/i.test(JSON.stringify(ENTITLEMENT_CONFIG)), "public entitlement config never says 'credit'");
 
 // --- Beta unlimited during beta, still has a daily abuse cap concept ---
 assert.strictEqual(LAUNCH_PHASE, "beta", "default launch phase is beta");
@@ -22,35 +44,68 @@ assert.strictEqual(PLAN_ENTITLEMENTS.beta.unlimited, true, "Beta is unlimited du
 assert.strictEqual(planMonthlyCredits("beta"), null, "Beta has no monthly cap during beta");
 assert.ok(PLAN_ENTITLEMENTS.beta.aiDailyLimit > 0, "Beta still has a daily limit value for abuse protection");
 
-// --- Credit rules: no monthly rollover, purchased + bonus never expire ---
-assert.strictEqual(ENTITLEMENT_CONFIG.creditRules.monthlyRollover, false, "Monthly credits do not roll over");
-assert.strictEqual(ENTITLEMENT_CONFIG.creditRules.purchasedExpire, false, "Purchased credits never expire");
-assert.strictEqual(ENTITLEMENT_CONFIG.creditRules.bonusExpire, false, "Bonus credits do not expire");
-assert.deepStrictEqual(ENTITLEMENT_CONFIG.creditRules.spendOrder, ["monthly", "bonus", "purchased"]);
+// --- Assist rules: no monthly rollover, purchased + bonus never expire ---
+assert.strictEqual(ENTITLEMENT_CONFIG.assistRules.monthlyRollover, false, "Monthly AI Assists do not roll over");
+assert.strictEqual(ENTITLEMENT_CONFIG.assistRules.purchasedExpire, false, "Purchased AI Assists never expire");
+assert.strictEqual(ENTITLEMENT_CONFIG.assistRules.bonusExpire, false, "Bonus AI Assists do not expire");
+assert.deepStrictEqual(ENTITLEMENT_CONFIG.assistRules.spendOrder, ["monthly", "bonus", "purchased"]);
 
-// --- Credit packs (placeholder pricing) ---
-const packs = Object.fromEntries(ENTITLEMENT_CONFIG.creditPacks.map((p) => [p.credits, p.price]));
+// --- AI Assist packs (placeholder pricing), available to all tiers ---
+const packs = Object.fromEntries(ENTITLEMENT_CONFIG.assistPacks.map((p) => [p.assists, p.price]));
 assert.strictEqual(packs[25], 1.99);
 assert.strictEqual(packs[75], 4.99);
 assert.strictEqual(packs[200], 9.99);
 assert.strictEqual(packs[500], 19.99);
 
-// --- Ads ready but off ---
-assert.strictEqual(ENTITLEMENT_CONFIG.adsEnabled, false, "No ads at launch");
-assert.ok("adsEnabled" in ENTITLEMENT_CONFIG, "ads-ready config flag exists");
+// --- Central AI Assist cost map ---
+assert.strictEqual(aiAssistCost("import"), 1, "import costs 1 AI Assist");
+assert.strictEqual(aiAssistCost("chat-editor"), 1, "chat editor costs 1");
+assert.strictEqual(aiAssistCost("nutrition"), 1, "nutrition costs 1");
+assert.strictEqual(aiAssistCost("shopping-optimize"), 1, "shopping optimize costs 1");
+assert.strictEqual(aiAssistCost("adjust"), 2, "adjust costs 2");
+assert.strictEqual(aiAssistCost("pantry"), 2, "Pantry Chef costs 2");
+assert.strictEqual(aiAssistCost("meal-plan"), 4, "weekly meal plan costs 4");
+assert.strictEqual(aiAssistCost("repair"), 0, "internal repair pass costs 0");
+assert.strictEqual(aiAssistCost("general-ai"), 1, "unknown billable call costs 1 (conservative)");
+assert.strictEqual(AI_ACTION_COSTS.import, 1, "cost map is the single source of truth");
 
 // --- Spend order: monthly before bonus before purchased ---
 assert.strictEqual(chooseSpendBucket({ monthlyRemaining: 5, bonus: 10, purchased: 10 }), "monthly", "spends monthly first");
 assert.strictEqual(chooseSpendBucket({ monthlyRemaining: 0, bonus: 3, purchased: 10 }), "bonus", "then bonus");
 assert.strictEqual(chooseSpendBucket({ monthlyRemaining: 0, bonus: 0, purchased: 4 }), "purchased", "then purchased");
-assert.strictEqual(chooseSpendBucket({ monthlyRemaining: 0, bonus: 0, purchased: 0 }), null, "null when out of credits");
+assert.strictEqual(chooseSpendBucket({ monthlyRemaining: 0, bonus: 0, purchased: 0 }), null, "null when out of AI Assists");
+
+// --- Multi-assist split across buckets (monthly -> bonus -> purchased) ---
+assert.deepStrictEqual(
+  splitAssistCharge(4, { monthlyRemaining: 10, bonus: 5, purchased: 5 }),
+  { monthly: 4, bonus: 0, purchased: 0, shortfall: 0, covered: true },
+  "a 4-assist action draws entirely from monthly when it can",
+);
+assert.deepStrictEqual(
+  splitAssistCharge(4, { monthlyRemaining: 1, bonus: 1, purchased: 10 }),
+  { monthly: 1, bonus: 1, purchased: 2, shortfall: 0, covered: true },
+  "spills monthly -> bonus -> purchased in order",
+);
+assert.deepStrictEqual(
+  splitAssistCharge(4, { monthlyRemaining: 1, bonus: 1, purchased: 0 }),
+  { monthly: 1, bonus: 1, purchased: 0, shortfall: 2, covered: false },
+  "reports a shortfall when balances can't cover the cost",
+);
+assert.deepStrictEqual(
+  splitAssistCharge(0, { monthlyRemaining: 5 }),
+  { monthly: 0, bonus: 0, purchased: 0, shortfall: 0, covered: true },
+  "a zero-cost action charges nothing",
+);
 
 // --- Referral: 25 each, capped at 10/month ---
-assert.strictEqual(REFERRAL_CONFIG.bonusCredits, 25, "Referral grants 25 credits each side");
+assert.strictEqual(REFERRAL_CONFIG.bonusAssists, 25, "Referral grants 25 AI Assists each side");
 assert.strictEqual(REFERRAL_CONFIG.monthlyCap, 10, "Referral cap is 10/month");
 assert.strictEqual(REFERRAL_CONFIG.triggersOn, "paid_conversion", "Referral triggers on paid conversion");
 assert.strictEqual(referralBonusAllowed(0), true, "first referral allowed");
 assert.strictEqual(referralBonusAllowed(9), true, "10th referral allowed");
 assert.strictEqual(referralBonusAllowed(10), false, "11th referral blocked by cap");
+
+// --- Ads ready but off ---
+assert.strictEqual(ENTITLEMENT_CONFIG.adsEnabled, false, "No ads at launch");
 
 console.log("entitlements-test: ok");
