@@ -1,0 +1,21 @@
+{
+  "label": "WP Recipe Maker style: @graph + HowToStep + ISO durations + nutrition + HTML entities",
+  "source": "jsonld",
+  "complete": true,
+  "title": "Brown Butter Chocolate Chip Cookies",
+  "servings": 24,
+  "hasTimes": true,
+  "hasNutrition": true,
+  "stepCount": 5,
+  "ingredientNames": [
+    "salted butter",
+    "packed brown sugar",
+    "granulated sugar",
+    "eggs",
+    "vanilla extract",
+    "all-purpose flour",
+    "baking soda",
+    "salt",
+    "semi-sweet chocolate chips"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "label": "Microdata (itemprop) only, no JSON-LD — deterministic fallback tier",
+  "source": "microdata",
+  "complete": true,
+  "title": "Garlic Butter Rice",
+  "stepCount": 3,
+  "ingredientNames": [
+    "butter",
+    "garlic, minced",
+    "long-grain rice",
+    "chicken broth",
+    "salt"
+  ]
+}

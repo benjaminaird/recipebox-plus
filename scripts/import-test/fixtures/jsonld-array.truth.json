@@ -1,0 +1,19 @@
+{
+  "label": "Top-level array, @type array, ImageObject, numeric yield, single-string instructions",
+  "source": "jsonld",
+  "complete": true,
+  "title": "Weeknight Chickpea Curry",
+  "servings": 4,
+  "hasTimes": true,
+  "stepCount": 4,
+  "ingredientNames": [
+    "olive oil",
+    "yellow onion, diced",
+    "garlic, minced",
+    "curry powder",
+    "chickpeas, drained",
+    "coconut milk",
+    "spinach",
+    "lime juice"
+  ]
+}

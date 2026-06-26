@@ -1,0 +1,6 @@
+{
+  "label": "Narrative blog, no JSON-LD or microdata — deterministic extractor must decline (return null) so the caller falls back to AI, never hallucinate",
+  "source": null,
+  "complete": false,
+  "expectNull": true
+}

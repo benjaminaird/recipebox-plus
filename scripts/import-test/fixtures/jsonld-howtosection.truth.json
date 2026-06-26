@@ -1,0 +1,19 @@
+{
+  "label": "HowToSection multi-section instructions (crust + filling), yield as array",
+  "source": "jsonld",
+  "complete": true,
+  "title": "Lemon Tart",
+  "servings": 8,
+  "hasTimes": true,
+  "stepCount": 4,
+  "sectionNames": ["Crust", "Lemon Filling"],
+  "ingredientNames": [
+    "all-purpose flour",
+    "butter, cold",
+    "powdered sugar",
+    "eggs",
+    "granulated sugar",
+    "lemon juice",
+    "lemon zest"
+  ]
+}
