@@ -3219,21 +3219,37 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             const pageData = await pageRes.json();
             if (pageData.error) throw new Error(pageData.error);
 
-            setLoadingMsg("Extracting recipe...");
-            const prompt =
-              "Extract the recipe ONLY from the source material below. Do not use memory for ingredients, steps, quantities, or times. Do not invent missing ingredients, steps, quantities, times, or notes; if one of those is missing, leave it blank. EXCEPTION: always set realistic servings (use the stated yield, otherwise estimate from the quantities — never default to 4) and always fill per-serving macros (use the source's nutrition if present, otherwise estimate from the ingredients — never leave them 0). Put source-grounded cooking tips, make-ahead/storage/substitution guidance, and directly useful helper links in notes only when they appear in the source. Return only valid JSON.\n\n" +
-              "Source URL: " + (pageData.finalUrl || pageData.url || url) + "\n" +
-              "Page title: " + (pageData.title || "") + "\n" +
-              "Detected hero image: " + (pageData.image || "") + "\n\n" +
-              "JSON-LD / structured data:\n" + JSON.stringify(pageData.jsonLd || []) + "\n\n" +
-              "Potentially useful source links:\n" + JSON.stringify(pageData.helpfulLinks || []) + "\n\n" +
-              "Visible page text:\n" + (pageData.text || "");
-            const urlMessages = [{ role:"user", content:prompt }];
-            const raw = await callAI(urlMessages, EXTRACT_PROMPT, 2500, 0);
-            extractCtx = { messages: urlMessages, maxTokens: 4096, heroFallback: pageData.image || "" };
-            parsed = await parseImportedRecipe(raw);
-            if (parsed.error === "unknown_recipe") throw new Error("Recipe not found. Please use Paste Text instead.");
-            if (!parsed.heroImage && pageData.image) parsed.heroImage = pageData.image;
+            if (pageData.recipe && pageData.extractComplete) {
+              // Deterministic structured-data import: the page carried complete
+              // schema.org/Recipe (or microdata), so we use it verbatim — as
+              // accurate as the publisher's own data, instant, and FREE (no AI,
+              // no AI Assist spent).
+              setLoadingMsg("Reading structured recipe data...");
+              parsed = pageData.recipe;
+              if (!parsed.heroImage && pageData.image) parsed.heroImage = pageData.image;
+              parsed.sourceUrl = pageData.finalUrl || pageData.url || url;
+              parsed.importMethod = "structured-data";
+            } else {
+              // No usable structured data — fall back to AI, grounding it with any
+              // partial deterministic extraction we did get.
+              setLoadingMsg("Extracting recipe...");
+              const prompt =
+                "Extract the recipe ONLY from the source material below. Do not use memory for ingredients, steps, quantities, or times. Do not invent missing ingredients, steps, quantities, times, or notes; if one of those is missing, leave it blank. EXCEPTION: always set realistic servings (use the stated yield, otherwise estimate from the quantities — never default to 4) and always fill per-serving macros (use the source's nutrition if present, otherwise estimate from the ingredients — never leave them 0). Put source-grounded cooking tips, make-ahead/storage/substitution guidance, and directly useful helper links in notes only when they appear in the source. Return only valid JSON.\n\n" +
+                "Source URL: " + (pageData.finalUrl || pageData.url || url) + "\n" +
+                "Page title: " + (pageData.title || "") + "\n" +
+                "Detected hero image: " + (pageData.image || "") + "\n\n" +
+                "JSON-LD / structured data:\n" + JSON.stringify(pageData.jsonLd || []) + "\n\n" +
+                (pageData.recipe ? "Partial structured recipe (use as the source of truth where present):\n" + JSON.stringify(pageData.recipe) + "\n\n" : "") +
+                "Potentially useful source links:\n" + JSON.stringify(pageData.helpfulLinks || []) + "\n\n" +
+                "Visible page text:\n" + (pageData.text || "");
+              const urlMessages = [{ role:"user", content:prompt }];
+              const raw = await callAI(urlMessages, EXTRACT_PROMPT, 2500, 0);
+              extractCtx = { messages: urlMessages, maxTokens: 4096, heroFallback: pageData.image || "" };
+              parsed = await parseImportedRecipe(raw);
+              if (parsed.error === "unknown_recipe") throw new Error("Recipe not found. Please use Paste Text instead.");
+              if (!parsed.heroImage && pageData.image) parsed.heroImage = pageData.image;
+              parsed.sourceUrl = pageData.finalUrl || pageData.url || url;
+            }
 
           } else if (mode === "youtube") {
             setLoadingMsg("Fetching YouTube details...");

@@ -8,7 +8,7 @@
  *  - Versioned caches; old versions are purged on activate.
  * Bump VERSION on each deploy so a new worker installs and updates take effect.
  */
-const VERSION = '2026-06-26f';
+const VERSION = '2026-06-26g';
 const SHELL_CACHE = 'rb-shell-' + VERSION;
 const RUNTIME_CACHE = 'rb-runtime-' + VERSION;
 

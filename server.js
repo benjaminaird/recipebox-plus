@@ -4,6 +4,9 @@ const crypto = require('crypto');
 const net = require('net');
 const dns = require('dns').promises;
 const { fetchTranscript } = require('youtube-transcript');
+// Deterministic structured-data extractor (shared with the client). Lets URL
+// imports skip the AI entirely when a page has complete schema.org data.
+const RecipeBoxExtract = require('./public/recipe-extract');
 
 const app = express();
 app.disable('x-powered-by');
@@ -2592,7 +2595,20 @@ app.get('/api/fetch-url', async (req, res) => {
         sourceQuality: 'blocked',
       });
     }
-    res.json({ url: target, finalUrl: r.url, title, image, jsonLd, text, helpfulLinks, htmlHash: crypto.createHash('sha256').update(html).digest('hex') });
+    // Deterministic-first: if the page carries complete schema.org/Recipe (or
+    // microdata) structured data, extract it here with no AI. The client uses it
+    // directly and spends no AI Assist; otherwise it falls back to AI extraction.
+    let recipe = null, extractComplete = false, extractSource = null;
+    try {
+      const ex = RecipeBoxExtract.extractFromHtml(html, { url: r.url || target });
+      if (ex && ex.recipe) {
+        recipe = ex.recipe;
+        extractComplete = !!ex.complete;
+        extractSource = ex.source;
+        if (!recipe.heroImage && image) recipe.heroImage = image;
+      }
+    } catch (e) { /* deterministic extraction is best-effort; AI fallback covers it */ }
+    res.json({ url: target, finalUrl: r.url, title, image, jsonLd, text, helpfulLinks, recipe, extractComplete, extractSource, htmlHash: crypto.createHash('sha256').update(html).digest('hex') });
   } catch (err) {
     if (err && err.ssrf) {
       return res.status(400).json({ error: 'That link can’t be imported. Enter a public recipe URL, or use Paste Text or screenshots.', url: target, sourceQuality: 'blocked' });
