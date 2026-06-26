@@ -23,7 +23,8 @@
     "import-test:gate": "node scripts/import-test/gate.js",
     "smoke-test": "node scripts/smoke-test.js",
     "security-smoke-test": "node scripts/security-smoke-test.js",
-    "youtube-parser-test": "node scripts/youtube-parser-test.js"
+    "youtube-parser-test": "node scripts/youtube-parser-test.js",
+    "auth-verification-test": "node scripts/auth-verification-test.js"
   },
   "dependencies": {
     "express": "^4.18.2",

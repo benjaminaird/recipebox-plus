@@ -41,6 +41,7 @@ const PASSWORD_MIN_LENGTH = 6;
 const AUTH_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const AUTH_LIMIT_MAX = 20;
 const RESET_TOKEN_MINUTES = 60;
+const VERIFY_TOKEN_MINUTES = 60 * 24; // email verification links last 24h
 const AI_MONTHLY_LIMIT = Number(process.env.AI_MONTHLY_LIMIT || 50);
 const authAttempts = new Map();
 
@@ -186,6 +187,10 @@ async function getPool() {
     await pool.query('ALTER TABLE profiles ADD COLUMN IF NOT EXISTS password_hash text');
     await pool.query("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS role text NOT NULL DEFAULT 'user'");
     await pool.query('ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_active_at timestamptz');
+    // Email verification. DEFAULT true grandfathers all existing accounts so beta
+    // users are never locked out; only new signups insert email_verified=false.
+    await pool.query('ALTER TABLE profiles ADD COLUMN IF NOT EXISTS email_verified boolean NOT NULL DEFAULT true');
+    await pool.query('ALTER TABLE profiles ADD COLUMN IF NOT EXISTS email_verified_at timestamptz');
     await pool.query(`CREATE TABLE IF NOT EXISTS recipes (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id text NOT NULL,
@@ -250,6 +255,14 @@ async function getPool() {
       created_at timestamptz NOT NULL DEFAULT now()
     )`);
     await pool.query('CREATE INDEX IF NOT EXISTS password_reset_tokens_user_id_idx ON password_reset_tokens (user_id)');
+    await pool.query(`CREATE TABLE IF NOT EXISTS email_verification_tokens (
+      token_hash text PRIMARY KEY,
+      user_id text NOT NULL REFERENCES profiles(user_id) ON DELETE CASCADE,
+      expires_at timestamptz NOT NULL,
+      used_at timestamptz,
+      created_at timestamptz NOT NULL DEFAULT now()
+    )`);
+    await pool.query('CREATE INDEX IF NOT EXISTS email_verification_tokens_user_id_idx ON email_verification_tokens (user_id)');
     await pool.query(`CREATE TABLE IF NOT EXISTS ai_usage_monthly (
       user_id text NOT NULL REFERENCES profiles(user_id) ON DELETE CASCADE,
       period text NOT NULL,
@@ -463,7 +476,9 @@ function escapeHtml(value) {
 function publicUser(row) {
   if (!row) return null;
   const role = row.role || 'user';
-  return { id: row.user_id, email: row.email, displayName: row.display_name || '', role, isMasterAdmin: role === 'master_admin' };
+  // emailVerified defaults to true when the column isn't selected, so callers
+  // that don't fetch it never accidentally show a verify prompt.
+  return { id: row.user_id, email: row.email, displayName: row.display_name || '', role, isMasterAdmin: role === 'master_admin', emailVerified: row.email_verified !== false };
 }
 
 function isMasterAdminUser(user) {
@@ -1015,13 +1030,68 @@ async function sendPasswordResetEmail(email, resetUrl) {
   }
 }
 
+async function sendVerificationEmail(email, verifyUrl) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) throw new Error('Email sending is not configured.');
+  const from = process.env.RESEND_FROM || 'RecipeBox <onboarding@resend.dev>';
+  const safeUrl = escapeHtml(verifyUrl);
+  const html = `
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.5;color:#2F211B">
+      <h1 style="font-family:Georgia,serif">Confirm your email</h1>
+      <p>Welcome to RecipeBox! Tap the button below to confirm your email address. This link expires in 24 hours.</p>
+      <p><a href="${safeUrl}" style="display:inline-block;background:#2C4A33;color:#fff;text-decoration:none;font-weight:700;padding:12px 16px;border-radius:10px">Confirm email</a></p>
+      <p>If you did not create a RecipeBox account, you can ignore this email.</p>
+    </div>`;
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from,
+      to: [email],
+      subject: 'Confirm your RecipeBox email',
+      html,
+      text: `Confirm your RecipeBox email: ${verifyUrl}\n\nThis link expires in 24 hours.`,
+    }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.message || data.error || 'Could not send verification email.');
+  }
+}
+
+// Create a single-use, hashed, expiring email-verification token and return the
+// raw token (mirrors password reset). Caller emails the verify link.
+async function createEmailVerification(db, userId) {
+  const token = crypto.randomBytes(32).toString('base64url');
+  await db.query(
+    `INSERT INTO email_verification_tokens(token_hash, user_id, expires_at)
+     VALUES($1, $2, now() + ($3::text || ' minutes')::interval)`,
+    [hashToken(token), userId, VERIFY_TOKEN_MINUTES]
+  );
+  return token;
+}
+
+// Best-effort: never block signup/resend if email delivery fails or is
+// unconfigured. Returns true if an email was actually sent.
+async function issueVerificationEmail(db, req, userId, email) {
+  if (!process.env.RESEND_API_KEY) return false;
+  try {
+    const token = await createEmailVerification(db, userId);
+    await sendVerificationEmail(email, `${requestOrigin(req)}/?verify=${encodeURIComponent(token)}`);
+    return true;
+  } catch (err) {
+    console.warn('verification email failed:', err.message);
+    return false;
+  }
+}
+
 async function currentUser(req) {
   const db = await getPool();
   if (!db) return null;
   const token = parseCookies(req)[SESSION_COOKIE];
   if (!token) return null;
   const result = await db.query(
-    `SELECT p.user_id, p.email, p.display_name, p.role
+    `SELECT p.user_id, p.email, p.display_name, p.role, p.email_verified
      FROM account_sessions s
      JOIN profiles p ON p.user_id = s.user_id
      WHERE s.token_hash=$1 AND s.expires_at > now()`,
@@ -1587,16 +1657,18 @@ app.post('/api/auth/signup', async (req, res) => {
     if (exists.rows[0]) return res.status(409).json({ error: 'An account already exists for that email. Sign in with your password.' });
     const userId = crypto.randomUUID();
     const role = isConfiguredMasterEmail(email) ? 'master_admin' : 'user';
+    const verified = role === 'master_admin'; // master admin is pre-verified
     await db.query(
-      `INSERT INTO profiles(user_id, email, display_name, role, password_hash)
-       VALUES($1, $2, $3, $4, $5)`,
-      [userId, email, displayName, role, hashPassword(password)]
+      `INSERT INTO profiles(user_id, email, display_name, role, password_hash, email_verified, email_verified_at)
+       VALUES($1, $2, $3, $4, $5, $6, $7)`,
+      [userId, email, displayName, role, hashPassword(password), verified, verified ? new Date() : null]
     );
     if (Array.isArray(req.body.recipes) && req.body.recipes.length) await replaceUserRecipes(userId, req.body.recipes);
     if (req.body.mealPlan && typeof req.body.mealPlan === 'object') await replaceUserMealPlan(userId, req.body.mealPlan);
     await createSession(req, res, userId);
     clearAuthLimit(req);
-    res.json({ ok: true, user: { id: userId, email, displayName, role, isMasterAdmin: role === 'master_admin' } });
+    if (!verified) await issueVerificationEmail(db, req, userId, email); // best-effort
+    res.json({ ok: true, user: { id: userId, email, displayName, role, isMasterAdmin: role === 'master_admin', emailVerified: verified } });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -1607,7 +1679,7 @@ app.post('/api/auth/signin', async (req, res) => {
     if (!db) return res.status(500).json({ error: 'database not configured' });
     await ensureConfiguredMasterAdmin(db);
     const email = normalizeEmail(req.body.email);
-    const result = await db.query('SELECT user_id, email, display_name, role, password_hash FROM profiles WHERE email=$1', [email]);
+    const result = await db.query('SELECT user_id, email, display_name, role, password_hash, email_verified FROM profiles WHERE email=$1', [email]);
     const user = result.rows[0];
     if (!user || !verifyPassword(req.body.password, user.password_hash)) return res.status(401).json({ error: 'Email or password did not match.' });
     if (isConfiguredMasterEmail(email) && user.role !== 'master_admin') {
@@ -1674,6 +1746,50 @@ app.post('/api/auth/reset-password', async (req, res) => {
     clearAuthLimit(req);
     res.clearCookie(SESSION_COOKIE, { path: '/' });
     res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Confirm an email address from the link. Hashed, single-use, expiring token.
+// Returns only ok/verified — no account data. Rate-limited; non-enumerating
+// (an invalid/expired token returns the same generic message regardless).
+app.post('/api/auth/verify-email', async (req, res) => {
+  try {
+    if (!(await checkAuthLimit(req, res))) return;
+    const db = await getPool();
+    if (!db) return res.status(500).json({ error: 'database not configured' });
+    const token = String(req.body.token || '');
+    const result = await db.query(
+      `SELECT token_hash, user_id FROM email_verification_tokens
+       WHERE token_hash=$1 AND used_at IS NULL AND expires_at > now()`,
+      [hashToken(token)]
+    );
+    const row = result.rows[0];
+    if (!row) return res.status(400).json({ error: 'This confirmation link is invalid or has expired. Request a new one from Settings.' });
+    await db.query('BEGIN');
+    try {
+      await db.query('UPDATE email_verification_tokens SET used_at=now() WHERE token_hash=$1', [row.token_hash]);
+      await db.query('UPDATE profiles SET email_verified=true, email_verified_at=now(), updated_at=now() WHERE user_id=$1', [row.user_id]);
+      // Invalidate any other outstanding tokens for this user.
+      await db.query('UPDATE email_verification_tokens SET used_at=now() WHERE user_id=$1 AND used_at IS NULL', [row.user_id]);
+      await db.query('COMMIT');
+    } catch (err) { await db.query('ROLLBACK'); throw err; }
+    clearAuthLimit(req);
+    res.json({ ok: true, verified: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Resend a verification email to the signed-in user (rate-limited).
+app.post('/api/auth/resend-verification', async (req, res) => {
+  try {
+    if (!(await checkAuthLimit(req, res))) return;
+    const db = await getPool();
+    if (!db) return res.status(500).json({ error: 'database not configured' });
+    const user = await currentUser(req);
+    if (!user) return res.status(401).json({ error: 'sign in required' });
+    if (user.email_verified !== false) return res.json({ ok: true, alreadyVerified: true });
+    const sent = await issueVerificationEmail(db, req, user.user_id, user.email);
+    clearAuthLimit(req);
+    res.json({ ok: true, sent });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -2741,6 +2857,7 @@ module.exports._test = {
   isPrivateIp, assertPublicHost,
   periodKey, resetAfter,
   resolveMonthlyCostCap,
+  hashToken, publicUser, VERIFY_TOKEN_MINUTES,
 };
 
 if (require.main === module) {

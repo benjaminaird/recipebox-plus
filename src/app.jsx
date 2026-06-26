@@ -1983,6 +1983,14 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [confirmNewPassword, setConfirmNewPassword] = useState("");
       const [accountMsg, setAccountMsg] = useState("");
       const [accountBusy, setAccountBusy] = useState(false);
+      const [verifyState, setVerifyState] = useState("");
+      async function resendVerification() {
+        setVerifyState("sending");
+        try {
+          const data = await postJson("/api/auth/resend-verification", {});
+          setVerifyState(data.alreadyVerified ? "verified" : (data.sent ? "sent" : "unavailable"));
+        } catch { setVerifyState("error"); }
+      }
       const [backupMsg, setBackupMsg] = useState("");
       const [tagBusy, setTagBusy] = useState(false);
       const [tagMsg, setTagMsg] = useState("");
@@ -2241,6 +2249,15 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   <div style={{fontSize:"0.86em",color:C.mid,lineHeight:1.5,marginBottom:12}}>
                     Signed in as <strong>{account.email}</strong>. Your recipes and meal plan sync to this account.
                   </div>
+                  {account.emailVerified === false && (
+                    <div style={{background:C.goldPale,border:"1px solid "+C.goldLight,borderRadius:11,padding:"12px 14px",marginBottom:12}}>
+                      <div style={{fontWeight:700,color:C.brown,fontSize:"0.86em",marginBottom:3}}>Confirm your email</div>
+                      <div style={{fontSize:"0.8em",color:C.mid,lineHeight:1.45,marginBottom:9}}>We sent a confirmation link to {account.email}. Tap it to confirm your address. {verifyState==="sent" && "Sent — check your inbox."} {verifyState==="verified" && "Already confirmed — refresh the app."} {verifyState==="unavailable" && "Email isn't configured yet; you can keep using RecipeBox."} {verifyState==="error" && "Couldn't send right now — try again shortly."}</div>
+                      <button onClick={resendVerification} disabled={verifyState==="sending"} style={{...S.ghostBtn,borderRadius:9,padding:"8px 12px",fontSize:"0.78em",opacity:verifyState==="sending"?0.6:1}}>
+                        {verifyState==="sending" ? "Sending…" : "Resend confirmation email"}
+                      </button>
+                    </div>
+                  )}
                   <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                     <button onClick={migrateLocal} disabled={accountBusy} style={{...S.primaryBtn,borderRadius:9,padding:"9px 11px",fontSize:"0.78em",opacity:accountBusy?0.65:1}}>
                       Sync this device
@@ -4826,6 +4843,29 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         setScreen("view");
       }
       const resetToken = (() => { try { return new URLSearchParams(window.location.search).get("reset"); } catch { return null; } })();
+      const [verifyMsg, setVerifyMsg] = useState(null);
+
+      // Email confirmation link (?verify=token): confirm, strip the param, and
+      // refresh the session so the "verify your email" prompt clears.
+      useEffect(() => {
+        let token = null;
+        try { token = new URLSearchParams(window.location.search).get("verify"); } catch {}
+        if (!token) return;
+        try { window.history.replaceState({}, "", window.location.pathname); } catch {}
+        (async () => {
+          try {
+            const res = await apiFetch("/api/auth/verify-email", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ token }) });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.verified) {
+              setVerifyMsg({ ok:true, text:"Your email is confirmed. Thanks!" });
+              const s = await fetchJson("/api/auth/session", { user:null });
+              if (s && s.user) setAccount(s.user);
+            } else {
+              setVerifyMsg({ ok:false, text: data.error || "That confirmation link is invalid or expired." });
+            }
+          } catch { setVerifyMsg({ ok:false, text:"Could not confirm your email. Try again from Settings." }); }
+        })();
+      }, []);
 
       useEffect(() => { saveRecipes(recipes); }, [recipes]);
       useEffect(() => { saveShoppingList(shoppingList); }, [shoppingList]);
@@ -4944,6 +4984,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       return (
         <>
           <div key={navKey} className={navClass} style={{minHeight:"100dvh"}}>{body}</div>
+          {verifyMsg && (
+            <div onClick={() => setVerifyMsg(null)} style={{position:"fixed",left:"50%",transform:"translateX(-50%)",bottom:"calc(env(safe-area-inset-bottom, 0px) + "+(showNav?"78px":"18px")+")",zIndex:60,maxWidth:"min(440px, calc(100vw - 24px))",background:verifyMsg.ok?C.green:C.red,color:C.white,borderRadius:12,padding:"12px 16px",fontSize:"0.85em",fontWeight:600,boxShadow:"0 10px 30px rgba(0,0,0,0.25)",cursor:"pointer",lineHeight:1.4}}>
+              {verifyMsg.text} <span style={{opacity:0.7,fontWeight:400}}> · tap to dismiss</span>
+            </div>
+          )}
           {showNav && <BottomNav tab={tab} setTab={setMainTab} badges={{settings:newFeedback}} />}
         </>
       );
