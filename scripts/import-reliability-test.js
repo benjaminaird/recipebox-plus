@@ -50,6 +50,12 @@ async function resolves(promise, label) {
   await rejects(assertPublicHost("169.254.169.254"), "cloud metadata IP blocked");
   await rejects(assertPublicHost("10.1.2.3"), "private IP blocked");
   await rejects(assertPublicHost("foo.internal"), "internal hostname blocked");
+  // Numeric/octal/hex-encoded loopback forms must be rejected pre-DNS so an
+  // attacker can't sneak 127.0.0.1 past the guard via an alternate encoding.
+  await rejects(assertPublicHost("2130706433"), "decimal-encoded loopback blocked");
+  await rejects(assertPublicHost("0x7f000001"), "hex-encoded loopback blocked");
+  await rejects(assertPublicHost("0177.0.0.1"), "octal-labeled loopback blocked");
+  await rejects(assertPublicHost("0x7f.0.0.1"), "hex-labeled loopback blocked");
   await resolves(assertPublicHost("8.8.8.8"), "public literal IP allowed");
 
   console.log("import-reliability-test: ok");

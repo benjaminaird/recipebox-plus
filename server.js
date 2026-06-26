@@ -160,6 +160,25 @@ const AI_FEATURE_PATTERNS = [
 const NON_BILLABLE_FEATURES = new Set(['repair']);
 function isBillableAiFeature(feature) { return !NON_BILLABLE_FEATURES.has(feature); }
 
+// The /api/ai proxy forwards the client body to Anthropic, so the client could
+// otherwise pick an arbitrary (expensive) model or a huge max_tokens. Clamp
+// both server-side: coerce any non-allowlisted model to the default, and cap
+// output tokens. Coerce rather than reject so a future model rename can't break
+// the app. Cost is further bounded by the per-user/IP rate limits + cost cap.
+const ALLOWED_AI_MODELS = new Set([
+  'claude-sonnet-4-5-20250929',
+  'claude-haiku-4-5-20251001',
+]);
+const DEFAULT_AI_MODEL = 'claude-sonnet-4-5-20250929';
+const MAX_AI_OUTPUT_TOKENS = 8000;
+function sanitizeAiBody(body) {
+  const b = (body && typeof body === 'object') ? { ...body } : {};
+  if (!ALLOWED_AI_MODELS.has(String(b.model || ''))) b.model = DEFAULT_AI_MODEL;
+  const n = Number(b.max_tokens);
+  b.max_tokens = Number.isFinite(n) ? Math.min(Math.max(Math.floor(n), 1), MAX_AI_OUTPUT_TOKENS) : 4096;
+  return b;
+}
+
 let pool = null;
 async function getPool() {
   if (!process.env.DATABASE_URL) return null;
@@ -502,6 +521,23 @@ function requestOrigin(req) {
   const proto = String(req.headers['x-forwarded-proto'] || req.protocol || 'http').split(',')[0].trim();
   const host = req.headers['x-forwarded-host'] || req.headers.host;
   return host ? `${proto}://${host}` : 'http://localhost:3000';
+}
+
+// Origin used to build links emailed to users (password reset, email
+// verification). This must NEVER trust an attacker-controllable Host /
+// X-Forwarded-Host header — otherwise a spoofed Host could point a victim's
+// reset/verify link at an attacker domain and leak the token. We use the
+// configured APP_BASE_URL, fall back to the known production domain, and only
+// honour the request host for genuine localhost development.
+const PROD_APP_ORIGIN = 'https://recipebox-kappa.vercel.app';
+function trustedAppOrigin(req) {
+  if (process.env.APP_BASE_URL) return process.env.APP_BASE_URL.replace(/\/$/, '');
+  const host = String((req && req.headers && (req.headers['x-forwarded-host'] || req.headers.host)) || '');
+  if (/^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host)) {
+    const proto = String((req.headers['x-forwarded-proto'] || req.protocol || 'http')).split(',')[0].trim();
+    return `${proto}://${host}`;
+  }
+  return PROD_APP_ORIGIN;
 }
 
 function hashPassword(password, salt) {
@@ -1077,7 +1113,7 @@ async function issueVerificationEmail(db, req, userId, email) {
   if (!process.env.RESEND_API_KEY) return false;
   try {
     const token = await createEmailVerification(db, userId);
-    await sendVerificationEmail(email, `${requestOrigin(req)}/?verify=${encodeURIComponent(token)}`);
+    await sendVerificationEmail(email, `${trustedAppOrigin(req)}/?verify=${encodeURIComponent(token)}`);
     return true;
   } catch (err) {
     console.warn('verification email failed:', err.message);
@@ -1374,6 +1410,17 @@ async function assertPublicHost(hostname) {
     if (isPrivateIp(host)) throw ssrfError('blocked host');
     return;
   }
+  // Block obfuscated numeric IP encodings (decimal/hex integer, or dotted forms
+  // using octal/hex labels, e.g. 2130706433, 0x7f000001, 0177.0.0.1). These are
+  // NOT valid IP literals, so they'd otherwise fall through to DNS, where
+  // getaddrinfo can interpret them as a private IP differently than this check.
+  const labels = host.split('.');
+  const numericEncoding =
+    /^0x[0-9a-f]+$/i.test(host) ||
+    /^[0-9]+$/.test(host) ||
+    labels.some((l) => /^0x[0-9a-f]+$/i.test(l)) ||
+    labels.some((l) => /^0[0-7]+$/.test(l));
+  if (numericEncoding) throw ssrfError('blocked host');
   let addrs;
   try { addrs = await dns.lookup(host, { all: true }); } catch { throw ssrfError('unresolvable host'); }
   if (!addrs || !addrs.length) throw ssrfError('unresolvable host');
@@ -1709,7 +1756,7 @@ app.post('/api/auth/request-password-reset', async (req, res) => {
          VALUES($1, $2, now() + ($3::text || ' minutes')::interval)`,
         [hashToken(token), user.user_id, RESET_TOKEN_MINUTES]
       );
-      const resetUrl = `${requestOrigin(req)}/?reset=${encodeURIComponent(token)}`;
+      const resetUrl = `${trustedAppOrigin(req)}/?reset=${encodeURIComponent(token)}`;
       await sendPasswordResetEmail(user.email, resetUrl);
     }
     clearAuthLimit(req);
@@ -2798,7 +2845,7 @@ app.post('/api/ai', async function(req, res) {
       r = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify(req.body),
+        body: JSON.stringify(sanitizeAiBody(req.body)),
       }, 55000);
     } catch (err) {
       await logAiUsageEvent({ requestId, user, feature, model, tier, success: false, errorMessage: isAbortError(err) ? 'anthropic timeout' : err.message });
@@ -2858,6 +2905,7 @@ module.exports._test = {
   periodKey, resetAfter,
   resolveMonthlyCostCap,
   hashToken, publicUser, VERIFY_TOKEN_MINUTES,
+  trustedAppOrigin, sanitizeAiBody, ALLOWED_AI_MODELS, DEFAULT_AI_MODEL, MAX_AI_OUTPUT_TOKENS,
 };
 
 if (require.main === module) {
