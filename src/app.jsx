@@ -1085,11 +1085,24 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       );
     }
 
+    // Generic, on-theme placeholder emblem for recipes without a photo — a
+    // serving cloche. Used instead of a category stock image (which mismatched
+    // the recipe, e.g. a pie photo on an ice cream recipe).
+    function DishGlyph({ size = 42, color = "rgba(255,249,238,0.36)" }) {
+      return (
+        <svg width={size} height={size} viewBox="0 0 48 48" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M8 32a16 16 0 0 1 32 0" />
+          <line x1="5" y1="32" x2="43" y2="32" />
+          <circle cx="24" cy="12.6" r="1.5" fill={color} stroke="none" />
+          <path d="M24 14.1v2" />
+        </svg>
+      );
+    }
+
     // Recipe Card
     function RecipeCard({ recipe, onClick, onFavorite, onTagClick }) {
       const color = cardColor(recipe.title);
-      const fallbackImage = CATEGORY_IMAGES[recipe.category] || "";
-      const cardImage = recipe.heroImage || fallbackImage;
+      const cardImage = recipe.heroImage || "";
       const hasImage = cardImage && cardImage.length > 0;
       return (
         <div onClick={onClick} className="card" style={{...S.card,overflow:"hidden"}}>
@@ -1099,7 +1112,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 style={{width:"100%",height:"100%",objectFit:"cover",opacity:recipe.heroImage?0.85:0.72}}
                 onError={(e) => { e.target.style.display="none"; e.target.parentNode.style.background=`linear-gradient(135deg, ${color}, ${color}BB)`; }} />
             ) : (
-              <span style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",fontFamily:SERIF,fontSize:"3em",color:"rgba(255,255,255,0.2)",fontStyle:"italic",userSelect:"none"}}>{recipe.title?.[0]}</span>
+              <span style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",userSelect:"none"}}><DishGlyph size={42} /></span>
             )}
             <button onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(); }}
               style={{position:"absolute",top:8,right:8,background:"rgba(32,20,14,0.44)",border:"1px solid rgba(255,255,255,0.18)",borderRadius:"50%",width:32,height:32,cursor:"pointer",fontSize:"0.95em",color:recipe.favorite?C.goldLight:"rgba(255,255,255,0.78)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2}}>
@@ -1305,14 +1318,14 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     <h3 style={{margin:"0 0 13px",fontFamily:SERIF,fontSize:"1.25em",color:C.dark,fontWeight:400}}>Recently Saved</h3>
                     <div style={{display:"flex",gap:13,overflowX:"auto",WebkitOverflowScrolling:"touch",margin:"0 -16px",padding:"0 16px 6px"}}>
                       {recentRecipes.map((r) => {
-                        const img = r.heroImage || CATEGORY_IMAGES[r.category] || "";
+                        const img = r.heroImage || "";
                         return (
                           <button key={r.id} onClick={() => onOpen(r)}
                             style={{flexShrink:0,width:150,textAlign:"left",border:"1px solid "+C.border,background:C.paper,borderRadius:14,overflow:"hidden",cursor:"pointer",fontFamily:SANS,padding:0,boxShadow:"0 6px 16px rgba(90,56,39,0.08)",WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>
                             <div style={{height:92,position:"relative",overflow:"hidden",background:img?"#000":`linear-gradient(135deg, ${cardColor(r.title)}, ${C.brown})`}}>
                               {img
                                 ? <img src={img} alt="" style={{width:"100%",height:"100%",objectFit:"cover",opacity:0.85}} onError={(e)=>{e.target.style.display="none";}} />
-                                : <span style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",fontFamily:SERIF,fontSize:"2.2em",color:"rgba(255,255,255,0.25)",fontStyle:"italic"}}>{r.title?.[0]}</span>}
+                                : <span style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)"}}><DishGlyph size={36} /></span>}
                               {r.cookTime && <span style={{position:"absolute",left:7,bottom:7,background:"rgba(32,20,14,0.55)",color:C.white,borderRadius:10,padding:"2px 7px",fontSize:"0.66em",fontWeight:700,display:"inline-flex",alignItems:"center",gap:3}}><Icon name="timer" size={10} /> {r.cookTime}</span>}
                             </div>
                             <div style={{padding:"9px 11px 11px",fontFamily:SERIF,fontSize:"0.9em",color:C.dark,lineHeight:1.25,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",minHeight:"2.4em"}}>{r.title}</div>
@@ -1556,7 +1569,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   ) : (
                     <div style={{display:"grid",gap:8}}>
                       {meals.map((r, i) => {
-                        const img = r.heroImage || CATEGORY_IMAGES[r.category] || "";
+                        const img = r.heroImage || "";
                         return (
                         <div key={i} className="meal-plan-row">
                           <div style={{width:38,height:38,borderRadius:8,overflow:"hidden",background:img?"#000":cardColor(r.title),display:"flex",alignItems:"center",justifyContent:"center",fontFamily:SERIF,color:"rgba(255,255,255,0.7)",fontSize:"1.05em",flexShrink:0}}>
@@ -1608,7 +1621,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                       {recipes.length === 0 ? "Your RecipeBox is empty — add a recipe first." : "No recipes match. Try a different filter or search."}
                     </div>
                   ) : pickerRecipes.map((r) => {
-                    const img = r.heroImage || CATEGORY_IMAGES[r.category] || "";
+                    const img = r.heroImage || "";
                     return (
                     <div key={r.id} onClick={() => addRecipe(picking.day, r.id)}
                       style={{display:"flex",alignItems:"center",gap:11,padding:"9px 8px",borderRadius:8,cursor:"pointer",borderBottom:"1px solid "+C.cream2,WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>
