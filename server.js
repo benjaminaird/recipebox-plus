@@ -1647,6 +1647,16 @@ function parseJsonLd(html) {
   }
   return parsed;
 }
+// Heuristic: did the fetcher get a bot-challenge / consent / block page instead
+// of the recipe? True only when there's no structured recipe AND the body is a
+// thin or boilerplate challenge — a real recipe page has structured data or
+// substantial readable text, so legitimate pages don't trip this.
+const BLOCK_MARKERS = /just a moment|enable javascript|are you a (?:robot|human)|attention required|access denied|verify you are human|captcha|cf-browser-verification|requests from your network/i;
+function looksBlockedPage({ title = '', text = '', hasRecipe = false } = {}) {
+  if (hasRecipe) return false;
+  if (BLOCK_MARKERS.test(String(title) + ' ' + String(text).slice(0, 1200))) return true;
+  return String(text).length < 600;
+}
 function flattenJsonLd(nodes) {
   const out = [];
   const walk = (n) => {
@@ -2566,9 +2576,14 @@ app.get('/api/fetch-url', async (req, res) => {
   try {
     const r = await safeFetch(target, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/124 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
       },
     }, 9000);
     const contentType = String(r.headers.get('content-type') || '');
@@ -2586,15 +2601,6 @@ app.get('/api/fetch-url', async (req, res) => {
     const image = bestImage(target, html, jsonLd);
     const helpfulLinks = extractHelpfulLinks(r.url || target, html);
     const text = cleanText(html).slice(0, 18000);
-    if (/^just a moment/i.test(title) || /^just a moment/i.test(text) || text.length < 80) {
-      return res.status(422).json({
-        error: 'RecipeBox could not read this recipe page. The site may be blocking automated access. Try Paste Text or screenshots instead.',
-        url: target,
-        finalUrl: r.url,
-        title,
-        sourceQuality: 'blocked',
-      });
-    }
     // Deterministic-first: if the page carries complete schema.org/Recipe (or
     // microdata) structured data, extract it here with no AI. The client uses it
     // directly and spends no AI Assist; otherwise it falls back to AI extraction.
@@ -2608,6 +2614,21 @@ app.get('/api/fetch-url', async (req, res) => {
         if (!recipe.heroImage && image) recipe.heroImage = image;
       }
     } catch (e) { /* deterministic extraction is best-effort; AI fallback covers it */ }
+    // Block / bot-challenge detection. Big publishers (esp. Dotdash Meredith) serve
+    // a tiny JS-challenge or consent page to datacenter IPs instead of the recipe.
+    // If we got NO structured recipe AND the body is a thin/boilerplate challenge,
+    // fail cleanly to Paste Text rather than feeding the AI a near-empty page (which
+    // would hallucinate or fail). A real recipe page has structured data OR
+    // substantial readable text, so this won't trip legitimate pages.
+    if (looksBlockedPage({ title, text, hasRecipe: !!recipe })) {
+      return res.status(422).json({
+        error: 'RecipeBox could not read this recipe page — the site is blocking automated access. Use Paste Text (copy the recipe) or upload a screenshot instead.',
+        url: target,
+        finalUrl: r.url,
+        title,
+        sourceQuality: 'blocked',
+      });
+    }
     res.json({ url: target, finalUrl: r.url, title, image, jsonLd, text, helpfulLinks, recipe, extractComplete, extractSource, htmlHash: crypto.createHash('sha256').update(html).digest('hex') });
   } catch (err) {
     if (err && err.ssrf) {
@@ -3087,7 +3108,7 @@ module.exports._test = {
   chooseSpendBucket, planMonthlyCredits, referralBonusAllowed,
   AI_ACTION_COSTS, aiAssistCost, splitAssistCharge, FREE_WELCOME_ASSISTS, AI_BURST_MAX,
   fetchWithTimeout, readBodyCapped, isAbortError,
-  isPrivateIp, assertPublicHost,
+  isPrivateIp, assertPublicHost, looksBlockedPage,
   periodKey, resetAfter,
   resolveMonthlyCostCap,
   hashToken, publicUser, VERIFY_TOKEN_MINUTES,

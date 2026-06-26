@@ -1,7 +1,7 @@
 const assert = require("assert");
 const http = require("http");
 const app = require("../server");
-const { fetchWithTimeout, readBodyCapped, isAbortError, isPrivateIp, assertPublicHost } = app._test;
+const { fetchWithTimeout, readBodyCapped, isAbortError, isPrivateIp, assertPublicHost, looksBlockedPage } = app._test;
 
 async function rejects(promise, label) {
   let threw = false;
@@ -57,6 +57,14 @@ async function resolves(promise, label) {
   await rejects(assertPublicHost("0177.0.0.1"), "octal-labeled loopback blocked");
   await rejects(assertPublicHost("0x7f.0.0.1"), "hex-labeled loopback blocked");
   await resolves(assertPublicHost("8.8.8.8"), "public literal IP allowed");
+
+  // --- bot-challenge / block-page detection (so blocked fetches fail cleanly
+  //     to Paste Text instead of feeding the AI a near-empty challenge page) ---
+  assert.strictEqual(looksBlockedPage({ title: "Just a moment...", text: "Checking your browser before accessing.", hasRecipe: false }), true, "Cloudflare 'Just a moment' is blocked");
+  assert.strictEqual(looksBlockedPage({ title: "Access Denied", text: "x".repeat(2000), hasRecipe: false }), true, "explicit block marker caught even with long body");
+  assert.strictEqual(looksBlockedPage({ title: "", text: "tiny stub page", hasRecipe: false }), true, "thin body (<600 chars) treated as blocked");
+  assert.strictEqual(looksBlockedPage({ title: "Banana Bread", text: "x".repeat(5000), hasRecipe: false }), false, "a substantial real page is NOT blocked");
+  assert.strictEqual(looksBlockedPage({ title: "Just a moment...", text: "short", hasRecipe: true }), false, "a structured recipe is never treated as blocked");
 
   console.log("import-reliability-test: ok");
 })().catch((err) => { console.error(err); process.exit(1); });
