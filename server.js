@@ -2570,6 +2570,59 @@ app.post('/api/admin/whatsnext-sync', requireAuth, requireMasterAdmin, async (re
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Turn fetched HTML into the /api/fetch-url payload: structured-data recipe,
+// jsonLd, title, hero image, helpful links, readable text, and a `blocked` flag.
+// Pure (string in -> object out) so it can run on either the direct fetch or the
+// scraping-proxy fallback, and be unit-tested offline.
+function buildPageResult(html, finalUrl, target) {
+  const jsonLd = parseJsonLd(html);
+  const title = matchAttr(html, /<title[^>]*>([\s\S]*?)<\/title>/i).replace(/\s+/g, ' ').trim();
+  const image = bestImage(target, html, jsonLd);
+  const helpfulLinks = extractHelpfulLinks(finalUrl || target, html);
+  const text = cleanText(html).slice(0, 18000);
+  let recipe = null, extractComplete = false, extractSource = null;
+  try {
+    const ex = RecipeBoxExtract.extractFromHtml(html, { url: finalUrl || target });
+    if (ex && ex.recipe) {
+      recipe = ex.recipe; extractComplete = !!ex.complete; extractSource = ex.source;
+      if (!recipe.heroImage && image) recipe.heroImage = image;
+    }
+  } catch (e) { /* deterministic extraction is best-effort */ }
+  const blocked = looksBlockedPage({ title, text, hasRecipe: !!recipe });
+  return { title, image, jsonLd, text, helpfulLinks, recipe, extractComplete, extractSource, blocked, htmlHash: crypto.createHash('sha256').update(html).digest('hex') };
+}
+
+// Build the ScraperAPI request URL. ScraperAPI returns the RAW HTML through a
+// residential/premium proxy, so deterministic structured-data extraction still
+// works on bot-blocked sites (keeping those imports free of an AI Assist). We
+// don't render JS — recipe JSON-LD is in the server HTML. Pure/testable.
+function scraperRequestUrl(target, opts) {
+  opts = opts || {};
+  const params = new URLSearchParams({ api_key: opts.key || '', url: target, render: 'false' });
+  const tier = opts.tier || 'premium';
+  if (tier === 'premium') params.set('premium', 'true');
+  else if (tier === 'ultra') params.set('ultra_premium', 'true');
+  return 'https://api.scraperapi.com/?' + params.toString();
+}
+
+// Fallback fetch through ScraperAPI when a direct fetch was bot-blocked. Gated on
+// SCRAPER_API_KEY (no key -> no-op, zero dependency / cost) and a daily cap so a
+// runaway loop can't burn credits. Only ever called for an already-validated
+// public target that we couldn't read directly. Returns raw HTML or null.
+async function fetchViaScraper(target) {
+  const key = process.env.SCRAPER_API_KEY;
+  if (!key) return null;
+  const cap = Number(process.env.SCRAPER_DAILY_CAP || 500);
+  const allowance = await checkRateLimit('scraper:global', 'scrape', cap, 'day');
+  if (!allowance.allowed) return null;
+  const endpoint = scraperRequestUrl(target, { key, tier: process.env.SCRAPER_PROXY_TIER || 'premium' });
+  try {
+    const r = await fetchWithTimeout(endpoint, { headers: { 'Accept': 'text/html,application/xhtml+xml' } }, 30000);
+    if (!r.ok) return null;
+    return (await readBodyCapped(r)) || null;
+  } catch (e) { return null; }
+}
+
 app.get('/api/fetch-url', async (req, res) => {
   const target = req.query.url;
   if (!target || !/^https?:\/\//i.test(target)) return res.status(400).json({ error: 'bad url' });
@@ -2594,42 +2647,31 @@ app.get('/api/fetch-url', async (req, res) => {
     if (html === null) {
       return res.status(422).json({ error: 'This page is too large to read automatically. Try Paste Text or screenshots instead.', url: target, finalUrl: r.url, sourceQuality: 'blocked' });
     }
-    const jsonLd = parseJsonLd(html);
-    const title = matchAttr(html, /<title[^>]*>([\s\S]*?)<\/title>/i)
-      .replace(/\s+/g, ' ')
-      .trim();
-    const image = bestImage(target, html, jsonLd);
-    const helpfulLinks = extractHelpfulLinks(r.url || target, html);
-    const text = cleanText(html).slice(0, 18000);
-    // Deterministic-first: if the page carries complete schema.org/Recipe (or
-    // microdata) structured data, extract it here with no AI. The client uses it
-    // directly and spends no AI Assist; otherwise it falls back to AI extraction.
-    let recipe = null, extractComplete = false, extractSource = null;
-    try {
-      const ex = RecipeBoxExtract.extractFromHtml(html, { url: r.url || target });
-      if (ex && ex.recipe) {
-        recipe = ex.recipe;
-        extractComplete = !!ex.complete;
-        extractSource = ex.source;
-        if (!recipe.heroImage && image) recipe.heroImage = image;
+    const finalUrl = r.url || target;
+    // Deterministic-first: extract schema.org/microdata here with no AI. When the
+    // page is bot-blocked (big publishers serve a JS-challenge/consent stub to
+    // datacenter IPs), retry once through the scraping-proxy fallback, which
+    // returns the real HTML so deterministic extraction still applies. The retry
+    // is a no-op unless SCRAPER_API_KEY is set.
+    let result = buildPageResult(html, finalUrl, target);
+    let via = 'direct';
+    if (result.blocked) {
+      const scrapedHtml = await fetchViaScraper(target);
+      if (scrapedHtml) {
+        const retry = buildPageResult(scrapedHtml, finalUrl, target);
+        if (!retry.blocked) { result = retry; via = 'proxy'; }
       }
-    } catch (e) { /* deterministic extraction is best-effort; AI fallback covers it */ }
-    // Block / bot-challenge detection. Big publishers (esp. Dotdash Meredith) serve
-    // a tiny JS-challenge or consent page to datacenter IPs instead of the recipe.
-    // If we got NO structured recipe AND the body is a thin/boilerplate challenge,
-    // fail cleanly to Paste Text rather than feeding the AI a near-empty page (which
-    // would hallucinate or fail). A real recipe page has structured data OR
-    // substantial readable text, so this won't trip legitimate pages.
-    if (looksBlockedPage({ title, text, hasRecipe: !!recipe })) {
+    }
+    if (result.blocked) {
       return res.status(422).json({
         error: 'RecipeBox could not read this recipe page — the site is blocking automated access. Use Paste Text (copy the recipe) or upload a screenshot instead.',
         url: target,
-        finalUrl: r.url,
-        title,
+        finalUrl,
+        title: result.title,
         sourceQuality: 'blocked',
       });
     }
-    res.json({ url: target, finalUrl: r.url, title, image, jsonLd, text, helpfulLinks, recipe, extractComplete, extractSource, htmlHash: crypto.createHash('sha256').update(html).digest('hex') });
+    res.json({ url: target, finalUrl, via, title: result.title, image: result.image, jsonLd: result.jsonLd, text: result.text, helpfulLinks: result.helpfulLinks, recipe: result.recipe, extractComplete: result.extractComplete, extractSource: result.extractSource, htmlHash: result.htmlHash });
   } catch (err) {
     if (err && err.ssrf) {
       return res.status(400).json({ error: 'That link can’t be imported. Enter a public recipe URL, or use Paste Text or screenshots.', url: target, sourceQuality: 'blocked' });
@@ -3108,7 +3150,7 @@ module.exports._test = {
   chooseSpendBucket, planMonthlyCredits, referralBonusAllowed,
   AI_ACTION_COSTS, aiAssistCost, splitAssistCharge, FREE_WELCOME_ASSISTS, AI_BURST_MAX,
   fetchWithTimeout, readBodyCapped, isAbortError,
-  isPrivateIp, assertPublicHost, looksBlockedPage,
+  isPrivateIp, assertPublicHost, looksBlockedPage, buildPageResult, scraperRequestUrl,
   periodKey, resetAfter,
   resolveMonthlyCostCap,
   hashToken, publicUser, VERIFY_TOKEN_MINUTES,
