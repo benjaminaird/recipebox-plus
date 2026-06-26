@@ -2083,6 +2083,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         setAccountMsg("");
         try {
           await postJson("/api/auth/delete-account", { password:deletePassword });
+          // Wipe local device copies too (recipes mirror, meal plan, shopping
+          // list, pantry staples) so no personal data lingers after deletion.
+          try { [RECIPES_KEY, MEALPLAN_KEY, SHOPPING_KEY, PANTRY_KEY].forEach((k) => localStorage.removeItem(k)); } catch {}
           setAccount(null);
           setDeleteConfirm("");
           setDeletePassword("");
@@ -2175,14 +2178,22 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       }
       function exportBackup() {
         const data = backupBase();
+        // Include the local-only data (shopping list + pantry staples) so a full
+        // export is genuinely complete. These live only on this device.
+        let shoppingList = null, pantryStaples = null;
+        try { shoppingList = JSON.parse(localStorage.getItem(SHOPPING_KEY) || "null"); } catch {}
+        try { pantryStaples = JSON.parse(localStorage.getItem(PANTRY_KEY) || "null"); } catch {}
         downloadJson("recipebox-backup-"+data.stamp+".json", {
           app:"RecipeBox",
-          version:1,
+          version:2,
           exportedAt:new Date().toISOString(),
+          account: account ? { email: account.email } : null,
           recipes:data.recipes,
           mealPlan:data.mealPlan,
+          shoppingList: shoppingList || undefined,
+          pantryStaples: Array.isArray(pantryStaples) ? pantryStaples : undefined,
         });
-        setBackupMsg("Full RecipeBox backup exported.");
+        setBackupMsg("Full RecipeBox backup exported (recipes, tags, meal plan, shopping list, pantry).");
       }
       async function restoreBackup(file) {
         if (!file) return;
@@ -2528,7 +2539,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               <div style={{...S.card,padding:16,border:"1px solid "+C.redPale,background:C.paper}}>
                 <div style={{fontFamily:SERIF,fontSize:"1.05em",color:C.dark,marginBottom:4}}>Danger Zone</div>
                 <div style={{fontWeight:900,color:C.red,fontSize:"0.86em",marginBottom:6}}>Delete account</div>
-                <div style={{fontSize:"0.78em",color:C.light,lineHeight:1.45,marginBottom:10}}>This permanently deletes your account, recipes, meal plan, and sessions from RecipeBox cloud storage.</div>
+                <div style={{fontSize:"0.78em",color:C.light,lineHeight:1.45,marginBottom:10}}>This permanently deletes your account, recipes, meal plan, sessions, and usage history from RecipeBox cloud storage, and clears your shopping list and pantry from this device. This can't be undone — export a backup first if you want a copy.</div>
                 <div style={{display:"grid",gap:8}}>
                   <input value={deleteConfirm} onChange={(e)=>setDeleteConfirm(e.target.value)} placeholder="Type DELETE"
                     style={{...S.input,width:"100%",padding:"9px 11px",fontSize:"0.84em"}} />
