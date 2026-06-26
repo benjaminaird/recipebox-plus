@@ -113,6 +113,13 @@ assert.strictEqual(Extract.parseYield(6), 6);
 assert.strictEqual(Extract.parseYield("Serves 8"), 8);
 assert.strictEqual(Extract.parseYield(["12", "12 cookies"]), 12);
 assert.strictEqual(Extract.parseYield("a lot"), null);
+// Real-world yields (from live Sally's Baking Addiction / Budget Bytes probes).
+assert.strictEqual(Extract.parseYield("1 loaf (12 slices)"), 12, "prefer the explicit slice count over '1 loaf'");
+assert.strictEqual(Extract.parseYield("2 dozen cookies"), 24, "'2 dozen' expands to 24");
+assert.strictEqual(Extract.parseYield("dozen"), 12, "bare 'dozen' is 12");
+assert.strictEqual(Extract.parseYield("1 loaf"), null, "a bare '1 loaf' is not '1 serving' -> decline");
+assert.strictEqual(Extract.parseYield("Makes 1 9x5-inch loaf"), null, "decline a misleading whole-item yield of 1");
+assert.strictEqual(Extract.parseYield(["1 loaf", "12 servings"]), 12, "use the real serving count from the array");
 assert.strictEqual(Extract.decodeEntities("salt &amp; pepper, you&#39;ll love it"), "salt & pepper, you'll love it");
 // Ingredient splitting: quantity + known unit + name; unknown "unit" stays in name.
 assert.deepStrictEqual(

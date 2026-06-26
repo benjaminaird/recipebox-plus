@@ -115,14 +115,31 @@
     return { minutes: minutes, display: parts.join(" ") || (minutes + " min") };
   }
 
-  // recipeYield can be a number, "4", "4 servings", or an array of those.
+  // recipeYield can be a number, "4", "4 servings", "1 loaf (12 slices)",
+  // "2 dozen cookies", or an array of those. Parse a USEFUL serving count:
+  // prefer an explicit slice/serving count, expand "dozen", and decline a bare
+  // "1 loaf/cake/pie" (which isn't really 1 serving) rather than mislead the
+  // scaler — better to leave servings unset than assert "1 serving".
+  var WHOLE_ITEM = /\b(loaf|loaves|cake|pie|tart|pan|dish|casserole|bundt|round|pizza|crust|sheet)\b/i;
   function parseYield(y) {
     var vals = asArray(y);
+    // 1) An explicit count of servings/slices/pieces wins (e.g. "1 loaf (12 slices)").
     for (var i = 0; i < vals.length; i++) {
-      var v = vals[i];
+      var p = String(vals[i] == null ? "" : vals[i]).match(/\(?\b(\d+)\s*(?:slices|servings?|pieces|portions|bars|cookies|muffins|squares)\b/i);
+      if (p) { var pn = Number(p[1]); if (pn > 0) return pn; }
+    }
+    // 2) "dozen" -> x12.
+    for (var j = 0; j < vals.length; j++) {
+      var dz = String(vals[j] == null ? "" : vals[j]).toLowerCase().match(/(\d+(?:\.\d+)?)?\s*dozen/);
+      if (dz) { var d = dz[1] ? Number(dz[1]) : 1; if (d > 0) return Math.round(d * 12); }
+    }
+    // 3) Leading/explicit number, skipping a misleading bare "1 loaf/cake/…".
+    for (var k = 0; k < vals.length; k++) {
+      var v = vals[k];
       if (typeof v === "number" && isFinite(v) && v > 0) return Math.round(v);
-      var m = String(v == null ? "" : v).match(/\d+/);
-      if (m) { var n = Number(m[0]); if (n > 0) return n; }
+      var s = String(v == null ? "" : v);
+      var m = s.match(/\d+/);
+      if (m) { var n = Number(m[0]); if (n > 0) { if (n === 1 && WHOLE_ITEM.test(s)) continue; return n; } }
     }
     return null;
   }
