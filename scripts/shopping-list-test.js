@@ -84,4 +84,62 @@ assert.ok(findItem(weirdQuantities, "1 heaping tbsp Brown Sugar"), "heaping tabl
 assert.ok(findItem(weirdQuantities, "1 scant cup Flour"), "scant cup stays descriptive");
 assert.ok(findItem(weirdQuantities, "1 stick Butter"), "stick butter remains a count measure");
 
+// ── Multi-recipe shopping lists (combined, source-aware, conservative) ──
+function srcSections(recipes) {
+  return recipes.flatMap((r) =>
+    (r.sections || []).map((s) => ({
+      name: r.title,
+      ingredients: (s.ingredients || []).map((i) => ({ ...i, source: { id: r.id, title: r.title } })),
+    })),
+  );
+}
+const cake = {
+  id: "a", title: "Chocolate Cake",
+  sections: [{ name: "Batter", ingredients: [
+    { amount: "1", unit: "cup", name: "sugar" },
+    { amount: "1", unit: "cup", name: "heavy cream" },
+    { amount: "1", unit: "cup", name: "semi-sweet chocolate chips" },
+    { amount: "2", unit: "cloves", name: "garlic" },
+  ] }],
+};
+const frosting = {
+  id: "b", title: "Cream Frosting",
+  sections: [{ name: "Frosting", ingredients: [
+    { amount: "1/2", unit: "cup", name: "sugar" },
+    { amount: "1", unit: "cup", name: "whole milk" },
+    { amount: "1", unit: "cup", name: "half-and-half" },
+    { amount: "1", unit: "cup", name: "white chocolate chips" },
+    { amount: "4", unit: "cloves", name: "garlic" },
+  ] }],
+};
+const multi = buildShoppingListFromSections(srcSections([cake, frosting]));
+
+// Simple identical ingredients combine across recipes...
+const sugarItem = findItem(multi, "sugar");
+assert.match(sugarItem.text, /^1 1\/2 cups Sugar$/, "sugar combines across recipes");
+assert.strictEqual(sugarItem.sourceCount, 2, "combined sugar knows it came from 2 recipes");
+assert.deepStrictEqual(sugarItem.sources.map((s) => s.title).sort(), ["Chocolate Cake", "Cream Frosting"]);
+assert.match(findItem(multi, "garlic").text, /^6 clove[s]? Garlic$/, "garlic cloves combine across recipes");
+
+// ...but dairy types that affect outcome must NOT merge.
+assert.ok(findItem(multi, "Heavy Cream"), "heavy cream stays separate");
+assert.ok(findItem(multi, "Whole Milk"), "whole milk stays separate");
+assert.ok(findItem(multi, "Half-And-Half") || findItem(multi, "Half And Half"), "half-and-half stays separate");
+assert.strictEqual(
+  multi.filter((i) => /cream|milk|half/i.test(i.text)).length, 3,
+  "heavy cream, whole milk, and half-and-half remain three separate items",
+);
+
+// Different chocolate varieties stay separate.
+assert.ok(findItem(multi, "Semi-Sweet Chocolate Chips"), "semi-sweet chips stay separate");
+assert.ok(findItem(multi, "White Chocolate Chips"), "white chips stay separate");
+
+// A single-source item carries its one source.
+assert.strictEqual(findItem(multi, "Heavy Cream").sourceCount, 1);
+assert.strictEqual(findItem(multi, "Heavy Cream").sources[0].title, "Chocolate Cake");
+
+// Single-recipe lists still work (shape unchanged, at most one source each).
+const singleSrc = buildShoppingListFromSections(srcSections([cake]));
+assert.ok(singleSrc.length > 0 && singleSrc.every((i) => i.sourceCount <= 1), "single-recipe list shape is unchanged");
+
 console.log("shopping-list-test: ok");

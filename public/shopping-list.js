@@ -209,8 +209,21 @@
       preparation_note: parsed.preparation_note || parsed.preparationNote || prep.note || "",
       section: sectionName || parsed.section || "",
       category,
+      // Source recipe context (id + title), threaded through so a combined item
+      // can show which recipes it came from. Original text stays in raw_text.
+      source: (base && typeof base === "object" && base.source) || null,
       confidence: parsed.confidence ?? (normalized ? 0.78 : 0.35),
     };
+  }
+
+  // Unique source recipes that contributed to a set of parsed parts.
+  function uniqueSources(parts) {
+    const byId = new Map();
+    (parts || []).forEach((part) => {
+      const src = part && part.source;
+      if (src && src.id != null && !byId.has(src.id)) byId.set(src.id, { id: src.id, title: src.title || "" });
+    });
+    return Array.from(byId.values());
   }
 
   function shoppingLine(amount, unit, name, notes) {
@@ -261,6 +274,12 @@
         combined: false,
         warning: "Kept separate because quantities or units are ambiguous.",
       }));
+    });
+
+    // Attach which source recipes each (possibly combined) item came from.
+    items.forEach((item) => {
+      item.sources = uniqueSources(item.parts);
+      item.sourceCount = item.sources.length;
     });
 
     return items.sort((a, b) => CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category) || a.text.localeCompare(b.text));

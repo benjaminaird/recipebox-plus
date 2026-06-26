@@ -620,6 +620,15 @@ function saveMealPlan(m) {
   try { localStorage.setItem(MEALPLAN_KEY, JSON.stringify(m)); } catch {}
   asyncPutJson("/api/mealplan", { mealPlan:m });
 }
+// Shopping list is local-only for now (user-specific, derived from the user's
+// own recipes). A durable per-user/household model is on the roadmap.
+const SHOPPING_KEY = "recipebox-shopping-v1";
+function emptyShoppingList() { return { title:"", recipeIds:[], manualItems:[], checked:{}, removed:{}, edits:{} }; }
+function loadShoppingList() {
+  try { const l = JSON.parse(localStorage.getItem(SHOPPING_KEY) || "null"); return l && typeof l === "object" ? { ...emptyShoppingList(), ...l } : emptyShoppingList(); }
+  catch { return emptyShoppingList(); }
+}
+function saveShoppingList(l) { try { localStorage.setItem(SHOPPING_KEY, JSON.stringify(l)); } catch {} }
 function downloadJson(filename, data) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type:"application/json" });
   const url = URL.createObjectURL(blob);
@@ -1106,11 +1115,15 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     }
 
     // Library
-    function Library({ recipes, mealPlan, onOpen, onAdd, onFavorite, setTab, tagFilter, onTagFilter }) {
+    function Library({ recipes, mealPlan, onOpen, onAdd, onFavorite, setTab, tagFilter, onTagFilter, onCreateShoppingList, onOpenShopping, hasShoppingList }) {
       const [search, setSearch] = useState("");
       const [cat, setCat] = useState("All");
       const [filter, setFilter] = useState("all");
       const [showAllCats, setShowAllCats] = useState(false);
+      const [selectMode, setSelectMode] = useState(false);
+      const [selected, setSelected] = useState([]);
+      const toggleSelect = (id) => setSelected((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
+      const exitSelect = () => { setSelectMode(false); setSelected([]); };
       const tagKey = (t) => RecipeBoxTags.normalizeTagKey(t);
       const activeTag = tagFilter || "";
       const activeTagKey = tagKey(activeTag);
@@ -1326,12 +1339,44 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 </div>
 
                 <div style={{marginTop:30}}>
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:13}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:13,flexWrap:"wrap"}}>
                     <h3 style={{margin:0,fontFamily:SERIF,fontSize:"1.25em",color:C.dark,fontWeight:400}}>All Recipes</h3>
-                    <span style={{fontSize:"0.78em",color:C.light}}>{recipes.length} total</span>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      {selectMode ? (
+                        <>
+                          <button onClick={() => onCreateShoppingList(selected, "Shopping List from " + selected.length + " Recipe" + (selected.length===1?"":"s"))} disabled={selected.length===0}
+                            style={{background:selected.length?C.green:C.cream3,color:selected.length?C.white:C.light,border:"none",borderRadius:999,padding:"7px 15px",fontSize:"0.8em",fontWeight:800,cursor:selected.length?"pointer":"not-allowed",fontFamily:SANS}}>
+                            Create Shopping List{selected.length?" ("+selected.length+")":""}
+                          </button>
+                          <button onClick={exitSelect} style={{...S.ghostBtn,borderRadius:999,padding:"7px 13px",fontSize:"0.78em"}}>Cancel</button>
+                        </>
+                      ) : (
+                        <>
+                          {hasShoppingList && (
+                            <button onClick={onOpenShopping} style={{...S.ghostBtn,borderRadius:999,padding:"7px 13px",fontSize:"0.78em",display:"inline-flex",alignItems:"center",gap:6}}>
+                              <Icon name="shoppingList" size={15} /> Shopping list
+                            </button>
+                          )}
+                          {recipes.length > 1 && (
+                            <button onClick={() => setSelectMode(true)} style={{...S.ghostBtn,borderRadius:999,padding:"7px 13px",fontSize:"0.78em"}}>Select</button>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
+                  {selectMode && <div style={{fontSize:"0.8em",color:C.mid,marginBottom:11}}>Tap recipes to build one combined shopping list.</div>}
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(195px, 1fr))",gap:14}}>
-                    {sortedRecipes.map((r) => <RecipeCard key={r.id} recipe={r} onClick={() => onOpen(r)} onFavorite={() => onFavorite(r.id)} onTagClick={selectTag} />)}
+                    {sortedRecipes.map((r) => selectMode ? (
+                      <div key={r.id} style={{position:"relative"}}>
+                        <RecipeCard recipe={r} onClick={() => {}} onFavorite={() => {}} onTagClick={() => {}} />
+                        <button onClick={() => toggleSelect(r.id)} aria-label={"Select "+r.title}
+                          style={{position:"absolute",inset:0,borderRadius:14,border:selected.includes(r.id)?"3px solid "+C.green:"2px solid rgba(0,0,0,0.05)",background:selected.includes(r.id)?"rgba(44,74,51,0.10)":"transparent",cursor:"pointer",padding:0,WebkitTapHighlightColor:"transparent"}}>
+                          <span style={{position:"absolute",top:8,left:8,width:27,height:27,borderRadius:"50%",background:selected.includes(r.id)?C.green:"rgba(255,255,255,0.94)",border:"2px solid "+(selected.includes(r.id)?C.green:C.border),color:C.white,display:"inline-flex",alignItems:"center",justifyContent:"center",boxShadow:"0 1px 5px rgba(0,0,0,0.22)"}}>
+                            {selected.includes(r.id) && <Icon name="check" size={15} strokeWidth={3} />}
+                          </span>
+                        </button>
+                      </div>
+                    ) : <RecipeCard key={r.id} recipe={r} onClick={() => onOpen(r)} onFavorite={() => onFavorite(r.id)} onTagClick={selectTag} />)}
                   </div>
                 </div>
               </div>
@@ -1359,7 +1404,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     }
 
     // Meal Planner
-    function MealPlanner({ recipes, mealPlan, setMealPlan, onOpen }) {
+    function MealPlanner({ recipes, mealPlan, setMealPlan, onOpen, onGenerateShoppingList }) {
       const [picking, setPicking] = useState(null);
       const [pickFilter, setPickFilter] = useState("all");
       const [search, setSearch] = useState("");
@@ -1439,7 +1484,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     <div style={{fontFamily:SERIF,fontSize:"1.05em",color:C.dark}}>Shopping List</div>
                     <div style={{fontSize:"0.78em",color:C.light}}>{"Ingredients from "+mealCount+" planned meal"+(mealCount===1?"":"s")+(uniqueRecipeCount!==mealCount?" · "+uniqueRecipeCount+" recipes":"")}</div>
                   </div>
-                  <button onClick={buildMealPlanShoppingList}
+                  <button onClick={() => onGenerateShoppingList(Array.from(new Set(plannedRecipes.map((r) => r.id))))}
                     style={{background:C.green,color:C.white,border:"none",borderRadius:9,padding:"9px 12px",fontWeight:800,cursor:"pointer",fontSize:"0.78em",fontFamily:SANS}}>
                     Generate Shopping List
                   </button>
@@ -1576,6 +1621,133 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               </div>
             </div>
           )}
+        </div>
+      );
+    }
+
+    // Combined, source-aware grocery checklist built from one or more recipes
+    // (Library multi-select, the weekly meal plan, or a single recipe) plus
+    // manual items. Consolidation is deterministic (RecipeBoxShopping); list
+    // state (checked / removed / edits / manual) persists in localStorage.
+    function itemKey(it) {
+      const base = it.parts && it.parts[0] ? it.parts[0].normalized_ingredient_name : it.text;
+      return base + "|" + it.category + "|" + (it.combined ? "*" : it.text);
+    }
+    function sectionsFromRecipes(sourceRecipes) {
+      return (sourceRecipes || []).flatMap((r) =>
+        (r.sections || []).map((s) => ({
+          name: r.title,
+          ingredients: (s.ingredients || []).map((i) => ({ ...i, source: { id: r.id, title: r.title } })),
+        })),
+      );
+    }
+    function ShoppingListScreen({ list, recipes, onChange, onClose }) {
+      const [adding, setAdding] = useState("");
+      const compactHeader = useWindowCompactHeader();
+      const sourceRecipes = (list.recipeIds || []).map((id) => recipes.find((r) => r.id === id)).filter(Boolean);
+      const generated = RecipeBoxShopping.buildShoppingListFromSections(sectionsFromRecipes(sourceRecipes));
+      const genItems = generated
+        .filter((it) => !list.removed[itemKey(it)])
+        .map((it) => { const k = itemKey(it); return { id: k, key: k, text: list.edits[k] != null ? list.edits[k] : it.text, category: it.category, checked: !!list.checked[k], sources: it.sources || [], sourceCount: it.sourceCount || 0, manual: false }; });
+      const manualItems = (list.manualItems || []).map((m) => { const k = "m:" + m.id; return { id: k, key: k, text: list.edits[k] != null ? list.edits[k] : m.text, category: m.category || "Pantry", checked: !!list.checked[k], sources: [], sourceCount: 0, manual: true, manualId: m.id }; });
+      const allItems = [...genItems, ...manualItems];
+      const total = allItems.length;
+      const done = allItems.filter((i) => i.checked).length;
+      const groups = RecipeBoxShopping.groupShoppingItemsByCategory(allItems);
+
+      const toggle = (k) => onChange((l) => ({ ...l, checked: { ...l.checked, [k]: !l.checked[k] } }));
+      const editText = (k, text) => onChange((l) => ({ ...l, edits: { ...l.edits, [k]: text } }));
+      const removeItem = (it) => onChange((l) => it.manual ? { ...l, manualItems: (l.manualItems || []).filter((m) => m.id !== it.manualId) } : { ...l, removed: { ...l.removed, [it.key]: true } });
+      const addManual = () => {
+        const t = adding.trim(); if (!t) return;
+        const id = Date.now() + "-" + Math.random().toString(36).slice(2, 7);
+        let category = "Pantry"; try { category = RecipeBoxShopping.parseShoppingIngredient(t).category || "Pantry"; } catch {}
+        onChange((l) => ({ ...l, manualItems: [...(l.manualItems || []), { id, text: t, category }] }));
+        setAdding("");
+      };
+      const clearChecked = () => onChange((l) => ({ ...l, checked: {} }));
+      const startFresh = () => { if (window.confirm("Clear this whole shopping list?")) onChange(() => emptyShoppingList()); };
+      const titleValue = list.title || (sourceRecipes.length ? "Shopping List from " + sourceRecipes.length + " Recipe" + (sourceRecipes.length === 1 ? "" : "s") : "Shopping List");
+
+      async function copyList() {
+        const lines = [];
+        groups.forEach((g) => { lines.push(g.category.toUpperCase()); g.items.forEach((i) => lines.push((i.checked ? "[x] " : "[ ] ") + i.text)); lines.push(""); });
+        const text = titleValue + "\n\n" + lines.join("\n");
+        try { await navigator.clipboard.writeText(text); } catch { window.prompt("Copy shopping list:", text); }
+      }
+
+      const sourceTitles = sourceRecipes.map((r) => r.title);
+
+      return (
+        <div style={{...S.page,paddingBottom:NAV_CLEARANCE}}>
+          <div style={{...S.brandHeader,padding:safePad(20,16,16)}}>
+            <div style={{maxWidth:760,margin:"0 auto"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                <button onClick={onClose} aria-label="Back" style={{background:"rgba(255,249,238,0.14)",border:"1px solid rgba(255,249,238,0.2)",color:C.white,borderRadius:10,width:38,height:38,display:"inline-flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>‹</button>
+                <input value={titleValue} onChange={(e) => onChange((l) => ({ ...l, title: e.target.value }))}
+                  style={{flex:1,minWidth:0,background:"transparent",border:"none",color:C.white,fontFamily:SERIF,fontSize:"1.4em",outline:"none"}} />
+              </div>
+              <div style={{color:"rgba(255,249,238,0.82)",fontSize:"0.78em"}}>
+                {total > 0 ? done + " of " + total + " checked" : "Empty list"}
+                {sourceTitles.length > 0 && " · from " + sourceTitles.slice(0, 2).join(", ") + (sourceTitles.length > 2 ? " +" + (sourceTitles.length - 2) + " more" : "")}
+              </div>
+            </div>
+          </div>
+
+          <div style={{maxWidth:760,margin:"16px auto",padding:"0 16px"}}>
+            <div style={{display:"flex",gap:8,marginBottom:14}}>
+              <input value={adding} onChange={(e) => setAdding(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addManual(); }}
+                placeholder="Add an item (e.g. paper towels)…"
+                style={{flex:1,minWidth:0,padding:"11px 14px",borderRadius:11,border:"1px solid "+C.border,fontSize:"0.9em",background:C.paper,color:C.dark,outline:"none",fontFamily:SANS}} />
+              <button onClick={addManual} style={{...S.goldBtn,borderRadius:11,padding:"11px 16px",fontSize:"0.85em",flexShrink:0}}>Add</button>
+            </div>
+
+            {total === 0 ? (
+              <div style={{...S.card,padding:"30px 20px",textAlign:"center"}}>
+                <div style={{color:C.light,fontSize:"0.9em",lineHeight:1.5}}>Your shopping list is empty.<br/>Add recipes from the Library (select a few) or the Meal Plan, or add items above.</div>
+              </div>
+            ) : (
+              <>
+                {groups.map((group) => {
+                  const ordered = [...group.items].sort((a, b) => (a.checked === b.checked ? 0 : a.checked ? 1 : -1));
+                  return (
+                    <div key={group.category} style={{marginBottom:16}}>
+                      <div style={{fontSize:"0.7em",fontWeight:800,letterSpacing:"0.06em",textTransform:"uppercase",color:C.brownLight||C.light,margin:"0 2px 8px"}}>{group.category} <span style={{color:C.light}}>· {group.items.length}</span></div>
+                      <div style={{display:"grid",gap:8}}>
+                        {ordered.map((item) => (
+                          <div key={item.id} style={{display:"flex",alignItems:"flex-start",gap:11,background:item.checked?C.cream2||C.paper2:C.paper,border:"1px solid "+(item.checked?C.border:C.border),borderRadius:12,padding:"11px 12px",opacity:item.checked?0.6:1,transition:"opacity 0.15s"}}>
+                            <button onClick={() => toggle(item.key)} aria-label={item.checked?"Uncheck":"Check"}
+                              style={{flexShrink:0,width:26,height:26,borderRadius:8,border:"2px solid "+(item.checked?C.green:C.border),background:item.checked?C.green:"transparent",color:C.white,display:"inline-flex",alignItems:"center",justifyContent:"center",cursor:"pointer",marginTop:1}}>
+                              {item.checked && <Icon name="check" size={15} strokeWidth={3} />}
+                            </button>
+                            <div style={{flex:1,minWidth:0}}>
+                              <input value={item.text} onChange={(e) => editText(item.key, e.target.value)}
+                                style={{width:"100%",border:"none",background:"transparent",outline:"none",fontSize:"0.92em",color:item.checked?C.light:C.dark,textDecoration:item.checked?"line-through":"none",fontFamily:SANS,padding:0}} />
+                              {!item.manual && item.sourceCount > 0 && (
+                                <div style={{fontSize:"0.72em",color:C.light,marginTop:2}}>
+                                  {item.sourceCount > 1 ? "Used in " + item.sourceCount + " recipes" : item.sources[0]?.title}
+                                </div>
+                              )}
+                              {item.manual && <div style={{fontSize:"0.72em",color:C.light,marginTop:2}}>Added by you</div>}
+                            </div>
+                            <button onClick={() => removeItem(item)} aria-label="Remove" style={{flexShrink:0,background:"none",border:"none",color:C.light,cursor:"pointer",fontSize:"1.15em",lineHeight:1,padding:"3px 5px"}}>×</button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:6}}>
+                  <button onClick={copyList} style={{...S.goldBtn,border:"1px solid "+C.goldLight,borderRadius:10,padding:"9px 14px",fontSize:"0.8em"}}>Copy list</button>
+                  {done > 0 && <button onClick={clearChecked} style={{...S.ghostBtn,borderRadius:10,padding:"9px 14px",fontSize:"0.8em"}}>Uncheck all</button>}
+                  <button onClick={startFresh} style={{...S.ghostBtn,color:C.light,borderRadius:10,padding:"9px 14px",fontSize:"0.8em"}}>Clear list</button>
+                </div>
+                <p style={{fontSize:"0.74em",color:C.light,lineHeight:1.5,marginTop:14}}>
+                  Ingredients are combined conservatively. Items that affect how a recipe turns out — like different milks, creams, cheeses, or chocolates — are kept separate on purpose.
+                </p>
+              </>
+            )}
+          </div>
         </div>
       );
     }
@@ -3496,7 +3668,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     }
 
     // Recipe View
-    function RecipeView({ recipe, onBack, onEdit, onDelete, onUpdate, onImport, onTagClick, timerSound }) {
+    function RecipeView({ recipe, onBack, onEdit, onDelete, onUpdate, onImport, onTagClick, onAddToShopping, timerSound }) {
       const [scale, setScale] = useState(1);
       const [metric, setMetric] = useState(false);
       const [cookMode, setCookMode] = useState(false);
@@ -4071,6 +4243,13 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     ))}
                   </div>
                 ))}
+                {onAddToShopping && (
+                  <button onClick={() => onAddToShopping(recipe.id)}
+                    style={{marginTop:14,width:"100%",background:C.green,color:C.white,border:"none",borderRadius:11,padding:"11px 14px",fontWeight:800,fontSize:"0.85em",cursor:"pointer",fontFamily:SANS,display:"inline-flex",alignItems:"center",justifyContent:"center",gap:8,WebkitTapHighlightColor:"transparent"}}>
+                    <Icon name="shoppingList" size={16} /> Add to my shopping list
+                  </button>
+                )}
+                <div style={{fontSize:"0.72em",color:C.mid,marginTop:8,textAlign:"center"}}>Combines with other recipes you add, grouped by grocery aisle.</div>
               </div>
             )}
 
@@ -4488,6 +4667,18 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [screen, setScreen] = useState("library");
       const [recipes, setRecipes] = useState(() => loadRecipes());
       const [mealPlan, setMealPlanState] = useState(() => loadMealPlan());
+      const [shoppingList, setShoppingListState] = useState(() => loadShoppingList());
+      const setShoppingList = (updater) => setShoppingListState((prev) => typeof updater === "function" ? updater(prev) : updater);
+      // Build the current shopping list from recipe ids. replace=true starts a
+      // fresh list (Library multi-select / meal plan); replace=false merges (add
+      // one recipe from its detail screen). Then open the shopping screen.
+      function openShoppingFrom(ids, opts) {
+        const o = opts || {};
+        setShoppingListState((prev) => o.replace
+          ? { ...emptyShoppingList(), recipeIds: Array.from(new Set(ids)), title: o.title || "" }
+          : { ...prev, recipeIds: Array.from(new Set([...(prev.recipeIds || []), ...ids])), title: prev.title || o.title || "" });
+        setScreen("shopping");
+      }
       const [timerSound, setTimerSound] = useState(() => loadTimerSound());
       const [current, setCurrent] = useState(null);
       const [libraryTag, setLibraryTag] = useState("");
@@ -4537,6 +4728,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const resetToken = (() => { try { return new URLSearchParams(window.location.search).get("reset"); } catch { return null; } })();
 
       useEffect(() => { saveRecipes(recipes); }, [recipes]);
+      useEffect(() => { saveShoppingList(shoppingList); }, [shoppingList]);
       useEffect(() => {
         async function refreshAiUsage() {
           if (!account) { setAiUsage(defaultAiUsage()); return; }
@@ -4627,16 +4819,20 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       else if (screen==="admin" && account?.isMasterAdmin) { body = <AppControl account={account} onBack={()=>{refreshAdminAlerts();setScreen("library");}} onFeedbackChange={setNewFeedback} />; navName = "admin"; }
       else if (screen==="import") { body = <ImportScreen initialMode={importMode} initialValue={importPrefill} onDone={(r)=>{ const list=Array.isArray(r)?r:[r]; list.forEach(addRecipe); if(list.length!==1) setScreen("library"); /* single import: addRecipe already opens the recipe for review */ }} onCancel={()=>setScreen("library")} />; navName = "import"; }
       else if (screen==="edit"&&current) { body = <EditRecipe recipe={current} onSave={(r)=>{ if(recipes.find((x)=>x.id===r.id)) updateRecipe(r); else addRecipe(r); setScreen("view"); }} onCancel={()=>setScreen("view")} />; navName = "edit"; }
+      else if (screen==="shopping") {
+        navName = "shopping"; showNav = true;
+        body = <ShoppingListScreen list={shoppingList} recipes={recipes} onChange={setShoppingList} onClose={()=>setScreen("library")} />;
+      }
       else if (screen==="view"&&current) {
         navName = "view"; showNav = true;
-        body = <RecipeView recipe={current} onBack={closeToOrigin} onEdit={()=>setScreen("edit")} onDelete={()=>deleteRecipe(current.id)} onUpdate={(r)=>{updateRecipe(r);setCurrent(r);}} onImport={(r)=>{addRecipe(r);setCurrent(r);}} onTagClick={(t)=>{setLibraryTag(t);setMainTab("library");}} timerSound={timerSound} />;
+        body = <RecipeView recipe={current} onBack={closeToOrigin} onEdit={()=>setScreen("edit")} onDelete={()=>deleteRecipe(current.id)} onUpdate={(r)=>{updateRecipe(r);setCurrent(r);}} onImport={(r)=>{addRecipe(r);setCurrent(r);}} onTagClick={(t)=>{setLibraryTag(t);setMainTab("library");}} onAddToShopping={(id)=>openShoppingFrom([id],{replace:false})} timerSound={timerSound} />;
       }
       else {
         navName = "main"; showNav = true;
         body = (
           <div style={{width:"100%",maxWidth:"100%",overflowX:"hidden"}}>
-            {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>openRecipe(r,"library")} onAdd={openImport} onFavorite={toggleFavorite} setTab={setMainTab} tagFilter={libraryTag} onTagFilter={setLibraryTag} />}
-            {tab==="plan" && <MealPlanner recipes={recipes} mealPlan={mealPlan} setMealPlan={updateMealPlan} onOpen={(r)=>openRecipe(r,"plan")} />}
+            {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>openRecipe(r,"library")} onAdd={openImport} onFavorite={toggleFavorite} setTab={setMainTab} tagFilter={libraryTag} onTagFilter={setLibraryTag} onCreateShoppingList={(ids,title)=>openShoppingFrom(ids,{replace:true,title})} onOpenShopping={()=>setScreen("shopping")} hasShoppingList={(shoppingList.recipeIds||[]).length>0 || (shoppingList.manualItems||[]).length>0} />}
+            {tab==="plan" && <MealPlanner recipes={recipes} mealPlan={mealPlan} setMealPlan={updateMealPlan} onOpen={(r)=>openRecipe(r,"plan")} onGenerateShoppingList={(ids)=>openShoppingFrom(ids,{replace:true,title:"This Week's Shopping List"})} />}
             {tab==="pantry" && <PantryChef recipes={recipes} onImport={(r)=>{addRecipe(r);setTab("library");}} onOpenRecipe={(r)=>openRecipe(r,"pantry")} />}
             {tab==="settings" && <Settings timerSound={timerSound} setTimerSound={setTimerSound} account={account} setAccount={setAccount} recipes={recipes} mealPlan={mealPlan} aiUsage={aiUsage} onCloudData={loadCloudData} onOpenAdmin={()=>setScreen("admin")} newFeedback={newFeedback} />}
           </div>
@@ -4645,7 +4841,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
       // Pick transition direction from screen "depth" (deeper = forward), with
       // tab index deciding direction for lateral tab switches.
-      const DEPTH = { splash:0, auth:0, main:1, import:2, admin:2, view:2, edit:3 };
+      const DEPTH = { splash:0, auth:0, main:1, import:2, admin:2, view:2, shopping:2, edit:3 };
       const depth = DEPTH[navName] ?? 1;
       const tabIdx = MAIN_TABS.indexOf(tab);
       let navClass = "nav-fade";

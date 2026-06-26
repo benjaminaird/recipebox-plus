@@ -143,6 +143,14 @@ The Weekly Meal Plan is a single recurring week keyed by day name (`mealPlan = {
 - **"Help me plan" (AI, future):** an opt-in flow that proposes a full week for the user to **review before saving** (never auto-fill). Options: quick meals, family-friendly, pantry-first, budget-friendly, high-protein, avoid repeats. Consumes AI credits; always shows the plan for approval first.
 - **Household / family (future):** assign who's cooking, "added by" labels, household notes, shared meal plans + shared shopping list, family preferences / kid-friendly planning. Pairs with the Family Plan subscription below.
 
+## Shopping Lists
+
+Deterministic, source-aware grocery lists built from one or more recipes. The engine is `public/shopping-list.js` (`RecipeBoxShopping`) — no AI in list generation.
+
+- **Multi-recipe shopping lists — Done.** One combined, grocery-sectioned checklist from many recipes. (1) **Library multi-select** → "Create Shopping List"; (2) **Meal Plan** → "Generate Shopping List" from the week's planned recipes; (3) **Recipe detail** → "Add to my shopping list" (merges into the current list). Conservative consolidation (combines `1 cup + 1/2 cup sugar` → `1 1/2 cups`; **never** merges heavy cream / half-and-half / whole milk / buttermilk, different chocolates, or cheeses; keeps ambiguous units separate). Each item carries **source recipe context** (`item.sources` / `sourceCount`) and shows "Used in N recipes". A `ShoppingListScreen` provides check/uncheck (large tap targets), inline edit, delete, manual add, grocery-section grouping, a renamable title, and copy. List state (recipes + manual items + checked/edits/removed) **persists in `localStorage`** (`recipebox-shopping-v1`), user-specific and derived from the user's own recipes — no server route, no cross-user exposure. The single-recipe shopping view on recipe detail is unchanged.
+- **Monetization framing:** Free = single-recipe shopping list + manual checklist. Plus = multi-recipe + meal-plan-generated list + ingredient consolidation + (future) pantry-aware exclusion. Family = shared household list, real-time updates, shared pantry, "added by" labels.
+- **Future:** a durable per-user/household `shopping_lists` + `shopping_list_items` model in Supabase (the local shape mirrors it); pantry-aware "already have / exclude pantry items" (no pantry **inventory** exists yet — Pantry Chef is AI chat only); household shared lists + real-time family sync + assign shopper; list sharing / export / print; store-aisle customization; AI-assisted grouping of genuinely ambiguous items (review-gated, never automatic); dedicated party/event lists; **serving/scale review before generating** and per-occurrence quantities when the same recipe is planned multiple times in a week (v1 counts each planned recipe once).
+
 ## Future Native Apps: iOS / Android Widgets
 
 Widgets should help users make useful food decisions without opening the app.
