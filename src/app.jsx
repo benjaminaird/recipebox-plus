@@ -3305,7 +3305,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             const transcriptRes = await apiFetch("/api/transcript?url=" + encodeURIComponent(ytUrl));
             const transcriptData = await transcriptRes.json();
             if (transcriptData.error) throw new Error("Could not fetch YouTube details: " + transcriptData.error);
-            capturedText = [transcriptData.title, transcriptData.transcript || transcriptData.description].filter(Boolean).join("\n\n");
+            capturedText = [transcriptData.title, transcriptData.description, transcriptData.transcript].filter(Boolean).join("\n\n");
             if (transcriptData.sourceQuality === "low") {
               throw new Error("We couldn't read enough recipe detail from this video. Try pasting the recipe text or using screenshots instead.");
             }
@@ -3314,11 +3314,17 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             let content = "Video title: " + transcriptData.title + "\n";
             if (transcriptData.author) content += "Video channel/source: " + transcriptData.author + "\n";
             content += "\n";
+            // The description is where creators usually paste the full WRITTEN
+            // recipe (clean ingredient list + steps), so prefer it as the primary
+            // source; the spoken transcript is often scattered/auto-generated and
+            // is best used to fill gaps. Send both when available.
+            if (transcriptData.description) {
+              content += "Video description (usually the written recipe — treat as the primary source):\n" + transcriptData.description + "\n\n";
+            }
             if (transcriptData.transcript) {
-              content += "Transcript:\n" + transcriptData.transcript;
-            } else if (transcriptData.description) {
-              content += "Description:\n" + transcriptData.description;
-            } else {
+              content += "Spoken transcript (may be auto-generated and scattered — use to fill in detail the description omits):\n" + transcriptData.transcript;
+            }
+            if (!transcriptData.description && !transcriptData.transcript) {
               throw new Error("We couldn't read enough recipe detail from this video. Try pasting the recipe text or using screenshots instead.");
             }
             if (transcriptData.thumbnail) {
@@ -3336,7 +3342,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             }
             if (Array.isArray(transcriptData.warnings)) importWarnings = importWarnings.concat(transcriptData.warnings.filter((w) => /transcript|caption/i.test(w)));
 
-            const ytMessages = [{ role:"user", content:"Extract the recipe from this YouTube video content. Use only the transcript, description, and metadata below. Use the exact ingredients the transcript states — do not substitute one for a more common one (e.g. keep half-and-half, do not write milk or cream). Put helpful source-grounded tips or warnings in notes; do not invent notes from general cooking knowledge. Always set realistic servings (estimate from the quantities if not stated — never default to 4) and always fill per-serving macros (estimate from the ingredients if not stated — never leave them 0). If the video contains multiple full recipe variants, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]} instead of merging them or choosing one silently.\n\n" + content }];
+            const ytMessages = [{ role:"user", content:"Extract the recipe from this YouTube video content. Use only the description, transcript, and metadata below; prefer the written description when it contains the recipe. Use the exact ingredients the source states — do not substitute one for a more common one (e.g. keep half-and-half, do not write milk or cream). Put helpful source-grounded tips or warnings in notes; do not invent notes from general cooking knowledge. Always set realistic servings (estimate from the quantities if not stated — never default to 4) and always fill per-serving macros (estimate from the ingredients if not stated — never leave them 0). If the video contains multiple full recipe variants, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]} instead of merging them or choosing one silently.\n\n" + content }];
             extractCtx = { messages: ytMessages, maxTokens: 6000, heroFallback: transcriptData.thumbnail || "" };
             parsed = await callAIExtract(ytMessages, EXTRACT_PROMPT, 6000);
             if (parsed.error === "unknown_recipe" || parsed.error === "not_enough_recipe_text") {
