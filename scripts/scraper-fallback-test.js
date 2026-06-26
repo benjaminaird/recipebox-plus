@@ -8,9 +8,14 @@ const assert = require("assert");
 const fs = require("fs");
 const path = require("path");
 const app = require("../server");
-const { scraperRequestUrl, buildPageResult } = app._test;
+const { scraperRequestUrl, jinaRequestUrl, buildPageResult } = app._test;
 
-// ── ScraperAPI request URL builder ──
+// ── Jina Reader request URL (default, free provider) ──
+const jurl = jinaRequestUrl("https://www.allrecipes.com/recipe/20144/banana-banana-bread/");
+assert.strictEqual(jurl, "https://r.jina.ai/https://www.allrecipes.com/recipe/20144/banana-banana-bread/", "Jina takes the full target URL appended to its host");
+assert.ok(jurl.startsWith("https://r.jina.ai/"), "calls the fixed trusted Jina host");
+
+// ── ScraperAPI request URL builder (optional paid provider) ──
 const u = new URL(scraperRequestUrl("https://www.allrecipes.com/recipe/20144/banana-banana-bread/", { key: "K123", tier: "premium" }));
 assert.strictEqual(u.origin + u.pathname, "https://api.scraperapi.com/", "calls the fixed trusted ScraperAPI host");
 assert.strictEqual(u.searchParams.get("api_key"), "K123", "passes the api key");

@@ -2592,10 +2592,19 @@ function buildPageResult(html, finalUrl, target) {
   return { title, image, jsonLd, text, helpfulLinks, recipe, extractComplete, extractSource, blocked, htmlHash: crypto.createHash('sha256').update(html).digest('hex') };
 }
 
-// Build the ScraperAPI request URL. ScraperAPI returns the RAW HTML through a
-// residential/premium proxy, so deterministic structured-data extraction still
-// works on bot-blocked sites (keeping those imports free of an AI Assist). We
-// don't render JS — recipe JSON-LD is in the server HTML. Pure/testable.
+// Proxy-fetch request builders. Both return the page's RAW HTML (including
+// <script type="ld+json">), so our deterministic structured-data extractor still
+// runs on bot-blocked sites — keeping those imports publisher-accurate and free
+// of an AI Assist. No JS render is needed (recipe JSON-LD is in the server HTML).
+
+// Jina Reader (https://r.jina.ai) — free, keyless (rate-limited; an optional
+// JINA_API_KEY raises limits). Takes the full target URL appended to its host;
+// X-Return-Format: html returns the page HTML (set at call time).
+function jinaRequestUrl(target) {
+  return 'https://r.jina.ai/' + target;
+}
+
+// ScraperAPI — paid; returns raw HTML through a residential/premium proxy.
 function scraperRequestUrl(target, opts) {
   opts = opts || {};
   const params = new URLSearchParams({ api_key: opts.key || '', url: target, render: 'false' });
@@ -2605,19 +2614,29 @@ function scraperRequestUrl(target, opts) {
   return 'https://api.scraperapi.com/?' + params.toString();
 }
 
-// Fallback fetch through ScraperAPI when a direct fetch was bot-blocked. Gated on
-// SCRAPER_API_KEY (no key -> no-op, zero dependency / cost) and a daily cap so a
-// runaway loop can't burn credits. Only ever called for an already-validated
-// public target that we couldn't read directly. Returns raw HTML or null.
-async function fetchViaScraper(target) {
-  const key = process.env.SCRAPER_API_KEY;
-  if (!key) return null;
-  const cap = Number(process.env.SCRAPER_DAILY_CAP || 500);
-  const allowance = await checkRateLimit('scraper:global', 'scrape', cap, 'day');
+// Fallback fetch through a reader/scraping proxy when a direct fetch was
+// bot-blocked. Provider via IMPORT_PROXY_PROVIDER: 'jina' (default, free) |
+// 'scraperapi' (needs SCRAPER_API_KEY) | 'none' (disable). Gated by a daily cap
+// so a runaway loop can't hammer the proxy/burn credits. Only ever called for an
+// already-validated public target we couldn't read directly. Returns HTML or null.
+async function fetchViaProxy(target) {
+  const provider = String(process.env.IMPORT_PROXY_PROVIDER || 'jina').toLowerCase();
+  if (provider === 'none') return null;
+  const cap = Number(process.env.IMPORT_PROXY_DAILY_CAP || process.env.SCRAPER_DAILY_CAP || 500);
+  const allowance = await checkRateLimit('proxy:global', 'fetch', cap, 'day');
   if (!allowance.allowed) return null;
-  const endpoint = scraperRequestUrl(target, { key, tier: process.env.SCRAPER_PROXY_TIER || 'premium' });
   try {
-    const r = await fetchWithTimeout(endpoint, { headers: { 'Accept': 'text/html,application/xhtml+xml' } }, 30000);
+    if (provider === 'scraperapi') {
+      if (!process.env.SCRAPER_API_KEY) return null;
+      const endpoint = scraperRequestUrl(target, { key: process.env.SCRAPER_API_KEY, tier: process.env.SCRAPER_PROXY_TIER || 'premium' });
+      const r = await fetchWithTimeout(endpoint, { headers: { 'Accept': 'text/html,application/xhtml+xml' } }, 30000);
+      if (!r.ok) return null;
+      return (await readBodyCapped(r)) || null;
+    }
+    // Default: Jina Reader, asking for HTML so JSON-LD survives.
+    const headers = { 'X-Return-Format': 'html', 'Accept': 'text/html' };
+    if (process.env.JINA_API_KEY) headers['Authorization'] = 'Bearer ' + process.env.JINA_API_KEY;
+    const r = await fetchWithTimeout(jinaRequestUrl(target), { headers }, 30000);
     if (!r.ok) return null;
     return (await readBodyCapped(r)) || null;
   } catch (e) { return null; }
@@ -2656,9 +2675,9 @@ app.get('/api/fetch-url', async (req, res) => {
     let result = buildPageResult(html, finalUrl, target);
     let via = 'direct';
     if (result.blocked) {
-      const scrapedHtml = await fetchViaScraper(target);
-      if (scrapedHtml) {
-        const retry = buildPageResult(scrapedHtml, finalUrl, target);
+      const proxiedHtml = await fetchViaProxy(target);
+      if (proxiedHtml) {
+        const retry = buildPageResult(proxiedHtml, finalUrl, target);
         if (!retry.blocked) { result = retry; via = 'proxy'; }
       }
     }
@@ -3150,7 +3169,7 @@ module.exports._test = {
   chooseSpendBucket, planMonthlyCredits, referralBonusAllowed,
   AI_ACTION_COSTS, aiAssistCost, splitAssistCharge, FREE_WELCOME_ASSISTS, AI_BURST_MAX,
   fetchWithTimeout, readBodyCapped, isAbortError,
-  isPrivateIp, assertPublicHost, looksBlockedPage, buildPageResult, scraperRequestUrl,
+  isPrivateIp, assertPublicHost, looksBlockedPage, buildPageResult, scraperRequestUrl, jinaRequestUrl,
   periodKey, resetAfter,
   resolveMonthlyCostCap,
   hashToken, publicUser, VERIFY_TOKEN_MINUTES,
