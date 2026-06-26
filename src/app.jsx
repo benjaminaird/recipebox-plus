@@ -3465,32 +3465,23 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             if (mismatches.length || importSourceQuality !== "high" || importWarnings.length) {
               parsed.sourceQuality = importSourceQuality;
               if (mismatches.length) importWarnings.unshift("The " + (mode === "youtube" ? "video" : "post") + " mentions " + mismatches.join(", ") + " — make sure the ingredients match.");
+              else if (importSourceQuality !== "high") importWarnings.push("Reconstructed from limited " + (mode === "youtube" ? "video/transcript" : "social post") + " information — please review the ingredients before cooking.");
               parsed.importWarnings = Array.from(new Set(importWarnings)).slice(0, 4);
-              const review = mismatches.length
-                ? "⚠️ Double-check the ingredients against the original — the " + (mode === "youtube" ? "video" : "post") + " mentions " + mismatches.join(", ") + ", which may have been read differently."
-                : "⚠️ Reconstructed from limited " + (mode === "youtube" ? "video/transcript" : "social post") + " information — please review the ingredients before cooking.";
-              const existing = String(parsed.notes || "").trim();
-              if (!existing.toLowerCase().includes("double-check the ingredients") && !existing.toLowerCase().includes("please review the ingredients")) {
-                parsed.notes = existing ? (review + "\n\n" + existing) : review;
-              }
             }
           }
 
           // Grounding/verification (Phase 3): for any text-based AI import, check
           // that the extracted ingredients are actually grounded in the source —
-          // flag likely hallucinations and distinctive drops and surface a review
-          // hint. Deterministic structured-data imports are publisher-accurate and
-          // skip this; image-only imports have no source text to check against.
+          // flag likely hallucinations and distinctive drops. Deterministic
+          // structured-data imports are publisher-accurate and skip this; image-
+          // only imports have no source text to check against. Surfaced by the
+          // review banner on the recipe (Phase 4), not buried in notes.
           if (importSourceText && parsed.importMethod !== "structured-data" && typeof RecipeBoxGrounding !== "undefined") {
             const verdict = RecipeBoxGrounding.verifyImport(parsed, importSourceText);
+            parsed.importConfidence = verdict.confidence;
             if (verdict.needsReview) {
               parsed.sourceQuality = parsed.sourceQuality && parsed.sourceQuality !== "high" ? parsed.sourceQuality : "review";
               parsed.importWarnings = Array.from(new Set((parsed.importWarnings || []).concat(verdict.warnings))).slice(0, 4);
-              const review = "⚠️ Please review the ingredients against the original before cooking — some may not match the source.";
-              const existing = String(parsed.notes || "").trim();
-              if (!existing.toLowerCase().includes("review the ingredients") && !existing.toLowerCase().includes("double-check the ingredients")) {
-                parsed.notes = existing ? (review + "\n\n" + existing) : review;
-              }
             }
           }
 
@@ -4416,6 +4407,23 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               <span style={{fontSize:"0.8em",color:C.light}}>Your rating:</span>
               <Stars value={recipe.rating||0} onChange={(v)=>onUpdate({...recipe,rating:v})} size={20} />
             </div>
+
+            {/* Import review banner (Phase 4): surfaces grounding/verification
+                warnings for AI imports so the user can confirm or fix, instead of
+                trusting a possibly-drifted import silently. Persist-dismissed. */}
+            {recipe.importWarnings?.length > 0 && (
+              <div style={{background:C.goldPale,border:"1px solid "+C.goldLight,borderRadius:12,padding:"12px 14px",marginBottom:14}}>
+                <div style={{fontWeight:800,color:C.brown,fontSize:"0.86em",marginBottom:6}}>⚠️ Double-check this AI import</div>
+                <ul style={{margin:"0 0 10px",paddingLeft:18,color:C.brown,fontSize:"0.79em",lineHeight:1.5}}>
+                  {recipe.importWarnings.map((w,i)=><li key={i} style={{marginBottom:3}}>{w}</li>)}
+                </ul>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+                  <button onClick={onEdit} style={{background:C.brown,border:"none",borderRadius:8,padding:"7px 14px",color:C.white,fontWeight:800,fontSize:"0.78em",cursor:"pointer",fontFamily:SANS,touchAction:"manipulation"}}>Edit recipe</button>
+                  <button onClick={()=>onUpdate({...recipe,importWarnings:[],reviewedAt:new Date().toISOString()})} style={{background:"transparent",border:"1px solid "+C.goldLight,borderRadius:8,padding:"7px 14px",color:C.brown,fontWeight:700,fontSize:"0.78em",cursor:"pointer",fontFamily:SANS,touchAction:"manipulation"}}>Looks right</button>
+                  {recipe.importConfidence != null && <span style={{fontSize:"0.72em",color:C.brown,opacity:0.75,marginLeft:"auto"}}>match {Math.round(recipe.importConfidence*100)}%</span>}
+                </div>
+              </div>
+            )}
 
             {recipe.description && <p style={{color:C.mid,lineHeight:1.7,margin:"0 0 14px",fontSize:"0.92em"}}>{recipe.description}</p>}
             {recipe.tags?.length>0 && <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:14}}>{recipe.tags.map((t)=><Tag key={t} label={t} onClick={onTagClick} />)}</div>}

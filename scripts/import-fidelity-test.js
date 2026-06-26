@@ -34,6 +34,12 @@ assert.ok(/EXTRACTION_TOOLS/.test(src) && /tool_choice/.test(src), "tool-use ext
 
 // 4) The distinctive-ingredient source-vs-recipe safety net exists.
 assert.ok(/findSourceIngredientMismatches/.test(src), "source/recipe ingredient mismatch check exists");
+
+// 4b) Phase 3/4: grounding verdict drives a visible review banner on the recipe.
+assert.ok(/RecipeBoxGrounding\.verifyImport/.test(src), "AI imports run the grounding/verification pass");
+assert.ok(/importConfidence = verdict\.confidence/.test(src), "grounding confidence is attached to the import");
+assert.ok(/recipe\.importWarnings\?\.length > 0/.test(src), "recipe detail renders an import review banner from importWarnings");
+assert.ok(/Double-check this AI import/i.test(src), "the review banner prompts the user to verify");
 assert.ok(/HIGH_SIGNAL_INGREDIENTS/.test(src) && /half and half/i.test(src), "high-signal ingredient list includes half-and-half");
 
 // 5) Behavioral: pull the real HIGH_SIGNAL list, equivalence groups, and
