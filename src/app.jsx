@@ -1269,7 +1269,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               <div className="fade-up" style={{marginTop:22}}>
                 <div style={{...S.card,padding:"24px 20px"}}>
                   <div style={{fontFamily:SERIF,fontSize:"1.5em",color:C.dark,lineHeight:1.15,marginBottom:6}}>Welcome to your RecipeBox</div>
-                  <div style={{color:C.light,fontSize:"0.9em",lineHeight:1.5,marginBottom:18}}>Start your box with a recipe you love. Pick a way to add the first one — it only takes a few seconds.</div>
+                  <div style={{color:C.light,fontSize:"0.9em",lineHeight:1.5,marginBottom:18}}>Start your box with a recipe you love. Pick a way to add the first one — it only takes a few seconds. AI imports, edits, and planning use AI Assists, and you start with a welcome balance.</div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(150px, 1fr))",gap:12}}>
                     {[
                       { mode:"url", icon:"import", label:"Import from the web", hint:"Paste a recipe link" },
@@ -2023,6 +2023,17 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         fetchJson("/api/me/credits", null).then((c) => { if (alive && c) setCredits(c); }).catch(() => {});
         return () => { alive = false; };
       }, [account?.id]);
+      // Read-only display config (tiers, prices, AI Assist packs). Never trusted
+      // for enforcement — the server is always authoritative.
+      const [entConfig, setEntConfig] = useState(null);
+      useEffect(() => {
+        let alive = true;
+        fetchJson("/api/config/entitlements", null).then((c) => { if (alive && c) setEntConfig(c); }).catch(() => {});
+        return () => { alive = false; };
+      }, []);
+      function notifyPackComingSoon() {
+        try { window.alert("AI Assist packs are coming soon. You'll never be charged without setting up billing first."); } catch {}
+      }
       const compactHeader = useWindowCompactHeader();
       const localDataAvailable = hasLocalRecipeData(recipes, mealPlan);
       const importRef = useRef();
@@ -2369,8 +2380,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               <div style={{...S.card,padding:16}}>
                 <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8}}>
                   <div style={{flex:1}}>
-                    <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark}}>AI Credits</div>
-                    <div style={{fontSize:"0.78em",color:C.light}}>One credit per recipe you import, adjust, or create with AI.</div>
+                    <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark}}>AI Assists</div>
+                    <div style={{fontSize:"0.78em",color:C.light}}>Spent when AI imports, edits, or plans for you. Cost varies by action.</div>
                   </div>
                   <div style={{fontWeight:900,color:C.green,fontSize:"0.92em"}}>{aiUsage?.unlimited ? "Unlimited" : ((credits && credits.totalRemaining != null ? credits.totalRemaining : (aiUsage?.remaining ?? 0))+" left")}</div>
                 </div>
@@ -2378,24 +2389,38 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   <div style={{width:(aiUsage?.unlimited ? "100%" : ((Math.min(aiUsage?.count || 0, aiUsage?.limit || 50) / Math.max(aiUsage?.limit || 50, 1)) * 100)+"%"),height:"100%",background:C.green,borderRadius:999}} />
                 </div>
                 <div style={{display:"flex",justifyContent:"space-between",gap:8,marginTop:8,fontSize:"0.76em",color:C.light}}>
-                  <span>{aiUsage?.unlimited ? "Master Admin unlimited AI access" : (aiUsage?.count || 0)+" of "+(aiUsage?.limit || 50)+" monthly credits used"}</span>
+                  <span>{aiUsage?.unlimited ? "Master Admin unlimited AI access" : (aiUsage?.count || 0)+" of "+(aiUsage?.limit || 5)+" monthly AI Assists used"}</span>
                   <span>{aiUsage?.period || "This month"}</span>
                 </div>
                 {!aiUsage?.unlimited && (
                   <div style={{marginTop:10,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,flexWrap:"wrap"}}>
                     <span style={{fontSize:"0.78em",color:C.mid,fontWeight:700}}>Plan: <span style={{color:C.green,textTransform:"capitalize"}}>{credits?.plan || "free"}</span></span>
-                    {credits?.monthly?.resetsAt && <span style={{fontSize:"0.74em",color:C.light}}>Resets {new Date(credits.monthly.resetsAt).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</span>}
+                    {credits?.monthly?.resetsAt && <span style={{fontSize:"0.74em",color:C.light}}>Renews {new Date(credits.monthly.resetsAt).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</span>}
                   </div>
                 )}
-                {((credits?.bonusCredits || 0) > 0 || (credits?.purchasedCredits || 0) > 0) && (
-                  <div style={{marginTop:7,display:"flex",gap:7,flexWrap:"wrap",alignItems:"center"}}>
-                    {credits.bonusCredits > 0 && <span style={{background:C.goldPale,border:"1px solid "+C.goldLight,color:C.brown,borderRadius:999,padding:"3px 10px",fontSize:"0.73em",fontWeight:800}}>+{credits.bonusCredits} bonus</span>}
-                    {credits.purchasedCredits > 0 && <span style={{background:C.goldPale,border:"1px solid "+C.goldLight,color:C.brown,borderRadius:999,padding:"3px 10px",fontSize:"0.73em",fontWeight:800}}>+{credits.purchasedCredits} purchased</span>}
-                    <span style={{fontSize:"0.72em",color:C.light}}>never expire</span>
+                {!aiUsage?.unlimited && (
+                  <div style={{marginTop:10,display:"flex",gap:7,flexWrap:"wrap"}}>
+                    {[
+                      {label:"Monthly",val:credits?.monthly?.remaining ?? (aiUsage?.remaining ?? 0),sub:"renews monthly"},
+                      {label:"Bonus",val:credits?.bonusAssists ?? 0,sub:"never expire"},
+                      {label:"Purchased",val:credits?.purchasedAssists ?? 0,sub:"never expire"},
+                      {label:"Total",val:credits?.totalRemaining ?? (aiUsage?.remaining ?? 0),sub:"available now"},
+                    ].map((b) => (
+                      <div key={b.label} style={{flex:"1 1 70px",minWidth:70,background:b.label==="Total"?C.greenPale:C.cream2,border:"1px solid "+(b.label==="Total"?C.green+"40":C.border),borderRadius:9,padding:"8px 9px"}}>
+                        <div style={{fontWeight:900,fontSize:"1.05em",color:b.label==="Total"?C.green:C.dark}}>{b.val}</div>
+                        <div style={{fontSize:"0.66em",color:C.mid,fontWeight:700}}>{b.label}</div>
+                        <div style={{fontSize:"0.6em",color:C.light}}>{b.sub}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {!aiUsage?.unlimited && (credits?.totalRemaining ?? 1) <= 0 && (
+                  <div style={{marginTop:10,background:C.goldPale,border:"1px solid "+C.goldLight,borderRadius:9,padding:"9px 11px",fontSize:"0.76em",color:C.brown,lineHeight:1.5}}>
+                    <strong>You're out of AI Assists.</strong> You can wait until your next reset{credits?.monthly?.resetsAt ? " on "+new Date(credits.monthly.resetsAt).toLocaleDateString(undefined,{month:"short",day:"numeric"}) : ""}, or add a pack that never expires.
                   </div>
                 )}
                 <div style={{marginTop:10,background:C.greenPale,border:"1px solid "+C.green+"30",borderRadius:9,padding:"8px 11px",fontSize:"0.74em",color:C.brown,lineHeight:1.5}}>
-                  Fair-use promise: behind-the-scenes cleanup or formatting retries are free. A blocked page or a failed import never costs you a credit.
+                  Behind-the-scenes cleanup or formatting retries are free. A blocked page or a failed action never costs you an AI Assist. Purchased AI Assists never expire.
                 </div>
                 {!aiUsage?.unlimited && (
                   <div style={{marginTop:10}}>
@@ -2415,8 +2440,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                                   <div style={{fontWeight:700,color:C.dark,fontSize:"0.82em",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.label}</div>
                                   <div style={{color:C.light,fontSize:"0.72em",marginTop:1}}>{formatLedgerDate(e.at)}</div>
                                 </div>
-                                <span style={{flexShrink:0,fontWeight:800,fontSize:"0.74em",color:e.credits>0?C.brown:C.green}}>
-                                  {e.credits>0 ? (e.credits+" credit"+(e.credits>1?"s":"")) : "No charge"}
+                                <span style={{flexShrink:0,fontWeight:800,fontSize:"0.74em",color:e.assists>0?C.brown:C.green}}>
+                                  {e.assists>0 ? (e.assists+" AI Assist"+(e.assists>1?"s":"")) : "No charge"}
                                 </span>
                               </div>
                             ))}
@@ -2428,8 +2453,41 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     )}
                   </div>
                 )}
-                {!aiUsage?.unlimited && (
-                  <div style={{marginTop:10,fontSize:"0.73em",color:C.light,lineHeight:1.5}}>Plans (Plus, Family, Founder) and credit packs are coming soon. You'll never be charged without setting up billing first.</div>
+                {!aiUsage?.unlimited && entConfig?.assistPacks && (
+                  <div style={{marginTop:12}}>
+                    <div style={{fontSize:"0.78em",fontWeight:800,color:C.dark,marginBottom:6}}>Add AI Assists <span style={{fontWeight:600,color:C.light}}>· never expire</span></div>
+                    <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+                      {entConfig.assistPacks.map((p) => (
+                        <button key={p.id} onClick={notifyPackComingSoon}
+                          style={{flex:"1 1 80px",minWidth:80,background:C.cream2,border:"1px solid "+C.border,borderRadius:9,padding:"9px 8px",cursor:"pointer",fontFamily:SANS,textAlign:"center"}}>
+                          <div style={{fontWeight:900,color:C.dark,fontSize:"0.92em"}}>{p.assists}</div>
+                          <div style={{fontSize:"0.64em",color:C.mid,fontWeight:700,marginBottom:3}}>AI Assists</div>
+                          <div style={{fontSize:"0.74em",color:C.green,fontWeight:800}}>${p.price.toFixed(2)}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {!aiUsage?.unlimited && entConfig?.tiers && (
+                  <div style={{marginTop:12}}>
+                    <div style={{fontSize:"0.78em",fontWeight:800,color:C.dark,marginBottom:6}}>Plans</div>
+                    <div style={{display:"flex",flexDirection:"column",gap:7}}>
+                      {["free","plus","family","founder"].map((k) => entConfig.tiers[k] && (
+                        <div key={k} style={{background:C.cream2,border:"1px solid "+C.border,borderRadius:9,padding:"9px 11px"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:8}}>
+                            <span style={{fontWeight:800,color:C.dark,fontSize:"0.86em"}}>{entConfig.tiers[k].name}</span>
+                            <span style={{fontSize:"0.74em",color:C.green,fontWeight:800}}>{
+                              entConfig.tiers[k].price == null ? "Free"
+                                : (entConfig.tiers[k].price.monthly != null ? "$"+entConfig.tiers[k].price.monthly+"/mo · $"+entConfig.tiers[k].price.yearly+"/yr"
+                                  : "$"+entConfig.tiers[k].price.yearly+"/yr")
+                            }</span>
+                          </div>
+                          <div style={{fontSize:"0.73em",color:C.mid,lineHeight:1.5,marginTop:3}}>{entConfig.tiers[k].tagline}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{marginTop:8,fontSize:"0.71em",color:C.light,lineHeight:1.5}}>Paid plans and AI Assist packs are coming soon. You'll never be charged without setting up billing first.</div>
+                  </div>
                 )}
               </div>
             )}
@@ -2883,9 +2941,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                       </div>
 
                       <div className="admin-panel" style={{background:dark.panel,border:"1px solid "+dark.line,borderRadius:16,padding:14,display:"grid",gap:6}}>
-                        <div style={{fontFamily:SERIF,fontSize:"1.3em"}}>Credit tuning ({usage?.period})</div>
+                        <div style={{fontFamily:SERIF,fontSize:"1.3em"}}>AI Assist tuning ({usage?.period})</div>
                         <div style={{fontSize:"0.84em",color:dark.muted,lineHeight:1.5}}>
-                          This month {per.activeUsers || 0} user{(per.activeUsers === 1 ? "" : "s")} used AI. Average <strong style={{color:dark.text}}>{Number(per.avgBillable || 0).toFixed(1)}</strong> billable actions each; heaviest used <strong style={{color:dark.text}}>{per.maxBillable || 0}</strong>. Compare against the tier caps to set the right monthly credits: <span style={{color:dark.gold}}>Free 10 · Plus 100 · Family 250 · Founder 150</span>. Beta is unlimited until launch.
+                          This month {per.activeUsers || 0} user{(per.activeUsers === 1 ? "" : "s")} used AI. Average <strong style={{color:dark.text}}>{Number(per.avgBillable || 0).toFixed(1)}</strong> billable actions each; heaviest used <strong style={{color:dark.text}}>{per.maxBillable || 0}</strong>. Compare against the monthly AI Assist allowances: <span style={{color:dark.gold}}>Free 5 (+15 welcome) · Plus 250 · Family 600 · Founder 300</span>. Cost varies by action (import 1 · adjust 2 · Pantry Chef 2 · meal plan 4). Beta is unlimited until launch.
                         </div>
                       </div>
 
@@ -2917,7 +2975,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                         {(usage?.topUsers || []).map((u, i) => (
                           <div key={i} style={{display:"flex",justifyContent:"space-between",gap:10,fontSize:"0.84em"}}>
                             <span style={{color:dark.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.displayName || u.email || "Unknown"}</span>
-                            <span style={{color:dark.muted,whiteSpace:"nowrap"}}>{u.billable} credits · {usd(u.cost)}</span>
+                            <span style={{color:dark.muted,whiteSpace:"nowrap"}}>{u.billable} assists · {usd(u.cost)}</span>
                           </div>
                         ))}
                         {!(usage?.topUsers || []).length && <div style={{color:dark.muted,fontSize:"0.84em"}}>No AI usage yet this month.</div>}
@@ -3043,7 +3101,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
       // Re-runs extraction against the SAME captured source, but focused on a
       // single named recipe (or asking the model to combine variants). This is a
-      // fresh paid extraction, which is why the review screen discloses credits.
+      // fresh paid extraction, which is why the review screen discloses AI Assists.
       function buildFocusedMessages(messages, instruction) {
         return (messages || []).map((m, idx) => {
           if (idx !== 0 || !m || m.role !== "user") return m;
@@ -3654,7 +3712,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     </button>
                   </div>
                   <div style={{marginTop:12,background:C.goldPale,border:"1px solid "+C.goldLight,borderRadius:8,padding:"9px 12px",fontSize:"0.76em",color:C.brown,lineHeight:1.5}}>
-                    Each option runs a fresh AI extraction and uses AI credits. Importing all separately uses one extraction per recipe.
+                    Each option runs a fresh AI extraction and uses AI Assists. Importing all separately uses one extraction per recipe.
                   </div>
                   {loading && (
                     <div style={{marginTop:13,display:"flex",alignItems:"center",justifyContent:"center",gap:10,color:C.green,fontSize:"0.85em",fontWeight:700}}>
