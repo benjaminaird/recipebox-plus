@@ -224,15 +224,20 @@ Built now (server-authoritative):
 - `GET /api/me/credits` (auth) returns plan, monthly used/remaining/reset date, bonus, purchased, total. `GET /api/config/entitlements` exposes read-only display config. `POST /api/admin/credits/grant` (master-admin) grants bonus/purchased credits manually until billing exists. Settings shows plan, remaining, bonus/purchased, reset date, and a "coming soon" note (no fake purchase buttons).
 - Referral foundation: `grantReferralBonus()` grants 25 credits to each side, capped at 10 paid conversions per referrer per month (`referralBonusAllowed`). Not yet wired to a live conversion event.
 
-Pricing placeholders: Plus $4.99/mo or $39.99/yr; Family $7.99/mo or $69.99/yr; Founder $29.99/yr forever (beta converts only, 150 credits/mo after launch). Packs: 25/$1.99, 75/$4.99, 200/$9.99, 500/$19.99.
+Pricing: Plus $4.99/mo or $39.99/yr (250 Assists/mo); Family $7.99/mo or $69.99/yr (600 shared Assists/mo); Founder $29.99/yr forever (beta converts only, 300 Assists/mo). Packs: 25/$1.99, 75/$4.99, 200/$9.99, 500/$19.99. Free is 15 welcome Assists then 5/mo.
 
 Documented for later (not built now):
-- **Payments**: Stripe (and later App Store / Play billing). `user_entitlements` already has `stripe_customer_id`/`stripe_subscription_id` columns. On a successful subscription/purchase webhook: set the plan or write a `purchase` ledger grant. No billing UI or purchase buttons until this is live.
-- **Founder conversion workflow**: at launch, offer beta users Founder ($29.99/yr forever, 150/mo). Mark eligibility, capture conversion, set plan `founder`.
-- **Family household sharing**: Family tier config exists (250 credits, cap 4) but sharing is not enforced. Build a household model (owner/adult/member, invites, shared library/meal-plan/shopping-list/pantry, private-by-default recipes) and make the 250 credits a shared household pool. See "Future Subscription: Family Plan".
+- **Payments — billing is platform-dependent, NOT necessarily Stripe.** Apple and Google *require* their own in-app billing for digital goods sold inside a native app, so:
+  - **Native iOS** → StoreKit / In-App Purchase. Selling AI Assists via Stripe inside an iOS app violates App Store Guideline 3.1.1 (rejection). Monthly tiers = auto-renewable subscriptions; Assist packs = consumable products.
+  - **Native Android** → Google Play Billing (same model).
+  - **Web (the PWA / any future web checkout)** → Stripe is appropriate there and keeps ~97% vs Apple/Google's ~70–85%. Only wire Stripe if/when we sell on the web.
+  - **Reconciliation is the same regardless of provider:** server-side entitlements stay the single source of truth. The provider's only job is to send a *verified* signal — an **Apple/Google receipt verified server-side**, or a **Stripe webhook** — that sets the plan or writes a `purchase` ledger grant. Never trust a client-reported purchase. `user_entitlements` already has `stripe_customer_id`/`stripe_subscription_id` columns; add equivalent fields (or a `purchases`/`receipts` table) for IAP transaction IDs when native ships. Apple/Google also handle tax/VAT and receipts, which Stripe does not by default.
+  - Since RecipeBox is currently a **web PWA with no native project yet**, nothing is billable today; pack/upgrade buttons correctly show "coming soon."
+- **Founder conversion workflow**: at launch, offer beta users Founder ($29.99/yr forever, 300 Assists/mo). Mark eligibility, capture conversion, set plan `founder`.
+- **Family household sharing**: Family tier config exists (600 shared Assists, cap 4) but sharing is not enforced. Build a household model (owner/adult/member, invites, shared library/meal-plan/shopping-list/pantry, private-by-default recipes) and make the 600 Assists a shared household pool. See "Future Subscription: Family Plan".
 - **Referral end-to-end**: per-user referral code/link, self-referral and duplicate-referred protection, conversion detection tied to payments, audit events. Possible tables: `referrals`, `referral_events`. See "Future Monetization: Referral Program".
 - **Optional free-tier ads**: keep the `adsEnabled` config and entitlement shape ready; do not integrate an ad network unless we choose to.
-- **App Control entitlement UI**: a master-admin screen to view/edit tier config, grant credits, and inspect ledgers (extend the existing admin endpoints; keep all enforcement server-side).
+- **App Control entitlement UI**: a master-admin screen to view/edit tier config, grant AI Assists, and inspect ledgers (extend the existing admin endpoints; keep all enforcement server-side).
 - **Feature gates by tier**: AI features are already credit-gated. Non-AI gates (e.g. PDF export / meal planning as Plus perks) are encoded in config but not enforced during beta; enforce at launch if desired without breaking current users.
 
 ## Milestone: Desktop / Web Companion (recipeboxapp.com)

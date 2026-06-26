@@ -104,15 +104,25 @@ rate-limit tables. These are backend-owned:
 - `rate_limit_counters`
 - App Control sources and logs
 
-Stripe is not configured yet. Required future work:
+No billing provider is configured yet, and the provider is platform-dependent —
+**not necessarily Stripe**. Apple/Google require their own in-app billing for
+digital goods sold inside a native app:
 
-- Store Stripe customer ID server-side.
-- Store Stripe subscription ID server-side.
-- Verify Stripe webhook signatures.
-- Process subscription created/updated/deleted events.
-- Process failed payments.
-- Map Stripe price IDs to backend entitlement plans.
-- Never trust client-submitted plan, price, status, or usage values.
+- **Native iOS** → StoreKit / In-App Purchase (Stripe for in-app digital goods
+  violates App Store Guideline 3.1.1). Verify the App Store receipt server-side.
+- **Native Android** → Google Play Billing. Verify the purchase token server-side.
+- **Web** → Stripe (verify webhook signatures) only if/when there is a web checkout.
+
+Security invariants are identical regardless of provider:
+
+- The backend entitlement is the single source of truth; a purchase only takes
+  effect after a **server-side-verified** signal (Apple/Google receipt or Stripe
+  webhook), which sets the plan or writes a `purchase` ledger grant.
+- Never trust client-submitted plan, price, status, receipt, or usage values.
+- Store provider transaction/customer IDs server-side (`user_entitlements`
+  already has `stripe_customer_id`/`stripe_subscription_id`; add IAP transaction
+  fields or a `purchases` table when native ships).
+- Map provider product/price IDs to backend entitlement plans server-side.
 
 ## Master Admin Audit
 
