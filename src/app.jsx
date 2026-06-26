@@ -3870,6 +3870,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [showOriginal, setShowOriginal] = useState(false);
       const [showWTB, setShowWTB] = useState(false);
       const [macroWhole, setMacroWhole] = useState(false);
+      const [nutLoading, setNutLoading] = useState(false);
+      const [nutError, setNutError] = useState("");
       const [aiQuery, setAiQuery] = useState("");
       const [aiLoading, setAiLoading] = useState(false);
       const [aiResult, setAiResult] = useState(null);
@@ -4029,6 +4031,33 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           </div>
         </div>
       ) : null;
+
+      // On-demand AI nutrition estimate. Writes into the existing recipe.macros
+      // shape (so the macros card, PDF export, and hero badge all keep working)
+      // plus a fingerprint of the ingredients it was based on, so we can later
+      // flag the estimate as stale if the recipe is edited. Bills exactly 1 AI
+      // Assist server-side (the prompt is classified as the `nutrition` feature).
+      async function runNutritionEstimate() {
+        if (nutLoading) return;
+        setNutError("");
+        setNutLoading(true);
+        try {
+          const { system, messages, maxTokens } = RecipeBoxNutrition.nutritionPrompt(recipe);
+          const raw = await callAI(messages, system, maxTokens);
+          const values = RecipeBoxNutrition.parseNutrition(raw);
+          if (!values) throw new Error("Couldn't read a nutrition estimate this time. Please try again.");
+          onUpdate({
+            ...recipe,
+            macros: { ...(recipe.macros || {}), ...values },
+            nutritionBasis: RecipeBoxNutrition.ingredientsFingerprint(recipe),
+            nutritionEstimatedAt: new Date().toISOString(),
+          });
+        } catch (e) {
+          setNutError(e.message || "Nutrition estimate failed. Please try again.");
+        } finally {
+          setNutLoading(false);
+        }
+      }
 
       async function runAIAdjust() {
         if (!aiQuery.trim()) return;
@@ -4355,10 +4384,31 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               </div>
             )}
 
-            {/* Macros */}
-            {recipe.macros && Object.values(recipe.macros).some((v)=>Number(v)>0) && (() => {
+            {/* Nutrition */}
+            {(() => {
+              const macros = recipe.macros || {};
+              const hasMacros = Object.values(macros).some((v)=>Number(v)>0);
               const totalServings = Math.max(1, Math.round((Number(recipe.servings)||1) * scale));
               const factor = macroWhole ? totalServings : 1;
+              const stale = !!recipe.nutritionBasis && RecipeBoxNutrition.ingredientsFingerprint(recipe) !== recipe.nutritionBasis;
+              const estimateBtn = (
+                <button onClick={runNutritionEstimate} disabled={nutLoading}
+                  style={{display:"inline-flex",alignItems:"center",gap:7,background:nutLoading?C.cream2:C.greenPale,border:"1px solid "+(nutLoading?C.border:C.green+"55"),borderRadius:9,padding:"8px 13px",color:C.green,fontWeight:800,fontSize:"0.8em",cursor:nutLoading?"default":"pointer",fontFamily:SANS,touchAction:"manipulation"}}>
+                  {nutLoading
+                    ? <><span style={{width:13,height:13,border:"2px solid "+C.green+"55",borderTopColor:C.green,borderRadius:"50%",display:"inline-block",animation:"spin 0.7s linear infinite"}} /> Estimating…</>
+                    : <><Icon name="chef" size={15} /> {hasMacros ? "Re-estimate with AI" : "Estimate nutrition"} · 1 AI Assist</>}
+                </button>
+              );
+              if (!hasMacros) {
+                return (
+                  <div style={{...S.cardSoft,marginBottom:18,padding:"12px 14px"}}>
+                    <div style={{fontSize:"0.66em",color:C.light,letterSpacing:1,textTransform:"uppercase",fontWeight:800,marginBottom:8}}>Nutrition</div>
+                    <div style={{fontSize:"0.82em",color:C.mid,lineHeight:1.5,marginBottom:11}}>No nutrition estimate yet. Get approximate per-serving calories and macros from the ingredient list.</div>
+                    {estimateBtn}
+                    {nutError && <div style={{marginTop:9,fontSize:"0.76em",color:C.red,lineHeight:1.45}}>{nutError}</div>}
+                  </div>
+                );
+              }
               return (
               <div style={{...S.cardSoft,marginBottom:18,padding:"12px 14px"}}>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:10,flexWrap:"wrap"}}>
@@ -4379,6 +4429,16 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   ))}
                   <div style={{fontSize:"0.68em",color:C.light,alignSelf:"flex-end",marginLeft:"auto"}}>{macroWhole ? "whole recipe ("+totalServings+" servings)" : "per serving"}</div>
                 </div>
+                {stale && (
+                  <div style={{marginTop:10,fontSize:"0.74em",color:C.brown,background:C.goldPale,border:"1px solid "+C.goldLight,borderRadius:8,padding:"7px 10px",lineHeight:1.45}}>
+                    Ingredients changed since this estimate — re-estimate for updated numbers.
+                  </div>
+                )}
+                <div style={{marginTop:11,display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                  {estimateBtn}
+                  <span style={{fontSize:"0.7em",color:C.light}}>Approximate · not medical or dietary advice</span>
+                </div>
+                {nutError && <div style={{marginTop:8,fontSize:"0.76em",color:C.red,lineHeight:1.45}}>{nutError}</div>}
               </div>
               );
             })()}

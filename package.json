@@ -26,7 +26,8 @@
     "youtube-parser-test": "node scripts/youtube-parser-test.js",
     "auth-verification-test": "node scripts/auth-verification-test.js",
     "security-headers-test": "node scripts/security-headers-test.js",
-    "security-hardening-test": "node scripts/security-hardening-test.js"
+    "security-hardening-test": "node scripts/security-hardening-test.js",
+    "nutrition-test": "node scripts/nutrition-test.js"
   },
   "dependencies": {
     "express": "^4.18.2",
