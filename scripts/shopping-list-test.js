@@ -3,6 +3,7 @@ const {
   buildShoppingListFromSections,
   groupShoppingItemsByCategory,
   enrichRecipeIngredients,
+  normalizeIngredientName,
 } = require("../public/shopping-list");
 
 function findItem(items, text) {
@@ -141,5 +142,13 @@ assert.strictEqual(findItem(multi, "Heavy Cream").sources[0].title, "Chocolate C
 // Single-recipe lists still work (shape unchanged, at most one source each).
 const singleSrc = buildShoppingListFromSections(srcSections([cake]));
 assert.ok(singleSrc.length > 0 && singleSrc.every((i) => i.sourceCount <= 1), "single-recipe list shape is unchanged");
+
+// ── Pantry-aware exclusion: matches a saved staple by normalized name ──
+const oilList = buildShoppingListFromSections([{ name: "Main", ingredients: [{ amount: "2", unit: "tbsp", name: "olive oil" }] }]);
+const oil = oilList[0];
+assert.strictEqual(oil.parts[0].normalized_ingredient_name, normalizeIngredientName("olive oil"), "item exposes a normalized name for pantry matching");
+const pantry = new Set([normalizeIngredientName("olive oil")]);
+assert.ok(pantry.has(oil.parts[0].normalized_ingredient_name), "an olive oil item is excluded by an olive oil pantry staple");
+assert.ok(!pantry.has(normalizeIngredientName("extra virgin olive oil")), "a different variety is NOT matched (conservative exclusion)");
 
 console.log("shopping-list-test: ok");

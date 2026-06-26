@@ -629,6 +629,11 @@ function loadShoppingList() {
   catch { return emptyShoppingList(); }
 }
 function saveShoppingList(l) { try { localStorage.setItem(SHOPPING_KEY, JSON.stringify(l)); } catch {} }
+// Pantry staples: normalized ingredient names the user keeps on hand. Used to
+// exclude "already have" items from shopping lists. Local-only, user-specific.
+const PANTRY_KEY = "recipebox-pantry-v1";
+function loadPantry() { try { const p = JSON.parse(localStorage.getItem(PANTRY_KEY) || "[]"); return Array.isArray(p) ? p : []; } catch { return []; } }
+function savePantry(p) { try { localStorage.setItem(PANTRY_KEY, JSON.stringify(p)); } catch {} }
 function downloadJson(filename, data) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type:"application/json" });
   const url = URL.createObjectURL(blob);
@@ -1637,21 +1642,28 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         })),
       );
     }
-    function ShoppingListScreen({ list, recipes, onChange, setTab, onOpenRecipe }) {
+    function ShoppingListScreen({ list, recipes, onChange, setTab, onOpenRecipe, pantry, onTogglePantry }) {
       const [adding, setAdding] = useState("");
       const [editingKey, setEditingKey] = useState(null);
       const [expanded, setExpanded] = useState(null);
+      const [showHave, setShowHave] = useState(false);
       const addRef = useRef(null);
+      const pantrySet = new Set(pantry || []);
+      const normOf = (text) => { try { return RecipeBoxShopping.normalizeIngredientName(text || ""); } catch { return (text || "").toLowerCase().trim(); } };
       const sourceRecipes = (list.recipeIds || []).map((id) => recipes.find((r) => r.id === id)).filter(Boolean);
       const generated = RecipeBoxShopping.buildShoppingListFromSections(sectionsFromRecipes(sourceRecipes));
       const genItems = generated
         .filter((it) => !list.removed[itemKey(it)])
-        .map((it) => { const k = itemKey(it); return { id: k, key: k, text: list.edits[k] != null ? list.edits[k] : it.text, category: it.category, checked: !!list.checked[k], sources: it.sources || [], sourceCount: it.sourceCount || 0, manual: false }; });
-      const manualItems = (list.manualItems || []).map((m) => { const k = "m:" + m.id; return { id: k, key: k, text: list.edits[k] != null ? list.edits[k] : m.text, category: m.category || "Pantry", checked: !!list.checked[k], sources: [], sourceCount: 0, manual: true, manualId: m.id }; });
+        .map((it) => { const k = itemKey(it); const normName = (it.parts && it.parts[0] && it.parts[0].normalized_ingredient_name) || normOf(it.text); return { id: k, key: k, text: list.edits[k] != null ? list.edits[k] : it.text, category: it.category, checked: !!list.checked[k], sources: it.sources || [], sourceCount: it.sourceCount || 0, manual: false, normName }; });
+      const manualItems = (list.manualItems || []).map((m) => { const k = "m:" + m.id; return { id: k, key: k, text: list.edits[k] != null ? list.edits[k] : m.text, category: m.category || "Pantry", checked: !!list.checked[k], sources: [], sourceCount: 0, manual: true, manualId: m.id, normName: normOf(m.text) }; });
       const allItems = [...genItems, ...manualItems];
-      const total = allItems.length;
-      const done = allItems.filter((i) => i.checked).length;
-      const groups = RecipeBoxShopping.groupShoppingItemsByCategory(allItems);
+      // Pantry-aware: items whose ingredient is a saved staple are set aside as
+      // "already have" (excluded from the active checklist) until untracked.
+      const haveItems = allItems.filter((i) => i.normName && pantrySet.has(i.normName));
+      const activeItems = allItems.filter((i) => !(i.normName && pantrySet.has(i.normName)));
+      const total = activeItems.length;
+      const done = activeItems.filter((i) => i.checked).length;
+      const groups = RecipeBoxShopping.groupShoppingItemsByCategory(activeItems);
 
       const toggle = (k) => onChange((l) => ({ ...l, checked: { ...l.checked, [k]: !l.checked[k] } }));
       const editText = (k, text) => onChange((l) => ({ ...l, edits: { ...l.edits, [k]: text } }));
@@ -1699,7 +1711,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               <button onClick={addManual} style={{...S.goldBtn,borderRadius:11,padding:"12px 18px",fontSize:"0.85em",flexShrink:0}}>Add</button>
             </div>
 
-            {total === 0 ? (
+            {allItems.length === 0 ? (
               <div style={{...S.card,padding:"30px 22px",textAlign:"center"}}>
                 <div style={{width:48,height:48,margin:"0 auto 12px",borderRadius:13,background:C.greenPale,color:C.green,display:"inline-flex",alignItems:"center",justifyContent:"center",border:"1px solid "+C.green+"22"}}><Icon name="shoppingList" size={24} /></div>
                 <div style={{fontFamily:SERIF,fontSize:"1.2em",color:C.dark,marginBottom:5}}>Your shopping list is empty</div>
@@ -1712,6 +1724,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               </div>
             ) : (
               <>
+                {activeItems.length === 0 && (
+                  <div style={{...S.card,padding:"22px",textAlign:"center",color:C.light,fontSize:"0.88em",marginBottom:14}}>You already have everything below in your pantry. Nice.</div>
+                )}
                 {groups.map((group) => {
                   const ordered = [...group.items].sort((a, b) => (a.checked === b.checked ? 0 : a.checked ? 1 : -1));
                   return (
@@ -1747,6 +1762,12 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                                 </div>
                               </div>
                               <div style={{display:"flex",alignItems:"center",gap:2,flexShrink:0}}>
+                                {item.normName && (
+                                  <button onClick={() => onTogglePantry(item.normName)} aria-label="I already have this" title="I always keep this on hand"
+                                    style={{background:"none",border:"none",color:C.light,cursor:"pointer",padding:"5px 6px",minHeight:32,display:"inline-flex",alignItems:"center"}}>
+                                    <Icon name="pantry" size={16} />
+                                  </button>
+                                )}
                                 <button onClick={() => setEditingKey(editing ? null : item.key)} aria-label={editing?"Done editing":"Edit item"}
                                   style={{background:"none",border:"none",color:editing?C.green:C.light,cursor:"pointer",padding:"5px 6px",minHeight:32,display:"inline-flex",alignItems:"center"}}>
                                   <Icon name={editing ? "check" : "edit"} size={16} />
@@ -1772,13 +1793,34 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     </div>
                   );
                 })}
+
+                {haveItems.length > 0 && (
+                  <div style={{marginTop:8,marginBottom:8,border:"1px solid "+C.border,borderRadius:12,overflow:"hidden"}}>
+                    <button onClick={() => setShowHave((v) => !v)} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,background:C.paper2||C.cream2,border:"none",padding:"11px 13px",cursor:"pointer",fontFamily:SANS}}>
+                      <span style={{display:"inline-flex",alignItems:"center",gap:8,color:C.brown,fontWeight:700,fontSize:"0.82em"}}><Icon name="pantry" size={16} /> Already have · {haveItems.length}</span>
+                      <span aria-hidden style={{color:C.light}}>{showHave ? "▴" : "▾"}</span>
+                    </button>
+                    {showHave && (
+                      <div style={{padding:"4px 13px 10px"}}>
+                        <div style={{fontSize:"0.72em",color:C.light,margin:"4px 0 8px",lineHeight:1.4}}>These are in your pantry staples, so they're left off the list. Tap "Need it" to add one back this time.</div>
+                        {haveItems.map((item) => (
+                          <div key={item.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,padding:"6px 0",borderTop:"1px solid "+C.border}}>
+                            <span style={{fontSize:"0.86em",color:C.mid,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.text}</span>
+                            <button onClick={() => onTogglePantry(item.normName)} style={{...S.ghostBtn,borderRadius:999,padding:"5px 12px",fontSize:"0.74em",flexShrink:0}}>Need it</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:6}}>
                   <button onClick={copyList} style={{...S.goldBtn,border:"1px solid "+C.goldLight,borderRadius:10,padding:"9px 14px",fontSize:"0.8em"}}>Copy list</button>
                   {done > 0 && <button onClick={clearChecked} style={{...S.ghostBtn,borderRadius:10,padding:"9px 14px",fontSize:"0.8em"}}>Uncheck all</button>}
                   <button onClick={startFresh} style={{...S.ghostBtn,color:C.light,borderRadius:10,padding:"9px 14px",fontSize:"0.8em"}}>Clear list</button>
                 </div>
                 <p style={{fontSize:"0.74em",color:C.light,lineHeight:1.5,marginTop:14}}>
-                  Tap an item to check it off. Ingredients are combined conservatively — items that change how a recipe turns out, like different milks, creams, cheeses, or chocolates, are kept separate on purpose.
+                  Tap an item to check it off, or the pantry icon to mark a staple you always keep on hand (it'll stay off future lists). Ingredients are combined conservatively — items that change how a recipe turns out, like different milks, creams, cheeses, or chocolates, are kept separate on purpose.
                 </p>
               </>
             )}
@@ -4704,6 +4746,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [mealPlan, setMealPlanState] = useState(() => loadMealPlan());
       const [shoppingList, setShoppingListState] = useState(() => loadShoppingList());
       const setShoppingList = (updater) => setShoppingListState((prev) => typeof updater === "function" ? updater(prev) : updater);
+      const [pantry, setPantryState] = useState(() => loadPantry());
+      const togglePantry = (name) => { if (!name) return; setPantryState((p) => p.includes(name) ? p.filter((x) => x !== name) : [...p, name]); };
       // Build the current shopping list from recipe ids. replace=true starts a
       // fresh list (Library multi-select / meal plan); replace=false merges (add
       // one recipe from its detail screen). Then open the shopping screen.
@@ -4761,6 +4805,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
       useEffect(() => { saveRecipes(recipes); }, [recipes]);
       useEffect(() => { saveShoppingList(shoppingList); }, [shoppingList]);
+      useEffect(() => { savePantry(pantry); }, [pantry]);
       useEffect(() => {
         async function refreshAiUsage() {
           if (!account) { setAiUsage(defaultAiUsage()); return; }
@@ -4850,7 +4895,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           <div style={{width:"100%",maxWidth:"100%",overflowX:"hidden"}}>
             {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>openRecipe(r,"library")} onAdd={openImport} onFavorite={toggleFavorite} setTab={setMainTab} tagFilter={libraryTag} onTagFilter={setLibraryTag} onCreateShoppingList={(ids,title)=>openShoppingFrom(ids,{replace:true,title})} />}
             {tab==="plan" && <MealPlanner recipes={recipes} mealPlan={mealPlan} setMealPlan={updateMealPlan} onOpen={(r)=>openRecipe(r,"plan")} onGenerateShoppingList={(ids)=>openShoppingFrom(ids,{replace:true,title:"This Week's Shopping List"})} />}
-            {tab==="shopping" && <ShoppingListScreen list={shoppingList} recipes={recipes} onChange={setShoppingList} setTab={setMainTab} onOpenRecipe={(r)=>openRecipe(r,"shopping")} />}
+            {tab==="shopping" && <ShoppingListScreen list={shoppingList} recipes={recipes} onChange={setShoppingList} setTab={setMainTab} onOpenRecipe={(r)=>openRecipe(r,"shopping")} pantry={pantry} onTogglePantry={togglePantry} />}
             {tab==="pantry" && <PantryChef recipes={recipes} onImport={(r)=>{addRecipe(r);setTab("library");}} onOpenRecipe={(r)=>openRecipe(r,"pantry")} />}
             {tab==="settings" && <Settings timerSound={timerSound} setTimerSound={setTimerSound} account={account} setAccount={setAccount} recipes={recipes} mealPlan={mealPlan} aiUsage={aiUsage} onCloudData={loadCloudData} onOpenAdmin={()=>setScreen("admin")} newFeedback={newFeedback} />}
           </div>
