@@ -4,7 +4,9 @@ RecipeBox is moving toward beta-readiness first, then wider iOS and Google Play 
 
 ## Current Status
 
-Last updated: June 23, 2026.
+Last updated: June 26, 2026.
+
+> **Launch readiness:** see [`docs/launch-readiness.md`](launch-readiness.md) for the launch gate (shipped features, blockers, security/auth/payment/AI/import/native status) and [`docs/native-readiness-checklist.md`](native-readiness-checklist.md) for the manual real-device QA checklist. Web-beta blockers: final legal review, on-device QA, promote CSP report-only → enforced, confirm `RESEND_API_KEY` in prod.
 
 - Production is deployed at `https://recipebox-kappa.vercel.app` (Vercel production target, aliased; deployed from the `codex/import-reliability-notes` branch via `vercel --prod`).
 - Latest checkpoint branch: `codex/import-reliability-notes`.
