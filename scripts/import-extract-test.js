@@ -120,6 +120,9 @@ assert.strictEqual(Extract.parseYield("dozen"), 12, "bare 'dozen' is 12");
 assert.strictEqual(Extract.parseYield("1 loaf"), null, "a bare '1 loaf' is not '1 serving' -> decline");
 assert.strictEqual(Extract.parseYield("Makes 1 9x5-inch loaf"), null, "decline a misleading whole-item yield of 1");
 assert.strictEqual(Extract.parseYield(["1 loaf", "12 servings"]), 12, "use the real serving count from the array");
+assert.strictEqual(Extract.parseYield(["1", "1 loaf"]), null, "['1','1 loaf'] (Sally's) is one loaf, not 1 serving");
+assert.strictEqual(Extract.parseYield(["1", "1 cake"]), null, "['1','1 cake'] declines too");
+assert.strictEqual(Extract.parseYield(["1", "1 loaf, 12 slices"]), 12, "but a real slice count still wins");
 assert.strictEqual(Extract.decodeEntities("salt &amp; pepper, you&#39;ll love it"), "salt & pepper, you'll love it");
 // Ingredient splitting: quantity + known unit + name; unknown "unit" stays in name.
 assert.deepStrictEqual(

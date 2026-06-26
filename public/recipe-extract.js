@@ -133,11 +133,23 @@
       var dz = String(vals[j] == null ? "" : vals[j]).toLowerCase().match(/(\d+(?:\.\d+)?)?\s*dozen/);
       if (dz) { var d = dz[1] ? Number(dz[1]) : 1; if (d > 0) return Math.round(d * 12); }
     }
-    // 3) Leading/explicit number, skipping a misleading bare "1 loaf/cake/…".
+    // Collect every number across all values, and look at the whole yield text
+    // together: a yield that names a whole item (loaf/cake/…) with no count above
+    // 1 — e.g. "1 loaf" or ["1","1 loaf"] — is a single item, not "1 serving".
+    var joined = vals.map(function (v) { return String(v == null ? "" : v); }).join(" ");
+    var nums = [];
+    vals.forEach(function (v) {
+      if (typeof v === "number" && isFinite(v) && v > 0) { nums.push(Math.round(v)); return; }
+      var mm = String(v == null ? "" : v).match(/\d+/);
+      if (mm && Number(mm[0]) > 0) nums.push(Number(mm[0]));
+    });
+    var maxNum = nums.length ? Math.max.apply(null, nums) : 0;
+    if (WHOLE_ITEM.test(joined) && maxNum <= 1) return null;
+    // 3) First usable number (skip a bare "1 loaf/cake/…" in a single value).
     for (var k = 0; k < vals.length; k++) {
-      var v = vals[k];
-      if (typeof v === "number" && isFinite(v) && v > 0) return Math.round(v);
-      var s = String(v == null ? "" : v);
+      var v2 = vals[k];
+      if (typeof v2 === "number" && isFinite(v2) && v2 > 0) return Math.round(v2);
+      var s = String(v2 == null ? "" : v2);
       var m = s.match(/\d+/);
       if (m) { var n = Number(m[0]); if (n > 0) { if (n === 1 && WHOLE_ITEM.test(s)) continue; return n; } }
     }
