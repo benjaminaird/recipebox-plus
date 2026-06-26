@@ -2981,6 +2981,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [loading, setLoading] = useState(false);
       const [loadingMsg, setLoadingMsg] = useState("");
       const [error, setError] = useState("");
+      const [recovery, setRecovery] = useState("");
       const [showPhotoPrompt, setShowPhotoPrompt] = useState(false);
       const [showCategoryModal, setShowCategoryModal] = useState(false);
       const [pendingRecipe, setPendingRecipe] = useState(null);
@@ -3104,6 +3105,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       async function extract() {
         setLoading(true);
         setError("");
+        setRecovery("");
 
         try {
           let parsed;
@@ -3116,6 +3118,10 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           let importSourceQuality = "high";
           let importWarnings = [];
           let importSourceText = "";
+          // Whatever raw caption/transcript text we scraped — if auto-extraction
+          // comes up thin, we offer it back so the user can finish it as text
+          // instead of hitting a dead end.
+          let capturedText = "";
 
           if (mode === "url") {
             setLoadingMsg("Fetching recipe page...");
@@ -3144,6 +3150,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             const transcriptRes = await apiFetch("/api/transcript?url=" + encodeURIComponent(ytUrl));
             const transcriptData = await transcriptRes.json();
             if (transcriptData.error) throw new Error("Could not fetch YouTube details: " + transcriptData.error);
+            capturedText = [transcriptData.title, transcriptData.transcript || transcriptData.description].filter(Boolean).join("\n\n");
             if (transcriptData.sourceQuality === "low") {
               throw new Error("We couldn't read enough recipe detail from this video. Try pasting the recipe text or using screenshots instead.");
             }
@@ -3198,6 +3205,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               socialData.text,
               socialData.title
             ].filter(Boolean).join("\n\n").trim();
+            capturedText = availableText;
             if (availableText.length < 120 || socialData.sourceQuality === "low") {
               throw new Error("RecipeBox could not access the full caption or recipe text from this social post. Try Paste Text with the caption or upload screenshots.");
             }
@@ -3335,6 +3343,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
         } catch(e) {
           setError(e.message || "Could not extract recipe.");
+          // Thin YouTube/social import that still scraped real text? Offer it
+          // back as a one-tap handoff to Paste Text instead of a dead end.
+          if ((mode === "youtube" || mode === "social") && capturedText && capturedText.trim().length > 30) {
+            setRecovery(capturedText.trim());
+          }
         }
         setLoading(false);
         setLoadingMsg("");
@@ -3640,7 +3653,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           <div style={{maxWidth:560,margin:"0 auto",padding:"28px 20px"}}>
             <div style={{display:"flex",background:C.cream2,border:"1px solid "+C.border,borderRadius:12,padding:4,marginBottom:22,overflowX:"auto"}}>
               {tabs.map((t) => (
-                <button key={t.id} onClick={() => setMode(t.id)}
+                <button key={t.id} onClick={() => { setMode(t.id); setError(""); setRecovery(""); }}
                   style={{flex:"1 0 74px",padding:"9px 4px",border:"none",borderRadius:9,background:mode===t.id?C.paper:"transparent",color:mode===t.id?C.green:C.light,fontWeight:mode===t.id?800:600,cursor:"pointer",fontSize:"0.74em",fontFamily:SANS,boxShadow:mode===t.id?"0 3px 10px rgba(90,56,39,0.10)":"none"}}>
                   {t.label}
                 </button>
@@ -3737,7 +3750,18 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             </button>
 
             {error && (
-              <div style={{marginTop:13,background:C.redPale,border:"1px solid "+C.red+"50",borderRadius:8,padding:"11px 15px",fontSize:"0.83em",color:C.red,lineHeight:1.6}}>{error}</div>
+              <div style={{marginTop:13,background:C.redPale,border:"1px solid "+C.red+"50",borderRadius:8,padding:"11px 15px",fontSize:"0.83em",color:C.red,lineHeight:1.6}}>
+                {error}
+                {recovery && (
+                  <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid "+C.red+"30"}}>
+                    <div style={{color:C.dark,marginBottom:8}}>We did capture the post's text. Review and tidy it as a paste, then import:</div>
+                    <button onClick={() => { setMode("text"); setText(recovery); setRecovery(""); setError(""); }}
+                      style={{background:C.green,color:C.white,border:"none",borderRadius:9,padding:"9px 15px",fontWeight:800,fontSize:"0.92em",cursor:"pointer",fontFamily:SANS,WebkitTapHighlightColor:"transparent"}}>
+                      Review captured text →
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>

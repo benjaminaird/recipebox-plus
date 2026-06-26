@@ -66,8 +66,9 @@ Last updated: June 23, 2026.
    - **Admin signals:** the admin user list now shows provider cost ($), hidden repair-pass count, and failed-call count per user alongside the AI call count.
    - Covered by `npm run ai-credits-test` (feature classification + billable/non-billable). No client can change credits/limits/cost — all enforcement stays server-side.
 
-4. Improve social/video imports where source text is thin.
-   TikTok and Shorts often need on-screen text or frame understanding. Until that exists, keep the honest fallback. Later, evaluate video-frame OCR/transcription only if cost and privacy are acceptable.
+4. Improve social/video imports where source text is thin. **Recovery handoff added.**
+   - When a YouTube or social import scrapes real caption/transcript text but the model can't structure a full recipe (thin source), the importer no longer dead-ends. It offers a one-tap **"Review captured text →"** that drops the scraped caption/transcript into Paste Text so the user can tidy and import it — deterministic, no extra AI/cost/privacy. Truly empty sources still show the honest fallback.
+   - Still future: on-screen-text / video-frame OCR for caption-less TikTok/Shorts — evaluate only if cost and privacy are acceptable.
 
 5. Mobile/native readiness pass. **First pass done.**
    - Audited the surfaces shipped in this work plus core chrome against phone layouts (code-level review; the modal/sheet system, safe-area insets, and `dvh`/`NAV_CLEARANCE` conventions were already in place from earlier commits).
