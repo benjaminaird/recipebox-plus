@@ -104,6 +104,7 @@ const PLAN_ENTITLEMENTS = {
   plus:    { aiMonthlyLimit: 250, aiDailyLimit: 80,  importDailyLimit: 80,   adjustDailyLimit: 80,  pantryDailyLimit: 100 },
   family:  { aiMonthlyLimit: 600, aiDailyLimit: 150, importDailyLimit: 150,  adjustDailyLimit: 150, pantryDailyLimit: 200 },
   founder: { aiMonthlyLimit: 300, aiDailyLimit: 100, importDailyLimit: 100,  adjustDailyLimit: 100, pantryDailyLimit: 120 },
+  founder_family: { aiMonthlyLimit: 700, aiDailyLimit: 150, importDailyLimit: 150, adjustDailyLimit: 150, pantryDailyLimit: 200 },
   beta:    { aiMonthlyLimit: BETA_UNLIMITED ? null : 50, aiDailyLimit: 60, importDailyLimit: 35, adjustDailyLimit: 40, pantryDailyLimit: 50, unlimited: BETA_UNLIMITED },
   master_admin: { aiMonthlyLimit: null, aiDailyLimit: null, importDailyLimit: null, adjustDailyLimit: null, pantryDailyLimit: null, unlimited: true },
 };
@@ -165,9 +166,14 @@ const ENTITLEMENT_CONFIG = {
     family:  { name: 'Family',  monthlyAssists: 600, shared: true, memberCap: FAMILY_MEMBER_CAP, price: { monthly: 7.99, yearly: 69.99 },
                tagline: 'For households who cook together. Includes up to 4 members, shared recipe planning tools, and 600 shared AI Assists/month.',
                features: ['Everything in Plus', 'Up to 4 household members', '600 shared AI Assists every month', 'Shared library, meal plan, shopping list & pantry'] },
-    founder: { name: 'Founder', monthlyAssists: 300, price: { yearly: 29.99, note: 'Beta-only, locked forever' },
+    // Founder tiers are HIDDEN from the public config — offered only to beta
+    // testers on the post-beta thank-you screen, never selectable off the street.
+    founder: { name: 'Founder', monthlyAssists: 300, hidden: true, betaOnly: true, price: { yearly: 29.99, note: 'Beta-only, locked forever' },
                tagline: 'Beta-only forever pricing. $29.99/year for 300 AI Assists/month and Plus features, locked for as long as the subscription remains active.',
                features: ['Beta-only forever pricing', '300 AI Assists every month', 'All Plus features', 'Locked pricing while subscribed'] },
+    founder_family: { name: 'Founder Family', monthlyAssists: 700, shared: true, memberCap: FAMILY_MEMBER_CAP, hidden: true, betaOnly: true, price: { yearly: 49.99, note: 'Beta-only, locked forever' },
+               tagline: 'Beta-only forever pricing for households. $49.99/year for 700 shared AI Assists/month, up to 4 members, and all Family features — locked for as long as the subscription remains active.',
+               features: ['Beta-only forever pricing', '700 shared AI Assists every month', 'Up to 4 household members', 'All Family features', 'Locked pricing while subscribed'] },
     beta:    { name: 'Beta',    monthlyAssists: BETA_UNLIMITED ? 'unlimited' : 50, unlimitedDuringBeta: true,
                tagline: 'Unlimited AI Assists during beta, with standard abuse protections.',
                features: ['Unlimited AI Assists during beta', 'Founder conversion offer after launch'] },
@@ -179,6 +185,24 @@ const ENTITLEMENT_CONFIG = {
     { id: 'pack_500', assists: 500, price: 19.99 },
   ],
 };
+// Beta-only "Founder" lifetime tiers, never shown to the public.
+const FOUNDER_TIERS = ['founder', 'founder_family'];
+// Public-safe view of the entitlement config: strips hidden (beta-only Founder)
+// tiers so someone off the street can never see or pick Founder pricing.
+function publicEntitlementConfig() {
+  const tiers = {};
+  for (const [k, v] of Object.entries(ENTITLEMENT_CONFIG.tiers)) { if (!v.hidden) tiers[k] = v; }
+  return { ...ENTITLEMENT_CONFIG, tiers };
+}
+// The founder options offered to an eligible beta user (with id attached).
+function founderOfferTiers() {
+  return FOUNDER_TIERS.filter((k) => ENTITLEMENT_CONFIG.tiers[k]).map((k) => ({ id: k, ...ENTITLEMENT_CONFIG.tiers[k] }));
+}
+// A user can claim Founder pricing only if they are (or were) a beta tester.
+function isFounderEligible(plan, metadata) {
+  return plan === 'beta' || !!(metadata && metadata.founderEligible);
+}
+
 // Pure spend-order helper (testable, no DB): monthly credits first, then bonus,
 // then purchased. Returns the bucket to debit, or null when out of credits.
 function chooseSpendBucket({ monthlyRemaining = 0, bonus = 0, purchased = 0 } = {}) {
@@ -1054,6 +1078,42 @@ async function readEntitlements(user) {
     pantryDailyLimit: master ? null : Number(row.pantry_daily_limit ?? planDefaults.pantryDailyLimit),
     unlimited: master || !!planDefaults.unlimited,
   };
+}
+
+async function readEntitlementMetadata(userId) {
+  const db = await getPool();
+  if (!db || !userId) return {};
+  const r = await db.query('SELECT metadata FROM user_entitlements WHERE user_id=$1', [userId]);
+  return r.rows[0]?.metadata || {};
+}
+
+// Set a user's plan + its default limits, merging metadata. Used by the beta
+// Founders conversion (Free applies immediately). Never callable by the client.
+async function setUserPlan(userId, plan, metadata) {
+  const db = await getPool();
+  if (!db) return false;
+  const p = PLAN_ENTITLEMENTS[plan] || PLAN_ENTITLEMENTS.free;
+  await db.query(
+    `INSERT INTO user_entitlements(user_id, plan, subscription_status, ai_monthly_limit, ai_daily_limit, import_daily_limit, adjust_daily_limit, pantry_daily_limit, metadata, updated_at, updated_by)
+     VALUES($1,$2,$2,$3,$4,$5,$6,$7,$8::jsonb,now(),'beta_convert')
+     ON CONFLICT(user_id) DO UPDATE SET plan=EXCLUDED.plan, subscription_status=EXCLUDED.subscription_status, ai_monthly_limit=EXCLUDED.ai_monthly_limit, ai_daily_limit=EXCLUDED.ai_daily_limit, import_daily_limit=EXCLUDED.import_daily_limit, adjust_daily_limit=EXCLUDED.adjust_daily_limit, pantry_daily_limit=EXCLUDED.pantry_daily_limit, metadata=EXCLUDED.metadata, updated_at=now(), updated_by='beta_convert'`,
+    [userId, plan, p.aiMonthlyLimit, p.aiDailyLimit, p.importDailyLimit, p.adjustDailyLimit, p.pantryDailyLimit, JSON.stringify(metadata || {})]
+  );
+  return true;
+}
+
+// Reserve a founder choice: record metadata without changing the plan (no charge
+// until billing exists; the user keeps beta-unlimited meanwhile).
+async function reserveFounderChoice(userId, currentPlan, currentStatus, metadata) {
+  const db = await getPool();
+  if (!db) return false;
+  await db.query(
+    `INSERT INTO user_entitlements(user_id, plan, subscription_status, metadata, updated_at, updated_by)
+     VALUES($1,$2,$3,$4::jsonb,now(),'beta_convert')
+     ON CONFLICT(user_id) DO UPDATE SET metadata=EXCLUDED.metadata, updated_at=now(), updated_by='beta_convert'`,
+    [userId, currentPlan || DEFAULT_PLAN, currentStatus || DEFAULT_PLAN, JSON.stringify(metadata || {})]
+  );
+  return true;
 }
 
 async function checkRateLimit(key, bucket, max, scope = 'day') {
@@ -3081,7 +3141,53 @@ app.get('/api/me/credits', requireAuth, async function(req, res) {
 // Read-only display config (tier names, prices, packs, flags). Safe to expose;
 // never used for enforcement, which always uses the server-side entitlement.
 app.get('/api/config/entitlements', function(req, res) {
-  res.json(ENTITLEMENT_CONFIG);
+  // Public view only — beta-only Founder tiers are stripped so the general
+  // public can never see or select Founder pricing.
+  res.json(publicEntitlementConfig());
+});
+
+// The Founders thank-you offer for a beta tester: Free (applies now) or reserve
+// a locked Founder / Founder Family price (claimed when billing launches). Only
+// visible to beta-eligible users.
+app.get('/api/me/founder-offer', requireAuth, async function(req, res) {
+  try {
+    const entitlement = await readEntitlements(req.user);
+    const metadata = await readEntitlementMetadata(req.user.user_id);
+    const eligible = isFounderEligible(entitlement.plan, metadata);
+    res.json({
+      eligible,
+      currentPlan: entitlement.plan,
+      choice: metadata.founderChoice || null,
+      choiceAt: metadata.founderChoiceAt || null,
+      billingLive: false,
+      freeTier: { id: 'free', ...ENTITLEMENT_CONFIG.tiers.free },
+      options: eligible ? founderOfferTiers() : [],
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Beta conversion choice. Server-gated to beta-eligible users; the client can
+// never self-assign a paid tier. 'free' applies immediately; 'founder'/
+// 'founder_family' reserve the locked price (no charge — billing isn't live).
+app.post('/api/me/convert', requireAuth, async function(req, res) {
+  try {
+    const choice = String(req.body?.choice || '');
+    if (!['free', 'founder', 'founder_family'].includes(choice)) return res.status(400).json({ error: 'Pick Free, Founder, or Founder Family.' });
+    if (isMasterAdminUser(req.user)) return res.status(400).json({ error: 'The master admin account cannot convert.' });
+    const entitlement = await readEntitlements(req.user);
+    const metadata = await readEntitlementMetadata(req.user.user_id);
+    if (!isFounderEligible(entitlement.plan, metadata)) return res.status(403).json({ error: 'The Founders offer is for beta testers only.' });
+    // Capture founder eligibility permanently + record the choice.
+    const newMeta = { ...metadata, founderEligible: true, founderChoice: choice, founderChoiceAt: new Date().toISOString() };
+    if (choice === 'free') {
+      await setUserPlan(req.user.user_id, 'free', newMeta);
+    } else {
+      // Reserve the locked founder price; keep the current (beta) plan until billing.
+      newMeta.founderReserved = choice;
+      await reserveFounderChoice(req.user.user_id, entitlement.plan, entitlement.subscriptionStatus, newMeta);
+    }
+    res.json({ ok: true, choice, applied: choice === 'free', reserved: choice !== 'free', credits: await readCreditStatus(req.user) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // ---- Family / household sharing (M1 foundation) ----
@@ -3354,6 +3460,7 @@ module.exports._test = {
   AI_ACTION_COSTS, aiAssistCost, splitAssistCharge, FREE_WELCOME_ASSISTS, AI_BURST_MAX,
   FAMILY_MEMBER_CAP, HOUSEHOLD_ROLES, normalizeHouseholdRole, generateInviteCode,
   canAddHouseholdMember, canInviteToHousehold, isHouseholdOwner, inviteIsUsable,
+  publicEntitlementConfig, founderOfferTiers, isFounderEligible, FOUNDER_TIERS,
   fetchWithTimeout, readBodyCapped, isAbortError,
   isPrivateIp, assertPublicHost, looksBlockedPage, buildPageResult, scraperRequestUrl, jinaRequestUrl,
   periodKey, resetAfter,

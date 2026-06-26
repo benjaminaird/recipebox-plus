@@ -2068,6 +2068,29 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const hhRole = household?.role;
       const canInviteRole = (role) => role === "owner" || role === "adult"; // display gate; server enforces
 
+      // --- Founders thank-you offer (beta testers only) ---
+      const [founderOffer, setFounderOffer] = useState(null);
+      const [convBusy, setConvBusy] = useState(false);
+      const [convMsg, setConvMsg] = useState("");
+      const loadFounderOffer = React.useCallback(() => {
+        if (!account) { setFounderOffer(null); return; }
+        fetchJson("/api/me/founder-offer", null).then((o) => setFounderOffer(o)).catch(() => {});
+      }, [account?.id]);
+      useEffect(() => { loadFounderOffer(); }, [loadFounderOffer]);
+      async function chooseConversion(choice, label) {
+        if (choice === "free" && !window.confirm("Switch to the Free tier now? You'll get 15 welcome AI Assists, then 5 each month — and leave the unlimited beta.")) return;
+        setConvBusy(true); setConvMsg("");
+        try {
+          await postJson("/api/me/convert", { choice });
+          setConvMsg(choice === "free"
+            ? "You're on the Free tier now. Thank you for testing RecipeBox!"
+            : "Reserved — your " + label + " price is locked in. You'll claim it when paid plans launch; no charge now.");
+          loadFounderOffer();
+          if (choice === "free") fetchJson("/api/me/credits", null).then((c) => { if (c) setCredits(c); }).catch(() => {});
+        } catch (e) { setConvMsg(e.message || "Could not save your choice."); }
+        finally { setConvBusy(false); }
+      }
+
       const compactHeader = useWindowCompactHeader();
       const localDataAvailable = hasLocalRecipeData(recipes, mealPlan);
       const importRef = useRef();
@@ -2506,7 +2529,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   <div style={{marginTop:12}}>
                     <div style={{fontSize:"0.78em",fontWeight:800,color:C.dark,marginBottom:6}}>Plans</div>
                     <div style={{display:"flex",flexDirection:"column",gap:7}}>
-                      {["free","plus","family","founder"].map((k) => entConfig.tiers[k] && (
+                      {["free","plus","family"].map((k) => entConfig.tiers[k] && (
                         <div key={k} style={{background:C.cream2,border:"1px solid "+C.border,borderRadius:9,padding:"9px 11px"}}>
                           <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:8}}>
                             <span style={{fontWeight:800,color:C.dark,fontSize:"0.86em"}}>{entConfig.tiers[k].name}</span>
@@ -2523,6 +2546,44 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     <div style={{marginTop:8,fontSize:"0.71em",color:C.light,lineHeight:1.5}}>Paid plans and AI Assist packs are coming soon. You'll never be charged without setting up billing first.</div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {account && founderOffer?.eligible && (
+              <div style={{...S.card,padding:16,border:"1px solid "+C.goldLight,background:"linear-gradient(160deg,#FFFDF7,"+C.goldPale+")"}}>
+                <div style={{fontFamily:SERIF,fontSize:"1.3em",color:C.dark,marginBottom:4}}>Thank you for testing RecipeBox 💛</div>
+                <div style={{fontSize:"0.84em",color:C.mid,lineHeight:1.6,marginBottom:13}}>
+                  You helped shape this app, and that means the world. As a beta tester you've earned <strong style={{color:C.brown}}>Founders pricing</strong> — locked in for as long as you keep your plan, and only ever offered to early testers like you. Pick what fits, no pressure:
+                </div>
+                {(() => {
+                  const free = founderOffer.freeTier || { name:"Free", price:null };
+                  const tiles = [free, ...(founderOffer.options || [])];
+                  return (
+                    <div style={{display:"flex",flexDirection:"column",gap:9}}>
+                      {tiles.map((t) => {
+                        const isChosen = founderOffer.choice === t.id;
+                        const isFree = t.id === "free";
+                        const priceLabel = isFree ? "Free forever" : ("$" + t.price.yearly + "/yr · locked");
+                        const assists = isFree ? "15 welcome, then 5/mo" : (t.monthlyAssists + (t.shared ? " shared" : "") + "/mo");
+                        return (
+                          <div key={t.id} style={{border:"1px solid "+(isChosen?C.green:C.border),background:isChosen?C.greenPale:C.paper,borderRadius:11,padding:"11px 13px"}}>
+                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:8,flexWrap:"wrap"}}>
+                              <span style={{fontWeight:800,color:C.dark,fontSize:"0.92em"}}>{t.name}{t.id==="founder_family" && <span style={{fontSize:"0.72em",color:C.brown,fontWeight:700}}> · up to {t.memberCap} members</span>}</span>
+                              <span style={{fontSize:"0.8em",color:C.green,fontWeight:800}}>{priceLabel}</span>
+                            </div>
+                            <div style={{fontSize:"0.74em",color:C.light,margin:"2px 0 9px"}}>{assists} AI Assists</div>
+                            <button disabled={convBusy || isChosen} onClick={() => chooseConversion(t.id, t.name)}
+                              style={{width:"100%",background:isChosen?"transparent":(isFree?C.cream2:C.green),border:isChosen?"1px solid "+C.green:"none",borderRadius:9,padding:"9px 12px",color:isChosen?C.green:(isFree?C.dark:C.white),fontWeight:800,fontSize:"0.82em",cursor:(convBusy||isChosen)?"default":"pointer",fontFamily:SANS}}>
+                              {isChosen ? "✓ Your choice" : (isFree ? "Switch to Free now" : "Reserve this price")}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+                {convMsg && <div style={{marginTop:11,fontSize:"0.79em",color:C.green,fontWeight:700,lineHeight:1.5}}>{convMsg}</div>}
+                <div style={{marginTop:11,fontSize:"0.71em",color:C.light,lineHeight:1.5}}>Founder prices are beta-only and locked forever. You won't be charged now — paid plans aren't live yet; reserving just holds your price. Free takes effect right away. You can change your choice while the offer is open.</div>
               </div>
             )}
 

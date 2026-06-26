@@ -4,6 +4,7 @@ const {
   ENTITLEMENT_CONFIG, PLAN_ENTITLEMENTS, REFERRAL_CONFIG, LAUNCH_PHASE,
   chooseSpendBucket, planMonthlyCredits, referralBonusAllowed,
   AI_ACTION_COSTS, aiAssistCost, splitAssistCharge, FREE_WELCOME_ASSISTS,
+  publicEntitlementConfig, founderOfferTiers, isFounderEligible, FOUNDER_TIERS,
 } = app._test;
 
 // --- Monthly included AI Assists per tier ---
@@ -104,6 +105,34 @@ assert.strictEqual(REFERRAL_CONFIG.triggersOn, "paid_conversion", "Referral trig
 assert.strictEqual(referralBonusAllowed(0), true, "first referral allowed");
 assert.strictEqual(referralBonusAllowed(9), true, "10th referral allowed");
 assert.strictEqual(referralBonusAllowed(10), false, "11th referral blocked by cap");
+
+// --- Hidden Founder tiers: beta-only, never public ---
+assert.strictEqual(ENTITLEMENT_CONFIG.tiers.founder.hidden, true, "Founder is hidden from the public");
+assert.strictEqual(ENTITLEMENT_CONFIG.tiers.founder_family.hidden, true, "Founder Family is hidden from the public");
+assert.strictEqual(ENTITLEMENT_CONFIG.tiers.founder_family.price.yearly, 49.99, "Founder Family is $49.99/yr");
+assert.strictEqual(ENTITLEMENT_CONFIG.tiers.founder_family.monthlyAssists, 700, "Founder Family gets 700 shared AI Assists");
+assert.strictEqual(ENTITLEMENT_CONFIG.tiers.founder_family.memberCap, 4);
+assert.strictEqual(PLAN_ENTITLEMENTS.founder_family.aiMonthlyLimit, 700, "enforcement limit for Founder Family is 700");
+assert.deepStrictEqual(FOUNDER_TIERS, ["founder", "founder_family"]);
+
+// Public config strips BOTH founder tiers, keeps the public ones.
+const pub = publicEntitlementConfig();
+assert.ok(!pub.tiers.founder, "public config hides Founder");
+assert.ok(!pub.tiers.founder_family, "public config hides Founder Family");
+assert.ok(pub.tiers.free && pub.tiers.plus && pub.tiers.family, "public config keeps Free/Plus/Family");
+// And the public config still never says "credit" or "unlimited import".
+assert.ok(!/credit/i.test(JSON.stringify(pub)), "public config never says 'credit'");
+
+// founderOfferTiers exposes both founder options (for the beta thank-you screen).
+const offers = founderOfferTiers();
+assert.deepStrictEqual(offers.map((o) => o.id), ["founder", "founder_family"]);
+assert.ok(offers.every((o) => o.price && o.price.yearly), "each founder option has yearly pricing");
+
+// Eligibility: beta users (or anyone flagged founderEligible) only.
+assert.strictEqual(isFounderEligible("beta", {}), true, "beta users are eligible");
+assert.strictEqual(isFounderEligible("free", {}), false, "a plain free user off the street is NOT eligible");
+assert.strictEqual(isFounderEligible("free", { founderEligible: true }), true, "a converted beta tester stays eligible");
+assert.strictEqual(isFounderEligible("plus", {}), false, "a public Plus user is not eligible");
 
 // --- Ads ready but off ---
 assert.strictEqual(ENTITLEMENT_CONFIG.adsEnabled, false, "No ads at launch");
