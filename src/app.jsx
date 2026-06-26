@@ -3249,6 +3249,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               if (parsed.error === "unknown_recipe") throw new Error("Recipe not found. Please use Paste Text instead.");
               if (!parsed.heroImage && pageData.image) parsed.heroImage = pageData.image;
               parsed.sourceUrl = pageData.finalUrl || pageData.url || url;
+              importSourceText = pageData.text || "";
             }
 
           } else if (mode === "youtube") {
@@ -3347,6 +3348,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             const raw = await callAI(textMessages, EXTRACT_PROMPT, 2000, 0);
             extractCtx = { messages: textMessages, maxTokens: 4096, heroFallback: "" };
             parsed = await parseImportedRecipe(raw);
+            importSourceText = text;
 
           } else if (mode === "media" && pdfTexts.length > 0) {
             setLoadingMsg("Reading recipe from PDF...");
@@ -3440,6 +3442,24 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 : "⚠️ Reconstructed from limited " + (mode === "youtube" ? "video/transcript" : "social post") + " information — please review the ingredients before cooking.";
               const existing = String(parsed.notes || "").trim();
               if (!existing.toLowerCase().includes("double-check the ingredients") && !existing.toLowerCase().includes("please review the ingredients")) {
+                parsed.notes = existing ? (review + "\n\n" + existing) : review;
+              }
+            }
+          }
+
+          // Grounding/verification (Phase 3): for any text-based AI import, check
+          // that the extracted ingredients are actually grounded in the source —
+          // flag likely hallucinations and distinctive drops and surface a review
+          // hint. Deterministic structured-data imports are publisher-accurate and
+          // skip this; image-only imports have no source text to check against.
+          if (importSourceText && parsed.importMethod !== "structured-data" && typeof RecipeBoxGrounding !== "undefined") {
+            const verdict = RecipeBoxGrounding.verifyImport(parsed, importSourceText);
+            if (verdict.needsReview) {
+              parsed.sourceQuality = parsed.sourceQuality && parsed.sourceQuality !== "high" ? parsed.sourceQuality : "review";
+              parsed.importWarnings = Array.from(new Set((parsed.importWarnings || []).concat(verdict.warnings))).slice(0, 4);
+              const review = "⚠️ Please review the ingredients against the original before cooking — some may not match the source.";
+              const existing = String(parsed.notes || "").trim();
+              if (!existing.toLowerCase().includes("review the ingredients") && !existing.toLowerCase().includes("double-check the ingredients")) {
                 parsed.notes = existing ? (review + "\n\n" + existing) : review;
               }
             }
