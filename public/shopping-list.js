@@ -308,7 +308,29 @@
     return next;
   }
 
-  const api = { CATEGORY_ORDER, amountToNumber, numberToFraction, normalizeIngredientName, parseShoppingIngredient, buildShoppingListFromSections, groupShoppingItemsByCategory, enrichRecipeIngredients };
+  // Defensive coercion for persisted shopping-list state: a tampered or corrupt
+  // localStorage value (valid JSON of the wrong type, e.g. recipeIds set to a
+  // string) must never crash the UI. Always returns the full expected shape.
+  function emptyShoppingList() { return { title: "", recipeIds: [], manualItems: [], checked: {}, removed: {}, edits: {} }; }
+  function sanitizeShoppingList(value) {
+    const base = emptyShoppingList();
+    if (!value || typeof value !== "object" || Array.isArray(value)) return base;
+    const arr = (x) => (Array.isArray(x) ? x : []);
+    const obj = (x) => (x && typeof x === "object" && !Array.isArray(x) ? x : {});
+    return {
+      title: typeof value.title === "string" ? value.title : "",
+      recipeIds: arr(value.recipeIds),
+      manualItems: arr(value.manualItems).filter((m) => m && typeof m === "object"),
+      checked: obj(value.checked),
+      removed: obj(value.removed),
+      edits: obj(value.edits),
+    };
+  }
+  function sanitizePantry(value) {
+    return Array.isArray(value) ? value.filter((x) => typeof x === "string") : [];
+  }
+
+  const api = { CATEGORY_ORDER, amountToNumber, numberToFraction, normalizeIngredientName, parseShoppingIngredient, buildShoppingListFromSections, groupShoppingItemsByCategory, enrichRecipeIngredients, emptyShoppingList, sanitizeShoppingList, sanitizePantry };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.RecipeBoxShopping = api;
 })(typeof window !== "undefined" ? window : globalThis);

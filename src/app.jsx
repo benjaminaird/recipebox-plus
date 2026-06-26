@@ -589,7 +589,9 @@ function defaultAiUsage() {
 }
 function loadRecipes() {
   let local = [];
-  try { local = JSON.parse(localStorage.getItem(RECIPES_KEY) || "[]"); } catch {}
+  // Defensive: tolerate corrupted OR tampered localStorage (valid JSON of the
+  // wrong type) — always hand back an array so the UI never crashes/blanks.
+  try { const v = JSON.parse(localStorage.getItem(RECIPES_KEY) || "[]"); if (Array.isArray(v)) local = v; } catch {}
   const server = syncGetJson("/api/recipes", local);
   if (Array.isArray(server) && server.length) { try { localStorage.setItem(RECIPES_KEY, JSON.stringify(recipesForLocal(server))); } catch {} return server; }
   return local;
@@ -611,7 +613,7 @@ function saveRecipes(r) {
 }
 function loadMealPlan() {
   let local = {};
-  try { local = JSON.parse(localStorage.getItem(MEALPLAN_KEY) || "{}"); } catch {}
+  try { const v = JSON.parse(localStorage.getItem(MEALPLAN_KEY) || "{}"); if (v && typeof v === "object" && !Array.isArray(v)) local = v; } catch {}
   const server = syncGetJson("/api/mealplan", local);
   if (server && Object.keys(server).length) { try { localStorage.setItem(MEALPLAN_KEY, JSON.stringify(server)); } catch {} return server; }
   return local;
@@ -623,16 +625,18 @@ function saveMealPlan(m) {
 // Shopping list is local-only for now (user-specific, derived from the user's
 // own recipes). A durable per-user/household model is on the roadmap.
 const SHOPPING_KEY = "recipebox-shopping-v1";
-function emptyShoppingList() { return { title:"", recipeIds:[], manualItems:[], checked:{}, removed:{}, edits:{} }; }
+function emptyShoppingList() { return RecipeBoxShopping.emptyShoppingList(); }
 function loadShoppingList() {
-  try { const l = JSON.parse(localStorage.getItem(SHOPPING_KEY) || "null"); return l && typeof l === "object" ? { ...emptyShoppingList(), ...l } : emptyShoppingList(); }
+  // Canonical defensive coercion lives in the (testable) engine, so a tampered/
+  // corrupt localStorage value can never crash the shopping UI.
+  try { return RecipeBoxShopping.sanitizeShoppingList(JSON.parse(localStorage.getItem(SHOPPING_KEY) || "null")); }
   catch { return emptyShoppingList(); }
 }
 function saveShoppingList(l) { try { localStorage.setItem(SHOPPING_KEY, JSON.stringify(l)); } catch {} }
 // Pantry staples: normalized ingredient names the user keeps on hand. Used to
 // exclude "already have" items from shopping lists. Local-only, user-specific.
 const PANTRY_KEY = "recipebox-pantry-v1";
-function loadPantry() { try { const p = JSON.parse(localStorage.getItem(PANTRY_KEY) || "[]"); return Array.isArray(p) ? p : []; } catch { return []; } }
+function loadPantry() { try { return RecipeBoxShopping.sanitizePantry(JSON.parse(localStorage.getItem(PANTRY_KEY) || "[]")); } catch { return []; } }
 function savePantry(p) { try { localStorage.setItem(PANTRY_KEY, JSON.stringify(p)); } catch {} }
 function downloadJson(filename, data) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type:"application/json" });

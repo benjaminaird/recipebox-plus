@@ -4,6 +4,8 @@ const {
   groupShoppingItemsByCategory,
   enrichRecipeIngredients,
   normalizeIngredientName,
+  sanitizeShoppingList,
+  sanitizePantry,
 } = require("../public/shopping-list");
 
 function findItem(items, text) {
@@ -150,5 +152,27 @@ assert.strictEqual(oil.parts[0].normalized_ingredient_name, normalizeIngredientN
 const pantry = new Set([normalizeIngredientName("olive oil")]);
 assert.ok(pantry.has(oil.parts[0].normalized_ingredient_name), "an olive oil item is excluded by an olive oil pantry staple");
 assert.ok(!pantry.has(normalizeIngredientName("extra virgin olive oil")), "a different variety is NOT matched (conservative exclusion)");
+
+// ── localStorage tamper / corruption resilience ──
+// A tampered or corrupt persisted value (valid JSON of the wrong type) must
+// never crash the UI — sanitizers always return the correct shape.
+const SHAPE = ["title", "recipeIds", "manualItems", "checked", "removed", "edits"];
+for (const bad of [null, undefined, 42, "evil", true, [], [1, 2], { recipeIds: "evil" }, { checked: "x", manualItems: "y" }]) {
+  const s = sanitizeShoppingList(bad);
+  assert.deepStrictEqual(Object.keys(s).sort(), [...SHAPE].sort(), "sanitized list has exactly the expected fields for input " + JSON.stringify(bad));
+  assert.ok(Array.isArray(s.recipeIds) && Array.isArray(s.manualItems), "arrays stay arrays");
+  assert.ok(s.checked && typeof s.checked === "object" && !Array.isArray(s.checked), "checked stays an object");
+  // The dangerous case: a tampered string where an array is expected must not throw on .map.
+  assert.doesNotThrow(() => s.recipeIds.map((x) => x), "recipeIds is always mappable");
+}
+// A real list round-trips intact.
+const good = { title: "T", recipeIds: ["a", "b"], manualItems: [{ id: "1", text: "x" }], checked: { k: true }, removed: {}, edits: {} };
+assert.deepStrictEqual(sanitizeShoppingList(good), good, "valid list passes through unchanged");
+// manualItems entries that aren't objects are dropped.
+assert.deepStrictEqual(sanitizeShoppingList({ manualItems: [{ id: "1" }, "junk", null, 5] }).manualItems, [{ id: "1" }]);
+// Pantry: only strings survive; non-arrays -> [].
+assert.deepStrictEqual(sanitizePantry(["olive oil", 5, null, "salt", {}]), ["olive oil", "salt"]);
+assert.deepStrictEqual(sanitizePantry("evil"), []);
+assert.deepStrictEqual(sanitizePantry(null), []);
 
 console.log("shopping-list-test: ok");
