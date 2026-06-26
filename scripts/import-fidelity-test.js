@@ -25,8 +25,12 @@ assert.ok(/half-and-half/i.test(src), "prompt names half-and-half explicitly");
 assert.ok(/do\s*not\s*substitut/i.test(src) || /never substitute/i.test(src), "prompt forbids substitution");
 assert.ok(/never substitute or simplify an ingredient/i.test(src), "YouTube/social prompts forbid substitution");
 
-// 3) Extraction calls must run at temperature 0 (literal, not paraphrasing).
-assert.ok(/EXTRACT_PROMPT, \d+, 0\)/.test(src) || /EXTRACT_PROMPT, ctx\.maxTokens, 0\)/.test(src), "extraction calls pass temperature 0");
+// 3) Extraction runs through constrained tool use (callAIExtract), which forces
+//    the model to fill a typed recipe schema instead of free-text JSON — a
+//    stronger fidelity guarantee than temperature-0 text (and temperature is
+//    deprecated for the current model).
+assert.ok(/callAIExtract\(/.test(src), "extraction uses constrained tool-use (callAIExtract)");
+assert.ok(/EXTRACTION_TOOLS/.test(src) && /tool_choice/.test(src), "tool-use extraction is wired with the schema tools + a forced tool_choice");
 
 // 4) The distinctive-ingredient source-vs-recipe safety net exists.
 assert.ok(/findSourceIngredientMismatches/.test(src), "source/recipe ingredient mismatch check exists");
