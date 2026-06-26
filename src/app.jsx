@@ -2047,6 +2047,27 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       function notifyPackComingSoon() {
         try { window.alert("AI Assist packs are coming soon. You'll never be charged without setting up billing first."); } catch {}
       }
+
+      // --- Family / household (M1) ---
+      const [household, setHousehold] = useState(null); // { household, role, members, memberCap } | { household:null }
+      const [hhBusy, setHhBusy] = useState(false);
+      const [hhMsg, setHhMsg] = useState("");
+      const [hhName, setHhName] = useState("");
+      const [hhJoinCode, setHhJoinCode] = useState("");
+      const [hhInvite, setHhInvite] = useState(null); // { code, expiresInDays }
+      const refreshHousehold = React.useCallback(() => {
+        if (!account) { setHousehold(null); return; }
+        fetchJson("/api/household", null).then((h) => setHousehold(h || { household: null })).catch(() => {});
+      }, [account?.id]);
+      useEffect(() => { refreshHousehold(); }, [refreshHousehold]);
+      async function hhAction(fn) {
+        setHhBusy(true); setHhMsg("");
+        try { await fn(); } catch (e) { setHhMsg(e.message || "Something went wrong."); } finally { setHhBusy(false); }
+      }
+      const inHousehold = household && household.household;
+      const hhRole = household?.role;
+      const canInviteRole = (role) => role === "owner" || role === "adult"; // display gate; server enforces
+
       const compactHeader = useWindowCompactHeader();
       const localDataAvailable = hasLocalRecipeData(recipes, mealPlan);
       const importRef = useRef();
@@ -2502,6 +2523,86 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     <div style={{marginTop:8,fontSize:"0.71em",color:C.light,lineHeight:1.5}}>Paid plans and AI Assist packs are coming soon. You'll never be charged without setting up billing first.</div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {account && (
+              <div style={{...S.card,padding:16}}>
+                <div style={{marginBottom:10}}>
+                  <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark}}>Household</div>
+                  <div style={{fontSize:"0.78em",color:C.light}}>Cook together — share with up to {household?.memberCap || 4} family members (Family plan).</div>
+                </div>
+
+                {!inHousehold ? (
+                  <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                    <div>
+                      <div style={{fontSize:"0.78em",fontWeight:800,color:C.dark,marginBottom:6}}>Start a household</div>
+                      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                        <input value={hhName} onChange={(e)=>setHhName(e.target.value)} placeholder="Household name (e.g. The Airds)" maxLength={60}
+                          style={{flex:"1 1 180px",minWidth:160,padding:"9px 11px",border:"1px solid "+C.border,borderRadius:9,fontSize:"0.85em",outline:"none",fontFamily:SANS}} />
+                        <button disabled={hhBusy} onClick={()=>hhAction(async()=>{ const h=await postJson("/api/household/create",{name:hhName}); setHousehold(h); setHhName(""); setHhMsg("Household created. Invite your family below."); })}
+                          style={{background:C.green,border:"none",borderRadius:9,padding:"9px 16px",color:C.white,fontWeight:800,fontSize:"0.82em",cursor:hhBusy?"default":"pointer",fontFamily:SANS}}>Create</button>
+                      </div>
+                    </div>
+                    <div style={{borderTop:"1px solid "+C.border,paddingTop:12}}>
+                      <div style={{fontSize:"0.78em",fontWeight:800,color:C.dark,marginBottom:6}}>Join with an invite code</div>
+                      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                        <input value={hhJoinCode} onChange={(e)=>setHhJoinCode(e.target.value.toUpperCase())} placeholder="XXXX-XXXX" maxLength={12}
+                          style={{flex:"1 1 140px",minWidth:120,padding:"9px 11px",border:"1px solid "+C.border,borderRadius:9,fontSize:"0.85em",outline:"none",fontFamily:SANS,letterSpacing:1}} />
+                        <button disabled={hhBusy} onClick={()=>hhAction(async()=>{ const h=await postJson("/api/household/join",{code:hhJoinCode}); setHousehold(h); setHhJoinCode(""); setHhMsg("You've joined the household."); })}
+                          style={{...S.ghostBtn,borderRadius:9,padding:"9px 16px",fontSize:"0.82em"}}>Join</button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,flexWrap:"wrap",marginBottom:10}}>
+                      <span style={{fontFamily:SERIF,fontSize:"1.05em",color:C.green}}>{household.household.name}</span>
+                      <span style={{fontSize:"0.74em",color:C.light}}>{household.members.length} of {household.memberCap} members · you're {hhRole === "owner" ? "the owner" : hhRole}</span>
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:12}}>
+                      {household.members.map((m)=>(
+                        <div key={m.userId} style={{display:"flex",alignItems:"center",gap:10,background:C.cream2,border:"1px solid "+C.border,borderRadius:9,padding:"8px 11px"}}>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontWeight:700,color:C.dark,fontSize:"0.84em",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.displayName || m.email}{m.isYou && <span style={{color:C.light,fontWeight:600}}> (you)</span>}</div>
+                            <div style={{fontSize:"0.7em",color:C.light,textTransform:"capitalize"}}>{m.role}</div>
+                          </div>
+                          {hhRole === "owner" && !m.isYou && m.role !== "owner" && (
+                            <button disabled={hhBusy} onClick={()=>hhAction(async()=>{ const h=await postJson("/api/household/remove",{userId:m.userId}); setHousehold(h); })}
+                              style={{background:"none",border:"1px solid "+C.border,borderRadius:7,padding:"5px 10px",color:C.red,fontWeight:700,fontSize:"0.72em",cursor:"pointer",fontFamily:SANS}}>Remove</button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {hhInvite ? (
+                      <div style={{background:C.goldPale,border:"1px solid "+C.goldLight,borderRadius:10,padding:"11px 13px",marginBottom:12}}>
+                        <div style={{fontSize:"0.74em",color:C.brown,marginBottom:5}}>Share this code — it works once and expires in {hhInvite.expiresInDays} days:</div>
+                        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                          <span style={{fontFamily:SERIF,fontSize:"1.3em",letterSpacing:2,color:C.dark}}>{hhInvite.code}</span>
+                          <button onClick={()=>{ try{navigator.clipboard.writeText(hhInvite.code);setHhMsg("Invite code copied.");}catch{} }}
+                            style={{...S.ghostBtn,borderRadius:8,padding:"6px 12px",fontSize:"0.76em"}}>Copy</button>
+                          <button onClick={()=>setHhInvite(null)} style={{background:"none",border:"none",color:C.light,fontSize:"0.76em",cursor:"pointer",fontFamily:SANS}}>Done</button>
+                        </div>
+                      </div>
+                    ) : (canInviteRole(hhRole) && household.members.length < household.memberCap && (
+                      <button disabled={hhBusy} onClick={()=>hhAction(async()=>{ const inv=await postJson("/api/household/invite",{role:"member"}); setHhInvite(inv); })}
+                        style={{background:C.green,border:"none",borderRadius:9,padding:"9px 16px",color:C.white,fontWeight:800,fontSize:"0.82em",cursor:hhBusy?"default":"pointer",fontFamily:SANS,marginBottom:12}}>+ Invite a member</button>
+                    ))}
+
+                    <div style={{display:"flex",gap:8,flexWrap:"wrap",borderTop:"1px solid "+C.border,paddingTop:11}}>
+                      {hhRole === "owner" ? (
+                        <button disabled={hhBusy} onClick={()=>{ if(!window.confirm("Disband this household? Members will be removed. (Their own recipes are not affected.)"))return; hhAction(async()=>{ await postJson("/api/household/disband",{}); setHousehold({household:null}); setHhInvite(null); setHhMsg("Household disbanded."); }); }}
+                          style={{background:"none",border:"1px solid "+C.border,borderRadius:8,padding:"7px 13px",color:C.red,fontWeight:700,fontSize:"0.78em",cursor:"pointer",fontFamily:SANS}}>Disband household</button>
+                      ) : (
+                        <button disabled={hhBusy} onClick={()=>{ if(!window.confirm("Leave this household?"))return; hhAction(async()=>{ await postJson("/api/household/leave",{}); setHousehold({household:null}); setHhMsg("You left the household."); }); }}
+                          style={{background:"none",border:"1px solid "+C.border,borderRadius:8,padding:"7px 13px",color:C.red,fontWeight:700,fontSize:"0.78em",cursor:"pointer",fontFamily:SANS}}>Leave household</button>
+                      )}
+                    </div>
+                    <div style={{marginTop:11,fontSize:"0.72em",color:C.light,lineHeight:1.5}}>Shared library, meal plan, shopping list & a shared AI Assist pool are coming next. For now this sets up your family group.</div>
+                  </div>
+                )}
+                {hhMsg && <div style={{marginTop:10,fontSize:"0.78em",color:C.green,fontWeight:700}}>{hhMsg}</div>}
               </div>
             )}
 

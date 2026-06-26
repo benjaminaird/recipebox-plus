@@ -113,8 +113,36 @@ const FREE_WELCOME_ASSISTS = Number(process.env.FREE_WELCOME_ASSISTS || 15);
 // Referral bonus foundation. Triggered (later) only on a referred user's paid
 // conversion; both sides get bonusAssists, capped per referrer per month.
 const REFERRAL_CONFIG = { bonusAssists: 25, monthlyCap: 10, triggersOn: 'paid_conversion' };
-// Family household sharing is config-only for now (enforcement is a future milestone).
+// Family household sharing. Foundation (M1): membership, roles, invites. Shared
+// library/plan and the shared AI Assist pool follow in M2.
 const FAMILY_MEMBER_CAP = 4;
+const HOUSEHOLD_ROLES = ['owner', 'adult', 'member'];
+const INVITE_TTL_DAYS = 7;
+// Unambiguous alphabet (no O/0/I/1/L) for human-shareable invite codes.
+const INVITE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function normalizeHouseholdRole(role) {
+  const r = String(role || '').toLowerCase();
+  return HOUSEHOLD_ROLES.includes(r) ? r : 'member';
+}
+function generateInviteCode() {
+  const bytes = crypto.randomBytes(8);
+  let s = '';
+  for (let i = 0; i < 8; i++) s += INVITE_ALPHABET[bytes[i] % INVITE_ALPHABET.length];
+  return s.slice(0, 4) + '-' + s.slice(4);
+}
+// Cap enforcement (pure): can another member still be added?
+function canAddHouseholdMember(currentCount, cap = FAMILY_MEMBER_CAP) {
+  return Number(currentCount || 0) < Number(cap || FAMILY_MEMBER_CAP);
+}
+// Owner and adults can invite/manage members; only the owner can rename/remove/disband.
+function canInviteToHousehold(role) { const r = normalizeHouseholdRole(role); return r === 'owner' || r === 'adult'; }
+function isHouseholdOwner(role) { return normalizeHouseholdRole(role) === 'owner'; }
+// Invite usability (pure): unused and not expired.
+function inviteIsUsable(invite, now = Date.now()) {
+  if (!invite || invite.accepted_by || invite.accepted_at) return false;
+  const exp = new Date(invite.expires_at).getTime();
+  return Number.isFinite(exp) && exp > now;
+}
 // Burst protection: even a high-balance user can't script the AI endpoints.
 const AI_BURST_MAX = Number(process.env.AI_BURST_MAX || 20);        // actions / 10 min
 const AI_BURST_SCOPE = 'tenminutes';
@@ -459,6 +487,35 @@ async function getPool() {
       note text
     )`);
     await pool.query('CREATE INDEX IF NOT EXISTS app_control_change_log_source_idx ON app_control_change_log (source_id, changed_at desc)');
+    // --- Family / household sharing (foundation). Additive: existing per-user
+    //     recipe/meal-plan storage is untouched. A user belongs to at most one
+    //     household in v1 (the unique index on user_id). Roles: owner|adult|member.
+    await pool.query(`CREATE TABLE IF NOT EXISTS households (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      name text NOT NULL DEFAULT 'My Household',
+      owner_user_id text NOT NULL REFERENCES profiles(user_id) ON DELETE CASCADE,
+      created_at timestamptz NOT NULL DEFAULT now()
+    )`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS household_members (
+      household_id uuid NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+      user_id text NOT NULL REFERENCES profiles(user_id) ON DELETE CASCADE,
+      role text NOT NULL DEFAULT 'member',
+      joined_at timestamptz NOT NULL DEFAULT now(),
+      PRIMARY KEY (household_id, user_id)
+    )`);
+    await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS household_members_user_unique ON household_members (user_id)');
+    await pool.query(`CREATE TABLE IF NOT EXISTS household_invites (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      household_id uuid NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+      code text NOT NULL UNIQUE,
+      role text NOT NULL DEFAULT 'member',
+      created_by text REFERENCES profiles(user_id) ON DELETE SET NULL,
+      expires_at timestamptz NOT NULL,
+      accepted_by text REFERENCES profiles(user_id) ON DELETE SET NULL,
+      accepted_at timestamptz,
+      created_at timestamptz NOT NULL DEFAULT now()
+    )`);
+    await pool.query('CREATE INDEX IF NOT EXISTS household_invites_household_idx ON household_invites (household_id, created_at desc)');
     await seedAppControlKnowledge(pool);
     await ensureConfiguredMasterAdmin(pool);
   }
@@ -3027,6 +3084,133 @@ app.get('/api/config/entitlements', function(req, res) {
   res.json(ENTITLEMENT_CONFIG);
 });
 
+// ---- Family / household sharing (M1 foundation) ----
+// Membership, roles, and invites. Server-authoritative: roles and membership can
+// never be set by the client. Shared library/plan + the shared AI Assist pool
+// arrive in M2; this only establishes the household primitive.
+async function readHouseholdForUser(userId) {
+  const db = await getPool();
+  if (!db || !userId) return null;
+  const mem = await db.query('SELECT household_id, role FROM household_members WHERE user_id=$1', [userId]);
+  if (!mem.rows[0]) return null;
+  const householdId = mem.rows[0].household_id;
+  const h = await db.query('SELECT id, name, owner_user_id, created_at FROM households WHERE id=$1', [householdId]);
+  if (!h.rows[0]) return null;
+  const members = await db.query(
+    `SELECT m.user_id, m.role, m.joined_at, p.display_name, p.email
+       FROM household_members m JOIN profiles p ON p.user_id = m.user_id
+      WHERE m.household_id=$1 ORDER BY (m.role='owner') DESC, m.joined_at ASC`,
+    [householdId]
+  );
+  return {
+    household: { id: h.rows[0].id, name: h.rows[0].name, ownerUserId: h.rows[0].owner_user_id, createdAt: h.rows[0].created_at },
+    role: mem.rows[0].role,
+    memberCap: FAMILY_MEMBER_CAP,
+    members: members.rows.map((r) => ({ userId: r.user_id, role: r.role, displayName: r.display_name || '', email: r.email || '', joinedAt: r.joined_at, isYou: r.user_id === userId })),
+  };
+}
+
+app.get('/api/household', requireAuth, async (req, res) => {
+  try { res.json((await readHouseholdForUser(req.user.user_id)) || { household: null }); }
+  catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/household/create', requireAuth, async (req, res) => {
+  try {
+    const db = await getPool();
+    if (!db) return res.status(500).json({ error: 'database not configured' });
+    const existing = await db.query('SELECT 1 FROM household_members WHERE user_id=$1', [req.user.user_id]);
+    if (existing.rows[0]) return res.status(409).json({ error: 'You are already in a household. Leave it first to create a new one.' });
+    const name = String(req.body?.name || '').trim().slice(0, 60) || 'My Household';
+    const h = await db.query('INSERT INTO households(name, owner_user_id) VALUES($1,$2) RETURNING id', [name, req.user.user_id]);
+    await db.query('INSERT INTO household_members(household_id, user_id, role) VALUES($1,$2,$3)', [h.rows[0].id, req.user.user_id, 'owner']);
+    res.json(await readHouseholdForUser(req.user.user_id));
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/household/invite', requireAuth, async (req, res) => {
+  try {
+    const db = await getPool();
+    if (!db) return res.status(500).json({ error: 'database not configured' });
+    const data = await readHouseholdForUser(req.user.user_id);
+    if (!data) return res.status(404).json({ error: 'You are not in a household.' });
+    if (!canInviteToHousehold(data.role)) return res.status(403).json({ error: 'Only the owner or an adult can invite members.' });
+    if (!canAddHouseholdMember(data.members.length)) return res.status(409).json({ error: `A household can have at most ${FAMILY_MEMBER_CAP} members.` });
+    const role = req.body?.role === 'adult' ? 'adult' : 'member';
+    let code = generateInviteCode();
+    for (let i = 0; i < 5; i++) { const dup = await db.query('SELECT 1 FROM household_invites WHERE code=$1', [code]); if (!dup.rows[0]) break; code = generateInviteCode(); }
+    const expires = new Date(Date.now() + INVITE_TTL_DAYS * 86400000);
+    await db.query('INSERT INTO household_invites(household_id, code, role, created_by, expires_at) VALUES($1,$2,$3,$4,$5)', [data.household.id, code, role, req.user.user_id, expires]);
+    res.json({ code, role, expiresAt: expires.toISOString(), expiresInDays: INVITE_TTL_DAYS });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/household/join', requireAuth, async (req, res) => {
+  try {
+    const db = await getPool();
+    if (!db) return res.status(500).json({ error: 'database not configured' });
+    const existing = await db.query('SELECT 1 FROM household_members WHERE user_id=$1', [req.user.user_id]);
+    if (existing.rows[0]) return res.status(409).json({ error: 'You are already in a household. Leave it first to join another.' });
+    const code = String(req.body?.code || '').trim().toUpperCase().replace(/\s+/g, '');
+    if (!code) return res.status(400).json({ error: 'Enter an invite code.' });
+    const inv = await db.query('SELECT * FROM household_invites WHERE code=$1', [code]);
+    const invite = inv.rows[0];
+    if (!inviteIsUsable(invite)) return res.status(400).json({ error: 'That invite code is invalid, already used, or expired.' });
+    const count = await db.query('SELECT count(*)::int AS n FROM household_members WHERE household_id=$1', [invite.household_id]);
+    if (!canAddHouseholdMember(count.rows[0].n)) return res.status(409).json({ error: `That household is full (max ${FAMILY_MEMBER_CAP}).` });
+    await db.query('INSERT INTO household_members(household_id, user_id, role) VALUES($1,$2,$3)', [invite.household_id, req.user.user_id, normalizeHouseholdRole(invite.role)]);
+    await db.query('UPDATE household_invites SET accepted_by=$1, accepted_at=now() WHERE id=$2', [req.user.user_id, invite.id]);
+    res.json(await readHouseholdForUser(req.user.user_id));
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/household/leave', requireAuth, async (req, res) => {
+  try {
+    const db = await getPool();
+    const data = await readHouseholdForUser(req.user.user_id);
+    if (!data) return res.status(404).json({ error: 'You are not in a household.' });
+    if (isHouseholdOwner(data.role)) return res.status(400).json({ error: 'As the owner, disband the household instead (or transfer ownership in a future update).' });
+    await db.query('DELETE FROM household_members WHERE household_id=$1 AND user_id=$2', [data.household.id, req.user.user_id]);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/household/remove', requireAuth, async (req, res) => {
+  try {
+    const db = await getPool();
+    const data = await readHouseholdForUser(req.user.user_id);
+    if (!data) return res.status(404).json({ error: 'You are not in a household.' });
+    if (!isHouseholdOwner(data.role)) return res.status(403).json({ error: 'Only the owner can remove members.' });
+    const targetId = String(req.body?.userId || '');
+    if (!targetId || targetId === req.user.user_id) return res.status(400).json({ error: 'Pick a member to remove.' });
+    await db.query('DELETE FROM household_members WHERE household_id=$1 AND user_id=$2 AND role<>$3', [data.household.id, targetId, 'owner']);
+    res.json(await readHouseholdForUser(req.user.user_id));
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/household/rename', requireAuth, async (req, res) => {
+  try {
+    const db = await getPool();
+    const data = await readHouseholdForUser(req.user.user_id);
+    if (!data) return res.status(404).json({ error: 'You are not in a household.' });
+    if (!isHouseholdOwner(data.role)) return res.status(403).json({ error: 'Only the owner can rename the household.' });
+    const name = String(req.body?.name || '').trim().slice(0, 60) || 'My Household';
+    await db.query('UPDATE households SET name=$1 WHERE id=$2', [name, data.household.id]);
+    res.json(await readHouseholdForUser(req.user.user_id));
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/household/disband', requireAuth, async (req, res) => {
+  try {
+    const db = await getPool();
+    const data = await readHouseholdForUser(req.user.user_id);
+    if (!data) return res.status(404).json({ error: 'You are not in a household.' });
+    if (!isHouseholdOwner(data.role)) return res.status(403).json({ error: 'Only the owner can disband the household.' });
+    await db.query('DELETE FROM households WHERE id=$1', [data.household.id]);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.post('/api/ai', async function(req, res) {
   const requestId = crypto.randomUUID();
   let user = null;
@@ -3168,6 +3352,8 @@ module.exports._test = {
   ENTITLEMENT_CONFIG, PLAN_ENTITLEMENTS, REFERRAL_CONFIG, LAUNCH_PHASE,
   chooseSpendBucket, planMonthlyCredits, referralBonusAllowed,
   AI_ACTION_COSTS, aiAssistCost, splitAssistCharge, FREE_WELCOME_ASSISTS, AI_BURST_MAX,
+  FAMILY_MEMBER_CAP, HOUSEHOLD_ROLES, normalizeHouseholdRole, generateInviteCode,
+  canAddHouseholdMember, canInviteToHousehold, isHouseholdOwner, inviteIsUsable,
   fetchWithTimeout, readBodyCapped, isAbortError,
   isPrivateIp, assertPublicHost, looksBlockedPage, buildPageResult, scraperRequestUrl, jinaRequestUrl,
   periodKey, resetAfter,
