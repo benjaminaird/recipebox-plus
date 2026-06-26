@@ -147,6 +147,7 @@ The Weekly Meal Plan is a single recurring week keyed by day name (`mealPlan = {
 
 Deterministic, source-aware grocery lists built from one or more recipes. The engine is `public/shopping-list.js` (`RecipeBoxShopping`) — no AI in list generation.
 
+- **Shopping is a primary app tab — Done.** Bottom nav is now Library · Plan · Shop · Pantry · Settings (short labels for the 5-tab fit, safe-area compliant). The Shop tab opens the shopping list directly, or a polished empty state (Add item / Choose recipes / Go to Meal Plan) when empty. The temporary Library "open shopping list" button was removed (redundant); the Library "Make a list" multi-select entry stays. Items are interactive: **tap the row to check/uncheck** (large targets), explicit **edit** (pencil) and **delete** buttons (no swipe-to-delete), and a tappable **source line** that expands the contributing recipes — each opens that recipe. Edits preserve checked state + source context.
 - **Multi-recipe shopping lists — Done.** One combined, grocery-sectioned checklist from many recipes. (1) **Library multi-select** → "Create Shopping List"; (2) **Meal Plan** → "Generate Shopping List" from the week's planned recipes; (3) **Recipe detail** → "Add to my shopping list" (merges into the current list). Conservative consolidation (combines `1 cup + 1/2 cup sugar` → `1 1/2 cups`; **never** merges heavy cream / half-and-half / whole milk / buttermilk, different chocolates, or cheeses; keeps ambiguous units separate). Each item carries **source recipe context** (`item.sources` / `sourceCount`) and shows "Used in N recipes". A `ShoppingListScreen` provides check/uncheck (large tap targets), inline edit, delete, manual add, grocery-section grouping, a renamable title, and copy. List state (recipes + manual items + checked/edits/removed) **persists in `localStorage`** (`recipebox-shopping-v1`), user-specific and derived from the user's own recipes — no server route, no cross-user exposure. The single-recipe shopping view on recipe detail is unchanged.
 - **Monetization framing:** Free = single-recipe shopping list + manual checklist. Plus = multi-recipe + meal-plan-generated list + ingredient consolidation + (future) pantry-aware exclusion. Family = shared household list, real-time updates, shared pantry, "added by" labels.
 - **Future:** a durable per-user/household `shopping_lists` + `shopping_list_items` model in Supabase (the local shape mirrors it); pantry-aware "already have / exclude pantry items" (no pantry **inventory** exists yet — Pantry Chef is AI chat only); household shared lists + real-time family sync + assign shopper; list sharing / export / print; store-aisle customization; AI-assisted grouping of genuinely ambiguous items (review-gated, never automatic); dedicated party/event lists; **serving/scale review before generating** and per-occurrence quantities when the same recipe is planned multiple times in a week (v1 counts each planned recipe once).
@@ -178,8 +179,12 @@ Recommended cap: 4 members.
 
 Swipe-to-navigate was tried on the web/PWA and disabled — it felt unreliable
 (direction confusion, edge detection, color flash, conflicts with the browser's
-own edge-swipe). Navigation is currently tap-driven (bottom nav + back buttons)
-with directional slide transitions, which is solid.
+own edge-swipe). **Fully removed now:** the `history.pushState`/`popstate`
+back-navigation (which let the OS edge-swipe-back / Android back button drive
+in-app screen/tab changes — the lingering "buggy swipe") is gone, along with the
+dead swipe refs. Until native, RecipeBox uses **explicit buttons/menus only** —
+no swipe navigation and no swipe-to-delete anywhere. Navigation is tap-driven
+(bottom nav + in-screen back buttons) with directional slide transitions.
 
 Revisit gesture navigation when building the **native iOS/Android** app, where
 the platform provides reliable, interactive swipe-back (and a real page view

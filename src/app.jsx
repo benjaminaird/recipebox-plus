@@ -52,7 +52,7 @@
       "Desserts": "https://images.unsplash.com/photo-1519915028121-7d3463d20b13?auto=format&fit=crop&w=800&q=80"
     };
     const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
-    const MAIN_TABS = ["library","plan","pantry","settings"];
+    const MAIN_TABS = ["library","plan","shopping","pantry","settings"];
 
     const uid = () => Math.random().toString(36).slice(2, 9);
     const cardColor = (t) => CARD_COLORS[(t?.charCodeAt(0) || 0) % CARD_COLORS.length];
@@ -1026,7 +1026,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     function BottomNav({ tab, setTab, badges }) {
       const items = [
         { id:"library", icon:"library", label:"Library" },
-        { id:"plan", icon:"mealPlan", label:"Meal Plan" },
+        { id:"plan", icon:"mealPlan", label:"Plan" },
+        { id:"shopping", icon:"shoppingList", label:"Shop" },
         { id:"pantry", icon:"pantry", label:"Pantry" },
         { id:"settings", icon:"settings", label:"Settings" },
       ];
@@ -1115,7 +1116,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     }
 
     // Library
-    function Library({ recipes, mealPlan, onOpen, onAdd, onFavorite, setTab, tagFilter, onTagFilter, onCreateShoppingList, onOpenShopping, hasShoppingList }) {
+    function Library({ recipes, mealPlan, onOpen, onAdd, onFavorite, setTab, tagFilter, onTagFilter, onCreateShoppingList }) {
       const [search, setSearch] = useState("");
       const [cat, setCat] = useState("All");
       const [filter, setFilter] = useState("all");
@@ -1351,16 +1352,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                           <button onClick={exitSelect} style={{...S.ghostBtn,borderRadius:999,padding:"7px 13px",fontSize:"0.78em"}}>Cancel</button>
                         </>
                       ) : (
-                        <>
-                          {hasShoppingList && (
-                            <button onClick={onOpenShopping} style={{...S.ghostBtn,borderRadius:999,padding:"7px 13px",fontSize:"0.78em",display:"inline-flex",alignItems:"center",gap:6}}>
-                              <Icon name="shoppingList" size={15} /> Shopping list
-                            </button>
-                          )}
-                          {recipes.length > 1 && (
-                            <button onClick={() => setSelectMode(true)} style={{...S.ghostBtn,borderRadius:999,padding:"7px 13px",fontSize:"0.78em"}}>Select</button>
-                          )}
-                        </>
+                        recipes.length > 1 && (
+                          <button onClick={() => setSelectMode(true)} style={{...S.ghostBtn,borderRadius:999,padding:"7px 13px",fontSize:"0.78em",display:"inline-flex",alignItems:"center",gap:6}}>
+                            <Icon name="shoppingList" size={15} /> Make a list
+                          </button>
+                        )
                       )}
                     </div>
                   </div>
@@ -1641,9 +1637,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         })),
       );
     }
-    function ShoppingListScreen({ list, recipes, onChange, onClose }) {
+    function ShoppingListScreen({ list, recipes, onChange, setTab, onOpenRecipe }) {
       const [adding, setAdding] = useState("");
-      const compactHeader = useWindowCompactHeader();
+      const [editingKey, setEditingKey] = useState(null);
+      const [expanded, setExpanded] = useState(null);
+      const addRef = useRef(null);
       const sourceRecipes = (list.recipeIds || []).map((id) => recipes.find((r) => r.id === id)).filter(Boolean);
       const generated = RecipeBoxShopping.buildShoppingListFromSections(sectionsFromRecipes(sourceRecipes));
       const genItems = generated
@@ -1678,17 +1676,16 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
       const sourceTitles = sourceRecipes.map((r) => r.title);
 
+      const openSource = (src) => { const r = recipes.find((x) => x.id === src.id); if (r && onOpenRecipe) onOpenRecipe(r); };
+
       return (
         <div style={{...S.page,paddingBottom:NAV_CLEARANCE}}>
-          <div style={{...S.brandHeader,padding:safePad(20,16,16)}}>
+          <div style={{...S.brandHeader,padding:safePad(24,16,16)}}>
             <div style={{maxWidth:760,margin:"0 auto"}}>
-              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-                <button onClick={onClose} aria-label="Back" style={{background:"rgba(255,249,238,0.14)",border:"1px solid rgba(255,249,238,0.2)",color:C.white,borderRadius:10,width:38,height:38,display:"inline-flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>‹</button>
-                <input value={titleValue} onChange={(e) => onChange((l) => ({ ...l, title: e.target.value }))}
-                  style={{flex:1,minWidth:0,background:"transparent",border:"none",color:C.white,fontFamily:SERIF,fontSize:"1.4em",outline:"none"}} />
-              </div>
+              <input value={titleValue} onChange={(e) => onChange((l) => ({ ...l, title: e.target.value }))} aria-label="List title"
+                style={{width:"100%",background:"transparent",border:"none",color:C.white,fontFamily:SERIF,fontSize:"1.5em",outline:"none",padding:0,marginBottom:4}} />
               <div style={{color:"rgba(255,249,238,0.82)",fontSize:"0.78em"}}>
-                {total > 0 ? done + " of " + total + " checked" : "Empty list"}
+                {total > 0 ? done + " of " + total + " checked" : "Your shopping list"}
                 {sourceTitles.length > 0 && " · from " + sourceTitles.slice(0, 2).join(", ") + (sourceTitles.length > 2 ? " +" + (sourceTitles.length - 2) + " more" : "")}
               </div>
             </div>
@@ -1696,15 +1693,22 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
           <div style={{maxWidth:760,margin:"16px auto",padding:"0 16px"}}>
             <div style={{display:"flex",gap:8,marginBottom:14}}>
-              <input value={adding} onChange={(e) => setAdding(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addManual(); }}
+              <input ref={addRef} value={adding} onChange={(e) => setAdding(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addManual(); }}
                 placeholder="Add an item (e.g. paper towels)…"
-                style={{flex:1,minWidth:0,padding:"11px 14px",borderRadius:11,border:"1px solid "+C.border,fontSize:"0.9em",background:C.paper,color:C.dark,outline:"none",fontFamily:SANS}} />
-              <button onClick={addManual} style={{...S.goldBtn,borderRadius:11,padding:"11px 16px",fontSize:"0.85em",flexShrink:0}}>Add</button>
+                style={{flex:1,minWidth:0,padding:"12px 14px",borderRadius:11,border:"1px solid "+C.border,fontSize:"0.92em",background:C.paper,color:C.dark,outline:"none",fontFamily:SANS}} />
+              <button onClick={addManual} style={{...S.goldBtn,borderRadius:11,padding:"12px 18px",fontSize:"0.85em",flexShrink:0}}>Add</button>
             </div>
 
             {total === 0 ? (
-              <div style={{...S.card,padding:"30px 20px",textAlign:"center"}}>
-                <div style={{color:C.light,fontSize:"0.9em",lineHeight:1.5}}>Your shopping list is empty.<br/>Add recipes from the Library (select a few) or the Meal Plan, or add items above.</div>
+              <div style={{...S.card,padding:"30px 22px",textAlign:"center"}}>
+                <div style={{width:48,height:48,margin:"0 auto 12px",borderRadius:13,background:C.greenPale,color:C.green,display:"inline-flex",alignItems:"center",justifyContent:"center",border:"1px solid "+C.green+"22"}}><Icon name="shoppingList" size={24} /></div>
+                <div style={{fontFamily:SERIF,fontSize:"1.2em",color:C.dark,marginBottom:5}}>Your shopping list is empty</div>
+                <div style={{color:C.light,fontSize:"0.86em",lineHeight:1.5,marginBottom:16}}>Add recipes from your Library, generate one from your Meal Plan, or add items manually.</div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"center"}}>
+                  <button onClick={() => addRef.current && addRef.current.focus()} style={{background:C.green,color:C.white,border:"none",borderRadius:999,padding:"10px 18px",fontWeight:800,fontSize:"0.82em",cursor:"pointer",fontFamily:SANS}}>Add item</button>
+                  <button onClick={() => setTab("library")} style={{...S.ghostBtn,borderRadius:999,padding:"10px 16px",fontSize:"0.82em"}}>Choose recipes</button>
+                  <button onClick={() => setTab("plan")} style={{...S.ghostBtn,borderRadius:999,padding:"10px 16px",fontSize:"0.82em"}}>Go to Meal Plan</button>
+                </div>
               </div>
             ) : (
               <>
@@ -1714,25 +1718,56 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     <div key={group.category} style={{marginBottom:16}}>
                       <div style={{fontSize:"0.7em",fontWeight:800,letterSpacing:"0.06em",textTransform:"uppercase",color:C.brownLight||C.light,margin:"0 2px 8px"}}>{group.category} <span style={{color:C.light}}>· {group.items.length}</span></div>
                       <div style={{display:"grid",gap:8}}>
-                        {ordered.map((item) => (
-                          <div key={item.id} style={{display:"flex",alignItems:"flex-start",gap:11,background:item.checked?C.cream2||C.paper2:C.paper,border:"1px solid "+(item.checked?C.border:C.border),borderRadius:12,padding:"11px 12px",opacity:item.checked?0.6:1,transition:"opacity 0.15s"}}>
-                            <button onClick={() => toggle(item.key)} aria-label={item.checked?"Uncheck":"Check"}
-                              style={{flexShrink:0,width:26,height:26,borderRadius:8,border:"2px solid "+(item.checked?C.green:C.border),background:item.checked?C.green:"transparent",color:C.white,display:"inline-flex",alignItems:"center",justifyContent:"center",cursor:"pointer",marginTop:1}}>
-                              {item.checked && <Icon name="check" size={15} strokeWidth={3} />}
-                            </button>
-                            <div style={{flex:1,minWidth:0}}>
-                              <input value={item.text} onChange={(e) => editText(item.key, e.target.value)}
-                                style={{width:"100%",border:"none",background:"transparent",outline:"none",fontSize:"0.92em",color:item.checked?C.light:C.dark,textDecoration:item.checked?"line-through":"none",fontFamily:SANS,padding:0}} />
-                              {!item.manual && item.sourceCount > 0 && (
-                                <div style={{fontSize:"0.72em",color:C.light,marginTop:2}}>
-                                  {item.sourceCount > 1 ? "Used in " + item.sourceCount + " recipes" : item.sources[0]?.title}
+                        {ordered.map((item) => {
+                          const editing = editingKey === item.key;
+                          return (
+                          <div key={item.id} style={{background:item.checked?(C.cream2||C.paper2):C.paper,border:"1px solid "+C.border,borderRadius:12,opacity:item.checked?0.62:1,transition:"opacity 0.15s"}}>
+                            <div style={{display:"flex",alignItems:"flex-start",gap:11,padding:"11px 12px"}}>
+                              {/* Tapping the row (checkbox + name) toggles checked. */}
+                              <div onClick={() => { if (!editing) toggle(item.key); }} style={{flex:1,minWidth:0,display:"flex",alignItems:"flex-start",gap:11,cursor:editing?"default":"pointer"}}>
+                                <span aria-hidden style={{flexShrink:0,width:27,height:27,borderRadius:8,border:"2px solid "+(item.checked?C.green:C.border),background:item.checked?C.green:"transparent",color:C.white,display:"inline-flex",alignItems:"center",justifyContent:"center",marginTop:1}}>
+                                  {item.checked && <Icon name="check" size={15} strokeWidth={3} />}
+                                </span>
+                                <div style={{flex:1,minWidth:0}}>
+                                  {editing ? (
+                                    <input autoFocus value={item.text} onChange={(e) => editText(item.key, e.target.value)} onClick={(e) => e.stopPropagation()}
+                                      onKeyDown={(e) => { if (e.key === "Enter") setEditingKey(null); }} onBlur={() => setEditingKey(null)}
+                                      style={{width:"100%",border:"1px solid "+C.green+"55",borderRadius:7,background:C.paper,outline:"none",fontSize:"0.92em",color:C.dark,fontFamily:SANS,padding:"5px 7px"}} />
+                                  ) : (
+                                    <span style={{fontSize:"0.92em",color:item.checked?C.light:C.dark,textDecoration:item.checked?"line-through":"none",wordBreak:"break-word"}}>{item.text}</span>
+                                  )}
+                                  {!item.manual && item.sourceCount > 0 && (
+                                    <button onClick={(e) => { e.stopPropagation(); setExpanded(expanded === item.key ? null : item.key); }}
+                                      style={{marginTop:3,background:"none",border:"none",padding:0,cursor:"pointer",color:C.brown,fontSize:"0.72em",fontFamily:SANS,display:"inline-flex",alignItems:"center",gap:3}}>
+                                      {item.sourceCount > 1 ? "Used in " + item.sourceCount + " recipes" : (item.sources[0]?.title || "1 recipe")}
+                                      <span aria-hidden>{expanded === item.key ? "▴" : "▾"}</span>
+                                    </button>
+                                  )}
+                                  {item.manual && <div style={{fontSize:"0.72em",color:C.light,marginTop:3}}>Added by you</div>}
                                 </div>
-                              )}
-                              {item.manual && <div style={{fontSize:"0.72em",color:C.light,marginTop:2}}>Added by you</div>}
+                              </div>
+                              <div style={{display:"flex",alignItems:"center",gap:2,flexShrink:0}}>
+                                <button onClick={() => setEditingKey(editing ? null : item.key)} aria-label={editing?"Done editing":"Edit item"}
+                                  style={{background:"none",border:"none",color:editing?C.green:C.light,cursor:"pointer",padding:"5px 6px",minHeight:32,display:"inline-flex",alignItems:"center"}}>
+                                  <Icon name={editing ? "check" : "edit"} size={16} />
+                                </button>
+                                <button onClick={() => removeItem(item)} aria-label="Delete item" style={{background:"none",border:"none",color:C.light,cursor:"pointer",fontSize:"1.2em",lineHeight:1,padding:"5px 7px",minHeight:32}}>×</button>
+                              </div>
                             </div>
-                            <button onClick={() => removeItem(item)} aria-label="Remove" style={{flexShrink:0,background:"none",border:"none",color:C.light,cursor:"pointer",fontSize:"1.15em",lineHeight:1,padding:"3px 5px"}}>×</button>
+                            {expanded === item.key && !item.manual && item.sources.length > 0 && (
+                              <div style={{borderTop:"1px solid "+C.border,padding:"8px 12px 10px",background:C.paper2||C.cream2}}>
+                                <div style={{fontSize:"0.68em",fontWeight:800,letterSpacing:"0.05em",textTransform:"uppercase",color:C.light,marginBottom:5}}>From these recipes</div>
+                                {item.sources.map((src) => (
+                                  <button key={src.id} onClick={() => openSource(src)}
+                                    style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",background:"none",border:"none",padding:"6px 0",cursor:"pointer",fontFamily:SANS,textAlign:"left"}}>
+                                    <span style={{fontSize:"0.84em",color:C.green,fontWeight:600}}>{src.title}</span>
+                                    <span aria-hidden style={{color:C.light}}>›</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                        ))}
+                        );})}
                       </div>
                     </div>
                   );
@@ -1743,7 +1778,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   <button onClick={startFresh} style={{...S.ghostBtn,color:C.light,borderRadius:10,padding:"9px 14px",fontSize:"0.8em"}}>Clear list</button>
                 </div>
                 <p style={{fontSize:"0.74em",color:C.light,lineHeight:1.5,marginTop:14}}>
-                  Ingredients are combined conservatively. Items that affect how a recipe turns out — like different milks, creams, cheeses, or chocolates — are kept separate on purpose.
+                  Tap an item to check it off. Ingredients are combined conservatively — items that change how a recipe turns out, like different milks, creams, cheeses, or chocolates, are kept separate on purpose.
                 </p>
               </>
             )}
@@ -4677,7 +4712,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         setShoppingListState((prev) => o.replace
           ? { ...emptyShoppingList(), recipeIds: Array.from(new Set(ids)), title: o.title || "" }
           : { ...prev, recipeIds: Array.from(new Set([...(prev.recipeIds || []), ...ids])), title: prev.title || o.title || "" });
-        setScreen("shopping");
+        setMainTab("shopping");
       }
       const [timerSound, setTimerSound] = useState(() => loadTimerSound());
       const [current, setCurrent] = useState(null);
@@ -4707,9 +4742,6 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [aiUsage, setAiUsage] = useState(() => defaultAiUsage());
       const [newFeedback, setNewFeedback] = useState(0);
       const [showSplash, setShowSplash] = useState(true);
-      const swipeRef = useRef(null);
-      const pointerSwipeRef = useRef(null);
-      const navStateRef = useRef("");
       const backTabRef = useRef("library");
       const navDepthRef = useRef(0);
       const prevNavRef = useRef("splash");
@@ -4767,22 +4799,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           setPendingShare(null);
         }
       }, [account?.id, showSplash, pendingShare]);
-      useEffect(() => {
-        if (!account || resetToken || showSplash) return;
-        const key = screen + ":" + tab;
-        if ((screen !== "library" || tab !== "library") && navStateRef.current !== key) {
-          navStateRef.current = key;
-          try { window.history.pushState({ recipebox:true, screen, tab }, ""); } catch {}
-        }
-        // The OS back gesture / back button (popstate) always returns to where the
-        // user came from (their tab), never forward into another recipe.
-        const onPop = () => {
-          if (screen !== "library") { closeToOrigin(); return; }
-          if (tab !== "library") setMainTab("library");
-        };
-        window.addEventListener("popstate", onPop);
-        return () => window.removeEventListener("popstate", onPop);
-      }, [account?.id, resetToken, showSplash, screen, tab]);
+      // History-driven navigation (pushState/popstate) was intentionally REMOVED:
+      // it let the OS edge-swipe-back / Android back button drive in-app screen
+      // and tab changes, which felt like a buggy swipe. Until we ship the native
+      // app (with reliable platform gestures), navigation is tap-only — bottom
+      // nav + explicit in-screen back buttons. No swipe navigation anywhere.
 
       function updateMealPlan(plan) { setMealPlanState(plan); saveMealPlan(plan); }
       async function loadCloudData(nextRecipes, nextMealPlan) {
@@ -4819,10 +4840,6 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       else if (screen==="admin" && account?.isMasterAdmin) { body = <AppControl account={account} onBack={()=>{refreshAdminAlerts();setScreen("library");}} onFeedbackChange={setNewFeedback} />; navName = "admin"; }
       else if (screen==="import") { body = <ImportScreen initialMode={importMode} initialValue={importPrefill} onDone={(r)=>{ const list=Array.isArray(r)?r:[r]; list.forEach(addRecipe); if(list.length!==1) setScreen("library"); /* single import: addRecipe already opens the recipe for review */ }} onCancel={()=>setScreen("library")} />; navName = "import"; }
       else if (screen==="edit"&&current) { body = <EditRecipe recipe={current} onSave={(r)=>{ if(recipes.find((x)=>x.id===r.id)) updateRecipe(r); else addRecipe(r); setScreen("view"); }} onCancel={()=>setScreen("view")} />; navName = "edit"; }
-      else if (screen==="shopping") {
-        navName = "shopping"; showNav = true;
-        body = <ShoppingListScreen list={shoppingList} recipes={recipes} onChange={setShoppingList} onClose={()=>setScreen("library")} />;
-      }
       else if (screen==="view"&&current) {
         navName = "view"; showNav = true;
         body = <RecipeView recipe={current} onBack={closeToOrigin} onEdit={()=>setScreen("edit")} onDelete={()=>deleteRecipe(current.id)} onUpdate={(r)=>{updateRecipe(r);setCurrent(r);}} onImport={(r)=>{addRecipe(r);setCurrent(r);}} onTagClick={(t)=>{setLibraryTag(t);setMainTab("library");}} onAddToShopping={(id)=>openShoppingFrom([id],{replace:false})} timerSound={timerSound} />;
@@ -4831,8 +4848,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         navName = "main"; showNav = true;
         body = (
           <div style={{width:"100%",maxWidth:"100%",overflowX:"hidden"}}>
-            {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>openRecipe(r,"library")} onAdd={openImport} onFavorite={toggleFavorite} setTab={setMainTab} tagFilter={libraryTag} onTagFilter={setLibraryTag} onCreateShoppingList={(ids,title)=>openShoppingFrom(ids,{replace:true,title})} onOpenShopping={()=>setScreen("shopping")} hasShoppingList={(shoppingList.recipeIds||[]).length>0 || (shoppingList.manualItems||[]).length>0} />}
+            {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>openRecipe(r,"library")} onAdd={openImport} onFavorite={toggleFavorite} setTab={setMainTab} tagFilter={libraryTag} onTagFilter={setLibraryTag} onCreateShoppingList={(ids,title)=>openShoppingFrom(ids,{replace:true,title})} />}
             {tab==="plan" && <MealPlanner recipes={recipes} mealPlan={mealPlan} setMealPlan={updateMealPlan} onOpen={(r)=>openRecipe(r,"plan")} onGenerateShoppingList={(ids)=>openShoppingFrom(ids,{replace:true,title:"This Week's Shopping List"})} />}
+            {tab==="shopping" && <ShoppingListScreen list={shoppingList} recipes={recipes} onChange={setShoppingList} setTab={setMainTab} onOpenRecipe={(r)=>openRecipe(r,"shopping")} />}
             {tab==="pantry" && <PantryChef recipes={recipes} onImport={(r)=>{addRecipe(r);setTab("library");}} onOpenRecipe={(r)=>openRecipe(r,"pantry")} />}
             {tab==="settings" && <Settings timerSound={timerSound} setTimerSound={setTimerSound} account={account} setAccount={setAccount} recipes={recipes} mealPlan={mealPlan} aiUsage={aiUsage} onCloudData={loadCloudData} onOpenAdmin={()=>setScreen("admin")} newFeedback={newFeedback} />}
           </div>
