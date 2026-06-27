@@ -348,6 +348,17 @@
       if (u === "l" || u === "liter" || u === "liters") {
         return cupsToDisplay((n * 1000) / 240);
       }
+      // No trusted density table for this ingredient: fall back to a safe
+      // weight-to-weight conversion so US mode never shows raw grams/kilograms
+      // (400 g raspberries -> 14 oz). Shared helper = one source of truth.
+      if (u === "g" || u === "gram" || u === "grams") {
+        const w = RecipeBoxNormalize.gramsToUsWeight(n);
+        if (w) return w;
+      }
+      if (u === "kg" || u === "kilogram" || u === "kilograms") {
+        const w = RecipeBoxNormalize.gramsToUsWeight(n * 1000);
+        if (w) return w;
+      }
       return { amount, unit: unit||"" };
     }
 
@@ -861,8 +872,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     }
     function plainStepText(text, ingredients, scale=1, metric=false) {
       const list = ingredients || [];
-      // Same display-time temperature conversion as StepText, so PDF/Cook Mode match.
-      text = RecipeBoxNormalize.convertTempsInText(text, metric ? "metric" : "us");
+      // Same display-time localization as StepText (temps + weights/volumes +
+      // food terms), so PDF/Cook Mode read identically to the card.
+      text = RecipeBoxNormalize.localizeText(text, metric ? "metric" : "us");
       const regex = /\{([^}]+)\}/g;
       let out = "";
       let last = 0;
@@ -952,8 +964,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     }
 
     function StepText({ text, ingredients, scale, metric }) {
-      // Display-time temperature conversion to the user's chosen mode (°F<->°C).
-      const t = RecipeBoxNormalize.convertTempsInText(text, metric ? "metric" : "us");
+      // Display-time localization to the user's chosen mode: temperatures
+      // (°F<->°C), weights/volumes (g->oz, ml->cup), and food terms.
+      const t = RecipeBoxNormalize.localizeText(text, metric ? "metric" : "us");
       const parts = [];
       const regex = /\{([^}]+)\}/g;
       let last = 0, match;
@@ -977,8 +990,10 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       );
     }
 
-    function NoteText({ text }) {
-      const raw = String(text || "");
+    function NoteText({ text, metric }) {
+      // Localize temps/weights/volumes/terms in notes too, so the whole recipe
+      // reads in one system (links are left untouched below).
+      const raw = RecipeBoxNormalize.localizeText(String(text || ""), metric ? "metric" : "us");
       const parts = [];
       const re = /(https?:\/\/[^\s),\]]+)/g;
       let last = 0, match;
@@ -3751,6 +3766,12 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             if (aud2.warnings.length) {
               parsed.importWarnings = Array.from(new Set((parsed.importWarnings || []).concat(aud2.warnings))).slice(0, 4);
             }
+            // Single import quality score (0-100 + band) from the audit + source
+            // grounding. Drives the review banner (shown only when it isn't Good+).
+            const grounding = (importSourceText && parsed.importMethod !== "structured-data" && typeof RecipeBoxGrounding !== "undefined")
+              ? RecipeBoxGrounding.groundRecipe(parsed, importSourceText) : null;
+            const q = RecipeBoxNormalize.qualityScore(parsed, { system: "us", grounding });
+            parsed.importQuality = { score: q.score, band: q.band };
           } catch {}
 
           readyRecipeForSave(parsed, { skipPhotoPrompt: mode === "media" });
@@ -4222,6 +4243,12 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
       function normalizeViewSections(recipe) {
         const sections = Array.isArray(recipe.sections) ? recipe.sections : [];
+        // Display-time ingredient-term localization to the user's system (US:
+        // corn flour -> cornstarch, courgette -> zucchini, …). Mode-aware and
+        // never mutates the stored recipe. Applied at this single chokepoint so
+        // the card, cook mode, shopping list, and PDF all read the same name.
+        const locName = (n) => RecipeBoxNormalize.localizeIngredientName(n || "", metric ? "metric" : "us");
+        const locIng = (ing) => (ing && typeof ing === "object") ? { ...ing, name: locName(ing.name) } : ing;
 
         const oldIngredients = sections.find(sec => /^ingredients$/i.test(sec.title || sec.name || "") && Array.isArray(sec.items));
         const oldInstructions = sections.find(sec => /^(instructions|directions|method)$/i.test(sec.title || sec.name || "") && Array.isArray(sec.items));
@@ -4230,8 +4257,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           return [{
             name: "Main",
             ingredients: (oldIngredients?.items || []).map(item => {
-              if (typeof item === "object") return item;
-              return { amount: "", unit: "", name: String(item) };
+              if (typeof item === "object") return locIng(item);
+              return { amount: "", unit: "", name: locName(String(item)) };
             }),
             steps: (oldInstructions?.items || []).map(item => {
               if (typeof item === "object" && item.text) return item;
@@ -4243,7 +4270,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         return sections.map(sec => ({
           name: sec.name || sec.title || "Main",
           ingredients: Array.isArray(sec.ingredients)
-            ? sec.ingredients.map(ing => typeof ing === "object" ? ing : { amount: "", unit: "", name: String(ing) })
+            ? sec.ingredients.map(ing => typeof ing === "object" ? locIng(ing) : { amount: "", unit: "", name: locName(String(ing)) })
             : [],
           steps: Array.isArray(sec.steps)
             ? sec.steps.map(step => typeof step === "object" && step.text ? step : { text: String(step) })
@@ -4712,7 +4739,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
                   <button onClick={onEdit} style={{background:C.brown,border:"none",borderRadius:8,padding:"7px 14px",color:C.white,fontWeight:800,fontSize:"0.78em",cursor:"pointer",fontFamily:SANS,touchAction:"manipulation"}}>Edit recipe</button>
                   <button onClick={()=>onUpdate({...recipe,importWarnings:[],reviewedAt:new Date().toISOString()})} style={{background:"transparent",border:"1px solid "+C.goldLight,borderRadius:8,padding:"7px 14px",color:C.brown,fontWeight:700,fontSize:"0.78em",cursor:"pointer",fontFamily:SANS,touchAction:"manipulation"}}>Looks right</button>
-                  {recipe.importConfidence != null && <span style={{fontSize:"0.72em",color:C.brown,opacity:0.75,marginLeft:"auto"}}>match {Math.round(recipe.importConfidence*100)}%</span>}
+                  {(recipe.importQuality?.band || recipe.importConfidence != null) && <span style={{fontSize:"0.72em",color:C.brown,opacity:0.75,marginLeft:"auto"}}>{recipe.importQuality?.band ? "Quality: " + recipe.importQuality.band + " (" + recipe.importQuality.score + ")" : "match " + Math.round(recipe.importConfidence*100) + "%"}</span>}
                 </div>
               </div>
             )}
@@ -4941,7 +4968,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               <div style={{...S.cardSoft,background:C.goldPale,border:"1px solid "+C.goldLight,padding:16,marginBottom:22}}>
                 <div style={{fontSize:"0.66em",letterSpacing:2.4,textTransform:"uppercase",fontWeight:800,color:C.brownLight,marginBottom:8}}>Notes</div>
                 <div style={{fontSize:"0.9em",lineHeight:1.7,color:C.mid,whiteSpace:"pre-wrap",overflowWrap:"break-word"}}>
-                  <NoteText text={recipe.notes} />
+                  <NoteText text={recipe.notes} metric={metric} />
                 </div>
               </div>
             )}

@@ -150,6 +150,130 @@
     });
   }
 
+  // ---- Unit-to-unit conversion + locale formatting (single source of truth) ----
+  // These are pure number<->number conversions that never need an ingredient
+  // density table, so they're always safe:
+  //   - weight <-> weight (g/kg <-> oz/lb): mass is mass.
+  //   - volume <-> volume (ml/L <-> tsp/Tbsp/cup): volume is volume.
+  // Density conversions (g of flour -> cups) stay in the display layer, which
+  // has the trusted ingredient gram tables; here we deliberately stick to safe,
+  // ambiguity-free conversions so direction text can be localized without it.
+  var G_PER_OZ = 28.3495;
+  var ML_PER_CUP = 240;
+  function num(x) { return (Shopping && Shopping.amountToNumber) ? Shopping.amountToNumber(x) : (isFinite(Number(x)) ? Number(x) : null); }
+  function frac(n) { return (Shopping && Shopping.numberToFraction) ? Shopping.numberToFraction(n) : String(n); }
+
+  // grams -> US weight. Whole ounces read cleanly (400 g -> 14 oz, 85 g -> 3 oz);
+  // at/above a pound, switch to quarter-pound steps. Weight-to-weight: always safe.
+  function gramsToUsWeight(grams) {
+    var oz = Number(grams) / G_PER_OZ;
+    if (!isFinite(oz) || oz <= 0) return null;
+    if (oz < 1) return { amount: frac(Math.max(0.25, Math.round(oz * 4) / 4)), unit: "oz" };
+    if (oz < 16) return { amount: String(Math.round(oz)), unit: "oz" };
+    return { amount: frac(Math.round((oz / 16) * 4) / 4), unit: "lb" };
+  }
+  function snapCups(cups) {
+    var whole = Math.floor(cups), f = cups - whole;
+    var opts = [0, 1 / 8, 1 / 4, 1 / 3, 1 / 2, 2 / 3, 3 / 4, 1], best = 0;
+    for (var i = 0; i < opts.length; i++) if (Math.abs(f - opts[i]) < Math.abs(f - best)) best = opts[i];
+    return best === 1 ? whole + 1 : whole + best;
+  }
+  // milliliters -> US volume (tsp/Tbsp/cup). Volume-to-volume: always safe.
+  function mlToUsVolume(ml) {
+    var n = Number(ml);
+    if (!isFinite(n) || n <= 0) return null;
+    var cups = n / ML_PER_CUP;
+    if (cups >= 0.25) { var c = snapCups(cups); return { amount: frac(c), unit: c > 1 ? "cups" : "cup" }; }
+    var tbsp = n / 15;
+    if (tbsp >= 1) return { amount: frac(Math.round(tbsp * 2) / 2), unit: "Tbsp" };
+    return { amount: frac(Math.max(0.25, Math.round((n / 5) * 4) / 4)), unit: "tsp" };
+  }
+  // US volume/weight -> metric (for Metric mode). Volume->ml, weight->g; promote
+  // to L/kg past 1000. Safe (no density).
+  function usToMetricWeight(grams) {
+    var g = Math.round(Number(grams));
+    return g >= 1000 ? { amount: frac(Math.round((g / 1000) * 100) / 100), unit: "kg" } : { amount: String(g), unit: "g" };
+  }
+  function usToMetricVolume(ml) {
+    var m = Math.round(Number(ml));
+    return m >= 1000 ? { amount: frac(Math.round((m / 1000) * 100) / 100), unit: "L" } : { amount: String(m), unit: "ml" };
+  }
+  var US_VOL_ML = { cup: 240, cups: 240, tbsp: 15, tablespoon: 15, tablespoons: 15, tsp: 5, teaspoon: 5, teaspoons: 5, "fl oz": 30, floz: 30 };
+  var US_WT_G = { oz: 28.3495, ounce: 28.3495, ounces: 28.3495, lb: 453.592, lbs: 453.592, pound: 453.592, pounds: 453.592 };
+
+  // Convert weight/volume measures embedded in free text (directions, notes) to
+  // the display system. Only matches an explicit number+unit, so plain numbers
+  // (counts, times, temperatures) are never touched. Display-only.
+  function convertMeasuresInText(text, system) {
+    var s = String(text == null ? "" : text);
+    var amt = "(\\d+(?:\\.\\d+)?(?:\\s+\\d+\\/\\d+)?|\\d+\\/\\d+)";
+    if (system === "metric") {
+      var reUs = new RegExp(amt + "\\s*(fl\\s?oz|fluid ounces?|cups?|tbsps?|tablespoons?|tsps?|teaspoons?|ounces?|oz|lbs?|pounds?)\\b", "gi");
+      return s.replace(reUs, function (m, a, unit) {
+        var n = num(a); if (n === null) return m;
+        var u = unit.toLowerCase().replace(/\s+/g, " ");
+        var key = u
+          .replace(/^(tablespoons?|tbsps?)$/, "tbsp")
+          .replace(/^(teaspoons?|tsps?)$/, "tsp")
+          .replace(/^cups?$/, "cup")
+          .replace(/^(fluid ounces?|fl ?oz)$/, "fl oz")
+          .replace(/^ounces?$/, "oz")
+          .replace(/^(lbs?|pounds?)$/, "lb");
+        if (US_VOL_ML[key]) { var v = usToMetricVolume(n * US_VOL_ML[key]); return v.amount + " " + v.unit; }
+        if (US_WT_G[key]) { var w = usToMetricWeight(n * US_WT_G[key]); return w.amount + " " + w.unit; }
+        return m;
+      });
+    }
+    var reMetric = new RegExp(amt + "\\s*(kg|kilograms?|grams?|g|millilitres?|milliliters?|ml|litres?|liters?|l)\\b", "gi");
+    return s.replace(reMetric, function (m, a, unit) {
+      var n = num(a); if (n === null) return m;
+      var u = unit.toLowerCase(), c = null;
+      if (/^k/.test(u)) c = gramsToUsWeight(n * 1000);
+      else if (/^g/.test(u)) c = gramsToUsWeight(n);
+      else if (/^m/.test(u)) c = mlToUsVolume(n);
+      else if (/^l/.test(u)) c = mlToUsVolume(n * 1000);
+      return c ? (c.amount + " " + c.unit) : m;
+    });
+  }
+
+  // Ingredient-term localization (US house style). Conservative: only unambiguous
+  // non-US -> US food terms. US-only; Metric mode leaves source terms as written.
+  function capLike(sample, repl) {
+    return (sample && sample[0] === sample[0].toUpperCase() && sample[0] !== sample[0].toLowerCase())
+      ? repl.charAt(0).toUpperCase() + repl.slice(1) : repl;
+  }
+  var LOCALIZE_US = [
+    [/\bcorn\s?flour\b/gi, "cornstarch"],          // UK cornflour = US cornstarch (thickener)
+    [/\bicing sugar\b/gi, "powdered sugar"],
+    [/\bcast[eo]r sugar\b/gi, "superfine sugar"],   // caster / castor
+    [/\bbicarbonate of soda\b/gi, "baking soda"],
+    [/\bself[- ]raising flour\b/gi, "self-rising flour"],
+    [/\bplain flour\b/gi, "all-purpose flour"],
+    [/\bdouble cream\b/gi, "heavy cream"],
+    [/\bcourgettes?\b/gi, "zucchini"],
+    [/\baubergines?\b/gi, "eggplant"],
+    [/\brocket\b/gi, "arugula"],
+    [/\bcoriander leaves\b/gi, "cilantro"],
+  ];
+  function localizeTerms(text, system) {
+    if (system === "metric") return String(text == null ? "" : text);
+    var s = String(text == null ? "" : text);
+    LOCALIZE_US.forEach(function (pair) {
+      s = s.replace(pair[0], function (m) { return capLike(m, pair[1]); });
+    });
+    return s;
+  }
+  function localizeIngredientName(name, system) { return localizeTerms(name, system); }
+
+  // Full display-time localization of free text (directions, notes): temperature
+  // + weight/volume conversion + term localization, all for the user's system.
+  function localizeText(text, system) {
+    var s = convertTempsInText(text, system);
+    s = convertMeasuresInText(s, system);
+    s = localizeTerms(s, system);
+    return s;
+  }
+
   // ---- Import quality audit (deterministic) ----
   // Flags issues for the review banner / to decide whether minimal AI cleanup is
   // warranted. Never changes the recipe.
@@ -167,7 +291,7 @@
   }
   function auditRecipe(recipe, system) {
     var warnings = [];
-    var flags = { typos: false, mixedUnits: false, mixedTemp: false, duplicateIngredients: false, doubledWords: false };
+    var flags = { typos: false, mixedUnits: false, mixedTemp: false, duplicateRows: false, doubledWords: false, missingQuantities: false };
     if (!recipe || typeof recipe !== "object") return { warnings: warnings, flags: flags, needsCleanup: false };
     var allText = [recipe.title, recipe.description, recipe.notes]
       .concat(((recipe.sections || []).flatMap(function (s) { return (s.steps || []).map(function (st) { return typeof st === "string" ? st : (st && st.text) || ""; }); })))
@@ -176,24 +300,22 @@
     if (hasTypos(allText).length) { flags.typos = true; warnings.push("Some words look misspelled."); }
     // Doubled words.
     if (/\b(\w{2,12})\s+\1\b/i.test(allText)) { flags.doubledWords = true; }
-    // Temperatures present in BOTH systems (mixed) or not matching the display mode.
+    // Source-level signals for the quality score only — NOT user warnings, since
+    // the display layer now converts everything to the user's chosen system, so
+    // mixed source units/temps never reach the cook. (Avoids noisy banners.)
     var hasC = /\d\s*(?:°|º|deg(?:rees)?\.?)\s*c\b/i.test(allText);
     var hasF = /\d\s*(?:°|º|deg(?:rees)?\.?)\s*f\b/i.test(allText);
-    if (hasC && hasF) { flags.mixedTemp = true; warnings.push("Recipe mixes °F and °C."); }
-    else if (system === "us" && hasC && !hasF) { flags.mixedTemp = true; }
-    else if (system === "metric" && hasF && !hasC) { flags.mixedTemp = true; }
-    // Mixed measurement systems in ingredient units.
+    if (hasC && hasF) flags.mixedTemp = true;
     var units = ((recipe.sections || []).flatMap(function (s) { return (s.ingredients || []).map(function (i) { return String((i && i.unit) || "").toLowerCase(); }); }));
     var metricU = units.some(function (u) { return /^(g|kg|ml|l|gram|kilogram|milliliter|liter|litre)$/.test(u); });
     var usU = units.some(function (u) { return /^(cup|cups|tbsp|tsp|oz|lb|fl oz|pt|qt|gal|tablespoon|teaspoon|ounce|pound)$/.test(u); });
-    if (metricU && usU) { flags.mixedUnits = true; warnings.push("Recipe mixes US and metric ingredient units."); }
-    // Duplicate ingredient names within a section (often a true compound, but flag).
-    (recipe.sections || []).forEach(function (sec) {
-      var names = ((sec && sec.ingredients) || []).map(function (i) { return String((i && i.name) || "").toLowerCase().trim(); }).filter(Boolean);
-      if (new Set(names).size < names.length) flags.duplicateIngredients = true;
-    });
-    var names = ingredientNames(recipe);
-    flags.duplicateNamesAcross = new Set(names.map(function (n) { return n.toLowerCase().trim(); })).size < names.length;
+    if (metricU && usU) flags.mixedUnits = true;
+    // True duplicate ingredient ROWS only (identical amount|unit|name in the same
+    // section). This deliberately does NOT compare ingredients to direction text,
+    // and does NOT flag a compound measure (same name, different unit) or an
+    // ingredient legitimately reused across sections (cake vs. frosting).
+    var dupRows = duplicateIngredientRows(recipe);
+    if (dupRows.length) { flags.duplicateRows = true; warnings.push("Possible duplicate ingredient: " + dupRows.join(", ") + "."); }
     // Directions that name an ingredient (which HAS a quantity) but include no
     // number — the flagship case minimal AI cleanup can safely fix ("Add water."
     // -> "Add 2 Tbsp water.").
@@ -201,6 +323,54 @@
     if (missing.length) { flags.missingQuantities = true; warnings.push("Some directions may be missing amounts."); }
     var needsCleanup = !!(flags.typos || flags.doubledWords || flags.missingQuantities);
     return { warnings: warnings.slice(0, 4), flags: flags, missing: missing, needsCleanup: needsCleanup };
+  }
+
+  // True duplicate ingredient ROWS: an identical (amount|unit|name) row appearing
+  // more than once within ONE section. Compares ingredient rows to ingredient
+  // rows only — never to directions — so an ingredient that also appears in a
+  // step is never a "duplicate". Same name + different amount/unit (a compound
+  // measure) and the same ingredient reused across sections are both fine.
+  function duplicateIngredientRows(recipe) {
+    var dups = [];
+    ((recipe && recipe.sections) || []).forEach(function (sec) {
+      var seen = Object.create(null);
+      ((sec && sec.ingredients) || []).forEach(function (i) {
+        if (!i || typeof i !== "object") return;
+        var name = String(i.name || "").toLowerCase().replace(/\s+/g, " ").trim();
+        if (!name) return;
+        var sig = [String(i.amount == null ? "" : i.amount).trim(), String(i.unit || "").toLowerCase().trim(), name].join("|");
+        if (seen[sig]) { if (dups.indexOf(i.name) === -1) dups.push(i.name); }
+        else seen[sig] = true;
+      });
+    });
+    return dups.slice(0, 5);
+  }
+
+  // ---- Import quality score (deterministic, 0-100) ----
+  // Combines the audit flags and (optional) source grounding into one score +
+  // band, used to decide whether a recipe needs a review banner. Tuned to be
+  // useful, not noisy: only real problems pull the score down.
+  function qualityScore(recipe, opts) {
+    opts = opts || {};
+    var system = opts.system || "us";
+    var grounding = opts.grounding || null; // { checkable, coverage, dropped }
+    var audit = auditRecipe(recipe, system);
+    var score = 100;
+    var reasons = [];
+    if (audit.flags.mixedUnits) { score -= 8; reasons.push("source mixed US/metric units"); }
+    if (audit.flags.mixedTemp) { score -= 5; reasons.push("source mixed °F/°C"); }
+    if (audit.flags.typos) { score -= 6; reasons.push("possible misspellings"); }
+    if (audit.flags.doubledWords) { score -= 3; }
+    if (audit.flags.missingQuantities) { score -= 6; reasons.push("directions missing amounts"); }
+    if (audit.flags.duplicateRows) { score -= 10; reasons.push("duplicate ingredient lines"); }
+    if (grounding && grounding.checkable) {
+      var cov = grounding.coverage == null ? 1 : grounding.coverage;
+      if (cov < 1) { score -= Math.round((1 - cov) * 40); reasons.push("low source grounding"); }
+      if (grounding.dropped && grounding.dropped.length) { score -= 8; reasons.push("source ingredient may be missing"); }
+    }
+    score = Math.max(0, Math.min(100, Math.round(score)));
+    var band = score >= 95 ? "Excellent" : score >= 80 ? "Good" : score >= 60 ? "Needs Review" : "Poor";
+    return { score: score, band: band, reasons: reasons.slice(0, 4), needsReview: score < 80 };
   }
 
   function escapeRe(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
@@ -262,7 +432,15 @@
     normalizeIngredient: normalizeIngredient,
     normalizeRecipe: normalizeRecipe,
     convertTempsInText: convertTempsInText,
+    convertMeasuresInText: convertMeasuresInText,
+    gramsToUsWeight: gramsToUsWeight,
+    mlToUsVolume: mlToUsVolume,
+    localizeTerms: localizeTerms,
+    localizeIngredientName: localizeIngredientName,
+    localizeText: localizeText,
     auditRecipe: auditRecipe,
+    duplicateIngredientRows: duplicateIngredientRows,
+    qualityScore: qualityScore,
     missingDirectionQuantities: missingDirectionQuantities,
     ingredientSignature: ingredientSignature,
     cleanupPreservedRecipe: cleanupPreservedRecipe,

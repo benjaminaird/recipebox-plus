@@ -97,4 +97,95 @@ assert.strictEqual(N.cleanupPreservedRecipe(original, addedIng), false, "adding 
 const droppedStep = { sections: [{ ingredients: original.sections[0].ingredients, steps: [{ text: "Add water." }] }] };
 assert.strictEqual(N.cleanupPreservedRecipe(original, droppedStep), false, "dropping a step is REJECTED");
 
+// ── Safe weight/volume conversion (US): weight-to-weight + volume-to-volume ──
+assert.deepStrictEqual(N.gramsToUsWeight(400), { amount: "14", unit: "oz" }, "400 g -> 14 oz");
+assert.deepStrictEqual(N.gramsToUsWeight(85), { amount: "3", unit: "oz" }, "85 g -> 3 oz");
+assert.deepStrictEqual(N.gramsToUsWeight(150), { amount: "5", unit: "oz" }, "150 g -> 5 oz");
+assert.deepStrictEqual(N.gramsToUsWeight(500), { amount: "1", unit: "lb" }, "500 g -> ~1 lb");
+assert.deepStrictEqual(N.mlToUsVolume(240), { amount: "1", unit: "cup" }, "240 ml -> 1 cup");
+assert.strictEqual(N.mlToUsVolume(15).unit, "Tbsp", "15 ml -> Tbsp");
+
+// ── Direction conversion in free text (weights, temps), mode-aware ──
+assert.strictEqual(
+  N.localizeText("Add your 400 g raspberries to a food processor.", "us"),
+  "Add your 14 oz raspberries to a food processor.",
+  "direction weight conversion (400 g -> 14 oz)");
+assert.strictEqual(N.localizeText("Bake at 150°C until set.", "us"), "Bake at 300°F until set.", "direction temp 150C -> 300F");
+assert.strictEqual(N.convertMeasuresInText("Cook 20 minutes", "us"), "Cook 20 minutes", "plain numbers untouched");
+assert.strictEqual(N.localizeText("Add 2 cups flour.", "metric"), "Add 480 ml flour.", "metric mode converts US volume in text");
+
+// ── Ingredient-specific localization (US), conservative + case-preserving ──
+assert.strictEqual(N.localizeIngredientName("corn flour", "us"), "cornstarch");
+assert.strictEqual(N.localizeIngredientName("Corn flour", "us"), "Cornstarch", "leading capital preserved");
+assert.strictEqual(N.localizeIngredientName("icing sugar", "us"), "powdered sugar");
+assert.strictEqual(N.localizeIngredientName("caster sugar", "us"), "superfine sugar");
+assert.strictEqual(N.localizeIngredientName("courgette", "us"), "zucchini");
+assert.strictEqual(N.localizeIngredientName("aubergine", "us"), "eggplant");
+assert.strictEqual(N.localizeIngredientName("corn flour", "metric"), "corn flour", "metric mode leaves terms as written");
+assert.strictEqual(N.localizeText("Whisk the corn flour and water together.", "us"), "Whisk the cornstarch and water together.", "term localized in directions");
+
+// ── Duplicate detection: ROW vs ROW only, never vs directions ──
+const noDup = N.duplicateIngredientRows({
+  sections: [{ ingredients: [{ amount: "400", unit: "g", name: "raspberries" }], steps: [{ text: "Add 400 g raspberries." }] }],
+});
+assert.deepStrictEqual(noDup, [], "ingredient appearing in directions is NOT a duplicate");
+const compoundNoDup = N.duplicateIngredientRows({ sections: [{ ingredients: [{ amount: "1/3", unit: "cup", name: "sugar" }, { amount: "3", unit: "Tbsp", name: "sugar" }] }] });
+assert.deepStrictEqual(compoundNoDup, [], "same name, different measure (compound) is NOT a duplicate");
+const crossSection = N.duplicateIngredientRows({ sections: [{ ingredients: [{ amount: "1", unit: "cup", name: "sugar" }] }, { ingredients: [{ amount: "1", unit: "cup", name: "sugar" }] }] });
+assert.deepStrictEqual(crossSection, [], "same ingredient reused across sections is NOT a duplicate");
+const trueDup = N.duplicateIngredientRows({ sections: [{ ingredients: [{ amount: "1", unit: "cup", name: "sugar" }, { amount: "1", unit: "cup", name: "sugar" }] }] });
+assert.deepStrictEqual(trueDup, ["sugar"], "identical row twice in one section IS a duplicate");
+
+// ── PDF/app consistency: the ingredient card path (gramsToUsWeight) and the
+//    direction-text path (convertMeasuresInText) must agree on the same value ──
+const cardOz = N.gramsToUsWeight(400);
+const dirText = N.convertMeasuresInText("400 g raspberries", "us");
+assert.strictEqual(dirText, cardOz.amount + " " + cardOz.unit + " raspberries", "card and direction text convert identically");
+
+// ── Quality score: bands + useful (not noisy) ──
+const cleanQ = N.qualityScore({ title: "Clean", sections: [{ ingredients: [{ amount: "1", unit: "cup", name: "flour" }], steps: [{ text: "Mix and bake." }] }] }, { system: "us" });
+assert.strictEqual(cleanQ.band, "Excellent", "a clean recipe scores Excellent");
+assert.strictEqual(cleanQ.needsReview, false);
+const dupQ = N.qualityScore({ sections: [{ ingredients: [{ amount: "1", unit: "cup", name: "sugar" }, { amount: "1", unit: "cup", name: "sugar" }] }] }, { system: "us" });
+assert.ok(dupQ.score < cleanQ.score, "a true duplicate lowers the score");
+const groundedQ = N.qualityScore({ sections: [{ ingredients: [{ name: "flour" }] }] }, { system: "us", grounding: { checkable: true, coverage: 0.4 } });
+assert.ok(groundedQ.band === "Needs Review" || groundedQ.band === "Poor", "low grounding -> needs review");
+
+// ── Baked Alaska Brownies fixture (from the real imported recipe) ──
+const brownies = {
+  title: "Baked Alaska Brownies",
+  notes: "Chill the assembled brownies at 4°C before serving.",
+  sections: [{
+    name: "Brownies",
+    ingredients: [
+      { id: "i1", amount: "400", unit: "g", name: "raspberries" },
+      { id: "i2", amount: "85", unit: "g", name: "dark chocolate" },
+      { id: "i3", amount: "150", unit: "g", name: "egg whites" },
+      { id: "i4", amount: "2", unit: "Tbsp", name: "corn flour" },
+    ],
+    steps: [
+      { id: "s1", text: "add your 400 g raspberries to a food processor and blend togehter" },
+      { id: "s2", text: "whisk the corn flour into the egg whites" },
+      { id: "s3", text: "bake at 150°C until set" },
+    ],
+  }],
+};
+const bn = N.normalizeRecipe(brownies);
+// Stage 2 (deterministic) fixed the typo + sentence-cased; units convert at display.
+assert.strictEqual(bn.sections[0].steps[0].text, "Add your 400 g raspberries to a food processor and blend together.", "typo togehter -> together, sentence-cased");
+// Display-time (US) conversions in directions:
+assert.strictEqual(N.localizeText(bn.sections[0].steps[0].text, "us"), "Add your 14 oz raspberries to a food processor and blend together.");
+assert.strictEqual(N.localizeText(bn.sections[0].steps[1].text, "us"), "Whisk the cornstarch into the egg whites.");
+assert.strictEqual(N.localizeText(bn.sections[0].steps[2].text, "us"), "Bake at 300°F until set.");
+// Ingredient weights convert (card path):
+assert.deepStrictEqual(N.gramsToUsWeight(400), { amount: "14", unit: "oz" });
+assert.deepStrictEqual(N.gramsToUsWeight(85), { amount: "3", unit: "oz" });
+assert.deepStrictEqual(N.gramsToUsWeight(150), { amount: "5", unit: "oz" });
+// No false duplicate warning, even though raspberries are in both ingredients and directions.
+const bAudit = N.auditRecipe(bn, "us");
+assert.ok(!bAudit.flags.duplicateRows, "no duplicate flag for the brownies");
+assert.ok(!bAudit.warnings.some((w) => /duplicate/i.test(w)), "no duplicate warning for the brownies");
+// Notes temperature converts too.
+assert.strictEqual(N.localizeText(bn.notes, "us"), "Chill the assembled brownies at 40°F before serving.");
+
 console.log("normalize-test: ok");
