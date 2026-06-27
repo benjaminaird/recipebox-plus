@@ -596,20 +596,27 @@ function loadRecipes() {
   if (Array.isArray(server) && server.length) { try { localStorage.setItem(RECIPES_KEY, JSON.stringify(recipesForLocal(server))); } catch {} return server; }
   return local;
 }
+// Recipes the signed-in user actually OWNS — household-shared recipes from other
+// members ride in the library for viewing but must never be saved back as ours.
+function ownRecipes(r) {
+  return (Array.isArray(r) ? r : []).filter((rec) => rec && !rec.householdShared);
+}
 // Keep the localStorage copy lean: the original-source image archive can be
 // large and would risk the storage quota. It is persisted on the server for
-// signed-in users; we only drop it from the local mirror.
+// signed-in users; we only drop it from the local mirror. Household-shared
+// recipes are excluded too (they belong to other members).
 function recipesForLocal(r) {
   try {
-    return (Array.isArray(r) ? r : []).map((rec) => {
+    return ownRecipes(r).map((rec) => {
       if (rec && rec.originalSource) { const { originalSource, ...rest } = rec; return rest; }
       return rec;
     });
-  } catch { return Array.isArray(r) ? r : []; }
+  } catch { return ownRecipes(r); }
 }
 function saveRecipes(r) {
-  try { localStorage.setItem(RECIPES_KEY, JSON.stringify(recipesForLocal(r))); } catch {}
-  asyncPutJson("/api/recipes", { recipes:r });
+  const own = ownRecipes(r);
+  try { localStorage.setItem(RECIPES_KEY, JSON.stringify(recipesForLocal(own))); } catch {}
+  asyncPutJson("/api/recipes", { recipes: own });
 }
 function loadMealPlan() {
   let local = {};
@@ -1114,10 +1121,12 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             ) : (
               <span style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",userSelect:"none"}}><DishGlyph size={42} /></span>
             )}
-            <button onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(); }}
-              style={{position:"absolute",top:8,right:8,background:"rgba(32,20,14,0.44)",border:"1px solid rgba(255,255,255,0.18)",borderRadius:"50%",width:32,height:32,cursor:"pointer",fontSize:"0.95em",color:recipe.favorite?C.goldLight:"rgba(255,255,255,0.78)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2}}>
-              <Icon name="favorite" size={17} strokeWidth={recipe.favorite ? 2.5 : 2} />
-            </button>
+            {recipe.householdShared
+              ? <span style={{position:"absolute",top:8,left:8,background:"rgba(32,20,14,0.55)",color:C.white,borderRadius:12,padding:"3px 9px",fontSize:"0.64em",fontWeight:700,display:"inline-flex",alignItems:"center",gap:4,zIndex:2}}><Icon name="sync" size={11} /> {recipe.ownerName || "Shared"}</span>
+              : <button onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(); }}
+                  style={{position:"absolute",top:8,right:8,background:"rgba(32,20,14,0.44)",border:"1px solid rgba(255,255,255,0.18)",borderRadius:"50%",width:32,height:32,cursor:"pointer",fontSize:"0.95em",color:recipe.favorite?C.goldLight:"rgba(255,255,255,0.78)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2}}>
+                  <Icon name="favorite" size={17} strokeWidth={recipe.favorite ? 2.5 : 2} />
+                </button>}
             <div style={{position:"absolute",bottom:0,left:0,right:0,display:"flex",justifyContent:"space-between",padding:"0 8px 6px",zIndex:2}}>
               {recipe.cookTime && <span style={{background:"rgba(32,20,14,0.55)",color:C.white,borderRadius:12,padding:"2px 8px",fontSize:"0.69em",fontWeight:700,display:"inline-flex",alignItems:"center",gap:4}}><Icon name="timer" size={12} /> {recipe.cookTime}</span>}
               {recipe.macros?.calories > 0 && <span style={{background:"rgba(32,20,14,0.55)",color:C.white,borderRadius:12,padding:"2px 8px",fontSize:"0.69em",fontWeight:700}}>{recipe.macros.calories} cal</span>}
@@ -4096,7 +4105,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     }
 
     // Recipe View
-    function RecipeView({ recipe, onBack, onEdit, onDelete, onUpdate, onImport, onTagClick, onAddToShopping, timerSound }) {
+    function RecipeView({ recipe, inHousehold, onBack, onEdit, onDelete, onUpdate, onImport, onTagClick, onAddToShopping, timerSound }) {
       const [scale, setScale] = useState(1);
       const [metric, setMetric] = useState(false);
       const [cookMode, setCookMode] = useState(false);
@@ -4552,11 +4561,13 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             <div style={{position:"absolute",top:"calc(env(safe-area-inset-top, 0px) + 12px)",left:"max(env(safe-area-inset-left, 0px), 14px)"}}>
               <button onClick={onBack} style={{background:"rgba(0,0,0,0.42)",border:"none",borderRadius:8,padding:"9px 14px",minHeight:38,color:C.white,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS,touchAction:"manipulation"}}>← Library</button>
             </div>
-            <div style={{position:"absolute",top:"calc(env(safe-area-inset-top, 0px) + 12px)",right:"max(env(safe-area-inset-right, 0px), 14px)",display:"flex",gap:7}}>
-              <button onClick={() => onUpdate({...recipe,favorite:!recipe.favorite})} style={{background:"rgba(0,0,0,0.42)",border:"none",borderRadius:8,padding:"8px 11px",minHeight:38,color:recipe.favorite?C.goldLight:C.white,cursor:"pointer",fontSize:"1em",display:"inline-flex",alignItems:"center",justifyContent:"center",touchAction:"manipulation"}}><Icon name="favorite" size={17} strokeWidth={recipe.favorite?2.5:2} /></button>
-              <button onClick={onEdit} style={{background:"rgba(0,0,0,0.42)",border:"none",borderRadius:8,padding:"9px 13px",minHeight:38,color:C.white,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS,touchAction:"manipulation"}}>Edit</button>
-              <button onClick={onDelete} style={{background:"rgba(180,0,0,0.48)",border:"none",borderRadius:8,padding:"9px 13px",minHeight:38,color:C.white,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS,touchAction:"manipulation"}}>Delete</button>
-            </div>
+            {!recipe.householdShared && (
+              <div style={{position:"absolute",top:"calc(env(safe-area-inset-top, 0px) + 12px)",right:"max(env(safe-area-inset-right, 0px), 14px)",display:"flex",gap:7}}>
+                <button onClick={() => onUpdate({...recipe,favorite:!recipe.favorite})} style={{background:"rgba(0,0,0,0.42)",border:"none",borderRadius:8,padding:"8px 11px",minHeight:38,color:recipe.favorite?C.goldLight:C.white,cursor:"pointer",fontSize:"1em",display:"inline-flex",alignItems:"center",justifyContent:"center",touchAction:"manipulation"}}><Icon name="favorite" size={17} strokeWidth={recipe.favorite?2.5:2} /></button>
+                <button onClick={onEdit} style={{background:"rgba(0,0,0,0.42)",border:"none",borderRadius:8,padding:"9px 13px",minHeight:38,color:C.white,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS,touchAction:"manipulation"}}>Edit</button>
+                <button onClick={onDelete} style={{background:"rgba(180,0,0,0.48)",border:"none",borderRadius:8,padding:"9px 13px",minHeight:38,color:C.white,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS,touchAction:"manipulation"}}>Delete</button>
+              </div>
+            )}
             <div style={{position:"relative",padding:"0 20px 18px",width:"100%"}}>
               <div style={{fontSize:"0.7em",color:"rgba(255,255,255,0.65)",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>{recipe.category}</div>
               <h1 style={{margin:0,fontFamily:SERIF,fontSize:"clamp(1.5em,5vw,2.3em)",color:C.white,fontWeight:400,lineHeight:1.1}}>{recipe.title}</h1>
@@ -4583,11 +4594,32 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               ))}
             </div>
 
-            {/* Rating */}
+            {/* Household sharing (M2): read-only "added by" badge for a member's
+                shared recipe, or a share toggle on your own recipe. */}
+            {recipe.householdShared ? (
+              <div style={{display:"inline-flex",alignItems:"center",gap:7,background:C.greenPale,border:"1px solid "+C.green+"33",borderRadius:999,padding:"6px 13px",margin:"4px 0 10px",fontSize:"0.78em",color:C.green,fontWeight:700}}>
+                <Icon name="sync" size={14} /> Shared by {recipe.ownerName || "a household member"}
+              </div>
+            ) : (inHousehold && (
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,background:recipe.shared?C.greenPale:C.cream2,border:"1px solid "+(recipe.shared?C.green+"40":C.border),borderRadius:11,padding:"10px 13px",margin:"4px 0 12px"}}>
+                <div style={{minWidth:0}}>
+                  <div style={{fontWeight:800,color:C.dark,fontSize:"0.84em"}}>{recipe.shared ? "Shared with your household" : "Share with your household"}</div>
+                  <div style={{fontSize:"0.72em",color:C.light}}>{recipe.shared ? "Everyone in your household can see this recipe." : "Let your household see this recipe in their library."}</div>
+                </div>
+                <button onClick={()=>onUpdate({...recipe,shared:!recipe.shared})}
+                  style={{flexShrink:0,width:46,height:26,borderRadius:999,border:"none",cursor:"pointer",background:recipe.shared?C.green:C.cream3,position:"relative",transition:"background 0.15s",touchAction:"manipulation"}} aria-label="Toggle household sharing">
+                  <span style={{position:"absolute",top:3,left:recipe.shared?23:3,width:20,height:20,borderRadius:"50%",background:C.white,transition:"left 0.15s",boxShadow:"0 1px 3px rgba(0,0,0,0.25)"}} />
+                </button>
+              </div>
+            ))}
+
+            {/* Rating (own recipes only) */}
+            {!recipe.householdShared && (
             <div style={{padding:"10px 0",display:"flex",alignItems:"center",gap:10}}>
               <span style={{fontSize:"0.8em",color:C.light}}>Your rating:</span>
               <Stars value={recipe.rating||0} onChange={(v)=>onUpdate({...recipe,rating:v})} size={20} />
             </div>
+            )}
 
             {/* Import review banner (Phase 4): surfaces grounding/verification
                 warnings for AI imports so the user can confirm or fix, instead of
@@ -5215,6 +5247,15 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         } catch { return null; }
       });
       const [account, setAccount] = useState(() => loadAccountSession().user || null);
+      // Whether the signed-in user is in a household (gates the "Share with
+      // household" control on recipes).
+      const [inHousehold, setInHousehold] = useState(false);
+      useEffect(() => {
+        if (!account) { setInHousehold(false); return; }
+        let alive = true;
+        fetchJson("/api/household", null).then((h) => { if (alive) setInHousehold(!!(h && h.household)); }).catch(() => {});
+        return () => { alive = false; };
+      }, [account?.id]);
       const [aiUsage, setAiUsage] = useState(() => defaultAiUsage());
       const [newFeedback, setNewFeedback] = useState(0);
       const [showSplash, setShowSplash] = useState(true);
@@ -5315,9 +5356,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         try { localStorage.setItem(MEALPLAN_KEY, JSON.stringify(cloudMealPlan && typeof cloudMealPlan === "object" ? cloudMealPlan : {})); } catch {}
       }
       function addRecipe(r) { const t = { ...r, tags: RecipeBoxTags.applyTagsOnCreate(r) }; setRecipes((p) => [t, ...p]); setCurrent(t); setScreen("view"); }
-      function updateRecipe(r) { const t = { ...r, tags: RecipeBoxTags.normalizeRecipeTags(r.tags) }; setRecipes((p) => p.map((x) => x.id===t.id?t:x)); setCurrent(t); }
-      function deleteRecipe(id) { if (!window.confirm("Delete this recipe?")) return; setRecipes((p) => p.filter((r) => r.id!==id)); setScreen("library"); }
-      function toggleFavorite(id) { setRecipes((p) => p.map((r) => r.id===id?{...r,favorite:!r.favorite}:r)); }
+      function updateRecipe(r) { if (r && r.householdShared) { setCurrent(r); return; } const t = { ...r, tags: RecipeBoxTags.normalizeRecipeTags(r.tags) }; setRecipes((p) => p.map((x) => x.id===t.id?t:x)); setCurrent(t); }
+      function deleteRecipe(id) { const rec = recipes.find((x) => x.id===id); if (rec && rec.householdShared) return; if (!window.confirm("Delete this recipe?")) return; setRecipes((p) => p.filter((r) => r.id!==id)); setScreen("library"); }
+      function toggleFavorite(id) { setRecipes((p) => p.map((r) => r.id===id && !r.householdShared ? {...r,favorite:!r.favorite} : r)); }
       function setMainTab(nextTab) {
         if (!MAIN_TABS.includes(nextTab)) return;
         setTab(nextTab);
@@ -5342,7 +5383,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       else if (screen==="edit"&&current) { body = <EditRecipe recipe={current} onSave={(r)=>{ if(recipes.find((x)=>x.id===r.id)) updateRecipe(r); else addRecipe(r); setScreen("view"); }} onCancel={()=>setScreen("view")} />; navName = "edit"; }
       else if (screen==="view"&&current) {
         navName = "view"; showNav = true;
-        body = <RecipeView recipe={current} onBack={closeToOrigin} onEdit={()=>setScreen("edit")} onDelete={()=>deleteRecipe(current.id)} onUpdate={(r)=>{updateRecipe(r);setCurrent(r);}} onImport={(r)=>{addRecipe(r);setCurrent(r);}} onTagClick={(t)=>{setLibraryTag(t);setMainTab("library");}} onAddToShopping={(id)=>openShoppingFrom([id],{replace:false})} timerSound={timerSound} />;
+        body = <RecipeView recipe={current} inHousehold={inHousehold} onBack={closeToOrigin} onEdit={()=>setScreen("edit")} onDelete={()=>deleteRecipe(current.id)} onUpdate={(r)=>{updateRecipe(r);setCurrent(r);}} onImport={(r)=>{addRecipe(r);setCurrent(r);}} onTagClick={(t)=>{setLibraryTag(t);setMainTab("library");}} onAddToShopping={(id)=>openShoppingFrom([id],{replace:false})} timerSound={timerSound} />;
       }
       else {
         navName = "main"; showNav = true;

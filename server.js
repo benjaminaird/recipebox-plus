@@ -1365,13 +1365,16 @@ async function requireMasterAdmin(req, res, next) {
 
 function normalizeRecipeForDb(recipe) {
   const r = recipe || {};
+  // Strip transient household-share annotations so they never persist in a row
+  // (they're re-applied on read for other members' shared recipes only).
+  const { householdShared, ownerId, ownerName, ...clean } = r;
   return {
     title: String(r.title || 'Untitled Recipe').slice(0, 240),
     category: r.category || null,
     heroImage: r.heroImage || null,
     favorite: !!r.favorite,
     rating: Number.isFinite(Number(r.rating)) ? Number(r.rating) : 0,
-    json: r,
+    json: clean,
   };
 }
 
@@ -1383,6 +1386,32 @@ async function readUserRecipes(userId) {
     [userId]
   );
   return result.rows.map((row) => row.recipe_json);
+}
+
+// Recipes shared by OTHER members of the user's household (private by default —
+// only those with recipe_json.shared === true). Annotated read-only so the client
+// shows them with an "added by" badge and never writes them back as the user's own.
+async function readHouseholdSharedRecipes(userId) {
+  const db = await getPool();
+  if (!db || !userId) return [];
+  const hh = await db.query('SELECT household_id FROM household_members WHERE user_id=$1', [userId]);
+  const householdId = hh.rows[0]?.household_id;
+  if (!householdId) return [];
+  const result = await db.query(
+    `SELECT r.recipe_json, r.user_id, p.display_name
+       FROM recipes r
+       JOIN household_members m ON m.user_id = r.user_id AND m.household_id = $1
+       JOIN profiles p ON p.user_id = r.user_id
+      WHERE r.user_id <> $2 AND (r.recipe_json->>'shared') = 'true'
+      ORDER BY r.created_at DESC`,
+    [householdId, userId]
+  );
+  return result.rows.map((row) => ({
+    ...row.recipe_json,
+    householdShared: true,
+    ownerId: row.user_id,
+    ownerName: row.display_name || 'A household member',
+  }));
 }
 
 async function replaceUserRecipes(userId, recipes) {
@@ -2214,7 +2243,11 @@ app.post('/api/auth/migrate', async (req, res) => {
 app.get('/api/recipes', async (req, res) => {
   try {
     const user = await currentUser(req);
-    if (user) return res.json(await readUserRecipes(user.user_id));
+    if (user) {
+      const own = await readUserRecipes(user.user_id);
+      const shared = await readHouseholdSharedRecipes(user.user_id);
+      return res.json([...own, ...shared]);
+    }
     if (process.env.ALLOW_SHARED_GUEST_STORE === '1') return res.json(await readStore('recipes', []));
     res.json([]);
   }
@@ -2225,8 +2258,11 @@ app.put('/api/recipes', async (req, res) => {
     if (!Array.isArray(req.body.recipes)) return res.status(400).json({ error: 'recipes must be an array' });
     const user = await currentUser(req);
     if (user) {
-      const saved = await replaceUserRecipes(user.user_id, req.body.recipes);
-      await logUserActivity(user, 'recipes_saved', { count: req.body.recipes.length });
+      // Defense: never persist another member's shared recipe into this user's
+      // row (the client also filters, but the server is authoritative).
+      const own = req.body.recipes.filter((r) => r && !r.householdShared);
+      const saved = await replaceUserRecipes(user.user_id, own);
+      await logUserActivity(user, 'recipes_saved', { count: own.length });
       return res.json({ ok: true, savedToDatabase: saved, account: true });
     }
     if (process.env.ALLOW_SHARED_GUEST_STORE === '1') {
@@ -3474,6 +3510,7 @@ module.exports._test = {
   FAMILY_MEMBER_CAP, HOUSEHOLD_ROLES, normalizeHouseholdRole, generateInviteCode,
   canAddHouseholdMember, canInviteToHousehold, isHouseholdOwner, inviteIsUsable,
   publicEntitlementConfig, founderOfferTiers, isFounderEligible, FOUNDER_TIERS,
+  normalizeRecipeForDb,
   fetchWithTimeout, readBodyCapped, isAbortError,
   isPrivateIp, assertPublicHost, looksBlockedPage, buildPageResult, scraperRequestUrl, jinaRequestUrl,
   periodKey, resetAfter,

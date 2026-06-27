@@ -7,6 +7,7 @@ const app = require("../server");
 const {
   FAMILY_MEMBER_CAP, HOUSEHOLD_ROLES, normalizeHouseholdRole, generateInviteCode,
   canAddHouseholdMember, canInviteToHousehold, isHouseholdOwner, inviteIsUsable,
+  normalizeRecipeForDb,
 } = app._test;
 
 // --- Roles ---
@@ -45,5 +46,19 @@ assert.strictEqual(inviteIsUsable({ expires_at: past, accepted_by: null }), fals
 assert.strictEqual(inviteIsUsable({ expires_at: future, accepted_by: "u1" }), false, "already-accepted invite is not usable");
 assert.strictEqual(inviteIsUsable({ expires_at: future, accepted_at: new Date().toISOString() }), false, "accepted_at also blocks reuse");
 assert.strictEqual(inviteIsUsable(null), false);
+
+// --- Shared library (M2): transient share annotations must never persist ---
+// A recipe carrying another member's read-only annotations must be stored without
+// them (so it can't be written into the wrong user's row with a false owner).
+const stored = normalizeRecipeForDb({
+  id: "r1", title: "Shared Soup", shared: true,
+  householdShared: true, ownerId: "someone-else", ownerName: "Pat",
+  sections: [],
+});
+assert.strictEqual(stored.json.householdShared, undefined, "householdShared is stripped before storage");
+assert.strictEqual(stored.json.ownerId, undefined, "ownerId is stripped");
+assert.strictEqual(stored.json.ownerName, undefined, "ownerName is stripped");
+assert.strictEqual(stored.json.shared, true, "the owner's own 'shared' flag is kept");
+assert.strictEqual(stored.json.title, "Shared Soup", "real recipe fields are preserved");
 
 console.log("household-test: ok");
