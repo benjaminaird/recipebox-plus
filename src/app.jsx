@@ -354,13 +354,17 @@
     function displayIngredientMeasure(ing, scale=1, metric=false) {
       const amount = scaleAmount(ing.amount, scale);
       const unit = ing.unit || "";
+      let measure;
       if (metric) {
-        if (ing.weightAmount && ing.weightUnit) {
-          return { amount:scaleAmount(ing.weightAmount, scale), unit:ing.weightUnit };
-        }
-        return convertMetric(amount, unit, ing.name);
+        if (ing.weightAmount && ing.weightUnit) measure = { amount:scaleAmount(ing.weightAmount, scale), unit:ing.weightUnit };
+        else measure = convertMetric(amount, unit, ing.name);
+      } else {
+        measure = convertUs(amount, unit, ing.name);
       }
-      return convertUs(amount, unit, ing.name);
+      // Standardize the displayed unit abbreviation everywhere (tsp, Tbsp, oz,
+      // lb, fl oz, pt, qt, gal, ml, L, g, kg, cup). Display-only — never mutates
+      // the stored ingredient. Count/unknown units pass through unchanged.
+      return { ...measure, unit: RecipeBoxShopping.abbreviateUnit(measure.unit, measure.amount) };
     }
 
     function parseAIJson(raw) {
@@ -876,6 +880,16 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       out += String(text || "").slice(last);
       return out.replace(/\s+/g, " ").trim();
     }
+    // One display string for a grouped ingredient (compound measures joined by
+    // " + ", abbreviated units, name once) — the SAME formatting the recipe card
+    // uses, so the PDF mirrors the app exactly. Display-only.
+    function compoundIngredientLine(grp, scale=1, metric=false) {
+      const measures = (grp.items || []).map((it) => {
+        const m = displayIngredientMeasure(it, scale, metric);
+        return (displayAmount(m.amount) + (m.unit ? " " + m.unit : "")).trim();
+      }).filter(Boolean).join(" + ");
+      return (measures ? measures + " " : "") + (grp.name || "");
+    }
     const IMPORT_EQUIPMENT_WORDS = /\b(grater|bowl|cutting board|chef'?s knife|knife|scissors|measuring spoon|measuring cup|oven mitt|spatula|ladle|pan\b|pie plate|microwave-safe bowl|stove-top pan|wire cooling rack|wooden spoon|fork|whisk|parchment|foil)\b/i;
     // Distinctive ingredients that are easy for AI to "round off" to a common one
     // (e.g. half-and-half -> milk). If the source text clearly names one but the
@@ -1171,7 +1185,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         const matchCat = cat === "All" || r.category === cat;
         const matchFilter = filter === "all" || (filter === "favorites" && r.favorite) || (filter === "recent" && Date.now() - new Date(r.createdAt).getTime() < 7 * 86400000);
         const matchSearch = !q || r.title.toLowerCase().includes(q) || (r.category||"").toLowerCase().includes(q) || (r.tags||[]).some((t) => t.toLowerCase().includes(q)) || (r.sections||[]).some((s) => s.ingredients.some((i) => i.name.toLowerCase().includes(q)));
-        const matchTag = !activeTagKey || (r.tags||[]).some((t) => tagKey(t) === activeTagKey);
+        const matchTag = !activeTagKey || RecipeBoxTags.recipeInCollection(r, activeTag);
         return matchCat && matchFilter && matchSearch && matchTag;
       });
 
@@ -1191,11 +1205,10 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       // Feeds Quick Finds (below). No global tag table.
       const tagCounts = {};
       const tagDisplay = {};
-      recipes.forEach((r) => (r.tags || []).forEach((t) => {
-        const key = tagKey(t);
+      recipes.forEach((r) => RecipeBoxTags.collectionKeys(r).forEach((key) => {
         if (!key) return;
         tagCounts[key] = (tagCounts[key] || 0) + 1;
-        if (!tagDisplay[key]) tagDisplay[key] = RecipeBoxTags.displayTag(t);
+        if (!tagDisplay[key]) tagDisplay[key] = RecipeBoxTags.displayTag(key);
       }));
       // Quick Finds: the user's own tags as compact, warm shortcut chips
       // (frequency, then alphabetical). One light section replaces the old
@@ -4118,6 +4131,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [macroWhole, setMacroWhole] = useState(false);
       const [nutLoading, setNutLoading] = useState(false);
       const [nutError, setNutError] = useState("");
+      const [showCollections, setShowCollections] = useState(false);
       const [aiQuery, setAiQuery] = useState("");
       const [aiLoading, setAiLoading] = useState(false);
       const [aiResult, setAiResult] = useState(null);
@@ -4412,9 +4426,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             doc.text(sec.name || "Main", margin, y); y += 8;
           }
           doc.setFontSize(13); doc.setFont("helvetica","bold"); setText(C.dark); doc.text("Ingredients",margin,y); y+=7;
-          sec.ingredients.forEach((ing) => {
+          RecipeBoxShopping.groupCompoundIngredients(sec.ingredients).forEach((grp) => {
             doc.setFontSize(10); doc.setFont("helvetica","normal"); setText(C.mid);
-            writeWrapped("- " + displayIngredientText(ing, scale, metric), margin + 4, pageW - margin * 2 - 4, 5);
+            writeWrapped("- " + compoundIngredientLine(grp, scale, metric), margin + 4, pageW - margin * 2 - 4, 5);
           });
           y+=4; doc.setFontSize(13); doc.setFont("helvetica","bold"); setText(C.dark); doc.text("Directions",margin,y); y+=7;
           sec.steps.forEach((step,idx) => {
@@ -4463,7 +4477,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           lines.push("");
           if (displaySections.length > 1 && (sec.name || "").trim()) lines.push(sec.name.toUpperCase());
           lines.push("INGREDIENTS");
-          (sec.ingredients || []).forEach((ing) => lines.push("• " + displayIngredientText(ing, scale, metric)));
+          RecipeBoxShopping.groupCompoundIngredients(sec.ingredients || []).forEach((grp) => lines.push("• " + compoundIngredientLine(grp, scale, metric)));
           lines.push("", "DIRECTIONS");
           (sec.steps || []).forEach((step, i) => lines.push((i + 1) + ". " + plainStepText(step.text, sec.ingredients, scale, metric)));
         });
@@ -4641,6 +4655,43 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             {recipe.description && <p style={{color:C.mid,lineHeight:1.7,margin:"0 0 14px",fontSize:"0.92em"}}>{recipe.description}</p>}
             {recipe.tags?.length>0 && <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:14}}>{recipe.tags.map((t)=><Tag key={t} label={t} onClick={onTagClick} />)}</div>}
 
+            {/* Smart Collections curation (own recipes): manual choice beats AI
+                tags. Toggling on/off stores an include/exclude override; returning
+                to the tag default clears it. */}
+            {!recipe.householdShared && (() => {
+              const active = RecipeBoxTags.collectionKeys(recipe);
+              const labels = [];
+              const seen = new Set();
+              [...Array.from(active).map((k)=>RecipeBoxTags.displayTag(k)), ...RecipeBoxTags.SMART_COLLECTIONS].forEach((lbl)=>{
+                const k = RecipeBoxTags.normalizeTagKey(lbl);
+                if (k && !seen.has(k)) { seen.add(k); labels.push(lbl); }
+              });
+              return (
+                <div style={{marginBottom:16}}>
+                  <button onClick={()=>setShowCollections((v)=>!v)}
+                    style={{background:"none",border:"none",padding:0,cursor:"pointer",fontFamily:SANS,display:"inline-flex",alignItems:"center",gap:6,color:C.brown,fontWeight:800,fontSize:"0.76em",letterSpacing:"0.03em",textTransform:"uppercase"}}>
+                    Smart Collections <span style={{fontSize:"0.85em"}}>{showCollections?"▲":"▼"}</span>
+                  </button>
+                  {showCollections && (
+                    <div style={{marginTop:9}}>
+                      <div style={{fontSize:"0.74em",color:C.light,lineHeight:1.5,marginBottom:9}}>Tap to add or remove this recipe from a collection. Your choice always wins over auto-tagging.</div>
+                      <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
+                        {labels.map((lbl)=>{
+                          const member = RecipeBoxTags.recipeInCollection(recipe, lbl);
+                          return (
+                            <button key={lbl} onClick={()=>onUpdate({...recipe, collectionOverrides: RecipeBoxTags.setCollectionMembership(recipe, lbl, !member)})}
+                              style={{display:"inline-flex",alignItems:"center",gap:5,background:member?C.green:C.cream2,border:"1px solid "+(member?C.green:C.border),color:member?C.white:C.mid,borderRadius:999,padding:"6px 12px",fontSize:"0.78em",fontWeight:700,cursor:"pointer",fontFamily:SANS,touchAction:"manipulation"}}>
+                              <span style={{fontSize:"0.9em"}}>{member?"✓":"+"}</span>{RecipeBoxTags.displayTag(lbl)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             {recipe.originalSource?.pages?.length > 0 && (
               <button onClick={()=>setShowOriginal(true)}
                 style={{display:"flex",alignItems:"center",gap:12,width:"100%",textAlign:"left",border:"1px solid "+C.goldLight,background:C.goldPale,borderRadius:12,padding:"10px 13px",marginBottom:16,cursor:"pointer",fontFamily:SANS}}>
@@ -4757,7 +4808,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   <div style={{...S.cardSoft,marginTop:11,padding:11}}>
                     <div style={{fontWeight:600,marginBottom:7,color:C.dark,fontSize:"0.9em"}}>Preview: {aiResult.title}</div>
                     <div style={{display:"flex",gap:7}}>
-                      <button onClick={()=>{ const r={...aiResult,id:uid(),createdAt:new Date().toISOString(),title:aiResult.title+" (adjusted)",rating:0,favorite:false}; onImport(r); setShowAI(false); setAiResult(null); }} style={{...S.primaryBtn,borderRadius:7,padding:"7px 14px",fontSize:"0.82em"}}>Save as new version</button>
+                      <button onClick={()=>{ const r={...aiResult,id:uid(),createdAt:new Date().toISOString(),title:aiResult.title+" (adjusted)",rating:0,favorite:false,collectionOverrides:recipe.collectionOverrides}; onImport(r); setShowAI(false); setAiResult(null); }} style={{...S.primaryBtn,borderRadius:7,padding:"7px 14px",fontSize:"0.82em"}}>Save as new version</button>
                       <button onClick={()=>setAiResult(null)} style={{background:"none",border:"1px solid "+C.border,color:C.mid,borderRadius:6,padding:"6px 12px",cursor:"pointer",fontSize:"0.82em",fontFamily:SANS}}>Discard</button>
                     </div>
                   </div>
