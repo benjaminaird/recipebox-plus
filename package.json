@@ -32,7 +32,8 @@
     "scraper-fallback-test": "node scripts/scraper-fallback-test.js",
     "grounding-test": "node scripts/grounding-test.js",
     "recipe-schema-test": "node scripts/recipe-schema-test.js",
-    "household-test": "node scripts/household-test.js"
+    "household-test": "node scripts/household-test.js",
+    "normalize-test": "node scripts/normalize-test.js"
   },
   "dependencies": {
     "express": "^4.18.2",

@@ -861,6 +861,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     }
     function plainStepText(text, ingredients, scale=1, metric=false) {
       const list = ingredients || [];
+      // Same display-time temperature conversion as StepText, so PDF/Cook Mode match.
+      text = RecipeBoxNormalize.convertTempsInText(text, metric ? "metric" : "us");
       const regex = /\{([^}]+)\}/g;
       let out = "";
       let last = 0;
@@ -933,7 +935,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
     function sanitizeImportedRecipe(recipe) {
       if (!recipe || !Array.isArray(recipe.sections)) return recipe;
-      return {
+      const filtered = {
         ...recipe,
         sections: recipe.sections.map((section) => ({
           ...section,
@@ -943,23 +945,29 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           })
         }))
       };
+      // Stage 2: deterministic RecipeBox normalization (one consistent style;
+      // formatting only — quantities/order/structure preserved). Single import
+      // chokepoint, so every path (URL/text/photo/PDF/YouTube/social) is normalized.
+      try { return RecipeBoxNormalize.normalizeRecipe(filtered); } catch { return filtered; }
     }
 
     function StepText({ text, ingredients, scale, metric }) {
+      // Display-time temperature conversion to the user's chosen mode (°F<->°C).
+      const t = RecipeBoxNormalize.convertTempsInText(text, metric ? "metric" : "us");
       const parts = [];
       const regex = /\{([^}]+)\}/g;
       let last = 0, match;
-      while ((match = regex.exec(text)) !== null) {
-        if (match.index > last) parts.push({ type:"text", value:text.slice(last, match.index) });
+      while ((match = regex.exec(t)) !== null) {
+        if (match.index > last) parts.push({ type:"text", value:t.slice(last, match.index) });
         const ing = ingredients.find((i) => i.id === match[1]);
         if (ing) {
           parts.push({ type:"chip", value:displayIngredientText(ing, scale, metric) });
-          const duplicateLen = duplicateIngredientNameLength(text.slice(regex.lastIndex), ing.name);
+          const duplicateLen = duplicateIngredientNameLength(t.slice(regex.lastIndex), ing.name);
           if (duplicateLen) regex.lastIndex += duplicateLen;
         }
         last = regex.lastIndex;
       }
-      if (last < text.length) parts.push({ type:"text", value:text.slice(last) });
+      if (last < t.length) parts.push({ type:"text", value:t.slice(last) });
       return (
         <span>
           {parts.map((p, i) => p.type === "chip"
@@ -3688,6 +3696,16 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               parsed.importWarnings = Array.from(new Set((parsed.importWarnings || []).concat(verdict.warnings))).slice(0, 4);
             }
           }
+
+          // Import quality audit (deterministic, all imports): surface any
+          // remaining formatting/spelling/mixed-unit issues the normalizer flagged
+          // for the user to glance at via the review banner.
+          try {
+            const aud = RecipeBoxNormalize.auditRecipe(parsed, "us");
+            if (aud.warnings.length) {
+              parsed.importWarnings = Array.from(new Set((parsed.importWarnings || []).concat(aud.warnings))).slice(0, 4);
+            }
+          } catch {}
 
           readyRecipeForSave(parsed, { skipPhotoPrompt: mode === "media" });
 
