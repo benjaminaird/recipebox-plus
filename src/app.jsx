@@ -4805,7 +4805,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 <div style={{display:"grid",gridTemplateColumns:"1fr",gap:32}}>
                   <div>
                     <div style={{fontSize:"0.66em",letterSpacing:3,textTransform:"uppercase",fontWeight:700,color:C.brownLight,marginBottom:13}}>Ingredients</div>
-                    {sec.ingredients.map((ing,i)=>{ const measure=displayIngredientMeasure(ing,scale,metric),a=measure.amount,u=measure.unit||""; return <div key={i} style={{padding:"8px 0",borderBottom:"1px solid "+C.cream3,display:"flex",gap:9,alignItems:"baseline"}}><span style={{fontWeight:700,minWidth:110,color:C.dark,fontSize:"0.98em",whiteSpace:"nowrap",letterSpacing:"0.01em"}}>{displayAmount(a)}{u?" "+u:""}</span><span style={{color:C.mid,fontSize:"0.88em"}}>{ing.name}</span></div>; })}
+                    {RecipeBoxShopping.groupCompoundIngredients(sec.ingredients).map((grp,i)=>{
+                      const measure = grp.items.map((it)=>{ const m=displayIngredientMeasure(it,scale,metric); return displayAmount(m.amount)+(m.unit?" "+m.unit:""); }).filter(Boolean).join(" + ");
+                      const compound = grp.items.length>1;
+                      return <div key={i} style={{padding:"8px 0",borderBottom:"1px solid "+C.cream3,display:"flex",gap:9,alignItems:"baseline"}}><span style={{fontWeight:700,minWidth:110,color:C.dark,fontSize:"0.98em",whiteSpace:compound?"normal":"nowrap",letterSpacing:"0.01em"}}>{measure}</span><span style={{color:C.mid,fontSize:"0.88em"}}>{grp.name}</span></div>;
+                    })}
                   </div>
                   <div>
                     <div style={{fontSize:"0.66em",letterSpacing:3,textTransform:"uppercase",fontWeight:700,color:C.brownLight,marginBottom:13}}>Directions</div>

@@ -187,6 +187,18 @@ const ENTITLEMENT_CONFIG = {
 };
 // Beta-only "Founder" lifetime tiers, never shown to the public.
 const FOUNDER_TIERS = ['founder', 'founder_family'];
+// Go-live decision policy (enforced once LAUNCH_PHASE flips + LAUNCH_DATE is set):
+//  - beta testers get `decisionGraceDays` after launch to choose; if they don't,
+//    their account auto-moves to Free.
+//  - Founder pricing can be claimed up to `offerWindowDays` after launch.
+// Surfaced to the client so the thank-you screen can show a live countdown; the
+// auto-downgrade/offer-close enforcement is a launch-time scheduled job (TODO at
+// go-live, needs LAUNCH_DATE).
+const FOUNDER_OFFER_CONFIG = {
+  decisionGraceDays: Number(process.env.FOUNDER_DECISION_GRACE_DAYS || 7),
+  offerWindowDays: Number(process.env.FOUNDER_OFFER_WINDOW_DAYS || 30),
+  launchDate: process.env.LAUNCH_DATE || null,
+};
 // Public-safe view of the entitlement config: strips hidden (beta-only Founder)
 // tiers so someone off the street can never see or pick Founder pricing.
 function publicEntitlementConfig() {
@@ -3162,6 +3174,7 @@ app.get('/api/me/founder-offer', requireAuth, async function(req, res) {
       billingLive: false,
       freeTier: { id: 'free', ...ENTITLEMENT_CONFIG.tiers.free },
       options: eligible ? founderOfferTiers() : [],
+      policy: FOUNDER_OFFER_CONFIG,
     });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

@@ -330,7 +330,31 @@
     return Array.isArray(value) ? value.filter((x) => typeof x === "string") : [];
   }
 
-  const api = { CATEGORY_ORDER, amountToNumber, numberToFraction, normalizeIngredientName, parseShoppingIngredient, buildShoppingListFromSections, groupShoppingItemsByCategory, enrichRecipeIngredients, emptyShoppingList, sanitizeShoppingList, sanitizePantry };
+  // Group adjacent ingredients that are the SAME ingredient split into two
+  // different-unit measures (e.g. "1/3 cup" + "3 Tbsp" granulated sugar) so a card
+  // can render them on one line as "1/3 cup + 3 Tbsp granulated sugar". Display-
+  // only: returns groups of the original ingredient objects, which stay intact so
+  // scaling, the shopping list, and the editor are unaffected. Conservative —
+  // only merges same normalized name + both measured + DIFFERENT units (two
+  // separate listings of the same unit are left alone).
+  function groupCompoundIngredients(ingredients) {
+    const out = [];
+    (Array.isArray(ingredients) ? ingredients : []).forEach((ing) => {
+      if (!ing || typeof ing !== "object") { out.push({ name: (ing && ing.name) || "", items: [ing] }); return; }
+      const last = out[out.length - 1];
+      const prev = last && last.items[last.items.length - 1];
+      const prevName = prev ? normalizeIngredientName(prev.name || "") : "";
+      const thisName = normalizeIngredientName(ing.name || "");
+      const sameName = !!prevName && prevName === thisName;
+      const differentUnit = prev && String(prev.unit || "").toLowerCase().trim() !== String(ing.unit || "").toLowerCase().trim();
+      const bothMeasured = prev && String(prev.amount || "").trim() && String(ing.amount || "").trim();
+      if (sameName && differentUnit && bothMeasured) last.items.push(ing);
+      else out.push({ name: ing.name || "", items: [ing] });
+    });
+    return out;
+  }
+
+  const api = { CATEGORY_ORDER, amountToNumber, numberToFraction, normalizeIngredientName, parseShoppingIngredient, buildShoppingListFromSections, groupShoppingItemsByCategory, enrichRecipeIngredients, emptyShoppingList, sanitizeShoppingList, sanitizePantry, groupCompoundIngredients };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.RecipeBoxShopping = api;
 })(typeof window !== "undefined" ? window : globalThis);

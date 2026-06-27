@@ -6,6 +6,7 @@ const {
   normalizeIngredientName,
   sanitizeShoppingList,
   sanitizePantry,
+  groupCompoundIngredients,
 } = require("../public/shopping-list");
 
 function findItem(items, text) {
@@ -174,5 +175,40 @@ assert.deepStrictEqual(sanitizeShoppingList({ manualItems: [{ id: "1" }, "junk",
 assert.deepStrictEqual(sanitizePantry(["olive oil", 5, null, "salt", {}]), ["olive oil", "salt"]);
 assert.deepStrictEqual(sanitizePantry("evil"), []);
 assert.deepStrictEqual(sanitizePantry(null), []);
+
+// ── Compound-measure grouping for recipe-card display ──
+// "1/3 cup + 3 Tbsp granulated sugar" should render on one line, not two.
+const compound = groupCompoundIngredients([
+  { amount: "1/3", unit: "cup", name: "granulated sugar" },
+  { amount: "3", unit: "Tbsp", name: "granulated sugar" },
+  { amount: "2", unit: "large", name: "eggs" },
+]);
+assert.strictEqual(compound.length, 2, "the two sugar measures collapse into one group; eggs is its own");
+assert.strictEqual(compound[0].items.length, 2, "both sugar measures grouped");
+assert.strictEqual(normalizeIngredientName(compound[0].name), normalizeIngredientName("granulated sugar"));
+assert.strictEqual(compound[1].items.length, 1, "eggs stays single");
+
+// Same unit + same name = two separate listings, NOT merged (e.g. used twice).
+const sameUnit = groupCompoundIngredients([
+  { amount: "1", unit: "cup", name: "flour" },
+  { amount: "1", unit: "cup", name: "flour" },
+]);
+assert.strictEqual(sameUnit.length, 2, "same-unit repeats are left as separate lines");
+
+// Different ingredients never merge.
+const diff = groupCompoundIngredients([
+  { amount: "1", unit: "cup", name: "sugar" },
+  { amount: "2", unit: "tbsp", name: "butter" },
+]);
+assert.strictEqual(diff.length, 2);
+
+// An unmeasured second line (e.g. "salt to taste") is not merged into a measure.
+const unmeasured = groupCompoundIngredients([
+  { amount: "1", unit: "tsp", name: "salt" },
+  { amount: "", unit: "", name: "salt" },
+]);
+assert.strictEqual(unmeasured.length, 2, "an unmeasured same-name line stays separate");
+
+assert.deepStrictEqual(groupCompoundIngredients([]), [], "empty list -> empty groups");
 
 console.log("shopping-list-test: ok");
