@@ -253,6 +253,10 @@ const AI_FEATURE_PATTERNS = [
   // internal helper for an already-billed action, so it is logged but never costs
   // the user another AI Assist (see NON_BILLABLE_FEATURES).
   { feature: 'repair', patterns: ['you repair malformed recipe', 'repair this malformed recipebox recipe', 'repair malformed recipe json'] },
+  // 'cleanup' is the Stage-2/3 normalization fix-up (typos, missing direction
+  // amounts) — an internal quality pass on an already-imported recipe, so it's
+  // non-billable like repair. Checked before 'import'/'adjust'.
+  { feature: 'cleanup', patterns: ['recipebox cleanup pass', 'correct obvious mistakes while preserving'] },
   // Specific multi-cost features are matched before the broad 'adjust' pattern.
   { feature: 'meal-plan', patterns: ['weekly meal plan', 'meal plan for the week', 'generate a meal plan', 'plan my week'] },
   { feature: 'nutrition', patterns: ['nutrition estimate', 'estimate the nutrition', 'nutrition facts for', 'macros for this recipe'] },
@@ -264,7 +268,7 @@ const AI_FEATURE_PATTERNS = [
 ];
 // Internal helper passes (detection, cleanup, JSON repair) are logged for admin
 // cost visibility but do not consume a user-facing AI Assist.
-const NON_BILLABLE_FEATURES = new Set(['repair']);
+const NON_BILLABLE_FEATURES = new Set(['repair', 'cleanup']);
 function isBillableAiFeature(feature) { return !NON_BILLABLE_FEATURES.has(feature); }
 
 // Central, configurable AI Assist cost map. Adjust here without hunting through

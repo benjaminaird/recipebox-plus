@@ -10,6 +10,12 @@ const importBody = {
 assert.strictEqual(detectAiFeature(importBody), "import", "extraction is classified as import");
 assert.strictEqual(isBillableAiFeature("import"), true, "imports are billable");
 
+// The Stage-3 cleanup pass is an internal quality fix-up — classified and NOT billable.
+const cleanupBody = { system: "This is a RecipeBox cleanup pass: correct obvious mistakes while preserving the recipe exactly.", messages: [{ role: "user", content: "Recipe to clean up: {}" }] };
+assert.strictEqual(detectAiFeature(cleanupBody), "cleanup", "cleanup pass is classified as cleanup");
+assert.strictEqual(isBillableAiFeature("cleanup"), false, "cleanup passes are NOT billable");
+assert.strictEqual(aiAssistCost("cleanup"), 0, "cleanup costs 0 AI Assists");
+
 // The hidden JSON-repair pass (parseImportedRecipe) must NOT bill a credit.
 const repairBody = {
   system: "You repair malformed recipe JSON. Return ONLY one valid raw JSON object.",

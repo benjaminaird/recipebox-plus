@@ -3434,6 +3434,39 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         throw new Error("RecipeBox could not read the recipe. Try Paste Text, or upload a clearer photo/PDF.");
       }
 
+      // Stage 3: minimal AI cleanup. Runs ONLY when the deterministic audit found
+      // something it can't safely fix (e.g. a direction missing an amount the
+      // ingredient list defines). The model is an EDITOR, not an author: it may
+      // only correct direction text + fill omitted amounts. Non-billable
+      // ('cleanup'); and we ACCEPT its result only if every ingredient and the
+      // structure are unchanged (cleanupPreservedRecipe) — otherwise we keep the
+      // deterministic recipe. So this can never alter the recipe's facts.
+      function applyCleanupText(original, cleaned) {
+        const out = { ...original };
+        if (typeof cleaned.description === "string" && cleaned.description.trim()) out.description = cleaned.description;
+        if (typeof cleaned.notes === "string") out.notes = cleaned.notes;
+        out.sections = (original.sections || []).map((sec, si) => {
+          const cSec = (cleaned.sections || [])[si] || {};
+          return { ...sec, steps: (sec.steps || []).map((st, sti) => {
+            const cText = ((cSec.steps || [])[sti] || {}).text;
+            return (typeof cText === "string" && cText.trim()) ? { ...st, text: cText } : st;
+          }) };
+        });
+        return out;
+      }
+      async function cleanupImport(recipe) {
+        if (window.RECIPEBOX_CONFIG && window.RECIPEBOX_CONFIG.cleanup === false) return recipe;
+        try {
+          const sys = "You are a careful copy editor for RecipeBox. This is a RecipeBox cleanup pass: correct obvious mistakes while preserving the recipe exactly. Fix only spelling, grammar, and spacing in the DIRECTIONS, and where a direction omits an amount that the ingredient list clearly defines, insert that exact amount from the list. NEVER change ingredient quantities, units, ingredient names, cooking times, structure, or meaning. Do not rewrite, improve, reorder, or restyle anything. Return the same recipe with only those minimal text corrections.";
+          const user = "Recipe to clean up (correct direction text + insert omitted amounts only; preserve everything else exactly):\n" + JSON.stringify({ title: recipe.title, sections: recipe.sections });
+          const cleaned = await callAIExtract([{ role: "user", content: user }], sys, 4096, { forceRecipe: true });
+          if (cleaned && !cleaned.error && RecipeBoxNormalize.cleanupPreservedRecipe(recipe, cleaned)) {
+            return applyCleanupText(recipe, cleaned);
+          }
+        } catch {}
+        return recipe; // any doubt -> keep the deterministic recipe
+      }
+
       async function extract() {
         setLoading(true);
         setError("");
@@ -3702,8 +3735,16 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           // for the user to glance at via the review banner.
           try {
             const aud = RecipeBoxNormalize.auditRecipe(parsed, "us");
-            if (aud.warnings.length) {
-              parsed.importWarnings = Array.from(new Set((parsed.importWarnings || []).concat(aud.warnings))).slice(0, 4);
+            // Stage 3: only when deterministic logic flagged something it can't
+            // safely fix (mainly: a direction missing an amount the recipe
+            // defines), run the minimal, non-billable, validated AI cleanup.
+            if (aud.needsCleanup) {
+              setLoadingMsg("Tidying up the recipe...");
+              parsed = await cleanupImport(parsed);
+            }
+            const aud2 = RecipeBoxNormalize.auditRecipe(parsed, "us");
+            if (aud2.warnings.length) {
+              parsed.importWarnings = Array.from(new Set((parsed.importWarnings || []).concat(aud2.warnings))).slice(0, 4);
             }
           } catch {}
 

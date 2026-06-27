@@ -69,4 +69,32 @@ assert.ok(audit.warnings.length >= 1);
 const cleanAudit = N.auditRecipe({ title: "Clean", sections: [{ ingredients: [{ name: "flour", unit: "cup" }], steps: [{ text: "Mix and bake." }] }] }, "us");
 assert.strictEqual(cleanAudit.needsCleanup, false, "a clean recipe needs no cleanup");
 
+// ── Stage 3 gate: detect a direction missing an amount the recipe defines ──
+const mq = N.missingDirectionQuantities({
+  sections: [{
+    ingredients: [{ id: "i1", amount: "2", unit: "Tbsp", name: "water" }, { id: "i2", amount: "1", unit: "cup", name: "flour" }],
+    steps: [{ text: "Add water." }, { text: "Stir in {i2}." }, { text: "Bake 20 min." }],
+  }],
+});
+assert.strictEqual(mq.length, 1, "only the quantity-less 'Add water' step is flagged");
+assert.strictEqual(mq[0].ingredient, "water");
+// A step that already has a number, or uses a chip, isn't flagged.
+const noMq = N.missingDirectionQuantities({ sections: [{ ingredients: [{ amount: "2", unit: "Tbsp", name: "water" }], steps: [{ text: "Add 2 Tbsp water." }] }] });
+assert.strictEqual(noMq.length, 0);
+
+// ── Stage 3 safety guard: cleanup may change ONLY text ──
+const original = {
+  sections: [{ ingredients: [{ amount: "2", unit: "Tbsp", name: "water" }, { amount: "1", unit: "cup", name: "flour" }],
+               steps: [{ text: "Add water." }, { text: "Mix." }] }],
+};
+const goodCleanup = { sections: [{ ingredients: [{ amount: "2", unit: "Tbsp", name: "water" }, { amount: "1", unit: "cup", name: "flour" }],
+               steps: [{ text: "Add 2 Tbsp water." }, { text: "Mix." }] }] };
+assert.strictEqual(N.cleanupPreservedRecipe(original, goodCleanup), true, "fixing only step text is accepted");
+const changedQty = { sections: [{ ingredients: [{ amount: "3", unit: "Tbsp", name: "water" }, { amount: "1", unit: "cup", name: "flour" }], steps: [{ text: "Add water." }, { text: "Mix." }] }] };
+assert.strictEqual(N.cleanupPreservedRecipe(original, changedQty), false, "changing a quantity is REJECTED");
+const addedIng = { sections: [{ ingredients: [{ amount: "2", unit: "Tbsp", name: "water" }, { amount: "1", unit: "cup", name: "flour" }, { amount: "1", unit: "tsp", name: "salt" }], steps: [{ text: "Add water." }, { text: "Mix." }] }] };
+assert.strictEqual(N.cleanupPreservedRecipe(original, addedIng), false, "adding an ingredient is REJECTED");
+const droppedStep = { sections: [{ ingredients: original.sections[0].ingredients, steps: [{ text: "Add water." }] }] };
+assert.strictEqual(N.cleanupPreservedRecipe(original, droppedStep), false, "dropping a step is REJECTED");
+
 console.log("normalize-test: ok");

@@ -194,8 +194,65 @@
     });
     var names = ingredientNames(recipe);
     flags.duplicateNamesAcross = new Set(names.map(function (n) { return n.toLowerCase().trim(); })).size < names.length;
-    var needsCleanup = flags.typos || flags.doubledWords; // text issues AI can safely fix
-    return { warnings: warnings.slice(0, 4), flags: flags, needsCleanup: needsCleanup };
+    // Directions that name an ingredient (which HAS a quantity) but include no
+    // number — the flagship case minimal AI cleanup can safely fix ("Add water."
+    // -> "Add 2 Tbsp water.").
+    var missing = missingDirectionQuantities(recipe);
+    if (missing.length) { flags.missingQuantities = true; warnings.push("Some directions may be missing amounts."); }
+    var needsCleanup = !!(flags.typos || flags.doubledWords || flags.missingQuantities);
+    return { warnings: warnings.slice(0, 4), flags: flags, missing: missing, needsCleanup: needsCleanup };
+  }
+
+  function escapeRe(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+  // Conservative: a step with NO digit anywhere that names an ingredient (>=4
+  // chars) which itself has a quantity. Drops {id} chips first (those already
+  // inject the amount on display). Used only to decide whether to run cleanup.
+  function missingDirectionQuantities(recipe) {
+    var out = [];
+    ((recipe && recipe.sections) || []).forEach(function (sec, si) {
+      var measured = ((sec && sec.ingredients) || []).filter(function (i) { return i && String(i.amount == null ? "" : i.amount).trim() && i.name; });
+      ((sec && sec.steps) || []).forEach(function (st, sti) {
+        var text = typeof st === "string" ? st : (st && st.text) || "";
+        if (/\d/.test(text)) return;                 // step already has a number
+        var plain = String(text).replace(/\{[^}]+\}/g, " ").toLowerCase();
+        measured.forEach(function (ing) {
+          var name = String(ing.name).toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+          if (name.length < 4) return;
+          if (new RegExp("\\b" + escapeRe(name) + "\\b").test(plain)) {
+            out.push({ section: si, step: sti, ingredient: ing.name, amount: ing.amount, unit: ing.unit || "" });
+          }
+        });
+      });
+    });
+    return out.slice(0, 12);
+  }
+
+  // Canonical signature of every ingredient (amount | unit | name). Must be
+  // identical before and after an AI cleanup — cleanup may only touch step/notes
+  // TEXT, never an ingredient's quantity, unit, or name.
+  function ingredientSignature(recipe) {
+    return ((recipe && recipe.sections) || []).map(function (sec) {
+      return (((sec && sec.ingredients) || [])).map(function (i) {
+        return [String((i && i.amount) == null ? "" : i.amount).trim(),
+                String((i && i.unit) || "").toLowerCase().trim(),
+                normalizeText(String((i && i.name) || "")).toLowerCase()].join("|");
+      }).join(";");
+    }).join("||");
+  }
+  // The cleanup guard: accept the AI's result ONLY if it preserved every
+  // ingredient and the section/step counts (i.e. it edited only text). Any change
+  // to a quantity, unit, ingredient, or structure -> reject and keep the
+  // deterministic recipe. This is what makes Stage 3 safe.
+  function cleanupPreservedRecipe(original, cleaned) {
+    if (!original || !cleaned || !Array.isArray(cleaned.sections)) return false;
+    if (ingredientSignature(original) !== ingredientSignature(cleaned)) return false;
+    var o = original.sections || [], c = cleaned.sections || [];
+    if (o.length !== c.length) return false;
+    for (var i = 0; i < o.length; i++) {
+      if (((o[i].ingredients) || []).length !== ((c[i].ingredients) || []).length) return false;
+      if (((o[i].steps) || []).length !== ((c[i].steps) || []).length) return false;
+    }
+    return true;
   }
 
   return {
@@ -206,6 +263,9 @@
     normalizeRecipe: normalizeRecipe,
     convertTempsInText: convertTempsInText,
     auditRecipe: auditRecipe,
+    missingDirectionQuantities: missingDirectionQuantities,
+    ingredientSignature: ingredientSignature,
+    cleanupPreservedRecipe: cleanupPreservedRecipe,
     COMMON_TYPOS: COMMON_TYPOS,
   };
 });
