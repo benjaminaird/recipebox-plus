@@ -7,7 +7,7 @@ const app = require("../server");
 const {
   FAMILY_MEMBER_CAP, HOUSEHOLD_ROLES, normalizeHouseholdRole, generateInviteCode,
   canAddHouseholdMember, canInviteToHousehold, isHouseholdOwner, inviteIsUsable,
-  normalizeRecipeForDb,
+  normalizeRecipeForDb, sanitizeMealPlan,
 } = app._test;
 
 // --- Roles ---
@@ -60,5 +60,25 @@ assert.strictEqual(stored.json.ownerId, undefined, "ownerId is stripped");
 assert.strictEqual(stored.json.ownerName, undefined, "ownerName is stripped");
 assert.strictEqual(stored.json.shared, true, "the owner's own 'shared' flag is kept");
 assert.strictEqual(stored.json.title, "Shared Soup", "real recipe fields are preserved");
+
+// --- Shared meal plan (M2 slice 2): only allowed recipe ids survive ---
+// A member can plan their own recipes + recipes shared to the household, but a
+// private recipe owned by another member must be stripped server-side.
+const allowed = new Set(["own1", "own2", "shared1"]);
+const cleaned = sanitizeMealPlan({
+  Mon: ["own1", "private-of-someone-else", "shared1"],
+  Tue: ["own2"],
+  Wed: [],                       // empty day dropped
+  Bad: "not-an-array",           // non-array dropped
+  Thu: ["own1", 42, null, "x"],  // non-strings + disallowed dropped
+}, allowed);
+assert.deepStrictEqual(cleaned.Mon, ["own1", "shared1"], "private recipe of another member is stripped from the shared plan");
+assert.deepStrictEqual(cleaned.Tue, ["own2"]);
+assert.strictEqual("Wed" in cleaned, false, "empty days are dropped");
+assert.strictEqual("Bad" in cleaned, false, "non-array day values are dropped");
+assert.deepStrictEqual(cleaned.Thu, ["own1"], "only allowed string ids survive");
+assert.deepStrictEqual(sanitizeMealPlan(null, allowed), {}, "non-object plan -> {}");
+assert.deepStrictEqual(sanitizeMealPlan([1, 2], allowed), {}, "array plan -> {}");
+assert.deepStrictEqual(sanitizeMealPlan({ Mon: ["anything"] }, new Set()), {}, "no allowed ids -> everything stripped");
 
 console.log("household-test: ok");

@@ -7,6 +7,8 @@ const { fetchTranscript } = require('youtube-transcript');
 // Deterministic structured-data extractor (shared with the client). Lets URL
 // imports skip the AI entirely when a page has complete schema.org data.
 const RecipeBoxExtract = require('./public/recipe-extract');
+// Shared shopping-list/pantry sanitizers (reused server-side for household data).
+const RecipeBoxShopping = require('./public/shopping-list');
 
 const app = express();
 app.disable('x-powered-by');
@@ -143,6 +145,21 @@ function inviteIsUsable(invite, now = Date.now()) {
   if (!invite || invite.accepted_by || invite.accepted_at) return false;
   const exp = new Date(invite.expires_at).getTime();
   return Number.isFinite(exp) && exp > now;
+}
+// Sanitize a household meal plan to { day: [recipeId,...] }, keeping only recipe
+// ids the writer is allowed to plan (their own + recipes shared to the household)
+// so a member can't slip another member's private recipe into the shared plan.
+// Pure/testable. allowedIds is a Set (or array) of permitted recipe ids.
+function sanitizeMealPlan(plan, allowedIds) {
+  if (!plan || typeof plan !== 'object' || Array.isArray(plan)) return {};
+  const allowed = allowedIds instanceof Set ? allowedIds : new Set(allowedIds || []);
+  const out = {};
+  for (const [day, ids] of Object.entries(plan)) {
+    if (typeof day !== 'string' || !Array.isArray(ids)) continue;
+    const kept = ids.filter((id) => typeof id === 'string' && allowed.has(id)).slice(0, 50);
+    if (kept.length) out[String(day).slice(0, 40)] = kept;
+  }
+  return out;
 }
 // Burst protection: even a high-balance user can't script the AI endpoints.
 const AI_BURST_MAX = Number(process.env.AI_BURST_MAX || 20);        // actions / 10 min
@@ -552,6 +569,27 @@ async function getPool() {
       created_at timestamptz NOT NULL DEFAULT now()
     )`);
     await pool.query('CREATE INDEX IF NOT EXISTS household_invites_household_idx ON household_invites (household_id, created_at desc)');
+    // Household-scoped shared surfaces (M2 slice 2). One row per household; only
+    // members can read/write their own household's data. Personal meal-plan/
+    // shopping/pantry storage is untouched (households start empty).
+    await pool.query(`CREATE TABLE IF NOT EXISTS household_meal_plans (
+      household_id uuid PRIMARY KEY REFERENCES households(id) ON DELETE CASCADE,
+      meal_plan_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      updated_by text REFERENCES profiles(user_id) ON DELETE SET NULL
+    )`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS household_shopping_lists (
+      household_id uuid PRIMARY KEY REFERENCES households(id) ON DELETE CASCADE,
+      shopping_list_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      updated_by text REFERENCES profiles(user_id) ON DELETE SET NULL
+    )`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS household_pantries (
+      household_id uuid PRIMARY KEY REFERENCES households(id) ON DELETE CASCADE,
+      pantry_json jsonb NOT NULL DEFAULT '[]'::jsonb,
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      updated_by text REFERENCES profiles(user_id) ON DELETE SET NULL
+    )`);
     await seedAppControlKnowledge(pool);
     await ensureConfiguredMasterAdmin(pool);
   }
@@ -3366,6 +3404,93 @@ app.post('/api/household/disband', requireAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ---- Household-scoped shared surfaces (M2 slice 2): meal plan, shopping list,
+//      pantry. Member-gated, server-authoritative, one row per household. Table/
+//      column names below are fixed server constants (never user input). ----
+async function householdIdForUser(userId) {
+  const db = await getPool();
+  if (!db || !userId) return null;
+  const r = await db.query('SELECT household_id FROM household_members WHERE user_id=$1', [userId]);
+  return r.rows[0]?.household_id || null;
+}
+async function readHouseholdStore(householdId, table, column, fallback) {
+  const db = await getPool();
+  if (!db || !householdId) return fallback;
+  const r = await db.query(`SELECT ${column} AS v FROM ${table} WHERE household_id=$1`, [householdId]);
+  return r.rows[0]?.v ?? fallback;
+}
+async function writeHouseholdStore(householdId, table, column, userId, value) {
+  const db = await getPool();
+  if (!db || !householdId) return false;
+  await db.query(
+    `INSERT INTO ${table}(household_id, ${column}, updated_at, updated_by) VALUES($1, $2::jsonb, now(), $3)
+     ON CONFLICT(household_id) DO UPDATE SET ${column}=EXCLUDED.${column}, updated_at=now(), updated_by=EXCLUDED.updated_by`,
+    [householdId, JSON.stringify(value), userId]
+  );
+  return true;
+}
+// Recipe ids the user may plan into the shared meal plan: their own + anything
+// shared to the household.
+async function householdPlannableRecipeIds(userId) {
+  const own = await readUserRecipes(userId);
+  const shared = await readHouseholdSharedRecipes(userId);
+  return new Set([...own, ...shared].map((r) => r && r.id).filter(Boolean));
+}
+
+app.get('/api/household/meal-plan', requireAuth, async (req, res) => {
+  try {
+    const hid = await householdIdForUser(req.user.user_id);
+    if (!hid) return res.status(404).json({ error: 'You are not in a household.' });
+    res.json(await readHouseholdStore(hid, 'household_meal_plans', 'meal_plan_json', {}));
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.put('/api/household/meal-plan', requireAuth, async (req, res) => {
+  try {
+    const hid = await householdIdForUser(req.user.user_id);
+    if (!hid) return res.status(404).json({ error: 'You are not in a household.' });
+    const allowed = await householdPlannableRecipeIds(req.user.user_id);
+    const clean = sanitizeMealPlan(req.body.mealPlan, allowed);
+    await writeHouseholdStore(hid, 'household_meal_plans', 'meal_plan_json', req.user.user_id, clean);
+    res.json({ ok: true, mealPlan: clean });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/household/shopping-list', requireAuth, async (req, res) => {
+  try {
+    const hid = await householdIdForUser(req.user.user_id);
+    if (!hid) return res.status(404).json({ error: 'You are not in a household.' });
+    const raw = await readHouseholdStore(hid, 'household_shopping_lists', 'shopping_list_json', null);
+    res.json(RecipeBoxShopping.sanitizeShoppingList(raw));
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.put('/api/household/shopping-list', requireAuth, async (req, res) => {
+  try {
+    const hid = await householdIdForUser(req.user.user_id);
+    if (!hid) return res.status(404).json({ error: 'You are not in a household.' });
+    const clean = RecipeBoxShopping.sanitizeShoppingList(req.body.shoppingList);
+    await writeHouseholdStore(hid, 'household_shopping_lists', 'shopping_list_json', req.user.user_id, clean);
+    res.json({ ok: true, shoppingList: clean });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/household/pantry', requireAuth, async (req, res) => {
+  try {
+    const hid = await householdIdForUser(req.user.user_id);
+    if (!hid) return res.status(404).json({ error: 'You are not in a household.' });
+    const raw = await readHouseholdStore(hid, 'household_pantries', 'pantry_json', []);
+    res.json(RecipeBoxShopping.sanitizePantry(raw));
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.put('/api/household/pantry', requireAuth, async (req, res) => {
+  try {
+    const hid = await householdIdForUser(req.user.user_id);
+    if (!hid) return res.status(404).json({ error: 'You are not in a household.' });
+    const clean = RecipeBoxShopping.sanitizePantry(req.body.pantry);
+    await writeHouseholdStore(hid, 'household_pantries', 'pantry_json', req.user.user_id, clean);
+    res.json({ ok: true, pantry: clean });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.post('/api/ai', async function(req, res) {
   const requestId = crypto.randomUUID();
   let user = null;
@@ -3510,7 +3635,7 @@ module.exports._test = {
   FAMILY_MEMBER_CAP, HOUSEHOLD_ROLES, normalizeHouseholdRole, generateInviteCode,
   canAddHouseholdMember, canInviteToHousehold, isHouseholdOwner, inviteIsUsable,
   publicEntitlementConfig, founderOfferTiers, isFounderEligible, FOUNDER_TIERS,
-  normalizeRecipeForDb,
+  normalizeRecipeForDb, sanitizeMealPlan,
   fetchWithTimeout, readBodyCapped, isAbortError,
   isPrivateIp, assertPublicHost, looksBlockedPage, buildPageResult, scraperRequestUrl, jinaRequestUrl,
   periodKey, resetAfter,

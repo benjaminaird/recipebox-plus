@@ -1444,7 +1444,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     }
 
     // Meal Planner
-    function MealPlanner({ recipes, mealPlan, setMealPlan, onOpen, onGenerateShoppingList }) {
+    function MealPlanner({ recipes, mealPlan, setMealPlan, onOpen, onGenerateShoppingList, inHousehold }) {
       const [picking, setPicking] = useState(null);
       const [pickFilter, setPickFilter] = useState("all");
       const [search, setSearch] = useState("");
@@ -1507,7 +1507,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
       return (
         <div style={{...S.page,paddingBottom:NAV_CLEARANCE}}>
-          <PageHeader title="Weekly Meal Plan" subtitle="Plan the week from your RecipeBox" compact={compactHeader} />
+          <PageHeader title={inHousehold ? "Household Meal Plan" : "Weekly Meal Plan"} subtitle={inHousehold ? "Shared with your household" : "Plan the week from your RecipeBox"} compact={compactHeader} />
           <div style={{maxWidth:900,margin:"20px auto",padding:"0 16px"}}>
             <div style={{...S.cardSoft,padding:"12px 15px",marginBottom:14,display:"flex",alignItems:"center",gap:12}}>
               <div style={{width:40,height:40,borderRadius:11,background:C.greenPale,color:C.green,display:"inline-flex",alignItems:"center",justifyContent:"center",border:"1px solid "+C.green+"22",flexShrink:0}}><Icon name="mealPlan" size={21} /></div>
@@ -1681,7 +1681,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         })),
       );
     }
-    function ShoppingListScreen({ list, recipes, onChange, setTab, onOpenRecipe, pantry, onTogglePantry }) {
+    function ShoppingListScreen({ list, recipes, onChange, setTab, onOpenRecipe, pantry, onTogglePantry, inHousehold }) {
       const [adding, setAdding] = useState("");
       const [editingKey, setEditingKey] = useState(null);
       const [expanded, setExpanded] = useState(null);
@@ -1736,7 +1736,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               <input value={titleValue} onChange={(e) => onChange((l) => ({ ...l, title: e.target.value }))} aria-label="List title"
                 style={{width:"100%",background:"transparent",border:"none",color:C.white,fontFamily:SERIF,fontSize:"1.5em",outline:"none",padding:0,marginBottom:4}} />
               <div style={{color:"rgba(255,249,238,0.82)",fontSize:"0.78em"}}>
-                {total > 0 ? done + " of " + total + " checked" : "Your shopping list"}
+                {inHousehold && <span style={{display:"inline-flex",alignItems:"center",gap:4,marginRight:7}}><Icon name="sync" size={12} /> Household list · shared</span>}
+                {total > 0 ? done + " of " + total + " checked" : (inHousehold ? "" : "Your shopping list")}
                 {sourceTitles.length > 0 && " · from " + sourceTitles.slice(0, 2).join(", ") + (sourceTitles.length > 2 ? " +" + (sourceTitles.length - 2) + " more" : "")}
               </div>
             </div>
@@ -5263,6 +5264,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const setShoppingList = (updater) => setShoppingListState((prev) => typeof updater === "function" ? updater(prev) : updater);
       const [pantry, setPantryState] = useState(() => loadPantry());
       const togglePantry = (name) => { if (!name) return; setPantryState((p) => p.includes(name) ? p.filter((x) => x !== name) : [...p, name]); };
+      // Where the meal plan / shopping list / pantry live: "personal" (default,
+      // per-user) or "household" (shared) when the user is in a household. Saves
+      // route to the matching endpoints. Read at save time so switching sources
+      // never auto-merges personal data into the household.
+      const dataSourceRef = useRef("personal");
       // Build the current shopping list from recipe ids. replace=true starts a
       // fresh list (Library multi-select / meal plan); replace=false merges (add
       // one recipe from its detail screen). Then open the shopping screen.
@@ -5351,8 +5357,42 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       }, []);
 
       useEffect(() => { saveRecipes(recipes); }, [recipes]);
-      useEffect(() => { saveShoppingList(shoppingList); }, [shoppingList]);
-      useEffect(() => { savePantry(pantry); }, [pantry]);
+      useEffect(() => {
+        if (dataSourceRef.current === "household") asyncPutJson("/api/household/shopping-list", { shoppingList });
+        else saveShoppingList(shoppingList);
+      }, [shoppingList]);
+      useEffect(() => {
+        if (dataSourceRef.current === "household") asyncPutJson("/api/household/pantry", { pantry });
+        else savePantry(pantry);
+      }, [pantry]);
+      // Switch the meal plan / shopping list / pantry between personal and shared
+      // household sources. Household versions start from whatever the household has
+      // (empty by default) — never auto-merged from personal data.
+      useEffect(() => {
+        let alive = true;
+        if (inHousehold) {
+          dataSourceRef.current = "household";
+          Promise.all([
+            fetchJson("/api/household/meal-plan", {}),
+            fetchJson("/api/household/shopping-list", null),
+            fetchJson("/api/household/pantry", []),
+          ]).then(([mp, sl, pt]) => {
+            if (!alive) return;
+            setMealPlanState(mp && typeof mp === "object" && !Array.isArray(mp) ? mp : {});
+            setShoppingListState(RecipeBoxShopping.sanitizeShoppingList(sl));
+            setPantryState(RecipeBoxShopping.sanitizePantry(pt));
+          }).catch(() => {});
+        } else if (dataSourceRef.current === "household") {
+          // Left a household — revert to personal data.
+          dataSourceRef.current = "personal";
+          setMealPlanState(loadMealPlan());
+          setShoppingListState(loadShoppingList());
+          setPantryState(loadPantry());
+        } else {
+          dataSourceRef.current = "personal";
+        }
+        return () => { alive = false; };
+      }, [inHousehold]);
       useEffect(() => {
         async function refreshAiUsage() {
           if (!account) { setAiUsage(defaultAiUsage()); return; }
@@ -5397,12 +5437,18 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       // app (with reliable platform gestures), navigation is tap-only — bottom
       // nav + explicit in-screen back buttons. No swipe navigation anywhere.
 
-      function updateMealPlan(plan) { setMealPlanState(plan); saveMealPlan(plan); }
+      function updateMealPlan(plan) {
+        setMealPlanState(plan);
+        if (dataSourceRef.current === "household") asyncPutJson("/api/household/meal-plan", { mealPlan: plan });
+        else saveMealPlan(plan);
+      }
       async function loadCloudData(nextRecipes, nextMealPlan) {
         const cloudRecipes = Array.isArray(nextRecipes) ? nextRecipes : await fetchJson("/api/recipes", []);
         const cloudMealPlan = nextMealPlan && typeof nextMealPlan === "object" ? nextMealPlan : await fetchJson("/api/mealplan", {});
         setRecipes(Array.isArray(cloudRecipes) ? cloudRecipes : []);
-        setMealPlanState(cloudMealPlan && typeof cloudMealPlan === "object" ? cloudMealPlan : {});
+        // Don't let a personal cloud refresh clobber the shared household meal
+        // plan that's currently loaded (the household source effect owns it).
+        if (dataSourceRef.current !== "household") setMealPlanState(cloudMealPlan && typeof cloudMealPlan === "object" ? cloudMealPlan : {});
         try { localStorage.setItem(RECIPES_KEY, JSON.stringify(recipesForLocal(Array.isArray(cloudRecipes) ? cloudRecipes : []))); } catch {}
         try { localStorage.setItem(MEALPLAN_KEY, JSON.stringify(cloudMealPlan && typeof cloudMealPlan === "object" ? cloudMealPlan : {})); } catch {}
       }
@@ -5441,8 +5487,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         body = (
           <div style={{width:"100%",maxWidth:"100%",overflowX:"hidden"}}>
             {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>openRecipe(r,"library")} onAdd={openImport} onFavorite={toggleFavorite} setTab={setMainTab} tagFilter={libraryTag} onTagFilter={setLibraryTag} onCreateShoppingList={(ids,title)=>openShoppingFrom(ids,{replace:true,title})} />}
-            {tab==="plan" && <MealPlanner recipes={recipes} mealPlan={mealPlan} setMealPlan={updateMealPlan} onOpen={(r)=>openRecipe(r,"plan")} onGenerateShoppingList={(ids)=>openShoppingFrom(ids,{replace:true,title:"This Week's Shopping List"})} />}
-            {tab==="shopping" && <ShoppingListScreen list={shoppingList} recipes={recipes} onChange={setShoppingList} setTab={setMainTab} onOpenRecipe={(r)=>openRecipe(r,"shopping")} pantry={pantry} onTogglePantry={togglePantry} />}
+            {tab==="plan" && <MealPlanner recipes={recipes} mealPlan={mealPlan} setMealPlan={updateMealPlan} onOpen={(r)=>openRecipe(r,"plan")} onGenerateShoppingList={(ids)=>openShoppingFrom(ids,{replace:true,title:"This Week's Shopping List"})} inHousehold={inHousehold} />}
+            {tab==="shopping" && <ShoppingListScreen list={shoppingList} recipes={recipes} onChange={setShoppingList} setTab={setMainTab} onOpenRecipe={(r)=>openRecipe(r,"shopping")} pantry={pantry} onTogglePantry={togglePantry} inHousehold={inHousehold} />}
             {tab==="pantry" && <PantryChef recipes={recipes} onImport={(r)=>{addRecipe(r);setTab("library");}} onOpenRecipe={(r)=>openRecipe(r,"pantry")} />}
             {tab==="settings" && <Settings timerSound={timerSound} setTimerSound={setTimerSound} account={account} setAccount={setAccount} recipes={recipes} mealPlan={mealPlan} aiUsage={aiUsage} onCloudData={loadCloudData} onOpenAdmin={()=>setScreen("admin")} newFeedback={newFeedback} />}
           </div>
