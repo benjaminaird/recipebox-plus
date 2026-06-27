@@ -63,6 +63,43 @@
     return aliases[u] || u;
   }
 
+  // Canonical display abbreviation for a measurement unit — the single source of
+  // truth used by the recipe card, edit normalization, shopping list, and PDF so
+  // units read consistently everywhere ("teaspoon"/"tsp" -> "tsp", "tablespoon"
+  // -> "Tbsp"). Unknown/count units (clove, can, stick, pinch, large, …) pass
+  // through unchanged. `amount` only affects natural cup pluralization. Never
+  // touches ingredient names.
+  var ABBREV_MAP = {
+    teaspoon: "tsp", teaspoons: "tsp", tsp: "tsp", tsps: "tsp",
+    tablespoon: "Tbsp", tablespoons: "Tbsp", tbsp: "Tbsp", tbsps: "Tbsp", tbs: "Tbsp", tbl: "Tbsp", tbls: "Tbsp",
+    "fluid ounce": "fl oz", "fluid ounces": "fl oz", "fl oz": "fl oz", floz: "fl oz",
+    ounce: "oz", ounces: "oz", oz: "oz",
+    pound: "lb", pounds: "lb", lb: "lb", lbs: "lb",
+    pint: "pt", pints: "pt", pt: "pt",
+    quart: "qt", quarts: "qt", qt: "qt",
+    gallon: "gal", gallons: "gal", gal: "gal",
+    milliliter: "ml", milliliters: "ml", millilitre: "ml", millilitres: "ml", ml: "ml",
+    liter: "L", liters: "L", litre: "L", litres: "L", l: "L",
+    gram: "g", grams: "g", gramme: "g", grammes: "g", g: "g",
+    kilogram: "kg", kilograms: "kg", kilogramme: "kg", kilogrammes: "kg", kg: "kg",
+    cup: "cup", cups: "cup",
+  };
+  function abbreviateUnit(unit, amount) {
+    var raw = String(unit == null ? "" : unit).trim();
+    if (!raw) return "";
+    if (raw === "T") return "Tbsp";   // capital T = tablespoon
+    if (raw === "t") return "tsp";    // lowercase t = teaspoon
+    var key = raw.toLowerCase().replace(/\./g, "").replace(/\s+/g, " ").trim();
+    if (Object.prototype.hasOwnProperty.call(ABBREV_MAP, key)) {
+      var out = ABBREV_MAP[key];
+      if (out === "cup") { var n = amount == null ? null : amountToNumber(amount); out = (n != null && n > 1) ? "cups" : "cup"; }
+      return out;
+    }
+    var m = key.match(/^([a-z]+)\s+(.+)$/);
+    if (m && MEASURE_DESCRIPTORS.has(m[1])) return m[1] + " " + abbreviateUnit(m[2], amount);
+    return raw; // count/unknown unit — leave as-is
+  }
+
   function isKnownUnit(unit) {
     const cleaned = cleanUnit(unit);
     const descriptive = cleaned.match(/^([a-z]+)\s+(.+)$/);
@@ -227,7 +264,7 @@
   }
 
   function shoppingLine(amount, unit, name, notes) {
-    const bits = [amount, unit, name].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+    const bits = [amount, abbreviateUnit(unit, amount), name].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
     return notes ? bits + " (" + notes + ")" : bits;
   }
 
@@ -354,7 +391,7 @@
     return out;
   }
 
-  const api = { CATEGORY_ORDER, amountToNumber, numberToFraction, normalizeIngredientName, parseShoppingIngredient, buildShoppingListFromSections, groupShoppingItemsByCategory, enrichRecipeIngredients, emptyShoppingList, sanitizeShoppingList, sanitizePantry, groupCompoundIngredients };
+  const api = { CATEGORY_ORDER, amountToNumber, numberToFraction, normalizeIngredientName, parseShoppingIngredient, buildShoppingListFromSections, groupShoppingItemsByCategory, enrichRecipeIngredients, emptyShoppingList, sanitizeShoppingList, sanitizePantry, groupCompoundIngredients, abbreviateUnit };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.RecipeBoxShopping = api;
 })(typeof window !== "undefined" ? window : globalThis);

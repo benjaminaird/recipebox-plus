@@ -212,6 +212,64 @@
     return normalizeRecipeTags(existing.concat(suggested));
   }
 
+  // Curated Smart Collections offered in the recipe-detail toggle UI. These are
+  // tag-based, but the user has final say via collectionOverrides (below).
+  var SMART_COLLECTIONS = [
+    "Copycat", "Quick", "Weeknight", "Make-Ahead", "Meal Prep", "One-Pot",
+    "Slow Cooker", "Instant Pot", "Air Fryer", "Grill", "No-Bake",
+    "Comfort Food", "High-Protein", "Low-Carb", "Vegetarian", "Vegan",
+    "Gluten-Free", "Dairy-Free", "Spicy", "Healthy",
+  ];
+
+  // Effective collection membership keys for a recipe AFTER manual overrides:
+  // start from the (AI/tag) tags, drop user-excluded, add user-included. This is
+  // the single source of truth for Quick Find / Smart Collection filtering.
+  function collectionKeys(recipe) {
+    var keys = new Set();
+    ((recipe && recipe.tags) || []).forEach(function (t) { var k = normalizeTagKey(t); if (k) keys.add(k); });
+    var ov = (recipe && recipe.collectionOverrides) || {};
+    (Array.isArray(ov.exclude) ? ov.exclude : []).forEach(function (t) { keys.delete(normalizeTagKey(t)); });
+    (Array.isArray(ov.include) ? ov.include : []).forEach(function (t) { var k = normalizeTagKey(t); if (k) keys.add(k); });
+    return keys;
+  }
+  function recipeInCollection(recipe, collection) {
+    var key = normalizeTagKey(collection);
+    return !!key && collectionKeys(recipe).has(key);
+  }
+
+  // Compute the new collectionOverrides after the user toggles a collection on/off.
+  // Manual choice beats AI tags; returning a collection to its tag default removes
+  // the override (so future tag changes flow through again). Returns {} when there
+  // are no overrides.
+  function setCollectionMembership(recipe, collection, member) {
+    var key = normalizeTagKey(collection);
+    var ov = (recipe && recipe.collectionOverrides) || {};
+    var include = new Set((Array.isArray(ov.include) ? ov.include : []).map(normalizeTagKey).filter(Boolean));
+    var exclude = new Set((Array.isArray(ov.exclude) ? ov.exclude : []).map(normalizeTagKey).filter(Boolean));
+    include.delete(key); exclude.delete(key);
+    var taggedByDefault = ((recipe && recipe.tags) || []).map(normalizeTagKey).indexOf(key) !== -1;
+    if (member && !taggedByDefault) include.add(key);
+    else if (!member && taggedByDefault) exclude.add(key);
+    var out = {};
+    if (include.size) out.include = Array.from(include);
+    if (exclude.size) out.exclude = Array.from(exclude);
+    return out;
+  }
+
+  // Clean a collectionOverrides object from any source (load/import/sync). Returns
+  // null when empty so we don't persist noise.
+  function sanitizeCollectionOverrides(ov) {
+    if (!ov || typeof ov !== "object" || Array.isArray(ov)) return null;
+    var onlyStrings = function (a) { return (Array.isArray(a) ? a : []).filter(function (x) { return typeof x === "string"; }).map(normalizeTagKey).filter(Boolean); };
+    var inc = Array.from(new Set(onlyStrings(ov.include)));
+    var exc = Array.from(new Set(onlyStrings(ov.exclude)));
+    if (!inc.length && !exc.length) return null;
+    var out = {};
+    if (inc.length) out.include = inc;
+    if (exc.length) out.exclude = exc;
+    return out;
+  }
+
   const api = {
     MAX_TAGS,
     normalizeTagKey,
@@ -219,6 +277,11 @@
     normalizeRecipeTags,
     suggestTags,
     applyTagsOnCreate,
+    SMART_COLLECTIONS,
+    collectionKeys,
+    recipeInCollection,
+    setCollectionMembership,
+    sanitizeCollectionOverrides,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.RecipeBoxTags = api;

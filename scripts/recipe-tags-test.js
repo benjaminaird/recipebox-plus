@@ -5,6 +5,10 @@ const {
   normalizeRecipeTags,
   suggestTags,
   applyTagsOnCreate,
+  recipeInCollection,
+  setCollectionMembership,
+  collectionKeys,
+  sanitizeCollectionOverrides,
 } = require("../public/recipe-tags");
 
 // --- normalization / dedup ---
@@ -101,6 +105,49 @@ const {
   const out = applyTagsOnCreate(recipe);
   assert.strictEqual(out.indexOf("Dinner"), 0, "user tag preserved first");
   assert.strictEqual(out.filter((t) => normalizeTagKey(t) === "copycat").length, 1, "copycat not duplicated");
+})();
+
+// --- Smart Collection membership + manual overrides (user beats AI) ---
+(function collectionOverrides() {
+  // Default: a copycat-tagged recipe is in Copycat.
+  const tagged = { title: "Copycat Big Mac", tags: ["Copycat", "Dinner"], sections: [] };
+  assert.strictEqual(recipeInCollection(tagged, "Copycat"), true, "tagged recipe is in Copycat by default");
+  assert.strictEqual(recipeInCollection(tagged, "Slow Cooker"), false, "not in collections it isn't tagged for");
+
+  // Manual EXCLUDE: tagged copycat but user removes it -> not in Copycat.
+  const excluded = { ...tagged, collectionOverrides: setCollectionMembership(tagged, "Copycat", false) };
+  assert.deepStrictEqual(excluded.collectionOverrides, { exclude: ["copycat"] }, "unchecking a tagged collection stores an exclude");
+  assert.strictEqual(recipeInCollection(excluded, "Copycat"), false, "manually excluded recipe is NOT in Copycat even though tagged");
+
+  // Manual INCLUDE: not tagged weeknight but user adds it -> in Weeknight.
+  const included = { ...tagged, collectionOverrides: setCollectionMembership(tagged, "Weeknight", true) };
+  assert.deepStrictEqual(included.collectionOverrides, { include: ["weeknight"] }, "checking an untagged collection stores an include");
+  assert.strictEqual(recipeInCollection(included, "Weeknight"), true, "manually included recipe IS in Weeknight even without the tag");
+
+  // Returning a collection to its default removes the override.
+  const reAdded = { ...excluded, collectionOverrides: setCollectionMembership(excluded, "Copycat", true) };
+  assert.deepStrictEqual(reAdded.collectionOverrides, {}, "re-checking a tagged collection clears the override (back to default)");
+  assert.strictEqual(recipeInCollection(reAdded, "Copycat"), true);
+
+  // Overrides survive tag normalization (normalizeRecipeTags only touches tags).
+  const normalizedTags = normalizeRecipeTags(excluded.tags);
+  const afterNorm = { ...excluded, tags: normalizedTags };
+  assert.deepStrictEqual(afterNorm.collectionOverrides, { exclude: ["copycat"] }, "tag normalization does not erase overrides");
+  assert.strictEqual(recipeInCollection(afterNorm, "Copycat"), false, "override still applies after tag normalization");
+
+  // AI "retagging" (replacing tags) must not erase the override when it's merged back.
+  const aiRetagged = { ...excluded, tags: ["Copycat", "Quick", "Comfort Food"] }; // AI re-adds copycat
+  assert.strictEqual(recipeInCollection(aiRetagged, "Copycat"), false, "AI re-adding the copycat tag does not override the user's exclude");
+
+  // collectionKeys reflects the effective set.
+  const keys = collectionKeys(included);
+  assert.ok(keys.has("copycat") && keys.has("weeknight"), "effective keys include base tags + includes");
+
+  // sanitize tolerates junk.
+  assert.strictEqual(sanitizeCollectionOverrides({}), null);
+  assert.strictEqual(sanitizeCollectionOverrides({ include: [], exclude: [] }), null);
+  assert.deepStrictEqual(sanitizeCollectionOverrides({ include: ["Copycat", "copycat"], exclude: [123, ""] }), { include: ["copycat"] });
+  assert.strictEqual(sanitizeCollectionOverrides("bad"), null);
 })();
 
 console.log("recipe-tags-test: ok");

@@ -7,7 +7,42 @@ const {
   sanitizeShoppingList,
   sanitizePantry,
   groupCompoundIngredients,
+  abbreviateUnit,
 } = require("../public/shopping-list");
+
+// ── Canonical unit abbreviations (used by card, shopping list, scaled, PDF) ──
+const U = (u, a) => abbreviateUnit(u, a);
+assert.strictEqual(U("teaspoon"), "tsp");
+assert.strictEqual(U("teaspoons"), "tsp");
+assert.strictEqual(U("tablespoon"), "Tbsp");
+assert.strictEqual(U("tablespoons"), "Tbsp");
+assert.strictEqual(U("tbsp"), "Tbsp", "lowercase tbsp standardizes to Tbsp");
+assert.strictEqual(U("T"), "Tbsp", "capital T = tablespoon");
+assert.strictEqual(U("t"), "tsp", "lowercase t = teaspoon");
+assert.strictEqual(U("ounce"), "oz");
+assert.strictEqual(U("ounces"), "oz");
+assert.strictEqual(U("fluid ounces"), "fl oz");
+assert.strictEqual(U("pound"), "lb");
+assert.strictEqual(U("pounds"), "lb");
+assert.strictEqual(U("pint"), "pt");
+assert.strictEqual(U("quart"), "qt");
+assert.strictEqual(U("gallon"), "gal");
+assert.strictEqual(U("milliliters"), "ml");
+assert.strictEqual(U("liter"), "L");
+assert.strictEqual(U("grams"), "g");
+assert.strictEqual(U("kilogram"), "kg");
+// cup pluralizes naturally; >1 is plural, fractions/1 are singular.
+assert.strictEqual(U("cups", "2"), "cups");
+assert.strictEqual(U("cup", "1"), "cup");
+assert.strictEqual(U("cups", "3/4"), "cup", "3/4 cup is singular");
+assert.strictEqual(U("cup", "2 1/2"), "cups");
+// Count/unknown units are never abbreviated; names are never touched.
+assert.strictEqual(U("clove"), "clove");
+assert.strictEqual(U("large"), "large");
+assert.strictEqual(U("can"), "can");
+assert.strictEqual(U("heaping tablespoon"), "heaping Tbsp", "descriptor preserved, base abbreviated");
+assert.strictEqual(U(""), "");
+assert.strictEqual(U(null), "");
 
 function findItem(items, text) {
   return items.find((item) => item.text.toLowerCase().includes(text.toLowerCase()));
@@ -84,7 +119,7 @@ const weirdQuantities = buildShoppingListFromSections([{
 
 assert.ok(findItem(weirdQuantities, "1/3 cup + 3 Tablespoons Sugar"), "compound measures stay readable");
 assert.ok(!weirdQuantities.some((item) => /31\s*tbsp/i.test(item.text)), "compound measures are not collapsed into confusing tablespoons");
-assert.ok(findItem(weirdQuantities, "1 heaping tbsp Brown Sugar"), "heaping tablespoon stays descriptive");
+assert.ok(findItem(weirdQuantities, "1 heaping Tbsp Brown Sugar"), "heaping tablespoon stays descriptive, unit standardized to Tbsp");
 assert.ok(findItem(weirdQuantities, "1 scant cup Flour"), "scant cup stays descriptive");
 assert.ok(findItem(weirdQuantities, "1 stick Butter"), "stick butter remains a count measure");
 
