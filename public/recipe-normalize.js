@@ -136,10 +136,16 @@
   function convertTempsInText(text, system) {
     var s = String(text == null ? "" : text);
     var to = system === "metric" ? "metric" : "us";
-    var re = /(-?\d{1,3})\s*(?:°|º|\bdeg(?:rees)?\.?)\s*([CFcf])\b/g;
-    return s.replace(re, function (m, numStr, letter) {
+    // Matches "180°C", "180 deg C", "180 C", AND a bare "180c" (no degree symbol —
+    // very common in scraped/handwritten recipes, e.g. "heat the oven to 180c").
+    // The degree marker is optional; when it's absent we only treat the match as a
+    // temperature if the value is in an oven-plausible range (100-550), so a bare
+    // "2c" (cups) or a stray count is never mistaken for a temperature.
+    var re = /(-?\d{1,3})\s*(°|º|deg(?:rees)?\.?)?\s*([CFcf])\b/g;
+    return s.replace(re, function (m, numStr, marker, letter) {
       var n = Number(numStr);
       var isC = /c/i.test(letter);
+      if (!marker && !(n >= 100 && n <= 550)) return m; // bare number: oven-range only
       if (to === "us" && isC) {
         var f = n * 9 / 5 + 32;
         // Oven-range temps read conventionally in 25° steps (175°C -> 350°F).

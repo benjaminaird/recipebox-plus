@@ -56,6 +56,12 @@ assert.strictEqual(N.convertTempsInText("Bake at 175°C", "us"), "Bake at 350°F
 assert.strictEqual(N.convertTempsInText("Bake at 350°F", "us"), "Bake at 350°F", "already US -> unchanged");
 assert.strictEqual(N.convertTempsInText("Cook 20 minutes", "metric"), "Cook 20 minutes", "plain numbers never touched");
 assert.strictEqual(N.convertTempsInText("preheat to 400 degrees F", "metric"), "preheat to 205°C", "'degrees F' handled");
+// Bare temperatures with NO degree symbol (very common in scraped recipes).
+assert.strictEqual(N.convertTempsInText("heat the oven to 180c", "us"), "heat the oven to 350°F", "bare '180c' -> 350°F");
+assert.strictEqual(N.convertTempsInText("Start by pre-heating your oven to 180C.", "us"), "Start by pre-heating your oven to 350°F.", "bare '180C' in a sentence");
+assert.strictEqual(N.convertTempsInText("bake at 350f", "metric"), "bake at 175°C", "bare '350f' -> 175°C");
+assert.strictEqual(N.convertTempsInText("Add 2c flour", "us"), "Add 2c flour", "bare low number ('2c' cups) is NOT a temperature");
+assert.strictEqual(N.convertTempsInText("Section C of the recipe", "us"), "Section C of the recipe", "no leading number -> untouched");
 
 // ── Audit (deterministic warnings) ──
 const audit = N.auditRecipe({
