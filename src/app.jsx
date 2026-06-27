@@ -2480,16 +2480,21 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   <span>{aiUsage?.unlimited ? "Master Admin unlimited AI access" : (aiUsage?.count || 0)+" of "+(aiUsage?.limit || 5)+" monthly AI Assists used"}</span>
                   <span>{aiUsage?.period || "This month"}</span>
                 </div>
+                {!aiUsage?.unlimited && credits?.pooled && (
+                  <div style={{marginTop:8,display:"inline-flex",alignItems:"center",gap:6,background:C.greenPale,border:"1px solid "+C.green+"33",borderRadius:999,padding:"4px 11px",fontSize:"0.74em",color:C.green,fontWeight:700}}>
+                    <Icon name="sync" size={12} /> Shared household pool{credits.householdName ? " · " + credits.householdName : ""}
+                  </div>
+                )}
                 {!aiUsage?.unlimited && (
                   <div style={{marginTop:10,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,flexWrap:"wrap"}}>
-                    <span style={{fontSize:"0.78em",color:C.mid,fontWeight:700}}>Plan: <span style={{color:C.green,textTransform:"capitalize"}}>{credits?.plan || "free"}</span></span>
+                    <span style={{fontSize:"0.78em",color:C.mid,fontWeight:700}}>Plan: <span style={{color:C.green,textTransform:"capitalize"}}>{(credits?.plan || "free").replace("_"," ")}</span></span>
                     {credits?.monthly?.resetsAt && <span style={{fontSize:"0.74em",color:C.light}}>Renews {new Date(credits.monthly.resetsAt).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</span>}
                   </div>
                 )}
                 {!aiUsage?.unlimited && (
                   <div style={{marginTop:10,display:"flex",gap:7,flexWrap:"wrap"}}>
                     {[
-                      {label:"Monthly",val:credits?.monthly?.remaining ?? (aiUsage?.remaining ?? 0),sub:"renews monthly"},
+                      {label:credits?.pooled?"Shared":"Monthly",val:credits?.monthly?.remaining ?? (aiUsage?.remaining ?? 0),sub:credits?.pooled?"household pool":"renews monthly"},
                       {label:"Bonus",val:credits?.bonusAssists ?? 0,sub:"never expire"},
                       {label:"Purchased",val:credits?.purchasedAssists ?? 0,sub:"never expire"},
                       {label:"Total",val:credits?.totalRemaining ?? (aiUsage?.remaining ?? 0),sub:"available now"},

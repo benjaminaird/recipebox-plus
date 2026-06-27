@@ -7,7 +7,7 @@ const app = require("../server");
 const {
   FAMILY_MEMBER_CAP, HOUSEHOLD_ROLES, normalizeHouseholdRole, generateInviteCode,
   canAddHouseholdMember, canInviteToHousehold, isHouseholdOwner, inviteIsUsable,
-  normalizeRecipeForDb, sanitizeMealPlan,
+  normalizeRecipeForDb, sanitizeMealPlan, householdPoolLimit, HOUSEHOLD_POOL_TIERS,
 } = app._test;
 
 // --- Roles ---
@@ -80,5 +80,16 @@ assert.deepStrictEqual(cleaned.Thu, ["own1"], "only allowed string ids survive")
 assert.deepStrictEqual(sanitizeMealPlan(null, allowed), {}, "non-object plan -> {}");
 assert.deepStrictEqual(sanitizeMealPlan([1, 2], allowed), {}, "array plan -> {}");
 assert.deepStrictEqual(sanitizeMealPlan({ Mon: ["anything"] }, new Set()), {}, "no allowed ids -> everything stripped");
+
+// --- Shared AI Assist pool (M2 slice 3): only Family tiers pool ---
+assert.deepStrictEqual(HOUSEHOLD_POOL_TIERS, ["family", "founder_family"]);
+assert.strictEqual(householdPoolLimit("family"), 600, "Family pools 600 shared Assists");
+assert.strictEqual(householdPoolLimit("founder_family"), 700, "Founder Family pools 700 shared Assists");
+assert.strictEqual(householdPoolLimit("plus"), null, "single-user tiers do not pool");
+assert.strictEqual(householdPoolLimit("founder"), null, "single Founder does not pool");
+assert.strictEqual(householdPoolLimit("free"), null);
+assert.strictEqual(householdPoolLimit("beta"), null, "beta is unlimited, never pooled");
+assert.strictEqual(householdPoolLimit("master_admin"), null);
+assert.strictEqual(householdPoolLimit(undefined), null);
 
 console.log("household-test: ok");

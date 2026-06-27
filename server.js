@@ -161,6 +161,15 @@ function sanitizeMealPlan(plan, allowedIds) {
   }
   return out;
 }
+// Family tiers pool their monthly AI Assists across the whole household. Returns
+// the pooled monthly limit for the household owner's plan, or null when the plan
+// doesn't pool (free/plus/founder/beta/master). Pure/testable.
+const HOUSEHOLD_POOL_TIERS = ['family', 'founder_family'];
+function householdPoolLimit(ownerPlan) {
+  if (!HOUSEHOLD_POOL_TIERS.includes(ownerPlan)) return null;
+  const p = PLAN_ENTITLEMENTS[ownerPlan];
+  return (p && Number.isFinite(p.aiMonthlyLimit)) ? p.aiMonthlyLimit : null;
+}
 // Burst protection: even a high-balance user can't script the AI endpoints.
 const AI_BURST_MAX = Number(process.env.AI_BURST_MAX || 20);        // actions / 10 min
 const AI_BURST_SCOPE = 'tenminutes';
@@ -593,6 +602,15 @@ async function getPool() {
       pantry_json jsonb NOT NULL DEFAULT '[]'::jsonb,
       updated_at timestamptz NOT NULL DEFAULT now(),
       updated_by text REFERENCES profiles(user_id) ON DELETE SET NULL
+    )`);
+    // Shared monthly AI Assist pool (M2 slice 3): one counter per household/period,
+    // consumed by every member when the household is on a Family tier.
+    await pool.query(`CREATE TABLE IF NOT EXISTS household_ai_usage_monthly (
+      household_id uuid NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+      period text NOT NULL,
+      request_count integer NOT NULL DEFAULT 0,
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      PRIMARY KEY(household_id, period)
     )`);
     await seedAppControlKnowledge(pool);
     await ensureConfiguredMasterAdmin(pool);
@@ -1514,6 +1532,26 @@ function currentAiPeriod() {
   return new Date().toISOString().slice(0, 7);
 }
 
+// The household whose shared monthly pool a user draws from, or null. Only
+// returns non-null when the user is in a household whose OWNER is on a Family
+// tier (so members share that subscription's monthly Assists). No early caller
+// reaches this for unlimited (beta/master) users, so it adds no beta-time cost.
+async function getHouseholdPool(userId) {
+  const db = await getPool();
+  if (!db || !userId) return null;
+  const m = await db.query('SELECT household_id FROM household_members WHERE user_id=$1', [userId]);
+  const hid = m.rows[0]?.household_id;
+  if (!hid) return null;
+  const h = await db.query('SELECT owner_user_id, name FROM households WHERE id=$1', [hid]);
+  const ownerId = h.rows[0]?.owner_user_id;
+  if (!ownerId) return null;
+  const ownerProfile = await db.query('SELECT user_id, email, display_name, role FROM profiles WHERE user_id=$1', [ownerId]);
+  const ownerEnt = await readEntitlements(ownerProfile.rows[0]);
+  const limit = householdPoolLimit(ownerEnt.plan);
+  if (limit == null) return null;
+  return { householdId: hid, householdName: h.rows[0].name, plan: ownerEnt.plan, monthlyLimit: limit };
+}
+
 async function readAiUsage(userId) {
   const db = await getPool();
   const period = currentAiPeriod();
@@ -1521,6 +1559,14 @@ async function readAiUsage(userId) {
   const profile = await db.query('SELECT user_id, email, display_name, role FROM profiles WHERE user_id=$1', [userId]);
   const entitlement = await readEntitlements(profile.rows[0]);
   if (entitlement.unlimited) return { period, count: 0, limit: null, remaining: null, unlimited: true, plan: entitlement.plan };
+  // Shared household pool (Family tiers): monthly Assists are counted per-household.
+  const pool = await getHouseholdPool(userId);
+  if (pool) {
+    const pr = await db.query('SELECT request_count FROM household_ai_usage_monthly WHERE household_id=$1 AND period=$2', [pool.householdId, period]);
+    const pCount = Number(pr.rows[0]?.request_count || 0);
+    const pLimit = Number(pool.monthlyLimit);
+    return { period, count: pCount, limit: pLimit, remaining: Math.max(0, pLimit - pCount), plan: pool.plan, pooled: true, householdId: pool.householdId, householdName: pool.householdName };
+  }
   const result = await db.query(
     'SELECT request_count FROM ai_usage_monthly WHERE user_id=$1 AND period=$2',
     [userId, period]
@@ -1537,6 +1583,18 @@ async function incrementAiUsage(userId, amount = 1) {
   if (n === 0) return readAiUsage(userId);
   const profile = await db.query('SELECT role FROM profiles WHERE user_id=$1', [userId]);
   if (profile.rows[0]?.role === 'master_admin') return readAiUsage(userId);
+  // Pooled household monthly Assists are counted against the household, not the user.
+  const pool = await getHouseholdPool(userId);
+  if (pool) {
+    await db.query(
+      `INSERT INTO household_ai_usage_monthly(household_id, period, request_count, updated_at)
+       VALUES($1, $2, $3, now())
+       ON CONFLICT(household_id, period)
+       DO UPDATE SET request_count=GREATEST(0, household_ai_usage_monthly.request_count + $3), updated_at=now()`,
+      [pool.householdId, period, n]
+    );
+    return readAiUsage(userId);
+  }
   await db.query(
     `INSERT INTO ai_usage_monthly(user_id, period, request_count, updated_at)
      VALUES($1, $2, $3, now())
@@ -1671,6 +1729,9 @@ async function readCreditStatus(user) {
     unlimited: !!usage.unlimited,
     launchPhase: LAUNCH_PHASE,
     monthly: { limit: usage.limit ?? null, used: usage.count || 0, remaining: monthlyRemaining, period: usage.period, resetsAt: nextMonthlyResetISO() },
+    // Whether the monthly allowance is a shared household pool (Family tiers).
+    pooled: !!usage.pooled,
+    householdName: usage.householdName || null,
     // Balances, user-facing terminology is "AI Assists".
     bonusAssists: balances.bonus,
     purchasedAssists: balances.purchased,
@@ -3639,7 +3700,7 @@ module.exports._test = {
   FAMILY_MEMBER_CAP, HOUSEHOLD_ROLES, normalizeHouseholdRole, generateInviteCode,
   canAddHouseholdMember, canInviteToHousehold, isHouseholdOwner, inviteIsUsable,
   publicEntitlementConfig, founderOfferTiers, isFounderEligible, FOUNDER_TIERS,
-  normalizeRecipeForDb, sanitizeMealPlan,
+  normalizeRecipeForDb, sanitizeMealPlan, householdPoolLimit, HOUSEHOLD_POOL_TIERS,
   fetchWithTimeout, readBodyCapped, isAbortError,
   isPrivateIp, assertPublicHost, looksBlockedPage, buildPageResult, scraperRequestUrl, jinaRequestUrl,
   periodKey, resetAfter,
