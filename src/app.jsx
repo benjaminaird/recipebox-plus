@@ -22,17 +22,17 @@
     function apiFetch(url, options = {}) {
       return fetch(apiUrl(url), { credentials:"include", ...options });
     }
-    const NAV_CLEARANCE = "calc(110px + env(safe-area-inset-bottom))";
-    const PANTRY_NAV_OFFSET = "calc(100dvh - 86px - env(safe-area-inset-bottom))";
+    const NAV_CLEARANCE = "calc(104px + env(safe-area-inset-bottom))";
+    const PANTRY_NAV_OFFSET = "calc(100dvh - 82px - env(safe-area-inset-bottom))";
     const safePad = (top, right, bottom, left = right) => `calc(env(safe-area-inset-top) + ${top}px) ${right}px ${bottom}px ${left}px`;
     const S = {
-      page: { minHeight:"100vh", width:"100%", maxWidth:"100%", overflowX:"hidden", background:C.cream },
-      brandHeader: { background:BRAND_GRADIENT, boxShadow:"0 12px 34px rgba(32,20,14,0.18)" },
-      card: { background:C.paper, border:"1px solid "+C.border, borderRadius:14, boxShadow:"0 8px 24px rgba(90,56,39,0.08)" },
-      cardSoft: { background:C.paper2, border:"1px solid "+C.border, borderRadius:12, boxShadow:"0 4px 16px rgba(90,56,39,0.06)" },
-      primaryBtn: { background:C.green, color:C.white, border:"none", borderRadius:10, fontWeight:800, cursor:"pointer", fontFamily:SANS },
-      goldBtn: { background:C.gold, color:C.dark, border:"none", borderRadius:10, fontWeight:800, cursor:"pointer", fontFamily:SANS },
-      ghostBtn: { background:C.paper, color:C.brown, border:"1px solid "+C.border, borderRadius:10, fontWeight:800, cursor:"pointer", fontFamily:SANS },
+      page: { minHeight:"100vh", width:"100%", maxWidth:"100%", overflowX:"hidden", background:`linear-gradient(180deg, ${C.cream} 0%, ${C.cream2} 100%)` },
+      brandHeader: { background:BRAND_GRADIENT, boxShadow:"0 10px 28px rgba(32,20,14,0.16)" },
+      card: { background:"rgba(255,249,238,0.92)", border:"1px solid rgba(216,199,174,0.92)", borderRadius:15, boxShadow:"0 8px 22px rgba(90,56,39,0.065)" },
+      cardSoft: { background:"rgba(252,242,225,0.86)", border:"1px solid rgba(216,199,174,0.88)", borderRadius:13, boxShadow:"0 4px 14px rgba(90,56,39,0.045)" },
+      primaryBtn: { background:C.green, color:C.white, border:"none", borderRadius:11, fontWeight:800, cursor:"pointer", fontFamily:SANS },
+      goldBtn: { background:C.gold, color:C.dark, border:"none", borderRadius:11, fontWeight:800, cursor:"pointer", fontFamily:SANS },
+      ghostBtn: { background:"rgba(255,249,238,0.72)", color:C.brown, border:"1px solid "+C.border, borderRadius:11, fontWeight:800, cursor:"pointer", fontFamily:SANS },
       input: { border:"1.5px solid "+C.border, borderRadius:10, background:C.paper, outline:"none", fontFamily:SANS },
       eyebrow: { fontSize:"0.68em", letterSpacing:2.4, textTransform:"uppercase", fontWeight:800, color:C.brownLight },
     };
@@ -1085,21 +1085,21 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         { id:"settings", icon:"settings", label:"Settings" },
       ];
       return (
-        <div style={{position:"fixed",bottom:0,left:0,right:0,background:C.paper,borderTop:"1px solid "+C.border,display:"flex",zIndex:30,boxShadow:"0 -8px 24px rgba(90,56,39,0.10)",paddingBottom:"calc(env(safe-area-inset-bottom) + 8px)",overflowX:"hidden"}}>
+        <div style={{position:"fixed",bottom:0,left:0,right:0,background:"rgba(255,249,238,0.96)",borderTop:"1px solid rgba(216,199,174,0.9)",display:"flex",zIndex:30,boxShadow:"0 -8px 24px rgba(90,56,39,0.08)",paddingBottom:"calc(env(safe-area-inset-bottom) + 6px)",overflowX:"hidden",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)"}}>
           {items.map((item) => {
             const active = tab === item.id;
             const badge = badges && badges[item.id];
             return (
               <button key={item.id} onClick={() => setTab(item.id)}
-                style={{flex:"1 1 0",minWidth:0,padding:"12px 0 10px",border:"none",background:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,position:"relative",color:active?"#1f5a37":"#9a7a68",fontFamily:SANS,WebkitTapHighlightColor:"transparent"}}>
+                style={{flex:"1 1 0",minWidth:0,padding:"10px 0 9px",border:"none",background:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,position:"relative",color:active?"#1f5a37":"#9a7a68",fontFamily:SANS,WebkitTapHighlightColor:"transparent"}}>
                 <span style={{position:"relative",display:"inline-flex"}}>
-                  <Icon name={item.icon} size={23} style={{marginBottom:2}} />
+                  <Icon name={item.icon} size={22} style={{marginBottom:2}} />
                   {badge > 0 && (
                     <span aria-label={badge+" new"} style={{position:"absolute",top:-5,right:-9,minWidth:17,height:17,padding:"0 4px",borderRadius:999,background:"#c2402e",color:"#fff",fontSize:"0.6em",fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center",border:"1.5px solid "+C.paper,lineHeight:1}}>{badge > 9 ? "9+" : badge}</span>
                   )}
                 </span>
                 <span style={{fontSize:"0.67em",fontWeight:active?700:500,color:"inherit",fontFamily:SANS}}>{item.label}</span>
-                {active && <div style={{position:"absolute",bottom:0,width:22,height:3,background:"#c2952e",borderRadius:2}} />}
+                {active && <div style={{position:"absolute",bottom:1,width:22,height:3,background:"#c2952e",borderRadius:2}} />}
               </button>
             );
           })}
@@ -1118,12 +1118,12 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       return compact;
     }
 
-    function PageHeader({ title, subtitle, compact = false, top = 28, right = 20, bottom = 24 }) {
+    function PageHeader({ title, subtitle, compact = false, top = 24, right = 20, bottom = 20 }) {
       return (
-        <div style={{...S.brandHeader,position:compact?"fixed":"sticky",top:0,left:compact?0:undefined,right:compact?0:undefined,width:compact?"100%":undefined,zIndex:compact?28:18,padding:compact?safePad(10,16,10):safePad(top,right,bottom),transition:"padding 0.18s ease, box-shadow 0.18s ease"}}>
+        <div style={{...S.brandHeader,position:compact?"fixed":"sticky",top:0,left:compact?0:undefined,right:compact?0:undefined,width:compact?"100%":undefined,zIndex:compact?28:18,padding:compact?safePad(9,16,9):safePad(top,right,bottom),transition:"padding 0.18s ease, box-shadow 0.18s ease"}}>
           <div style={{maxWidth:900,margin:"0 auto"}}>
-            <div style={{fontFamily:SERIF,fontSize:compact?"1.08em":"1.8em",color:C.white,lineHeight:compact?1.15:1,transition:"font-size 0.18s ease"}}>{title}</div>
-            {!compact && subtitle && <div style={{color:"rgba(255,249,238,0.72)",fontSize:"0.8em",marginTop:3}}>{subtitle}</div>}
+            <div style={{fontFamily:SERIF,fontSize:compact?"1.04em":"1.68em",color:C.white,lineHeight:compact?1.15:1,letterSpacing:"0.005em",transition:"font-size 0.18s ease"}}>{title}</div>
+            {!compact && subtitle && <div style={{color:"rgba(255,249,238,0.74)",fontSize:"0.8em",lineHeight:1.3,marginTop:5}}>{subtitle}</div>}
           </div>
         </div>
       );
@@ -1249,26 +1249,26 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
       return (
         <div style={{...S.page,paddingBottom:NAV_CLEARANCE}}>
-          <div style={{...S.brandHeader,padding:safePad(28,20,24)}}>
+          <div style={{...S.brandHeader,padding:safePad(24,20,22)}}>
             <div style={{maxWidth:900,margin:"0 auto"}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:14,marginBottom:18}}>
                 <div>
-                  <div style={{fontFamily:SERIF,fontSize:"1.95em",color:C.white,lineHeight:1}}>Your RecipeBox</div>
-                  <div style={{color:"rgba(255,249,238,0.78)",fontSize:"0.78em",marginTop:4}}>{recipes.length ? recipes.length+" recipe"+(recipes.length!==1?"s":"")+" tucked away" : "A clean place for family favorites"}</div>
+                  <div style={{fontFamily:SERIF,fontSize:"1.82em",color:C.white,lineHeight:1,letterSpacing:"0.005em"}}>Your RecipeBox</div>
+                  <div style={{color:"rgba(255,249,238,0.78)",fontSize:"0.79em",lineHeight:1.35,marginTop:5}}>{recipes.length ? recipes.length+" recipe"+(recipes.length!==1?"s":"")+" tucked away" : "A clean place for family favorites"}</div>
                 </div>
-                <button onClick={onAdd} style={{...S.goldBtn,borderRadius:12,padding:"11px 18px",fontSize:"0.88em"}}>
+                <button onClick={onAdd} style={{...S.goldBtn,borderRadius:13,padding:"10px 16px",fontSize:"0.84em",minHeight:46,flexShrink:0}}>
                   + Add Recipe
                 </button>
               </div>
               <div style={{position:"relative"}}>
                 <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",color:"rgba(255,255,255,0.4)",display:"inline-flex"}}><Icon name="search" size={18} /></span>
                 <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search recipes, ingredients, tags..."
-                  style={{width:"100%",padding:"12px 16px 12px 42px",borderRadius:12,border:"1px solid rgba(255,249,238,0.18)",fontSize:"0.9em",background:"rgba(255,249,238,0.12)",color:C.white,outline:"none",fontFamily:SANS}} />
+                  style={{width:"100%",padding:"12px 16px 12px 42px",borderRadius:13,border:"1px solid rgba(255,249,238,0.2)",fontSize:"0.9em",background:"rgba(255,249,238,0.13)",color:C.white,outline:"none",fontFamily:SANS,boxShadow:"inset 0 1px 0 rgba(255,255,255,0.08)"}} />
               </div>
             </div>
           </div>
 
-          <div style={{maxWidth:900,margin:"0 auto",padding:"0 16px"}}>
+          <div style={{maxWidth:900,margin:"0 auto",padding:"0 15px"}}>
             {todayRecipes.length > 0 && (
               <div onClick={() => setTab("plan")} style={{...S.cardSoft,background:`linear-gradient(135deg, ${C.greenPale}, ${C.goldPale})`,padding:"13px 18px",marginTop:18,cursor:"pointer",display:"flex",alignItems:"center",gap:12}}>
                 <span style={{fontSize:"1.4em",color:C.green,display:"inline-flex"}}><Icon name="mealPlan" size={24} /></span>
@@ -1281,10 +1281,10 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             )}
 
             {recipes.length > 0 && (
-              <div style={{display:"flex",gap:7,marginTop:16,overflowX:"auto",paddingBottom:4}}>
+              <div style={{display:"flex",gap:8,marginTop:16,overflowX:"auto",paddingBottom:5}}>
                 {["all","favorites","recent"].map((f) => (
                   <button key={f} onClick={() => setFilter(f)}
-                    style={{border:"1.5px solid "+(filter===f?C.green:C.border),background:filter===f?C.green:C.paper,color:filter===f?C.white:C.mid,borderRadius:20,padding:"6px 14px",fontSize:"0.78em",fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",fontFamily:SANS,flexShrink:0}}>
+                    style={{border:"1.5px solid "+(filter===f?C.green:C.border),background:filter===f?C.green:"rgba(255,249,238,0.76)",color:filter===f?C.white:C.mid,borderRadius:999,padding:"7px 15px",fontSize:"0.78em",fontWeight:800,cursor:"pointer",whiteSpace:"nowrap",fontFamily:SANS,flexShrink:0,boxShadow:filter===f?"0 5px 12px rgba(35,75,50,0.14)":"none"}}>
                     {f==="all"?"All":f==="favorites"?<span style={{display:"inline-flex",alignItems:"center",gap:5}}><Icon name="favorite" size={13} /> Favorites</span>:"Recent"}
                   </button>
                 ))}
@@ -1299,10 +1299,10 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             ) : isDashboard && quickFinds.length > 0 && (
               <div style={{marginTop:16}}>
                 <div style={{fontSize:"0.72em",fontWeight:800,letterSpacing:"0.04em",textTransform:"uppercase",color:C.light,marginBottom:9}}>Quick Finds</div>
-                <div style={{display:"flex",gap:8,overflowX:"auto",WebkitOverflowScrolling:"touch",margin:"0 -16px",padding:"0 16px 4px"}}>
+                <div style={{display:"flex",gap:8,overflowX:"auto",WebkitOverflowScrolling:"touch",margin:"0 -15px",padding:"0 15px 5px"}}>
                   {quickFinds.map((t) => (
                     <button key={t.key} onClick={() => selectTag(t.label)}
-                      style={{flexShrink:0,display:"inline-flex",alignItems:"center",gap:7,background:C.goldPale,border:"1px solid "+C.goldLight,color:C.dark,borderRadius:999,padding:"8px 14px",minHeight:36,fontSize:"0.82em",fontWeight:700,cursor:"pointer",fontFamily:SANS,whiteSpace:"nowrap",WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>
+                      style={{flexShrink:0,display:"inline-flex",alignItems:"center",gap:7,background:"rgba(251,243,220,0.78)",border:"1px solid "+C.goldLight,color:C.dark,borderRadius:999,padding:"8px 14px",minHeight:36,fontSize:"0.82em",fontWeight:800,cursor:"pointer",fontFamily:SANS,whiteSpace:"nowrap",WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>
                       {t.label}
                       <span style={{background:C.paper,color:C.brown,borderRadius:999,minWidth:18,height:18,padding:"0 5px",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:"0.74em",fontWeight:900,border:"1px solid "+C.goldLight}}>{t.count}</span>
                     </button>
@@ -1531,9 +1531,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       return (
         <div style={{...S.page,paddingBottom:NAV_CLEARANCE}}>
           <PageHeader title={inHousehold ? "Household Meal Plan" : "Weekly Meal Plan"} subtitle={inHousehold ? "Shared with your household" : "Plan the week from your RecipeBox"} compact={compactHeader} />
-          <div style={{maxWidth:900,margin:"20px auto",padding:"0 16px"}}>
-            <div style={{...S.cardSoft,padding:"12px 15px",marginBottom:14,display:"flex",alignItems:"center",gap:12}}>
-              <div style={{width:40,height:40,borderRadius:11,background:C.greenPale,color:C.green,display:"inline-flex",alignItems:"center",justifyContent:"center",border:"1px solid "+C.green+"22",flexShrink:0}}><Icon name="mealPlan" size={21} /></div>
+          <div style={{maxWidth:900,margin:"16px auto",padding:"0 15px"}}>
+            <div style={{...S.cardSoft,padding:"11px 14px",marginBottom:13,display:"flex",alignItems:"center",gap:11}}>
+              <div style={{width:38,height:38,borderRadius:11,background:C.greenPale,color:C.green,display:"inline-flex",alignItems:"center",justifyContent:"center",border:"1px solid "+C.green+"22",flexShrink:0}}><Icon name="mealPlan" size={20} /></div>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontWeight:800,color:C.dark,fontSize:"0.9em"}}>This week · {weekRange}</div>
                 <div style={{fontSize:"0.78em",color:C.light,marginTop:2}}>{hasMeals ? mealCount+" meal"+(mealCount===1?"":"s")+" planned · "+uniqueRecipeCount+" recipe"+(uniqueRecipeCount===1?"":"s")+" · ~"+totalCal.toLocaleString()+" cal" : "Nothing planned yet"}</div>
@@ -1579,8 +1579,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 )}
               </div>
             ) : (
-              <div style={{...S.card,padding:"18px",marginBottom:14,background:`linear-gradient(135deg, ${C.greenPale}, ${C.goldPale})`,border:"1px solid "+C.goldLight}}>
-                <div style={{fontFamily:SERIF,fontSize:"1.2em",color:C.dark,marginBottom:5}}>Ready to plan your week?</div>
+              <div style={{...S.card,padding:"17px",marginBottom:13,background:`linear-gradient(135deg, ${C.greenPale}, rgba(251,243,220,0.78))`,border:"1px solid "+C.goldLight}}>
+                <div style={{fontFamily:SERIF,fontSize:"1.16em",color:C.dark,marginBottom:5}}>Ready to plan your week?</div>
                 <div style={{fontSize:"0.84em",color:C.mid,lineHeight:1.5,marginBottom:recipes.length?14:0}}>{recipes.length ? "Start with a few favorites or quick recipes — RecipeBox builds the shopping list for you." : "Add a few recipes to your RecipeBox first, then plan your week here."}</div>
                 {recipes.length > 0 && (
                   <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
@@ -1596,7 +1596,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               const isToday = day===today;
               const empty = meals.length===0;
               return (
-                <div key={day} style={{...S.card,padding:empty?"13px 15px":"15px 17px",marginBottom:12,...(isToday?{border:"1px solid "+C.green+"40",boxShadow:"inset 3px 0 0 "+C.green}:{border:"1px solid "+C.border})}}>
+                <div key={day} style={{...S.card,padding:empty?"12px 14px":"14px 16px",marginBottom:11,...(isToday?{border:"1px solid "+C.green+"42",boxShadow:"inset 3px 0 0 "+C.green+", 0 8px 22px rgba(90,56,39,0.065)"}:{border:"1px solid rgba(216,199,174,0.92)"})}}>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:empty?0:10}}>
                     <div style={{fontWeight:700,color:C.dark,fontSize:"0.92em"}}>{day}</div>
                     {isToday && <Tag label="Today" bg={C.greenPale} color={C.green} />}
@@ -1604,8 +1604,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     {!empty && <button onClick={() => openPicker(day)} style={{background:C.greenPale,border:"1px solid "+C.green+"30",borderRadius:8,padding:"6px 12px",color:C.green,fontWeight:800,cursor:"pointer",fontSize:"0.78em",fontFamily:SANS,minHeight:34,WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>+ Add</button>}
                   </div>
                   {empty ? (
-                    <button onClick={() => openPicker(day)} style={{width:"100%",marginTop:10,background:"transparent",border:"none",padding:0,textAlign:"left",cursor:"pointer",fontFamily:SANS,display:"flex",alignItems:"center",gap:11,WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>
-                      <span style={{width:38,height:38,borderRadius:10,border:"1.5px dashed "+(isToday?C.green+"66":C.border),color:isToday?C.green:C.light,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:"1.3em",flexShrink:0}}>+</span>
+                    <button onClick={() => openPicker(day)} style={{width:"100%",marginTop:9,background:"transparent",border:"none",padding:0,textAlign:"left",cursor:"pointer",fontFamily:SANS,display:"flex",alignItems:"center",gap:11,WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>
+                      <span style={{width:36,height:36,borderRadius:10,border:"1.5px dashed "+(isToday?C.green+"66":C.border),color:isToday?C.green:C.light,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:"1.2em",flexShrink:0}}>+</span>
                       <span style={{flex:1,minWidth:0}}>
                         <span style={{display:"block",fontWeight:700,color:isToday?C.dark:C.mid,fontSize:"0.86em"}}>{isToday ? "What's for dinner tonight?" : "Open night"}</span>
                         <span style={{display:"block",color:C.light,fontSize:"0.76em",marginTop:1}}>{isToday ? "Tap to add a recipe" : "Tap to plan dinner"}</span>
@@ -1754,10 +1754,10 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
       return (
         <div style={{...S.page,paddingBottom:NAV_CLEARANCE}}>
-          <div style={{...S.brandHeader,padding:safePad(24,16,16)}}>
+          <div style={{...S.brandHeader,padding:safePad(22,16,18)}}>
             <div style={{maxWidth:760,margin:"0 auto"}}>
               <input value={titleValue} onChange={(e) => onChange((l) => ({ ...l, title: e.target.value }))} aria-label="List title"
-                style={{width:"100%",background:"transparent",border:"none",color:C.white,fontFamily:SERIF,fontSize:"1.5em",outline:"none",padding:0,marginBottom:4}} />
+                style={{width:"100%",background:"transparent",border:"none",color:C.white,fontFamily:SERIF,fontSize:"1.42em",outline:"none",padding:0,marginBottom:5}} />
               <div style={{color:"rgba(255,249,238,0.82)",fontSize:"0.78em"}}>
                 {inHousehold && <span style={{display:"inline-flex",alignItems:"center",gap:4,marginRight:7}}><Icon name="sync" size={12} /> Household list · shared</span>}
                 {total > 0 ? done + " of " + total + " checked" : (inHousehold ? "" : "Your shopping list")}
@@ -1766,23 +1766,23 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             </div>
           </div>
 
-          <div style={{maxWidth:760,margin:"16px auto",padding:"0 16px"}}>
-            <div style={{display:"flex",gap:8,marginBottom:14}}>
+          <div style={{maxWidth:760,margin:"15px auto",padding:"0 15px"}}>
+            <div style={{display:"flex",gap:8,marginBottom:13}}>
               <input ref={addRef} value={adding} onChange={(e) => setAdding(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addManual(); }}
                 placeholder="Add an item (e.g. paper towels)…"
-                style={{flex:1,minWidth:0,padding:"12px 14px",borderRadius:11,border:"1px solid "+C.border,fontSize:"0.92em",background:C.paper,color:C.dark,outline:"none",fontFamily:SANS}} />
-              <button onClick={addManual} style={{...S.goldBtn,borderRadius:11,padding:"12px 18px",fontSize:"0.85em",flexShrink:0}}>Add</button>
+                style={{flex:1,minWidth:0,padding:"11px 14px",borderRadius:12,border:"1px solid "+C.border,fontSize:"0.9em",background:"rgba(255,249,238,0.82)",color:C.dark,outline:"none",fontFamily:SANS}} />
+              <button onClick={addManual} style={{...S.goldBtn,borderRadius:12,padding:"11px 17px",fontSize:"0.84em",flexShrink:0}}>Add</button>
             </div>
 
             {allItems.length === 0 ? (
-              <div style={{...S.card,padding:"30px 22px",textAlign:"center"}}>
-                <div style={{width:48,height:48,margin:"0 auto 12px",borderRadius:13,background:C.greenPale,color:C.green,display:"inline-flex",alignItems:"center",justifyContent:"center",border:"1px solid "+C.green+"22"}}><Icon name="shoppingList" size={24} /></div>
-                <div style={{fontFamily:SERIF,fontSize:"1.2em",color:C.dark,marginBottom:5}}>Your shopping list is empty</div>
-                <div style={{color:C.light,fontSize:"0.86em",lineHeight:1.5,marginBottom:16}}>Add recipes from your Library, generate one from your Meal Plan, or add items manually.</div>
-                <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"center"}}>
-                  <button onClick={() => addRef.current && addRef.current.focus()} style={{background:C.green,color:C.white,border:"none",borderRadius:999,padding:"10px 18px",fontWeight:800,fontSize:"0.82em",cursor:"pointer",fontFamily:SANS}}>Add item</button>
-                  <button onClick={() => setTab("library")} style={{...S.ghostBtn,borderRadius:999,padding:"10px 16px",fontSize:"0.82em"}}>Choose recipes</button>
-                  <button onClick={() => setTab("plan")} style={{...S.ghostBtn,borderRadius:999,padding:"10px 16px",fontSize:"0.82em"}}>Go to Meal Plan</button>
+              <div style={{...S.card,padding:"26px 18px",textAlign:"center"}}>
+                <div style={{width:46,height:46,margin:"0 auto 12px",borderRadius:13,background:C.greenPale,color:C.green,display:"inline-flex",alignItems:"center",justifyContent:"center",border:"1px solid "+C.green+"22"}}><Icon name="shoppingList" size={23} /></div>
+                <div style={{fontFamily:SERIF,fontSize:"1.16em",color:C.dark,marginBottom:6}}>Your shopping list is empty</div>
+                <div style={{color:C.light,fontSize:"0.84em",lineHeight:1.48,margin:"0 auto 17px",maxWidth:330}}>Add recipes from your Library, generate one from your Meal Plan, or add items manually.</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(2, minmax(0, 1fr))",gap:8,maxWidth:330,margin:"0 auto"}}>
+                  <button onClick={() => addRef.current && addRef.current.focus()} style={{background:C.green,color:C.white,border:"none",borderRadius:999,padding:"10px 14px",fontWeight:800,fontSize:"0.8em",cursor:"pointer",fontFamily:SANS}}>Add item</button>
+                  <button onClick={() => setTab("library")} style={{...S.ghostBtn,borderRadius:999,padding:"10px 14px",fontSize:"0.8em"}}>Choose recipes</button>
+                  <button onClick={() => setTab("plan")} style={{...S.ghostBtn,borderRadius:999,padding:"10px 14px",fontSize:"0.8em",gridColumn:"1 / -1",justifySelf:"center",minWidth:160}}>Go to Meal Plan</button>
                 </div>
               </div>
             ) : (
@@ -1958,14 +1958,14 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       }
 
       return (
-        <div style={{height:PANTRY_NAV_OFFSET,maxHeight:PANTRY_NAV_OFFSET,display:"flex",flexDirection:"column",background:C.cream,overflow:"hidden"}}>
+        <div style={{height:PANTRY_NAV_OFFSET,maxHeight:PANTRY_NAV_OFFSET,display:"flex",flexDirection:"column",background:`linear-gradient(180deg, ${C.cream} 0%, ${C.cream2} 100%)`,overflow:"hidden"}}>
           <PageHeader title="Pantry Chef" subtitle="Ideas from your RecipeBox and what you have on hand" compact={compactHeader} top={16} right={16} bottom={14} />
-          <div onScroll={(e) => setCompactHeader(e.currentTarget.scrollTop > 20)} style={{flex:1,minHeight:0,overflowY:"auto",padding:"12px"}}>
+          <div onScroll={(e) => setCompactHeader(e.currentTarget.scrollTop > 20)} style={{flex:1,minHeight:0,overflowY:"auto",padding:"12px 12px 10px"}}>
             <div style={{maxWidth:680,margin:"0 auto",display:"flex",flexDirection:"column",gap:11}}>
               {messages.map((m, i) => (
                 <div key={i} className="fade-up" style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
                   <div style={{maxWidth:"88%",display:"flex",flexDirection:"column",gap:8,alignItems:m.role==="user"?"flex-end":"stretch"}}>
-                    <div style={{background:m.role==="user"?C.green:C.paper,color:m.role==="user"?C.white:C.dark,borderRadius:m.role==="user"?"16px 16px 4px 16px":"16px 16px 16px 4px",padding:"10px 14px",fontSize:"0.88em",lineHeight:1.65,boxShadow:"0 6px 18px rgba(90,56,39,0.08)",border:m.role!=="user"?"1px solid "+C.border:"none",whiteSpace:"pre-wrap"}}>{m.content}</div>
+                    <div style={{background:m.role==="user"?C.green:"rgba(255,249,238,0.86)",color:m.role==="user"?C.white:C.dark,borderRadius:m.role==="user"?"16px 16px 5px 16px":"16px 16px 16px 5px",padding:"10px 14px",fontSize:"0.88em",lineHeight:1.6,boxShadow:"0 6px 18px rgba(90,56,39,0.06)",border:m.role!=="user"?"1px solid rgba(216,199,174,0.9)":"none",whiteSpace:"pre-wrap"}}>{m.content}</div>
                     {m.matches && m.matches.length > 0 && (
                       <div style={{display:"grid",gap:8}}>
                         <div style={{fontSize:"0.68em",letterSpacing:1.4,textTransform:"uppercase",color:C.light,fontWeight:700}}>Recipes from your RecipeBox</div>
@@ -1993,11 +1993,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 </div>
               ))}
               {messages.length <= 1 && !loading && (
-                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(150px, 1fr))",gap:9,margin:"2px 0 4px"}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(150px, 1fr))",gap:9,margin:"0 0 4px"}}>
                   {promptCards.map((card) => (
                     <button key={card.title} onClick={() => send(card.prompt)}
-                      style={{...S.cardSoft,background:C.paper,textAlign:"left",padding:"11px 12px",cursor:"pointer",fontFamily:SANS,boxShadow:"0 5px 14px rgba(90,56,39,0.06)"}}>
-                      <div style={{fontFamily:SERIF,fontSize:"1.02em",color:C.dark,lineHeight:1.15,marginBottom:4}}>{card.title}</div>
+                      style={{...S.cardSoft,background:"rgba(255,249,238,0.78)",textAlign:"left",padding:"11px 12px",cursor:"pointer",fontFamily:SANS,boxShadow:"0 5px 14px rgba(90,56,39,0.045)"}}>
+                      <div style={{fontFamily:SERIF,fontSize:"0.98em",color:C.dark,lineHeight:1.15,marginBottom:4}}>{card.title}</div>
                       <div style={{fontSize:"0.76em",color:C.light,lineHeight:1.35}}>{card.text}</div>
                     </button>
                   ))}
@@ -2008,11 +2008,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             </div>
           </div>
           {messages.length <= 1 && !loading && (
-            <div style={{padding:"0 12px 6px",background:C.cream,flexShrink:0}}>
+            <div style={{padding:"0 12px 7px",background:"rgba(248,241,229,0.94)",flexShrink:0}}>
               <div style={{maxWidth:680,margin:"0 auto",display:"flex",gap:7,overflowX:"auto",paddingBottom:4}}>
                 {starters.map((starter) => (
                   <button key={starter} onClick={() => send(starter)}
-                    style={{whiteSpace:"nowrap",background:C.paper,border:"1px solid "+C.border,borderRadius:20,padding:"7px 11px",fontSize:"0.76em",color:C.brown,cursor:"pointer",fontFamily:SANS,boxShadow:"0 2px 8px rgba(90,56,39,0.06)"}}>
+                    style={{whiteSpace:"nowrap",background:"rgba(255,249,238,0.82)",border:"1px solid "+C.border,borderRadius:999,padding:"7px 11px",fontSize:"0.76em",color:C.brown,cursor:"pointer",fontFamily:SANS,boxShadow:"0 2px 8px rgba(90,56,39,0.045)"}}>
                     {starter}
                   </button>
                 ))}
@@ -2020,12 +2020,12 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             </div>
           )}
           {image && <div style={{textAlign:"center",padding:"3px 0",fontSize:"0.76em",color:C.terra,flexShrink:0}}>Photo ready</div>}
-          <div style={{padding:"8px 12px 10px",background:C.paper,borderTop:"1px solid "+C.border,flexShrink:0}}>
+          <div style={{padding:"8px 12px 9px",background:"rgba(255,249,238,0.96)",borderTop:"1px solid rgba(216,199,174,0.92)",boxShadow:"0 -8px 18px rgba(90,56,39,0.04)",flexShrink:0}}>
             <div style={{maxWidth:680,margin:"0 auto",display:"flex",gap:7,alignItems:"flex-end"}}>
               <input type="file" ref={imgRef} accept="image/*,image/heic,image/heif" onChange={async (e) => { const f=e.target.files[0]; if(!f)return; const b=await fileToBase64(f); setImage(b); }} style={{display:"none"}} />
-              <button onClick={() => imgRef.current.click()} style={{background:C.cream2,border:"1px solid "+C.border,borderRadius:9,padding:"10px 12px",cursor:"pointer",fontSize:"1em",flexShrink:0}}>+</button>
-              <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();} }} placeholder="What do you have? What are you craving?" rows={2} style={{...S.input,flex:1,padding:"9px 12px",fontSize:"0.88em",resize:"none"}} />
-              <button onClick={() => send()} disabled={loading||(!input.trim()&&!image)} style={{...S.goldBtn,borderRadius:9,padding:"10px 18px",opacity:loading?0.6:1}}>Send</button>
+              <button onClick={() => imgRef.current.click()} aria-label="Add pantry photo" style={{background:C.cream2,border:"1px solid "+C.border,borderRadius:11,width:42,height:42,cursor:"pointer",fontSize:"1.15em",flexShrink:0,display:"inline-flex",alignItems:"center",justifyContent:"center",color:C.blue}}>+</button>
+              <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();} }} placeholder="What do you have? What are you craving?" rows={2} style={{...S.input,flex:1,padding:"10px 12px",fontSize:"0.86em",lineHeight:1.35,resize:"none",borderRadius:12,background:"rgba(255,249,238,0.82)"}} />
+              <button onClick={() => send()} disabled={loading||(!input.trim()&&!image)} style={{...S.goldBtn,borderRadius:11,padding:"10px 16px",minHeight:42,fontSize:"0.82em",opacity:(loading||(!input.trim()&&!image))?0.58:1}}>Send</button>
             </div>
           </div>
         </div>
@@ -2369,13 +2369,13 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       ];
       return (
         <div style={{...S.page,paddingBottom:NAV_CLEARANCE}}>
-          <PageHeader title="Settings" subtitle="Account, sync, timers, and recipe-box preferences" compact={compactHeader} />
-          <div style={{maxWidth:760,margin:"18px auto",padding:"0 16px",display:"grid",gap:14}}>
-            <div style={{...S.card,padding:16}}>
-              <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark,marginBottom:4}}>RecipeBox Account</div>
+          <PageHeader title="Settings" subtitle="Account, sync, timers, and RecipeBox preferences" compact={compactHeader} />
+          <div style={{maxWidth:760,margin:"16px auto",padding:"0 15px",display:"grid",gap:13}}>
+            <div style={{...S.card,padding:15}}>
+              <div style={{fontFamily:SERIF,fontSize:"1.1em",color:C.dark,marginBottom:4}}>RecipeBox Account</div>
               {account ? (
                 <div>
-                  <div style={{fontSize:"0.86em",color:C.mid,lineHeight:1.5,marginBottom:12}}>
+                  <div style={{fontSize:"0.84em",color:C.mid,lineHeight:1.46,marginBottom:11}}>
                     Signed in as <strong>{account.email}</strong>. Your recipes and meal plan sync to this account.
                   </div>
                   {account.emailVerified === false && (
@@ -2388,25 +2388,25 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     </div>
                   )}
                   <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                    <button onClick={migrateLocal} disabled={accountBusy} style={{...S.primaryBtn,borderRadius:9,padding:"9px 11px",fontSize:"0.78em",opacity:accountBusy?0.65:1}}>
+                    <button onClick={migrateLocal} disabled={accountBusy} style={{...S.primaryBtn,borderRadius:10,padding:"9px 12px",fontSize:"0.78em",opacity:accountBusy?0.65:1}}>
                       Sync this device
                     </button>
-                    <button onClick={signOut} disabled={accountBusy} style={{...S.ghostBtn,borderRadius:9,padding:"9px 11px",fontSize:"0.78em",opacity:accountBusy?0.65:1}}>
+                    <button onClick={signOut} disabled={accountBusy} style={{...S.ghostBtn,borderRadius:10,padding:"9px 12px",fontSize:"0.78em",opacity:accountBusy?0.65:1}}>
                       Sign out
                     </button>
                   </div>
-                  <div style={{marginTop:16,paddingTop:14,borderTop:"1px solid "+C.border}}>
-                    <div style={{fontFamily:SERIF,fontSize:"1.02em",color:C.dark,marginBottom:4}}>Password</div>
-                    <div style={{fontSize:"0.78em",color:C.light,lineHeight:1.45,marginBottom:10}}>Change your password here. New passwords need at least 6 characters.</div>
+                  <div style={{marginTop:15,paddingTop:13,borderTop:"1px solid "+C.border}}>
+                    <div style={{fontFamily:SERIF,fontSize:"0.98em",color:C.dark,marginBottom:4}}>Password</div>
+                    <div style={{fontSize:"0.77em",color:C.light,lineHeight:1.42,marginBottom:10}}>Change your password here. New passwords need at least 6 characters.</div>
                     <div style={{display:"grid",gap:8}}>
                       <input type="password" value={currentPassword} onChange={(e)=>setCurrentPassword(e.target.value)} placeholder="Current password"
-                        style={{...S.input,width:"100%",padding:"9px 11px",fontSize:"0.84em"}} />
+                        style={{...S.input,width:"100%",padding:"9px 11px",fontSize:"0.82em",background:"rgba(255,249,238,0.7)"}} />
                       <input type="password" value={newPassword} onChange={(e)=>setNewPassword(e.target.value)} placeholder="New password"
-                        style={{...S.input,width:"100%",padding:"9px 11px",fontSize:"0.84em"}} />
+                        style={{...S.input,width:"100%",padding:"9px 11px",fontSize:"0.82em",background:"rgba(255,249,238,0.7)"}} />
                       <input type="password" value={confirmNewPassword} onChange={(e)=>setConfirmNewPassword(e.target.value)} placeholder="Confirm new password"
-                        style={{...S.input,width:"100%",padding:"9px 11px",fontSize:"0.84em"}} />
+                        style={{...S.input,width:"100%",padding:"9px 11px",fontSize:"0.82em",background:"rgba(255,249,238,0.7)"}} />
                       <button onClick={changePassword} disabled={accountBusy || !currentPassword || !newPassword || !confirmNewPassword}
-                        style={{...S.goldBtn,borderRadius:9,padding:"9px 11px",fontSize:"0.78em",opacity:(accountBusy || !currentPassword || !newPassword || !confirmNewPassword)?0.55:1}}>
+                        style={{...S.goldBtn,borderRadius:10,padding:"9px 11px",fontSize:"0.78em",opacity:(accountBusy || !currentPassword || !newPassword || !confirmNewPassword)?0.5:1}}>
                         Update Password
                       </button>
                     </div>
@@ -2458,10 +2458,10 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               {accountMsg && <div style={{marginTop:12,color:accountMsg.includes("Could not")||accountMsg.includes("did not")?C.red:C.green,fontSize:"0.8em",lineHeight:1.4,fontWeight:700}}>{accountMsg}</div>}
             </div>
 
-            <div style={{...S.card,padding:16}}>
+            <div style={{...S.card,padding:15}}>
               <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
                 <div style={{flex:1}}>
-                  <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark}}>Timer Sound</div>
+                  <div style={{fontFamily:SERIF,fontSize:"1.1em",color:C.dark}}>Timer Sound</div>
                   <div style={{fontSize:"0.78em",color:C.light}}>Choose what plays when a cooking timer finishes.</div>
                 </div>
                 <button onClick={() => playTimerSound(timerSound)} style={{...S.goldBtn,border:"1px solid "+C.goldLight,borderRadius:8,padding:"7px 10px",fontSize:"0.76em"}}>Test</button>
@@ -2471,7 +2471,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   const active = timerSound === option.id;
                   return (
                     <button key={option.id} onClick={() => chooseSound(option.id)}
-                      style={{background:active?C.greenPale:C.cream2,border:"1.5px solid "+(active?C.green:C.border),borderRadius:9,padding:"9px 10px",textAlign:"left",color:active?C.green:C.dark,fontWeight:700,cursor:"pointer",fontSize:"0.82em",fontFamily:SANS}}>
+                      style={{background:active?C.greenPale:"rgba(241,230,212,0.78)",border:"1.5px solid "+(active?C.green:C.border),borderRadius:10,padding:"9px 10px",textAlign:"left",color:active?C.green:C.dark,fontWeight:800,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS}}>
                       <span style={{display:"inline-flex",alignItems:"center",gap:6}}>{active && <Icon name="check" size={14} />}{option.label}</span>
                     </button>
                   );
