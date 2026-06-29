@@ -1,18 +1,18 @@
     const { useState, useEffect, useRef, useCallback } = React;
 
     const C = {
-      cream:"#F2EDE4", cream2:"#E9DFD0", cream3:"#D6C7B1", border:"#D6C7B1",
-      paper:"#FBF7EF", paper2:"#F2EDE4",
-      dark:"#2A2A2A", mid:"#4A4038", light:"#7E7064", brown:"#6E4A36", brownLight:"#D6C7B1",
-      green:"#384A3A", greenMid:"#4F6651", greenPale:"#E9EEE7",
-      terra:"#C0653F", terraPale:"#F6E7DE",
-      gold:"#B88951", goldLight:"#D6C7B1", goldPale:"#F2EDE4",
+      cream:"#F8F1E5", cream2:"#F1E6D4", cream3:"#E4D3BC", border:"#D8C7AE",
+      paper:"#FFF9EE", paper2:"#FCF2E1",
+      dark:"#20140E", mid:"#4A3527", light:"#967966", brown:"#5A3827", brownLight:"#C0A074",
+      green:"#234B32", greenMid:"#3E6F4B", greenPale:"#EDF5EA",
+      terra:"#B85D32", terraPale:"#FBEEE5",
+      gold:"#B88A2B", goldLight:"#D8B35F", goldPale:"#FBF3DC",
       blue:"#2563EB", bluePale:"#EFF6FF",
       red:"#C0392B", redPale:"#FDECEA", white:"#FFFFFF",
     };
-    const BRAND_GRADIENT = `linear-gradient(135deg, ${C.green} 0%, #263529 100%)`;
-    const SERIF = "'Playfair Display', Georgia, serif";
-    const SANS = "'Source Sans 3', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+    const BRAND_GRADIENT = `linear-gradient(135deg, ${C.green} 0%, ${C.brown} 100%)`;
+    const SERIF = "'DM Serif Display', serif";
+    const SANS = "'DM Sans', sans-serif";
     const APP_VERSION = "1.1.0";
     const API_BASE = String((window.RECIPEBOX_CONFIG && window.RECIPEBOX_CONFIG.apiBase) || window.RECIPEBOX_API_BASE || "").replace(/\/$/, "");
     function apiUrl(url) {
@@ -36,7 +36,7 @@
       input: { border:"1.5px solid "+C.border, borderRadius:10, background:C.paper, outline:"none", fontFamily:SANS },
       eyebrow: { fontSize:"0.68em", letterSpacing:2.4, textTransform:"uppercase", fontWeight:800, color:C.brownLight },
     };
-    const CARD_COLORS = ["#384A3A","#C0653F","#B88951","#6E4A36","#4F6651","#7E7064","#2A2A2A"];
+    const CARD_COLORS = ["#234B32","#B85D32","#B88A2B","#5A3827","#3E6F4B","#8B6252","#35676B"];
     const CATEGORIES = ["Breakfast","Appetizers","Entrées","Sides","Condiments & Sauces","Beverages","Desserts"];
     const APP_CONTROL_CATEGORIES = ["All","Methodology","AI Instruction","Import Rule","Recipe Normalization","Meal Planning","Pantry Logic","Image Handling","User Experience","Safety / Guardrail","Legal / Copyright","Product Strategy","WhatsNext Sync"];
     const APP_CONTROL_FEATURES = ["Import","Manual Recipe Entry","AI Adjust","AI Chat Editor","Pantry Chef","Meal Planner","Shopping List","Cook Mode","PDF Export","Recipe Detail","Library","Settings"];
@@ -406,7 +406,7 @@
         return new File([jpegBlob], (file.name || "recipe-photo").replace(/\.(heic|heif)$/i, "") + ".jpg", { type: "image/jpeg" });
       }
       if (!isSupportedImageFile(file)) {
-        throw new Error("Hearthkeep supports JPG, PNG, GIF, WebP, HEIC, HEIF, and PDF uploads.");
+        throw new Error("RecipeBox supports JPG, PNG, GIF, WebP, HEIC, HEIF, and PDF uploads.");
       }
       return new Promise((resolve) => {
         const img = new Image();
@@ -644,9 +644,8 @@ function saveMealPlan(m) {
   try { localStorage.setItem(MEALPLAN_KEY, JSON.stringify(m)); } catch {}
   asyncPutJson("/api/mealplan", { mealPlan:m });
 }
-// Personal shopping list state is local-first (user-specific, derived from the
-// user's recipes). Household mode swaps this out for the server-backed household
-// list in App.
+// Shopping list is local-only for now (user-specific, derived from the user's
+// own recipes). A durable per-user/household model is on the roadmap.
 const SHOPPING_KEY = "recipebox-shopping-v1";
 function emptyShoppingList() { return RecipeBoxShopping.emptyShoppingList(); }
 function loadShoppingList() {
@@ -676,7 +675,7 @@ function downloadJson(filename, data) {
     // AI
     async function callAI(messages, system, maxTokens, temperature, _retried) {
       if (typeof navigator !== "undefined" && navigator.onLine === false) {
-        throw new Error("You're offline. Reconnect to use Hearthkeep AI — your saved recipes are still available.");
+        throw new Error("You're offline. Reconnect to use RecipeBox AI — your saved recipes are still available.");
       }
       const requested = maxTokens || 2000;
       const body = { model: "claude-sonnet-4-5-20250929", max_tokens: requested, messages };
@@ -721,7 +720,7 @@ For notes:
 For sources with multiple recipes or variants:
 - Extract one primary recipe card that best matches the title/source.
 - Do not merge separate variants into one giant recipe. Mention alternate variants briefly in notes only if source-grounded and useful.
-- If an uploaded photo, rendered PDF page, video, article, or transcript clearly contains multiple distinct recipe cards, standalone recipes, or full variants, do not merge them or choose one silently. Return {"error":"multiple_recipes_detected","recipes":["name 1","name 2"]} so Hearthkeep can ask the user whether to import one or all.
+- If an uploaded photo, rendered PDF page, video, article, or transcript clearly contains multiple distinct recipe cards, standalone recipes, or full variants, do not merge them or choose one silently. Return {"error":"multiple_recipes_detected","recipes":["name 1","name 2"]} so RecipeBox can ask the user whether to import one or all.
 
 For servings:
 - Use the recipe's stated yield/servings when present (e.g. "Serves 8", "Makes 24 cookies", "Yield: 12").
@@ -760,17 +759,17 @@ For ingredient amounts:
 
 Embed ingredient IDs like {i1} inside step text, but do not repeat the ingredient name right after the placeholder. Example: use "Mix {i1} with water", not "Mix {i1} flour with water". Macros are per serving. Return ONLY the JSON.`;
 
-    const ADJUST_PROMPT = `You are a culinary assistant. Modify the provided Hearthkeep recipe JSON as requested. Return ONLY one complete raw JSON object starting with { and ending with }. No markdown, comments, or explanation. Preserve the Hearthkeep shape: title, description, heroImage, prepTime, cookTime, totalTime, servings, category, tags, macros, notes, rating, favorite, createdAt, and sections with ingredients and steps. Preserve ids when present. Do not omit sections. Keep "category" as the real food type (never "Copycat"); keep "tags" as a separate concise, deduplicated, Title Case list. "Copycat" may be a tag, never a category.`;
-    const REPAIR_JSON_PROMPT = `You repair malformed recipe JSON. Return ONLY one valid raw JSON object. Preserve all recipe content you can, including source-grounded notes. Do not add markdown, comments, or explanation. The JSON must match the Hearthkeep recipe structure with notes, sections, ingredients, and steps.`;
-    const PANTRY_PROMPT = `You are Pantry Chef inside Hearthkeep. Help users decide what to cook from ingredients they have, cravings, time, or a pantry photo.
+    const ADJUST_PROMPT = `You are a culinary assistant. Modify the provided RecipeBox recipe JSON as requested. Return ONLY one complete raw JSON object starting with { and ending with }. No markdown, comments, or explanation. Preserve the RecipeBox shape: title, description, heroImage, prepTime, cookTime, totalTime, servings, category, tags, macros, notes, rating, favorite, createdAt, and sections with ingredients and steps. Preserve ids when present. Do not omit sections. Keep "category" as the real food type (never "Copycat"); keep "tags" as a separate concise, deduplicated, Title Case list. "Copycat" may be a tag, never a category.`;
+    const REPAIR_JSON_PROMPT = `You repair malformed recipe JSON. Return ONLY one valid raw JSON object. Preserve all recipe content you can, including source-grounded notes. Do not add markdown, comments, or explanation. The JSON must match the RecipeBox recipe structure with notes, sections, ingredients, and steps.`;
+    const PANTRY_PROMPT = `You are Pantry Chef inside RecipeBox. Help users decide what to cook from ingredients they have, cravings, time, or a pantry photo.
 
-Always prioritize saved Hearthkeep recipes from the provided context. Do not invent saved recipes. If saved matches exist, start with "Recipes from your Hearthkeep" and mention exact saved recipe titles. Then add "New ideas" only when useful.
+Always prioritize saved RecipeBox recipes from the provided context. Do not invent saved recipes. If saved matches exist, start with "Recipes from your RecipeBox" and mention exact saved recipe titles. Then add "New ideas" only when useful.
 
 For saved recipes, explain whether they look like: "You can make this now", "You're missing 1-2 things", or "Needs shopping". Suggest practical substitutions when helpful.
 
 Ask concise clarifying questions only when needed. Keep advice home-cook friendly and scannable.
 
-If the user asks to save, add, or make one of your new ideas into a recipe, return the full recipe JSON wrapped in <RECIPE_JSON>...</RECIPE_JSON> at the end. Use the Hearthkeep recipe shape with sections, ingredients, steps, tags, macros, servings, cookTime, description, and heroImage. Keep "category" as the real food type (never "Copycat") and "tags" as a separate concise, deduplicated, Title Case list of useful labels; "Copycat" may be a tag, never a category.`;
+If the user asks to save, add, or make one of your new ideas into a recipe, return the full recipe JSON wrapped in <RECIPE_JSON>...</RECIPE_JSON> at the end. Use the RecipeBox recipe shape with sections, ingredients, steps, tags, macros, servings, cookTime, description, and heroImage. Keep "category" as the real food type (never "Copycat") and "tags" as a separate concise, deduplicated, Title Case list of useful labels; "Copycat" may be a tag, never a category.`;
     const EDITOR_AI_PROMPT = `You are a culinary assistant helping edit a recipe. The user will describe a change they want. Apply it to the recipe JSON and return ONLY the complete updated recipe JSON starting with {. Preserve notes unless the user asks to change them. Do not invent source notes or links. Keep "category" as the real food type and "tags" as a separate concise, deduplicated, Title Case list; "Copycat" may be a tag, never a category. No markdown, no explanation.`;
 
     // Shared UI
@@ -958,7 +957,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           })
         }))
       };
-      // Stage 2: deterministic Hearthkeep normalization (one consistent style;
+      // Stage 2: deterministic RecipeBox normalization (one consistent style;
       // formatting only — quantities/order/structure preserved). Single import
       // chokepoint, so every path (URL/text/photo/PDF/YouTube/social) is normalized.
       try { return RecipeBoxNormalize.normalizeRecipe(filtered); } catch { return filtered; }
@@ -1020,7 +1019,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         const repaired = await callAI([{
           role:"user",
           content:
-            "Repair this malformed Hearthkeep recipe JSON from " + (contextLabel || "AI") + ". Return only valid JSON, with no markdown or explanation.\n\n" +
+            "Repair this malformed RecipeBox recipe JSON from " + (contextLabel || "AI") + ". Return only valid JSON, with no markdown or explanation.\n\n" +
             raw
         }], REPAIR_JSON_PROMPT, 6000, 0);
         return parseAIJson(repaired);
@@ -1241,7 +1240,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         .sort((a, b) => (tagCounts[b] - tagCounts[a]) || tagDisplay[a].localeCompare(tagDisplay[b]))
         .map((key) => ({ key, label: tagDisplay[key], count: tagCounts[key] }));
 
-      // Recently Saved: fast re-entry into the latest imports — only once the library
+      // Recently Saved: fast re-entry into the latest imports — only once the box
       // is big enough that it's distinct from the full feed below (no empty feel).
       const recentRecipes = sortedRecipes.slice(0, 5);
       const showRecent = recipes.length >= 6;
@@ -1254,7 +1253,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             <div style={{maxWidth:900,margin:"0 auto"}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
                 <div>
-                  <div style={{fontFamily:SERIF,fontSize:"1.95em",color:C.white,lineHeight:1}}>Your Hearthkeep</div>
+                  <div style={{fontFamily:SERIF,fontSize:"1.95em",color:C.white,lineHeight:1}}>Your RecipeBox</div>
                   <div style={{color:"rgba(255,249,238,0.78)",fontSize:"0.78em",marginTop:4}}>{recipes.length ? recipes.length+" recipe"+(recipes.length!==1?"s":"")+" tucked away" : "A clean place for family favorites"}</div>
                 </div>
                 <button onClick={onAdd} style={{...S.goldBtn,borderRadius:12,padding:"11px 18px",fontSize:"0.88em"}}>
@@ -1317,7 +1316,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 {!isDashboard && (
                   <button onClick={() => { setCat("All"); setFilter("all"); setSearch(""); clearTag(); }}
                     style={{...S.ghostBtn,borderRadius:999,padding:"7px 13px",fontSize:"0.78em",marginBottom:24}}>
-                    ← Back to Your Hearthkeep
+                    ← Back to Your RecipeBox
                   </button>
                 )}
                 <div style={{textAlign:"center",padding:"36px 0",color:C.light}}>
@@ -1327,8 +1326,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             ) : isDashboard && recipes.length === 0 ? (
               <div className="fade-up" style={{marginTop:22}}>
                 <div style={{...S.card,padding:"24px 20px"}}>
-                  <div style={{fontFamily:SERIF,fontSize:"1.5em",color:C.dark,lineHeight:1.15,marginBottom:6}}>Welcome to your Hearthkeep</div>
-                  <div style={{color:C.light,fontSize:"0.9em",lineHeight:1.5,marginBottom:18}}>Import, repair, and preserve the recipes you love. Pick a way to add the first one — it only takes a few seconds. AI imports, edits, and planning use AI Assists, and you start with a welcome balance.</div>
+                  <div style={{fontFamily:SERIF,fontSize:"1.5em",color:C.dark,lineHeight:1.15,marginBottom:6}}>Welcome to your RecipeBox</div>
+                  <div style={{color:C.light,fontSize:"0.9em",lineHeight:1.5,marginBottom:18}}>Start your box with a recipe you love. Pick a way to add the first one — it only takes a few seconds. AI imports, edits, and planning use AI Assists, and you start with a welcome balance.</div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(150px, 1fr))",gap:12}}>
                     {[
                       { mode:"url", icon:"import", label:"Import from the web", hint:"Paste a recipe link" },
@@ -1382,7 +1381,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   </div>
                 )}
                 <div style={{marginTop:24}}>
-                  <h3 style={{margin:"0 0 13px",fontFamily:SERIF,fontSize:"1.25em",color:C.dark,fontWeight:400}}>Browse your recipes</h3>
+                  <h3 style={{margin:"0 0 13px",fontFamily:SERIF,fontSize:"1.25em",color:C.dark,fontWeight:400}}>Browse your box</h3>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(150px, 1fr))",gap:12}}>
                     {(showAllCats ? [...primaryBrowse, ...emptyCats] : primaryBrowse).map((card) => (
                       <button key={card.label} onClick={card.onClick}
@@ -1448,7 +1447,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               <div style={{marginTop:24}}>
                 <button onClick={() => { setCat("All"); setFilter("all"); setSearch(""); clearTag(); }}
                   style={{...S.ghostBtn,borderRadius:999,padding:"7px 13px",fontSize:"0.78em",marginBottom:14}}>
-                  ← Back to Your Hearthkeep
+                  ← Back to Your RecipeBox
                 </button>
 
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:13}}>
@@ -1531,7 +1530,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
       return (
         <div style={{...S.page,paddingBottom:NAV_CLEARANCE}}>
-          <PageHeader title={inHousehold ? "Household Meal Plan" : "Weekly Meal Plan"} subtitle={inHousehold ? "Shared with your household" : "Plan the week from your Hearthkeep"} compact={compactHeader} />
+          <PageHeader title={inHousehold ? "Household Meal Plan" : "Weekly Meal Plan"} subtitle={inHousehold ? "Shared with your household" : "Plan the week from your RecipeBox"} compact={compactHeader} />
           <div style={{maxWidth:900,margin:"20px auto",padding:"0 16px"}}>
             <div style={{...S.cardSoft,padding:"12px 15px",marginBottom:14,display:"flex",alignItems:"center",gap:12}}>
               <div style={{width:40,height:40,borderRadius:11,background:C.greenPale,color:C.green,display:"inline-flex",alignItems:"center",justifyContent:"center",border:"1px solid "+C.green+"22",flexShrink:0}}><Icon name="mealPlan" size={21} /></div>
@@ -1582,10 +1581,10 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             ) : (
               <div style={{...S.card,padding:"18px",marginBottom:14,background:`linear-gradient(135deg, ${C.greenPale}, ${C.goldPale})`,border:"1px solid "+C.goldLight}}>
                 <div style={{fontFamily:SERIF,fontSize:"1.2em",color:C.dark,marginBottom:5}}>Ready to plan your week?</div>
-                <div style={{fontSize:"0.84em",color:C.mid,lineHeight:1.5,marginBottom:recipes.length?14:0}}>{recipes.length ? "Start with a few favorites or quick recipes — Hearthkeep builds the shopping list for you." : "Add a few recipes to your Hearthkeep first, then plan your week here."}</div>
+                <div style={{fontSize:"0.84em",color:C.mid,lineHeight:1.5,marginBottom:recipes.length?14:0}}>{recipes.length ? "Start with a few favorites or quick recipes — RecipeBox builds the shopping list for you." : "Add a few recipes to your RecipeBox first, then plan your week here."}</div>
                 {recipes.length > 0 && (
                   <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                    <button onClick={() => openPicker(today, "all")} style={{background:C.green,color:C.white,border:"none",borderRadius:999,padding:"9px 15px",minHeight:38,fontWeight:800,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS,WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>Add from Hearthkeep</button>
+                    <button onClick={() => openPicker(today, "all")} style={{background:C.green,color:C.white,border:"none",borderRadius:999,padding:"9px 15px",minHeight:38,fontWeight:800,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS,WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>Add from RecipeBox</button>
                     <button onClick={() => openPicker(today, "favorites")} style={{background:C.paper,color:C.dark,border:"1px solid "+C.goldLight,borderRadius:999,padding:"9px 15px",minHeight:38,fontWeight:700,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS,WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>Favorites</button>
                     <button onClick={() => openPicker(today, "quick")} style={{background:C.paper,color:C.dark,border:"1px solid "+C.goldLight,borderRadius:999,padding:"9px 15px",minHeight:38,fontWeight:700,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS,WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>Quick</button>
                   </div>
@@ -1640,7 +1639,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             })}
             {!hasMeals && (
               <div style={{...S.cardSoft,padding:"12px 15px",marginTop:2,display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-                <div style={{flex:1,minWidth:160,fontSize:"0.8em",color:C.light,lineHeight:1.45}}>Plan a few meals and Hearthkeep will combine the ingredients for you.</div>
+                <div style={{flex:1,minWidth:160,fontSize:"0.8em",color:C.light,lineHeight:1.45}}>Plan a few meals and RecipeBox will combine the ingredients for you.</div>
                 <button disabled style={{background:C.cream3,color:C.light,border:"none",borderRadius:9,padding:"9px 12px",fontWeight:800,cursor:"not-allowed",fontSize:"0.76em",fontFamily:SANS}}>Generate after adding meals</button>
               </div>
             )}
@@ -1664,7 +1663,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",padding:"8px 12px",paddingBottom:"calc(env(safe-area-inset-bottom, 0px) + 14px)"}}>
                   {pickerRecipes.length === 0 ? (
                     <div style={{textAlign:"center",color:C.light,fontSize:"0.85em",padding:"34px 16px",lineHeight:1.5}}>
-                      {recipes.length === 0 ? "Your Hearthkeep is empty — add a recipe first." : "No recipes match. Try a different filter or search."}
+                      {recipes.length === 0 ? "Your RecipeBox is empty — add a recipe first." : "No recipes match. Try a different filter or search."}
                     </div>
                   ) : pickerRecipes.map((r) => {
                     const img = r.heroImage || "";
@@ -1910,7 +1909,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       ];
       const promptCards = [
         { title:"Use what I have", text:"Tell me what's in your fridge or pantry.", prompt:"I want to use what I have in my fridge or pantry." },
-        { title:"Check my Hearthkeep", text:"Find saved recipe cards that match.", prompt:"Check my Hearthkeep for recipes that match what I have." },
+        { title:"Check my RecipeBox", text:"Find saved recipe cards that match.", prompt:"Check my RecipeBox for recipes that match what I have." },
         { title:"Quick dinner idea", text:"Get something simple for tonight.", prompt:"Give me a quick, simple dinner idea for tonight." },
       ];
 
@@ -1931,7 +1930,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           recipeBoxSummary: pantryRecipeSummary(recipes),
         };
         const contextText =
-          "Hearthkeep saved recipe context:\n" + JSON.stringify(savedContext) +
+          "RecipeBox saved recipe context:\n" + JSON.stringify(savedContext) +
           "\n\nUser request:\n" + (promptText || "What can I make from this photo?");
         const userContent = image ? [
           { type:"image", source:{ type:"base64", media_type:image.type, data:image.data } },
@@ -1960,7 +1959,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
       return (
         <div style={{height:PANTRY_NAV_OFFSET,maxHeight:PANTRY_NAV_OFFSET,display:"flex",flexDirection:"column",background:C.cream,overflow:"hidden"}}>
-          <PageHeader title="Pantry Chef" subtitle="Ideas from your Hearthkeep and what you have on hand" compact={compactHeader} top={16} right={16} bottom={14} />
+          <PageHeader title="Pantry Chef" subtitle="Ideas from your RecipeBox and what you have on hand" compact={compactHeader} top={16} right={16} bottom={14} />
           <div onScroll={(e) => setCompactHeader(e.currentTarget.scrollTop > 20)} style={{flex:1,minHeight:0,overflowY:"auto",padding:"12px"}}>
             <div style={{maxWidth:680,margin:"0 auto",display:"flex",flexDirection:"column",gap:11}}>
               {messages.map((m, i) => (
@@ -1969,7 +1968,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     <div style={{background:m.role==="user"?C.green:C.paper,color:m.role==="user"?C.white:C.dark,borderRadius:m.role==="user"?"16px 16px 4px 16px":"16px 16px 16px 4px",padding:"10px 14px",fontSize:"0.88em",lineHeight:1.65,boxShadow:"0 6px 18px rgba(90,56,39,0.08)",border:m.role!=="user"?"1px solid "+C.border:"none",whiteSpace:"pre-wrap"}}>{m.content}</div>
                     {m.matches && m.matches.length > 0 && (
                       <div style={{display:"grid",gap:8}}>
-                        <div style={{fontSize:"0.68em",letterSpacing:1.4,textTransform:"uppercase",color:C.light,fontWeight:700}}>Recipes from your Hearthkeep</div>
+                        <div style={{fontSize:"0.68em",letterSpacing:1.4,textTransform:"uppercase",color:C.light,fontWeight:700}}>Recipes from your RecipeBox</div>
                         {m.matches.map((match) => (
                           <button key={match.recipe.id} onClick={() => onOpenRecipe(match.recipe)}
                             style={{...S.cardSoft,display:"flex",alignItems:"center",gap:10,textAlign:"left",padding:"9px 10px",cursor:"pointer",fontFamily:SANS}}>
@@ -2130,7 +2129,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         try {
           await postJson("/api/me/convert", { choice });
           setConvMsg(choice === "free"
-            ? "You're on the Free tier now. Thank you for testing Hearthkeep!"
+            ? "You're on the Free tier now. Thank you for testing RecipeBox!"
             : "Reserved — your " + label + " price is locked in. You'll claim it when paid plans launch; no charge now.");
           loadFounderOffer();
           if (choice === "free") fetchJson("/api/me/credits", null).then((c) => { if (c) setCredits(c); }).catch(() => {});
@@ -2172,7 +2171,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             await onCloudData(migrated.recipes, migrated.mealPlan);
             setAccountMsg("Signed in. This device's recipes were added to your account.");
           } else {
-            setAccountMsg("Signed in. Your cloud Hearthkeep is loaded.");
+            setAccountMsg("Signed in. Your cloud RecipeBox is loaded.");
             await onCloudData();
           }
         } catch (err) {
@@ -2186,7 +2185,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         setAccountMsg("");
         try {
           await postJson("/api/auth/request-password-reset", { email });
-          setAccountMsg("If that email has a Hearthkeep account, a reset link is on the way.");
+          setAccountMsg("If that email has a RecipeBox account, a reset link is on the way.");
         } catch (err) {
           setAccountMsg(err.message || "Could not send reset link.");
         } finally {
@@ -2287,23 +2286,23 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       }
       function exportRecipes() {
         const data = backupBase();
-        downloadJson("hearthkeep-recipes-"+data.stamp+".json", data.recipes);
+        downloadJson("recipebox-recipes-"+data.stamp+".json", data.recipes);
         setBackupMsg("Recipe cards exported.");
       }
       function exportMealPlan() {
         const data = backupBase();
-        downloadJson("hearthkeep-meal-plan-"+data.stamp+".json", data.mealPlan);
+        downloadJson("recipebox-meal-plan-"+data.stamp+".json", data.mealPlan);
         setBackupMsg("Meal plan exported.");
       }
       function exportBackup() {
         const data = backupBase();
-        // Include the personal local list/pantry data in backups. Household list
-        // and pantry data are server-backed while household mode is active.
+        // Include the local-only data (shopping list + pantry staples) so a full
+        // export is genuinely complete. These live only on this device.
         let shoppingList = null, pantryStaples = null;
         try { shoppingList = JSON.parse(localStorage.getItem(SHOPPING_KEY) || "null"); } catch {}
         try { pantryStaples = JSON.parse(localStorage.getItem(PANTRY_KEY) || "null"); } catch {}
-        downloadJson("hearthkeep-backup-"+data.stamp+".json", {
-          app:"Hearthkeep",
+        downloadJson("recipebox-backup-"+data.stamp+".json", {
+          app:"RecipeBox",
           version:2,
           exportedAt:new Date().toISOString(),
           account: account ? { email: account.email } : null,
@@ -2312,7 +2311,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           shoppingList: shoppingList || undefined,
           pantryStaples: Array.isArray(pantryStaples) ? pantryStaples : undefined,
         });
-        setBackupMsg("Full Hearthkeep backup exported (recipes, tags, meal plan, shopping list, pantry).");
+        setBackupMsg("Full RecipeBox backup exported (recipes, tags, meal plan, shopping list, pantry).");
       }
       async function restoreBackup(file) {
         if (!file) return;
@@ -2322,7 +2321,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           const parsed = JSON.parse(raw);
           const nextRecipes = Array.isArray(parsed) ? parsed : Array.isArray(parsed.recipes) ? parsed.recipes : null;
           const nextMealPlan = parsed && typeof parsed === "object" && parsed.mealPlan && typeof parsed.mealPlan === "object" ? parsed.mealPlan : {};
-          if (!Array.isArray(nextRecipes)) throw new Error("That file does not look like a Hearthkeep backup.");
+          if (!Array.isArray(nextRecipes)) throw new Error("That file does not look like a RecipeBox backup.");
           const ok = window.confirm("Import this backup and replace the recipes and meal plan on this device"+(account ? " and your signed-in account" : "")+"?");
           if (!ok) return;
           try { localStorage.setItem(RECIPES_KEY, JSON.stringify(recipesForLocal(nextRecipes))); } catch {}
@@ -2365,15 +2364,15 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         } finally { setTagBusy(false); }
       }
       const placeholder = [
-        { title:"Appearance", text:"Hearthkeep display and card preferences coming soon." },
+        { title:"Appearance", text:"RecipeBox display and card preferences coming soon." },
         { title:"Import Preferences", text:"Default cleanup and recipe-card photo options coming soon." },
       ];
       return (
         <div style={{...S.page,paddingBottom:NAV_CLEARANCE}}>
-          <PageHeader title="Settings" subtitle="Account, sync, timers, and Hearthkeep preferences" compact={compactHeader} />
+          <PageHeader title="Settings" subtitle="Account, sync, timers, and recipe-box preferences" compact={compactHeader} />
           <div style={{maxWidth:760,margin:"18px auto",padding:"0 16px",display:"grid",gap:14}}>
             <div style={{...S.card,padding:16}}>
-              <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark,marginBottom:4}}>Hearthkeep Account</div>
+              <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark,marginBottom:4}}>RecipeBox Account</div>
               {account ? (
                 <div>
                   <div style={{fontSize:"0.86em",color:C.mid,lineHeight:1.5,marginBottom:12}}>
@@ -2382,7 +2381,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   {account.emailVerified === false && (
                     <div style={{background:C.goldPale,border:"1px solid "+C.goldLight,borderRadius:11,padding:"12px 14px",marginBottom:12}}>
                       <div style={{fontWeight:700,color:C.brown,fontSize:"0.86em",marginBottom:3}}>Confirm your email</div>
-                      <div style={{fontSize:"0.8em",color:C.mid,lineHeight:1.45,marginBottom:9}}>We sent a confirmation link to {account.email}. Tap it to confirm your address. {verifyState==="sent" && "Sent — check your inbox."} {verifyState==="verified" && "Already confirmed — refresh the app."} {verifyState==="unavailable" && "Email isn't configured yet; you can keep using Hearthkeep."} {verifyState==="error" && "Couldn't send right now — try again shortly."}</div>
+                      <div style={{fontSize:"0.8em",color:C.mid,lineHeight:1.45,marginBottom:9}}>We sent a confirmation link to {account.email}. Tap it to confirm your address. {verifyState==="sent" && "Sent — check your inbox."} {verifyState==="verified" && "Already confirmed — refresh the app."} {verifyState==="unavailable" && "Email isn't configured yet; you can keep using RecipeBox."} {verifyState==="error" && "Couldn't send right now — try again shortly."}</div>
                       <button onClick={resendVerification} disabled={verifyState==="sending"} style={{...S.ghostBtn,borderRadius:9,padding:"8px 12px",fontSize:"0.78em",opacity:verifyState==="sending"?0.6:1}}>
                         {verifyState==="sending" ? "Sending…" : "Resend confirmation email"}
                       </button>
@@ -2415,7 +2414,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 </div>
               ) : (
                 <div>
-                  <div style={{fontSize:"0.84em",color:C.light,lineHeight:1.5,marginBottom:12}}>Keep your Hearthkeep synced with email and password. Apple and Google sign-in are planned for v1.</div>
+                  <div style={{fontSize:"0.84em",color:C.light,lineHeight:1.5,marginBottom:12}}>Keep your RecipeBox synced with email and password. Apple and Google sign-in are planned for v1.</div>
                   <div style={{display:"flex",gap:7,marginBottom:12}}>
                     {["create","signin","reset"].map((m) => (
                       <button key={m} onClick={() => { setMode(m); setAccountMsg(""); }}
@@ -2428,7 +2427,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     <input value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="Email address" inputMode="email" autoCapitalize="none"
                       style={{...S.input,width:"100%",padding:"10px 12px",fontSize:"0.88em"}} />
                     {mode === "reset" ? (
-                      <div style={{fontSize:"0.78em",color:C.light,lineHeight:1.45}}>Enter your email and Hearthkeep will send a reset link.</div>
+                      <div style={{fontSize:"0.78em",color:C.light,lineHeight:1.45}}>Enter your email and RecipeBox will send a reset link.</div>
                     ) : mode === "create" ? (
                       <>
                         <input value={displayName} onChange={(e)=>setDisplayName(e.target.value)} placeholder="Name (optional)"
@@ -2603,7 +2602,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
             {account && founderOffer?.eligible && (
               <div style={{...S.card,padding:16,border:"1px solid "+C.goldLight,background:"linear-gradient(160deg,#FFFDF7,"+C.goldPale+")"}}>
-                <div style={{fontFamily:SERIF,fontSize:"1.3em",color:C.dark,marginBottom:4}}>Thank you for testing Hearthkeep 💛</div>
+                <div style={{fontFamily:SERIF,fontSize:"1.3em",color:C.dark,marginBottom:4}}>Thank you for testing RecipeBox 💛</div>
                 <div style={{fontSize:"0.84em",color:C.mid,lineHeight:1.6,marginBottom:13}}>
                   You helped shape this app, and that means the world. As a beta tester you've earned <strong style={{color:C.brown}}>Founders pricing</strong> — locked in for as long as you keep your plan, and only ever offered to early testers like you. Pick what fits, no pressure:
                 </div>
@@ -2712,7 +2711,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                           style={{background:"none",border:"1px solid "+C.border,borderRadius:8,padding:"7px 13px",color:C.red,fontWeight:700,fontSize:"0.78em",cursor:"pointer",fontFamily:SANS}}>Leave household</button>
                       )}
                     </div>
-                    <div style={{marginTop:11,fontSize:"0.72em",color:C.light,lineHeight:1.5}}>Your household can share recipes, the meal plan, shopping list, pantry staples, and a Family-plan AI Assist pool. Personal recipes stay private unless you share them.</div>
+                    <div style={{marginTop:11,fontSize:"0.72em",color:C.light,lineHeight:1.5}}>Shared library, meal plan, shopping list & a shared AI Assist pool are coming next. For now this sets up your family group.</div>
                   </div>
                 )}
                 {hhMsg && <div style={{marginTop:10,fontSize:"0.78em",color:C.green,fontWeight:700}}>{hhMsg}</div>}
@@ -2770,7 +2769,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                       </button>
                     ))}
                   </div>
-                  <textarea value={feedbackText} onChange={(e)=>setFeedbackText(e.target.value)} placeholder="What happened? What felt off? What would make Hearthkeep better?" rows={4}
+                  <textarea value={feedbackText} onChange={(e)=>setFeedbackText(e.target.value)} placeholder="What happened? What felt off? What would make RecipeBox better?" rows={4}
                     style={{...S.input,width:"100%",padding:"10px 12px",fontSize:"0.86em",resize:"vertical",lineHeight:1.45}} />
                   <button onClick={sendFeedback} disabled={feedbackBusy || feedbackText.trim().length < 8}
                     style={{...S.primaryBtn,borderRadius:9,padding:"10px 12px",fontSize:"0.82em",opacity:(feedbackBusy || feedbackText.trim().length < 8)?0.55:1}}>
@@ -2783,7 +2782,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
             <div style={{...S.card,padding:16}}>
               <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark,marginBottom:4}}>Tag your library</div>
-              <div style={{fontSize:"0.82em",color:C.light,lineHeight:1.5,marginBottom:12}}>Add smart tags (like Copycat, Quick, or Air Fryer) to recipes you saved earlier, so you can filter and browse your whole library. It only adds tags that clearly fit and never removes tags you added.</div>
+              <div style={{fontSize:"0.82em",color:C.light,lineHeight:1.5,marginBottom:12}}>Add smart tags (like Copycat, Quick, or Air Fryer) to recipes you saved earlier, so you can filter and browse your whole box. It only adds tags that clearly fit and never removes tags you added.</div>
               <button onClick={backfillTags} disabled={tagBusy} style={{...S.primaryBtn,borderRadius:9,padding:"10px 14px",fontSize:"0.8em",opacity:tagBusy?0.65:1,cursor:tagBusy?"not-allowed":"pointer"}}>
                 {tagBusy ? "Tagging your recipes..." : "Suggest tags for my recipes"}
               </button>
@@ -2792,7 +2791,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
             <div style={{...S.card,padding:16}}>
               <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark,marginBottom:4}}>Data & Backup</div>
-              <div style={{fontSize:"0.82em",color:C.light,lineHeight:1.5,marginBottom:12}}>Keep a local copy of your recipe cards and meal plan. Imports replace your current Hearthkeep data after confirmation.</div>
+              <div style={{fontSize:"0.82em",color:C.light,lineHeight:1.5,marginBottom:12}}>Keep a local copy of your recipe cards and meal plan. Imports replace your current RecipeBox data after confirmation.</div>
               <input ref={importRef} type="file" accept="application/json,.json" onChange={(e)=>restoreBackup(e.target.files && e.target.files[0])} style={{display:"none"}} />
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(145px, 1fr))",gap:8}}>
                 <button onClick={exportBackup} style={{...S.primaryBtn,borderRadius:9,padding:"10px 11px",fontSize:"0.78em"}}>Export Backup</button>
@@ -2804,8 +2803,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             </div>
 
             <div style={{...S.card,padding:16}}>
-              <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark,marginBottom:4}}>About Hearthkeep</div>
-              <div style={{fontSize:"0.82em",color:C.mid,lineHeight:1.55}}>Hearthkeep is a warm home for the recipes you want to keep: AI-powered import, clean recipe cards, meal planning, Pantry Chef, Cook Mode, timers, and cloud sync for your signed-in devices.</div>
+              <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark,marginBottom:4}}>About RecipeBox</div>
+              <div style={{fontSize:"0.82em",color:C.mid,lineHeight:1.55}}>RecipeBox is your personal family recipe box: AI-powered import, clean recipe cards, meal planning, Pantry Chef, Cook Mode, timers, and cloud sync for your signed-in devices.</div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(120px, 1fr))",gap:8,marginTop:12}}>
                 <div style={{...S.cardSoft,padding:"9px 10px"}}><div style={{fontWeight:900,color:C.dark,fontSize:"0.9em"}}>{recipes.length}</div><div style={{fontSize:"0.72em",color:C.light}}>recipe cards</div></div>
                 <div style={{...S.cardSoft,padding:"9px 10px"}}><div style={{fontWeight:900,color:C.dark,fontSize:"0.9em"}}>{Object.values(mealPlan || {}).flat().length}</div><div style={{fontSize:"0.72em",color:C.light}}>planned meals</div></div>
@@ -2828,7 +2827,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               <div style={{...S.card,padding:16,border:"1px solid "+C.redPale,background:C.paper}}>
                 <div style={{fontFamily:SERIF,fontSize:"1.05em",color:C.dark,marginBottom:4}}>Danger Zone</div>
                 <div style={{fontWeight:900,color:C.red,fontSize:"0.86em",marginBottom:6}}>Delete account</div>
-                <div style={{fontSize:"0.78em",color:C.light,lineHeight:1.45,marginBottom:10}}>This permanently deletes your account, recipes, meal plan, sessions, and usage history from Hearthkeep cloud storage, and clears your shopping list and pantry from this device. This can't be undone — export a backup first if you want a copy.</div>
+                <div style={{fontSize:"0.78em",color:C.light,lineHeight:1.45,marginBottom:10}}>This permanently deletes your account, recipes, meal plan, sessions, and usage history from RecipeBox cloud storage, and clears your shopping list and pantry from this device. This can't be undone — export a backup first if you want a copy.</div>
                 <div style={{display:"grid",gap:8}}>
                   <input value={deleteConfirm} onChange={(e)=>setDeleteConfirm(e.target.value)} placeholder="Type DELETE"
                     style={{...S.input,width:"100%",padding:"9px 11px",fontSize:"0.84em"}} />
@@ -2847,7 +2846,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     }
 
     function emptyAdminDraft() {
-      return { title:"", category:"Methodology", useWhen:"", scopeType:"Global", scopeValue:"", appliesToFeatures:[], priority:50, active:true, content:"", sourceOrigin:"Hearthkeep" };
+      return { title:"", category:"Methodology", useWhen:"", scopeType:"Global", scopeValue:"", appliesToFeatures:[], priority:50, active:true, content:"", sourceOrigin:"RecipeBox" };
     }
 
     function AppControl({ account, onBack, onFeedbackChange }) {
@@ -2936,7 +2935,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       async function saveSource() {
         setBusy(true);
         try {
-          const payload = { title:draft.title, category:draft.category, useWhen:draft.useWhen, scopeType:draft.scopeType, scopeValue:draft.scopeValue, appliesToFeatures:draft.appliesToFeatures || [], priority:Number(draft.priority || 50), active:!!draft.active, content:draft.content, sourceOrigin:draft.sourceOrigin || "Hearthkeep" };
+          const payload = { title:draft.title, category:draft.category, useWhen:draft.useWhen, scopeType:draft.scopeType, scopeValue:draft.scopeValue, appliesToFeatures:draft.appliesToFeatures || [], priority:Number(draft.priority || 50), active:!!draft.active, content:draft.content, sourceOrigin:draft.sourceOrigin || "RecipeBox" };
           editor === "create" ? await postJson("/api/admin/knowledge", payload) : await putJson("/api/admin/knowledge/" + encodeURIComponent(editor), payload);
           setEditor(null);
           setMessage("App Control source saved.");
@@ -3406,13 +3405,13 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           const repaired = await callAI([{
             role: "user",
             content:
-              "Repair this malformed Hearthkeep recipe JSON. Return only valid JSON, with no markdown or explanation.\n\n" +
+              "Repair this malformed RecipeBox recipe JSON. Return only valid JSON, with no markdown or explanation.\n\n" +
               raw
           }], REPAIR_JSON_PROMPT, 6000, 0);
           try {
             return parseAIJson(repaired);
           } catch {
-            throw new Error("Hearthkeep could not read the recipe format. Try Paste Text, or upload a clearer PDF/photo.");
+            throw new Error("RecipeBox could not read the recipe format. Try Paste Text, or upload a clearer PDF/photo.");
           }
         }
       }
@@ -3426,7 +3425,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       async function callAIExtract(messages, system, maxTokens, opts, _retried) {
         opts = opts || {};
         if (typeof navigator !== "undefined" && navigator.onLine === false) {
-          throw new Error("You're offline. Reconnect to use Hearthkeep AI — your saved recipes are still available.");
+          throw new Error("You're offline. Reconnect to use RecipeBox AI — your saved recipes are still available.");
         }
         const requested = maxTokens || 2500;
         const body = {
@@ -3452,7 +3451,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         // No tool_use — the model returned text. Fall back to the text+repair path.
         const text = RecipeBoxSchema.textContent(data);
         if (text.trim()) return await parseImportedRecipe(text);
-        throw new Error("Hearthkeep could not read the recipe. Try Paste Text, or upload a clearer photo/PDF.");
+        throw new Error("RecipeBox could not read the recipe. Try Paste Text, or upload a clearer photo/PDF.");
       }
 
       // Stage 3: minimal AI cleanup. Runs ONLY when the deterministic audit found
@@ -3478,7 +3477,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       async function cleanupImport(recipe) {
         if (window.RECIPEBOX_CONFIG && window.RECIPEBOX_CONFIG.cleanup === false) return recipe;
         try {
-          const sys = "You are a careful copy editor for Hearthkeep. This is a Hearthkeep cleanup pass: correct obvious mistakes while preserving the recipe exactly. Fix only spelling, grammar, and spacing in the DIRECTIONS, and where a direction omits an amount that the ingredient list clearly defines, insert that exact amount from the list. NEVER change ingredient quantities, units, ingredient names, cooking times, structure, or meaning. Do not rewrite, improve, reorder, or restyle anything. Return the same recipe with only those minimal text corrections.";
+          const sys = "You are a careful copy editor for RecipeBox. This is a RecipeBox cleanup pass: correct obvious mistakes while preserving the recipe exactly. Fix only spelling, grammar, and spacing in the DIRECTIONS, and where a direction omits an amount that the ingredient list clearly defines, insert that exact amount from the list. NEVER change ingredient quantities, units, ingredient names, cooking times, structure, or meaning. Do not rewrite, improve, reorder, or restyle anything. Return the same recipe with only those minimal text corrections.";
           const user = "Recipe to clean up (correct direction text + insert omitted amounts only; preserve everything else exactly):\n" + JSON.stringify({ title: recipe.title, sections: recipe.sections });
           const cleaned = await callAIExtract([{ role: "user", content: user }], sys, 4096, { forceRecipe: true });
           if (cleaned && !cleaned.error && RecipeBoxNormalize.cleanupPreservedRecipe(recipe, cleaned)) {
@@ -3604,7 +3603,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             const socialRes = await apiFetch("/api/fetch-social?url=" + encodeURIComponent(socialUrl));
             const socialData = await socialRes.json();
             if (socialData.error) {
-              throw new Error("Hearthkeep could not access the full caption or recipe text from this social post. Try Paste Text with the caption or upload screenshots.");
+              throw new Error("RecipeBox could not access the full caption or recipe text from this social post. Try Paste Text with the caption or upload screenshots.");
             }
             const availableText = [
               socialData.caption,
@@ -3614,7 +3613,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             ].filter(Boolean).join("\n\n").trim();
             capturedText = availableText;
             if (availableText.length < 120 || socialData.sourceQuality === "low") {
-              throw new Error("Hearthkeep could not access the full caption or recipe text from this social post. Try Paste Text with the caption or upload screenshots.");
+              throw new Error("RecipeBox could not access the full caption or recipe text from this social post. Try Paste Text with the caption or upload screenshots.");
             }
             importSourceText = [socialData.caption, socialData.description, socialData.text].filter(Boolean).join("\n");
             importSourceQuality = socialData.sourceQuality === "good" ? "high" : (socialData.sourceQuality || "medium");
@@ -3636,7 +3635,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             extractCtx = { messages: socialMessages, maxTokens: 4096, heroFallback: socialData.image || socialData.thumbnail || "" };
             parsed = await callAIExtract(socialMessages, EXTRACT_PROMPT, 2500);
             if (parsed.error === "not_enough_recipe_text" || parsed.error === "unknown_recipe") {
-              throw new Error(parsed.message || "Hearthkeep could not access the full caption or recipe text from this social post. Try Paste Text with the caption or upload screenshots.");
+              throw new Error(parsed.message || "RecipeBox could not access the full caption or recipe text from this social post. Try Paste Text with the caption or upload screenshots.");
             }
             const socialImage = socialData.image || socialData.thumbnail || "";
             if (!parsed.heroImage && socialImage) parsed.heroImage = socialImage;
@@ -4081,8 +4080,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           <div style={{...S.brandHeader,padding:safePad(20,20,20),display:"flex",alignItems:"center",gap:12}}>
             <button onClick={onCancel} style={{background:"rgba(255,255,255,0.12)",border:"none",borderRadius:8,padding:"7px 14px",color:"rgba(255,255,255,0.8)",cursor:"pointer",fontFamily:SANS,fontSize:"0.85em"}}>← Back</button>
             <div>
-              <div style={{fontFamily:SERIF,fontSize:"1.35em",color:C.white,lineHeight:1}}>Add a recipe to Hearthkeep</div>
-              <div style={{fontSize:"0.76em",color:"rgba(255,249,238,0.72)",marginTop:3}}>Hearthkeep will help turn it into a clean card.</div>
+              <div style={{fontFamily:SERIF,fontSize:"1.35em",color:C.white,lineHeight:1}}>Add a recipe to your box</div>
+              <div style={{fontSize:"0.76em",color:"rgba(255,249,238,0.72)",marginTop:3}}>RecipeBox will help turn it into a clean card.</div>
             </div>
           </div>
 
@@ -4106,7 +4105,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 <input value={ytUrl} onChange={(e) => setYtUrl(e.target.value)} onKeyDown={(e) => e.key==="Enter"&&extract()} placeholder="https://youtube.com/watch?v=..."
                   style={{...S.input,width:"100%",padding:"12px 15px",fontSize:"0.92em",marginBottom:10,boxSizing:"border-box"}} />
                 <div style={{...S.cardSoft,background:C.goldPale,border:"1px solid "+C.goldLight,padding:"10px 13px",fontSize:"0.78em",color:C.brown,marginBottom:18,lineHeight:1.5}}>
-                  Hearthkeep will look for the video transcript and build a recipe card. It works best when the recipe is spoken in the video.
+                  RecipeBox will look for the video transcript and build a recipe card. It works best when the recipe is spoken in the video.
                 </div>
               </div>
             )}
@@ -4116,7 +4115,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 <input value={socialUrl} onChange={(e) => setSocialUrl(e.target.value)} onKeyDown={(e) => e.key==="Enter"&&extract()} placeholder="https://www.tiktok.com/@creator/video/..."
                   style={{...S.input,width:"100%",padding:"12px 15px",fontSize:"0.92em",marginBottom:10,boxSizing:"border-box"}} />
                 <div style={{...S.cardSoft,background:C.goldPale,border:"1px solid "+C.goldLight,padding:"10px 13px",fontSize:"0.78em",color:C.brown,marginBottom:18,lineHeight:1.5}}>
-                  Works best with public posts that include the recipe in the caption. If Hearthkeep cannot access it, paste the caption or upload screenshots.
+                  Works best with public posts that include the recipe in the caption. If RecipeBox cannot access it, paste the caption or upload screenshots.
                 </div>
               </div>
             )}
@@ -4164,7 +4163,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 )}
                 {images.length > 0 && (
                   <div style={{...S.cardSoft,background:C.goldPale,border:"1px solid "+C.goldLight,padding:"8px 12px",fontSize:"0.78em",color:C.brown,marginBottom:10}}>
-                    Please make sure all images are pages of the same recipe. HEIC/HEIF photos are converted to JPEG before Hearthkeep reads them.
+                    Please make sure all images are pages of the same recipe. HEIC/HEIF photos are converted to JPEG before RecipeBox reads them.
                   </div>
                 )}
                 {mediaFiles.length > 0 && (
@@ -4456,11 +4455,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           return [parseInt(value.slice(0, 2), 16), parseInt(value.slice(2, 4), 16), parseInt(value.slice(4, 6), 16)];
         };
         const setText = (hex) => doc.setTextColor(...rgb(hex));
-        // Copyright-safe footer stamped on every page at the end: Hearthkeep
+        // Copyright-safe footer stamped on every page at the end: RecipeBox
         // branding, a personal-use/attribution note, and page numbers.
         const stampFooters = () => {
           const pages = doc.getNumberOfPages();
-          const attribution = recipe.sourceUrl ? ("Imported from " + String(recipe.sourceUrl).replace(/^https?:\/\//, "").slice(0, 70)) : "Saved with Hearthkeep for personal use";
+          const attribution = recipe.sourceUrl ? ("Imported from " + String(recipe.sourceUrl).replace(/^https?:\/\//, "").slice(0, 70)) : "Saved with RecipeBox for personal use";
           for (let p = 1; p <= pages; p++) {
             doc.setPage(p);
             doc.setDrawColor(...rgb(C.border)); doc.setLineWidth(0.2);
@@ -4485,7 +4484,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         doc.setFillColor(...rgb(C.green));
         doc.rect(0, 0, pageW, 34, "F");
         doc.setFont("helvetica", "bold"); doc.setFontSize(10); setText(C.goldLight);
-        doc.text("Hearthkeep", margin, 13);
+        doc.text("RecipeBox", margin, 13);
         doc.setFont("helvetica", "bold"); doc.setFontSize(21); setText(C.white);
         writeWrapped(recipe.title, margin, pageW - margin * 2, 8);
         y = Math.max(y + 4, 43);
@@ -4575,7 +4574,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           (sec.steps || []).forEach((step, i) => lines.push((i + 1) + ". " + plainStepText(step.text, sec.ingredients, scale, metric)));
         });
         if (recipe.notes && String(recipe.notes).trim()) lines.push("", "NOTES", String(recipe.notes).trim());
-        lines.push("", "Shared from Hearthkeep");
+        lines.push("", "Shared from RecipeBox");
         return lines.join("\n");
       }
       async function shareRecipe() {
@@ -4588,7 +4587,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             if (doc) {
               const file = new File([doc.output("blob")], recipeFileBase() + ".pdf", { type: "application/pdf" });
               if (navigator.canShare({ files: [file] })) {
-                await navigator.share({ title: recipe.title || "Recipe", text: (recipe.title || "Recipe") + " — shared from Hearthkeep", files: [file] });
+                await navigator.share({ title: recipe.title || "Recipe", text: (recipe.title || "Recipe") + " — shared from RecipeBox", files: [file] });
                 return;
               }
             }
@@ -5225,7 +5224,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         setMessage("");
         try {
           await postJson("/api/auth/request-password-reset", { email });
-          setMessage("If that email has a Hearthkeep account, a reset link is on the way.");
+          setMessage("If that email has a RecipeBox account, a reset link is on the way.");
         } catch (err) {
           setMessage(err.message || "Could not send reset link.");
         } finally {
@@ -5258,8 +5257,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           <div style={{width:"100%",maxWidth:430}}>
             <div style={{textAlign:"center",marginBottom:20}}>
               <img src="/icon-192.png" alt="" style={{width:92,height:92,borderRadius:22,display:"block",margin:"0 auto 14px",boxShadow:"0 18px 55px rgba(28,20,16,0.28)"}} />
-              <div style={{fontFamily:SERIF,fontSize:"2.3em",color:C.white,lineHeight:1}}>Hearthkeep</div>
-              <div style={{marginTop:6,color:C.brownLight,fontSize:"0.9em",fontWeight:800,letterSpacing:1.4,textTransform:"uppercase"}}>Keep what makes home.</div>
+              <div style={{fontFamily:SERIF,fontSize:"2.3em",color:C.white,lineHeight:1}}>RecipeBox</div>
+              <div style={{marginTop:6,color:C.brownLight,fontSize:"0.9em",fontWeight:700}}>Start your RecipeBox</div>
             </div>
 
             <div style={{background:C.cream,border:"1px solid rgba(255,255,255,0.16)",borderRadius:18,padding:18,boxShadow:"0 18px 60px rgba(0,0,0,0.28)"}}>
@@ -5280,7 +5279,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     style={{width:"100%",padding:"12px 13px",border:"1px solid "+C.border,borderRadius:10,fontFamily:SANS,fontSize:"0.92em",outline:"none",background:C.white}} />
                 )}
                 {isResetRequest ? (
-                  <div style={{fontSize:"0.8em",color:C.light,lineHeight:1.45}}>Enter your email and Hearthkeep will send a secure reset link.</div>
+                  <div style={{fontSize:"0.8em",color:C.light,lineHeight:1.45}}>Enter your email and RecipeBox will send a secure reset link.</div>
                 ) : isCreate ? (
                   <>
                     <input value={displayName} onChange={(e)=>setDisplayName(e.target.value)} placeholder="Name (optional)"
@@ -5339,8 +5338,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         <div style={{position:"fixed",inset:0,zIndex:200,background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",padding:28}}>
           <div style={{textAlign:"center",animation:"splashIn 0.55s ease both"}}>
             <img src="/icon-192.png" alt="" style={{width:118,height:118,borderRadius:28,display:"block",margin:"0 auto 18px",boxShadow:"0 18px 55px rgba(28,20,16,0.32)",animation:"splashGlow 2.2s ease-in-out infinite"}} />
-            <div style={{fontFamily:SERIF,fontSize:"2.45em",color:C.white,lineHeight:1,letterSpacing:"0.01em"}}>Hearthkeep</div>
-            <div style={{marginTop:9,color:"rgba(255,249,238,0.82)",fontSize:"0.82em",fontWeight:800,letterSpacing:1.6,textTransform:"uppercase"}}>Keep what makes home.</div>
+            <div style={{fontFamily:SERIF,fontSize:"2.45em",color:C.white,lineHeight:1,letterSpacing:"0.01em"}}>RecipeBox</div>
+            <div style={{marginTop:9,color:"rgba(255,249,238,0.82)",fontSize:"0.92em",fontWeight:600,letterSpacing:"0.02em"}}>Your recipes, ready when you are</div>
           </div>
         </div>
       );

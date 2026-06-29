@@ -1,4 +1,4 @@
--- Hearthkeep Neon setup
+-- RecipeBox Neon setup
 -- The current app only needs recipebox_store. The Express server will also
 -- create this table automatically on first boot when DATABASE_URL is set.
 
@@ -172,7 +172,7 @@ create table if not exists app_control_sources (
   updated_by text,
   version integer not null default 1,
   last_synced_at timestamptz,
-  source_origin text not null default 'Hearthkeep'
+  source_origin text not null default 'RecipeBox'
 );
 
 create index if not exists app_control_sources_active_idx

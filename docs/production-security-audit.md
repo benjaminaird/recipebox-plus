@@ -1,12 +1,12 @@
-# Hearthkeep Production Security Audit
+# RecipeBox Production Security Audit
 
 Date: June 17, 2026
 
 ## Security Findings Summary
 
-Hearthkeep currently runs as a Vercel-hosted Express app with Neon Postgres and
+RecipeBox currently runs as a Vercel-hosted Express app with Neon Postgres and
 server-side Anthropic calls. The app is not currently wired to Supabase for
-Hearthkeep production data, so Supabase RLS/storage hardening is documented as a
+RecipeBox production data, so Supabase RLS/storage hardening is documented as a
 future migration checklist rather than applied to a live Supabase project.
 
 ### Findings Before This Pass
@@ -60,7 +60,7 @@ future migration checklist rather than applied to a live Supabase project.
 
 ## Backend-Only AI Status
 
-Frontend calls only internal Hearthkeep endpoints. Anthropic API keys are read
+Frontend calls only internal RecipeBox endpoints. Anthropic API keys are read
 only from server environment variables. The frontend does not expose Anthropic,
 Stripe, Vercel, WhatsNext, or admin secrets.
 
@@ -146,8 +146,8 @@ Held for later:
 
 ## Supabase RLS Checklist For Future Migration
 
-Hearthkeep production data is currently Neon-backed, not Supabase-backed. If
-Hearthkeep moves to Supabase tables, every user-owned table must have:
+RecipeBox production data is currently Neon-backed, not Supabase-backed. If
+RecipeBox moves to Supabase tables, every user-owned table must have:
 
 - `user_id uuid not null`
 - RLS enabled
@@ -190,7 +190,7 @@ Policies:
 - Add real native iOS/Android projects.
 - Add Apple Sign In and Google Sign In.
 - Add crash reporting only after privacy disclosures are updated.
-- Add Supabase RLS/storage policies only if Hearthkeep moves to Supabase.
+- Add Supabase RLS/storage policies only if RecipeBox moves to Supabase.
 - Decide production AI global caps:
   - `AI_DAILY_GLOBAL_MAX_REQUESTS`
   - `AI_MONTHLY_GLOBAL_MAX_COST_USD`
@@ -270,5 +270,5 @@ public/app.js`, and the esbuild bundle build clean.
 ## Not in Scope / Deferred
 
 - Stripe/webhook signature verification (billing not yet live).
-- Supabase RLS/storage policies (Hearthkeep data is Neon-backed).
+- Supabase RLS/storage policies (RecipeBox data is Neon-backed).
 - Two-person approval / re-auth for high-impact App Control changes.

@@ -184,7 +184,7 @@ const ENTITLEMENT_CONFIG = {
   freeWelcomeAssists: FREE_WELCOME_ASSISTS,
   tiers: {
     free:    { name: 'Free',    monthlyAssists: 5,   welcomeAssists: FREE_WELCOME_ASSISTS, manualRecipes: 'unlimited', price: null,
-               tagline: 'Start your Hearthkeep with unlimited manual recipes, search, tags, favorites, shopping list basics, and 15 welcome AI Assists. After that, get 5 AI Assists each month.',
+               tagline: 'Start your RecipeBox with unlimited manual recipes, search, tags, favorites, shopping list basics, and 15 welcome AI Assists. After that, get 5 AI Assists each month.',
                features: ['Unlimited manual recipes', 'Library, search, categories, tags, favorites', 'Basic shopping list & pantry tracking', '15 welcome AI Assists, then 5 each month'] },
     plus:    { name: 'Plus',    monthlyAssists: 250, price: { monthly: 4.99, yearly: 39.99 },
                tagline: 'For home cooks who want AI help all month. Includes 250 AI Assists/month for imports, recipe edits, Pantry Chef, meal planning, and more.',
@@ -261,11 +261,11 @@ const AI_FEATURE_PATTERNS = [
   // 'repair' must be checked before 'import': a malformed-JSON cleanup pass is an
   // internal helper for an already-billed action, so it is logged but never costs
   // the user another AI Assist (see NON_BILLABLE_FEATURES).
-  { feature: 'repair', patterns: ['you repair malformed recipe', 'repair this malformed recipebox recipe', 'repair this malformed hearthkeep recipe', 'repair malformed recipe json'] },
+  { feature: 'repair', patterns: ['you repair malformed recipe', 'repair this malformed recipebox recipe', 'repair malformed recipe json'] },
   // 'cleanup' is the Stage-2/3 normalization fix-up (typos, missing direction
   // amounts) — an internal quality pass on an already-imported recipe, so it's
   // non-billable like repair. Checked before 'import'/'adjust'.
-  { feature: 'cleanup', patterns: ['recipebox cleanup pass', 'hearthkeep cleanup pass', 'correct obvious mistakes while preserving'] },
+  { feature: 'cleanup', patterns: ['recipebox cleanup pass', 'correct obvious mistakes while preserving'] },
   // Specific multi-cost features are matched before the broad 'adjust' pattern.
   { feature: 'meal-plan', patterns: ['weekly meal plan', 'meal plan for the week', 'generate a meal plan', 'plan my week'] },
   { feature: 'nutrition', patterns: ['nutrition estimate', 'estimate the nutrition', 'nutrition facts for', 'macros for this recipe'] },
@@ -539,7 +539,7 @@ async function getPool() {
       updated_by text,
       version integer NOT NULL DEFAULT 1,
       last_synced_at timestamptz,
-      source_origin text NOT NULL DEFAULT 'Hearthkeep'
+      source_origin text NOT NULL DEFAULT 'RecipeBox'
     )`);
     await pool.query('CREATE INDEX IF NOT EXISTS app_control_sources_active_idx ON app_control_sources (active, category)');
     await pool.query(`CREATE TABLE IF NOT EXISTS app_control_change_log (
@@ -828,11 +828,11 @@ async function ensureConfiguredMasterAdmin(db) {
 
 function kbSeedEntries() {
   const now = new Date().toISOString();
-  const common = { scopeType: 'Global', scopeValue: '', priority: 50, active: true, createdBy: 'system', updatedBy: 'system', version: 1, lastSyncedAt: null, sourceOrigin: 'Hearthkeep Seed' };
+  const common = { scopeType: 'Global', scopeValue: '', priority: 50, active: true, createdBy: 'system', updatedBy: 'system', version: 1, lastSyncedAt: null, sourceOrigin: 'RecipeBox Seed' };
   return [
     {
       id: 'core-operating-philosophy',
-      title: 'Hearthkeep Core Operating Philosophy',
+      title: 'RecipeBox Core Operating Philosophy',
       category: 'Methodology',
       useWhen: 'All AI interactions, recommendations, imports, and adjustments.',
       appliesToFeatures: ADMIN_FEATURES,
@@ -896,7 +896,7 @@ function kbSeedEntries() {
       category: 'Pantry Logic',
       useWhen: 'Generating ideas from pantry ingredients.',
       appliesToFeatures: ['Pantry Chef'],
-      content: 'Prioritize ingredients the user already has. Clearly list optional missing ingredients. Do not assume expensive or specialty items. Suggest practical substitutions. Prefer saved Hearthkeep recipes before inventing new ideas.',
+      content: 'Prioritize ingredients the user already has. Clearly list optional missing ingredients. Do not assume expensive or specialty items. Suggest practical substitutions. Prefer saved RecipeBox recipes before inventing new ideas.',
       createdAt: now,
       updatedAt: now,
       ...common,
@@ -932,7 +932,7 @@ function kbSeedEntries() {
       category: 'Product Strategy',
       useWhen: 'Planning monetization, AI Assists, or account growth features.',
       appliesToFeatures: ['Settings'],
-      content: 'Future referral program: users may receive a referral code or link. When a referred friend completes a qualifying Hearthkeep+ signup or conversion, both accounts receive a one-time AI credit bonus. Referral credit grants must happen server-side only, be auditable, prevent self-referrals, prevent repeated bonuses from the same referred user, and track referral source, referred user, referrer user, qualification date, and granted credits. Possible future tables include referrals, ai_credit_ledger, and referral_events.',
+      content: 'Future referral program: users may receive a referral code or link. When a referred friend completes a qualifying RecipeBox+ signup or conversion, both accounts receive a one-time AI credit bonus. Referral credit grants must happen server-side only, be auditable, prevent self-referrals, prevent repeated bonuses from the same referred user, and track referral source, referred user, referrer user, qualification date, and granted credits. Possible future tables include referrals, ai_credit_ledger, and referral_events.',
       createdAt: now,
       updatedAt: now,
       ...common,
@@ -968,7 +968,7 @@ function kbSeedEntries() {
       category: 'Product Strategy',
       useWhen: 'Improving recipe PDF export design.',
       appliesToFeatures: ['PDF Export', 'Recipe Detail'],
-      content: 'Recipe PDF exports should feel polished, branded, and worth sharing. Add Hearthkeep branding and logo if available, stronger typography hierarchy, a title section, metadata chips, clean ingredient and directions sections, estimated nutrition when available, and an Exported from Hearthkeep footer. Avoid imported recipe photos by default unless licensing or ownership is clear; if image inclusion exists, make it optional and default off.',
+      content: 'Recipe PDF exports should feel polished, branded, and worth sharing. Add RecipeBox branding and logo if available, stronger typography hierarchy, a title section, metadata chips, clean ingredient and directions sections, estimated nutrition when available, and an Exported from RecipeBox footer. Avoid imported recipe photos by default unless licensing or ownership is clear; if image inclusion exists, make it optional and default off.',
       createdAt: now,
       updatedAt: now,
       ...common,
@@ -992,7 +992,7 @@ function kbSeedEntries() {
       category: 'Legal / Copyright',
       useWhen: 'Importing from photos, screenshots, PDFs, websites, or cookbooks.',
       appliesToFeatures: ['Import', 'PDF Export', 'Recipe Detail'],
-      content: 'Personal use import is different from public redistribution. Store user-provided recipes for personal use. Do not publish copyrighted cookbook text publicly. Avoid presenting imported copyrighted recipes as Hearthkeep-owned content. Maintain source attribution where possible. This is not legal advice.',
+      content: 'Personal use import is different from public redistribution. Store user-provided recipes for personal use. Do not publish copyrighted cookbook text publicly. Avoid presenting imported copyrighted recipes as RecipeBox-owned content. Maintain source attribution where possible. This is not legal advice.',
       createdAt: now,
       updatedAt: now,
       ...common,
@@ -1016,7 +1016,7 @@ function kbSeedEntries() {
       category: 'WhatsNext Sync',
       useWhen: 'App Control changes are created, edited, activated, deactivated, or rolled back.',
       appliesToFeatures: ['Settings'],
-      content: 'App Control changes should eventually sync to WhatsNext as system knowledge and change events. Keep a local source of truth in Hearthkeep. If sync is unavailable, log the pending intent and keep Hearthkeep behavior stable.',
+      content: 'App Control changes should eventually sync to WhatsNext as system knowledge and change events. Keep a local source of truth in RecipeBox. If sync is unavailable, log the pending intent and keep RecipeBox behavior stable.',
       createdAt: now,
       updatedAt: now,
       ...common,
@@ -1039,7 +1039,7 @@ function validateKnowledgeInput(input, existing = {}) {
   const scopeValue = String(input.scopeValue ?? existing.scopeValue ?? input.scope_value ?? existing.scope_value ?? '').trim().slice(0, 180);
   const priority = Math.max(0, Math.min(100, Math.round(Number(input.priority ?? existing.priority ?? 50) || 50)));
   const active = typeof input.active === 'boolean' ? input.active : existing.active !== false;
-  const sourceOrigin = String(input.sourceOrigin ?? existing.sourceOrigin ?? input.source_origin ?? existing.source_origin ?? 'Hearthkeep').trim().slice(0, 120) || 'Hearthkeep';
+  const sourceOrigin = String(input.sourceOrigin ?? existing.sourceOrigin ?? input.source_origin ?? existing.source_origin ?? 'RecipeBox').trim().slice(0, 120) || 'RecipeBox';
   const appliesToFeatures = sanitizeFeatures(input.appliesToFeatures ?? existing.appliesToFeatures ?? input.applies_to_features ?? existing.applies_to_features);
   if (!title) throw new Error('Title is required.');
   if (!content) throw new Error('Content is required.');
@@ -1085,7 +1085,7 @@ async function seedAppControlKnowledge(db) {
   }
   await db.query(
     `INSERT INTO app_control_change_log(source_id, action, changed_by, next_value, note)
-     VALUES($1, 'seed', 'system', $2::jsonb, 'Seeded initial Hearthkeep App Control knowledge base.')`,
+     VALUES($1, 'seed', 'system', $2::jsonb, 'Seeded initial RecipeBox App Control knowledge base.')`,
     ['system', JSON.stringify({ count: kbSeedEntries().length })]
   );
 }
@@ -1250,12 +1250,12 @@ function resolveMonthlyCostCap() {
 
 async function checkGlobalAiControls() {
   if (String(process.env.AI_FEATURES_ENABLED || 'true').toLowerCase() === 'false') {
-    return { allowed: false, error: process.env.AI_EMERGENCY_DISABLE_REASON || 'Hearthkeep AI is temporarily unavailable.' };
+    return { allowed: false, error: process.env.AI_EMERGENCY_DISABLE_REASON || 'RecipeBox AI is temporarily unavailable.' };
   }
   const dailyMax = Number(process.env.AI_DAILY_GLOBAL_MAX_REQUESTS || 0);
   if (dailyMax > 0) {
     const daily = await checkRateLimit('global', 'ai-requests', dailyMax, 'day');
-    if (!daily.allowed) return { allowed: false, error: 'Hearthkeep AI is busy today. Please try again tomorrow.' };
+    if (!daily.allowed) return { allowed: false, error: 'RecipeBox AI is busy today. Please try again tomorrow.' };
   }
   const monthlyCostCap = resolveMonthlyCostCap();
   if (monthlyCostCap > 0) {
@@ -1266,7 +1266,7 @@ async function checkGlobalAiControls() {
        WHERE created_at >= date_trunc('month', now()) AND success=true`
     );
     if (Number(result.rows[0]?.total || 0) >= monthlyCostCap) {
-      return { allowed: false, error: 'Hearthkeep AI monthly budget is paused for now.' };
+      return { allowed: false, error: 'RecipeBox AI monthly budget is paused for now.' };
     }
   }
   return { allowed: true };
@@ -1299,13 +1299,13 @@ async function createSession(req, res, userId) {
 async function sendPasswordResetEmail(email, resetUrl) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) throw new Error('Password reset email is not configured.');
-  const from = process.env.RESEND_FROM || 'Hearthkeep <onboarding@resend.dev>';
+  const from = process.env.RESEND_FROM || 'RecipeBox <onboarding@resend.dev>';
   const safeUrl = escapeHtml(resetUrl);
   const html = `
     <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.5;color:#2F211B">
-      <h1 style="font-family:Georgia,serif">Reset your Hearthkeep password</h1>
+      <h1 style="font-family:Georgia,serif">Reset your RecipeBox password</h1>
       <p>Use the button below to choose a new password. This link expires in ${RESET_TOKEN_MINUTES} minutes.</p>
-      <p><a href="${safeUrl}" style="display:inline-block;background:#C0653F;color:#fff;text-decoration:none;font-weight:700;padding:12px 16px;border-radius:10px">Reset password</a></p>
+      <p><a href="${safeUrl}" style="display:inline-block;background:#C76F3A;color:#fff;text-decoration:none;font-weight:700;padding:12px 16px;border-radius:10px">Reset password</a></p>
       <p>If you did not ask for this, you can ignore this email.</p>
     </div>`;
   const response = await fetch('https://api.resend.com/emails', {
@@ -1317,9 +1317,9 @@ async function sendPasswordResetEmail(email, resetUrl) {
     body: JSON.stringify({
       from,
       to: [email],
-      subject: 'Reset your Hearthkeep password',
+      subject: 'Reset your RecipeBox password',
       html,
-      text: `Reset your Hearthkeep password: ${resetUrl}\n\nThis link expires in ${RESET_TOKEN_MINUTES} minutes.`,
+      text: `Reset your RecipeBox password: ${resetUrl}\n\nThis link expires in ${RESET_TOKEN_MINUTES} minutes.`,
     }),
   });
   if (!response.ok) {
@@ -1331,14 +1331,14 @@ async function sendPasswordResetEmail(email, resetUrl) {
 async function sendVerificationEmail(email, verifyUrl) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) throw new Error('Email sending is not configured.');
-  const from = process.env.RESEND_FROM || 'Hearthkeep <onboarding@resend.dev>';
+  const from = process.env.RESEND_FROM || 'RecipeBox <onboarding@resend.dev>';
   const safeUrl = escapeHtml(verifyUrl);
   const html = `
     <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.5;color:#2F211B">
       <h1 style="font-family:Georgia,serif">Confirm your email</h1>
-      <p>Welcome to Hearthkeep! Tap the button below to confirm your email address. This link expires in 24 hours.</p>
-      <p><a href="${safeUrl}" style="display:inline-block;background:#384A3A;color:#fff;text-decoration:none;font-weight:700;padding:12px 16px;border-radius:10px">Confirm email</a></p>
-      <p>If you did not create a Hearthkeep account, you can ignore this email.</p>
+      <p>Welcome to RecipeBox! Tap the button below to confirm your email address. This link expires in 24 hours.</p>
+      <p><a href="${safeUrl}" style="display:inline-block;background:#2C4A33;color:#fff;text-decoration:none;font-weight:700;padding:12px 16px;border-radius:10px">Confirm email</a></p>
+      <p>If you did not create a RecipeBox account, you can ignore this email.</p>
     </div>`;
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -1346,9 +1346,9 @@ async function sendVerificationEmail(email, verifyUrl) {
     body: JSON.stringify({
       from,
       to: [email],
-      subject: 'Confirm your Hearthkeep email',
+      subject: 'Confirm your RecipeBox email',
       html,
-      text: `Confirm your Hearthkeep email: ${verifyUrl}\n\nThis link expires in 24 hours.`,
+      text: `Confirm your RecipeBox email: ${verifyUrl}\n\nThis link expires in 24 hours.`,
     }),
   });
   if (!response.ok) {
@@ -2105,7 +2105,7 @@ app.post('/api/auth/signup', async (req, res) => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Enter a valid email address.' });
     if (password.length < PASSWORD_MIN_LENGTH) return res.status(400).json({ error: 'Use a password with at least 6 characters.' });
     if (isConfiguredMasterEmail(email) && !verifyConfiguredMasterPassword(password)) {
-      return res.status(403).json({ error: 'This email is reserved for the Hearthkeep master admin.' });
+      return res.status(403).json({ error: 'This email is reserved for the RecipeBox master admin.' });
     }
     const exists = await db.query('SELECT user_id FROM profiles WHERE email=$1', [email]);
     if (exists.rows[0]) return res.status(409).json({ error: 'An account already exists for that email. Sign in with your password.' });
@@ -2951,7 +2951,7 @@ app.get('/api/fetch-url', async (req, res) => {
     }
     if (result.blocked) {
       return res.status(422).json({
-        error: 'Hearthkeep could not read this recipe page — the site is blocking automated access. Use Paste Text (copy the recipe) or upload a screenshot instead.',
+        error: 'RecipeBox could not read this recipe page — the site is blocking automated access. Use Paste Text (copy the recipe) or upload a screenshot instead.',
         url: target,
         finalUrl,
         title: result.title,
@@ -2966,7 +2966,7 @@ app.get('/api/fetch-url', async (req, res) => {
     if (isAbortError(err)) {
       return res.status(504).json({ error: 'That recipe site took too long to respond. Try again, or use Paste Text or screenshots.', url: target, sourceQuality: 'blocked' });
     }
-    res.status(502).json({ error: 'Hearthkeep could not reach that page. Check the link, or try Paste Text or screenshots.', url: target, sourceQuality: 'blocked' });
+    res.status(502).json({ error: 'RecipeBox could not reach that page. Check the link, or try Paste Text or screenshots.', url: target, sourceQuality: 'blocked' });
   }
 });
 
@@ -2981,7 +2981,7 @@ app.get('/api/fetch-social', async (req, res) => {
   const platform = detectSocialPlatform(target);
   const warnings = [];
   if (platform === 'unknown') {
-    const payload = { error: 'unsupported platform', platform, url: target, warnings: ['Hearthkeep Social Link currently supports public TikTok, Instagram, and Facebook posts.'], sourceQuality: 'low' };
+    const payload = { error: 'unsupported platform', platform, url: target, warnings: ['RecipeBox Social Link currently supports public TikTok, Instagram, and Facebook posts.'], sourceQuality: 'low' };
     if (debug) payload.debug = { platform, url: target, title: '', descriptionLength: 0, captionLength: 0, textLength: 0, imageFound: false, oEmbedStatus: null, warnings: payload.warnings, sourceQuality: 'low' };
     return res.status(400).json(payload);
   }
@@ -3024,8 +3024,8 @@ app.get('/api/fetch-social', async (req, res) => {
       }
     } else {
       warnings.push(platform === 'instagram'
-        ? 'Instagram public oEmbed generally requires Meta app credentials, so Hearthkeep used public page metadata only.'
-        : 'Facebook public oEmbed generally requires Meta app credentials, so Hearthkeep used public page metadata only.');
+        ? 'Instagram public oEmbed generally requires Meta app credentials, so RecipeBox used public page metadata only.'
+        : 'Facebook public oEmbed generally requires Meta app credentials, so RecipeBox used public page metadata only.');
     }
 
     try {
@@ -3047,7 +3047,7 @@ app.get('/api/fetch-social', async (req, res) => {
     if (!caption && description) caption = description;
     if (!text && caption) text = caption;
     if (Math.max(text.length, caption.length, description.length) < 120) {
-      warnings.push('Hearthkeep could not access much caption or recipe text from this post.');
+      warnings.push('RecipeBox could not access much caption or recipe text from this post.');
     }
     const sourceQuality = socialQuality(text, caption, description, warnings);
     const payload = {
@@ -3566,7 +3566,7 @@ app.post('/api/ai', async function(req, res) {
   let entitlement = null;
   try {
     user = await currentUser(req);
-    if (!user) return res.status(401).json({ error: 'Sign in to use Hearthkeep AI.' });
+    if (!user) return res.status(401).json({ error: 'Sign in to use RecipeBox AI.' });
     feature = detectAiFeature(req.body);
     model = String(req.body?.model || '');
     const assistCost = aiAssistCost(feature);
@@ -3578,7 +3578,7 @@ app.post('/api/ai', async function(req, res) {
     const dupHash = crypto.createHash('sha256').update(JSON.stringify(req.body?.messages || req.body || {})).digest('hex').slice(0, 32);
     if (!entitlement.unlimited) {
       const ipLimit = await checkRateLimit(`ip:${clientIp(req)}`, `ai:${feature}`, 80, 'day');
-      if (!ipLimit.allowed) return res.status(429).json({ error: 'Slow down a bit before using more Hearthkeep AI.' });
+      if (!ipLimit.allowed) return res.status(429).json({ error: 'Slow down a bit before using more RecipeBox AI.' });
       const perUserLimit = await checkRateLimit(`user:${user.user_id}`, `ai:${feature}`, entitlement.aiDailyLimit || 60, 'day');
       if (!perUserLimit.allowed) return res.status(429).json({ error: 'Daily AI limit reached for your account.', limit: perUserLimit.limit, resetAt: perUserLimit.resetAt });
       // Burst guard: even a high-balance user can't script the AI endpoints.
@@ -3589,7 +3589,7 @@ app.post('/api/ai', async function(req, res) {
     } else if (!isMaster) {
       // Beta = unlimited AI Assists, but still abuse / rate-limit protected.
       const ipLimit = await checkRateLimit(`ip:${clientIp(req)}`, `ai:${feature}`, 120, 'day');
-      if (!ipLimit.allowed) return res.status(429).json({ error: 'Slow down a bit before using more Hearthkeep AI.' });
+      if (!ipLimit.allowed) return res.status(429).json({ error: 'Slow down a bit before using more RecipeBox AI.' });
       const betaCap = Number(process.env.AI_BETA_DAILY_ABUSE_CAP || 200);
       const perUserLimit = await checkRateLimit(`user:${user.user_id}`, `ai:${feature}`, betaCap, 'day');
       if (!perUserLimit.allowed) return res.status(429).json({ error: 'Daily AI limit reached for your account.', limit: perUserLimit.limit, resetAt: perUserLimit.resetAt });
@@ -3710,5 +3710,5 @@ module.exports._test = {
 };
 
 if (require.main === module) {
-  app.listen(process.env.PORT || 3000, function() { console.log('Hearthkeep running'); });
+  app.listen(process.env.PORT || 3000, function() { console.log('RecipeBox running'); });
 }

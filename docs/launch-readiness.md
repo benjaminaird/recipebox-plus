@@ -1,11 +1,11 @@
-# Hearthkeep — Launch Readiness
+# RecipeBox — Launch Readiness
 
 Single source of truth for "what's done and what remains before public launch."
-Last updated: 2026-06-29 (roadmap/status catch-up).
+Last updated: 2026-06-26 (launch-readiness pass).
 
 - **Production:** https://recipebox-kappa.vercel.app
 - **Branch:** `codex/import-reliability-notes` (deploys to prod via `vercel --prod`)
-- **Latest local commit at this writing:** `5c49540` (see `git log` for current; local branch is one commit ahead of origin at this checkpoint)
+- **Latest commit at this writing:** `fffbc23` (see `git log` for current)
 - **Phase:** `LAUNCH_PHASE=beta` (beta = unlimited AI, abuse-rate-limited)
 
 ## 1. Current shipped features
@@ -14,7 +14,6 @@ Last updated: 2026-06-29 (roadmap/status catch-up).
 - Recipe detail: scaling, Cook Mode + timers, branded copyright-safe PDF export, native Share + share-to-import, original-source viewer for photo/PDF imports.
 - Meal Planner: weekly plan, generate shopping list, mobile-polished.
 - Shopping (primary tab): multi-recipe combined lists, conservative consolidation, source context, manual add, interactive checklist, pantry-aware "already have" staples.
-- Household sharing: household create/join/invite/remove/disband, Owner/Adult/Member roles, private-by-default recipe sharing, shared household library, meal plan, shopping list, pantry staples, and Family/Founder Family shared AI Assist pool.
 - Pantry Chef (AI chat). Settings, App Control (master admin), feedback inbox.
 - Offline + instant launch (service worker). Tap-only navigation (no swipe).
 
@@ -50,14 +49,13 @@ Last updated: 2026-06-29 (roadmap/status catch-up).
 
 ## 9. Nice-to-have polish (not blockers)
 - Richer smart collections ("Cook Again", "This Week", "Recently Cooked").
-- Durable server-backed personal shopping/pantry storage; real-time household list sync; full pantry inventory.
+- Durable server-backed shopping list; family shared lists; full pantry inventory.
 - Per-occurrence meal-plan quantities; serving/scale review before generating a list.
 
 ## 10. Known limitations (carry forward)
-- Personal shopping list + pantry staples are **localStorage-backed**; household shopping list + pantry staples are server-backed when the user is in a household. Neither path is real-time yet.
+- Shopping list + pantry staples are **localStorage, local-only** (durable server/household model deferred).
 - Pantry is lightweight **staples**, not a full inventory; exclusion matches exact normalized names.
 - A recipe planned on multiple meal-plan days counts **once** in the generated list.
-- Household sharing is built but still needs end-to-end multi-account QA, real-time collaboration polish, and payment/entitlement launch wiring.
 - No native wrapper yet; payments not live; legal docs need final review.
 - CSP shipped **report-only** (not yet enforced).
 - Android hardware-back/iOS edge-swipe exits from a recipe rather than returning to the tab (deliberate, to remove buggy swipe).
