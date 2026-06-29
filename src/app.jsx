@@ -10,7 +10,7 @@
       blue:"#2563EB", bluePale:"#EFF6FF",
       red:"#C0392B", redPale:"#FDECEA", white:"#FFFFFF",
     };
-    const BRAND_GRADIENT = `linear-gradient(135deg, ${C.green} 0%, ${C.brown} 100%)`;
+    const BRAND_HEADER = C.green;
     const SERIF = "'DM Serif Display', serif";
     const SANS = "'DM Sans', sans-serif";
     const APP_VERSION = "1.1.0";
@@ -27,7 +27,7 @@
     const safePad = (top, right, bottom, left = right) => `calc(env(safe-area-inset-top) + ${top}px) ${right}px ${bottom}px ${left}px`;
     const S = {
       page: { minHeight:"100vh", width:"100%", maxWidth:"100%", overflowX:"hidden", background:`linear-gradient(180deg, ${C.cream} 0%, ${C.cream2} 100%)` },
-      brandHeader: { background:BRAND_GRADIENT, boxShadow:"0 10px 28px rgba(32,20,14,0.16)" },
+      brandHeader: { background:BRAND_HEADER, boxShadow:"0 10px 28px rgba(32,20,14,0.14)" },
       card: { background:"rgba(255,249,238,0.92)", border:"1px solid rgba(216,199,174,0.92)", borderRadius:15, boxShadow:"0 8px 22px rgba(90,56,39,0.065)" },
       cardSoft: { background:"rgba(252,242,225,0.86)", border:"1px solid rgba(216,199,174,0.88)", borderRadius:13, boxShadow:"0 4px 14px rgba(90,56,39,0.045)" },
       primaryBtn: { background:C.green, color:C.white, border:"none", borderRadius:11, fontWeight:800, cursor:"pointer", fontFamily:SANS },
