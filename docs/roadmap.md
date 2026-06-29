@@ -1,18 +1,18 @@
-# RecipeBox Roadmap
+# Hearthkeep Roadmap
 
-RecipeBox is moving toward beta-readiness first, then wider iOS and Google Play release. The product direction is a household food-management system: recipe saving, intelligent organization, AI-assisted adaptation, meal planning, shopping lists, and family coordination.
+Hearthkeep is moving toward beta-readiness first, then wider iOS and Google Play release. The product direction is a household food-management system: recipe saving, intelligent organization, AI-assisted adaptation, meal planning, shopping lists, and family coordination.
 
 ## Current Status
 
-Last updated: June 26, 2026.
+Last updated: June 29, 2026.
 
 > **Launch readiness:** see [`docs/launch-readiness.md`](launch-readiness.md) for the launch gate (shipped features, blockers, security/auth/payment/AI/import/native status) and [`docs/native-readiness-checklist.md`](native-readiness-checklist.md) for the manual real-device QA checklist. Web-beta blockers: final legal review, on-device QA, promote CSP report-only → enforced, confirm `RESEND_API_KEY` in prod.
 
-- Production is deployed at `https://recipebox-kappa.vercel.app` (Vercel production target, aliased; deployed from the `codex/import-reliability-notes` branch via `vercel --prod`).
-- Latest checkpoint branch: `codex/import-reliability-notes`.
+- Production target: `https://recipebox-kappa.vercel.app` (Vercel production target, aliased; deployed from the `codex/import-reliability-notes` branch via `vercel --prod` when publishing).
+- Current working branch: `codex/import-reliability-notes`.
+- Latest local checkpoint commit: `5c49540 Convert bare temperatures (e.g. "180c") to the display system` (one local commit ahead of `origin/codex/import-reliability-notes` at the time of this roadmap update).
 
 > **Pricing/AI update (June 26, 2026):** "AI credits" is now **"AI Assists"** everywhere user-facing (internal DB columns keep `credit` names). New tiers/allowances: **Free** 15 welcome Assists then 5/mo · **Plus** 250/mo ($4.99/$39.99) · **Family** 600 shared/mo ($7.99/$69.99) · **Founder** 300/mo ($29.99/yr, beta-convert only) · **Beta** unlimited. AI actions now cost a *variable* number of Assists via a central map (`AI_ACTION_COSTS`): import/chat/nutrition/shopping-optimize = 1, adjust/Pantry Chef = 2, weekly meal plan = 4; repair = 0. Spend order monthly → bonus → purchased; monthly doesn't roll over; bonus + purchased never expire. Server-side enforcement adds a 20-action/10-min burst guard, duplicate-import detection, a per-action `ai_assist_ledger` audit trail, and automatic refund on post-charge failure. AI Assist packs (25/$1.99, 75/$4.99, 200/$9.99, 500/$19.99) shown to all tiers (purchase pending billing). No "unlimited imports" claims; published limits only.
-- Latest checkpoint commit: `c52da90 Add multiple-recipe import review screen` (live in production).
 - The multiple-recipe import review screen is shipped: when extraction returns `multiple_recipes_detected`, the user sees the detected recipes and can import one, combine them into a single card, or import all separately. Each option re-runs a focused extraction against the original source and discloses that it uses AI credits. All AI calls still go through `/api/ai`, so server-side credit metering and tier/rate-limit enforcement are unchanged.
 - Import reliability is much stronger across URLs, YouTube, PDFs, photos, HEIC uploads, scanned PDFs, and sideways PDF pages.
 - The private 35-case import suite from the Desktop testing document passed locally. The repo keeps that suite local/ignored so personal recipe photos, PDFs, and notes are not pushed.
@@ -22,8 +22,8 @@ Last updated: June 26, 2026.
 - Known honest fallbacks are now part of the expected product behavior: blocked recipe pages, low-information social/video sources, and multiple-recipe sources should not become invented or silently merged recipes.
 - Beta feedback (Settings → Beta Feedback) is now readable: a master-admin-only inbox in App Control shows each message with submitter, page, and device, supports new/reviewed triage, and surfaces an unread badge on the Settings tab and App Control card. Stored in `user_feedback`; no email/webhook — visible only to the master admin (server-enforced).
 - Request + cost hardening: replaced the blanket `50mb` JSON body limit with per-route limits — `1mb` default for all endpoints (auth, feedback, admin, etc.), `16mb` for `/api/ai` (image imports), and `40mb` for the recipe-sync routes (`/api/recipes`, signup, migrate) that carry a full library of base64 images. Oversized requests get a clean `413` JSON error. The global AI **wallet circuit breaker** (monthly estimated-cost ceiling) is now **ON by default at $75** (override/disable via `AI_MONTHLY_GLOBAL_MAX_COST_USD`) and now applies to everyone **except the master admin** — so it actually protects during the unlimited beta (beta users previously bypassed all global controls). Covered by `request-guards-test`.
-- Share-to-import (Web Share Target): the manifest registers RecipeBox as a share target (`share_target`, GET, params title/text/url). Sharing a recipe link/text from another app opens RecipeBox at `/?url=&text=&title=`; the app parses it, routes to the right import tab (YouTube / social / web link / paste text), and opens the importer **pre-filled** (one tap to import — no surprise credit spend). Params are stripped from the URL after handling; if not signed in, the import opens right after sign-in. **Works on Android installed PWAs and is native-ready; iOS PWAs cannot be share targets, so it won't appear in the iOS share sheet until the native app** — but the same `/?url=` deep link works on any device (e.g. via an iOS Shortcut/bookmark) as an interim path.
-- Share a recipe (native): the recipe detail action bar has a Share button that opens the OS share sheet (Web Share API) to send the recipe anywhere — Messages, Mail, Notes, etc. It attaches the branded PDF (with a short summary) when the platform supports file sharing, otherwise shares a clean plain-text version (title, servings, ingredients, directions, notes, "Shared from RecipeBox"); falls back to copy-to-clipboard / PDF download on browsers without the share API. Reuses the existing PDF builder (refactored to `buildRecipeDoc`). No per-recipe public link yet (recipes are private/account-scoped) — that'd need a public share page, noted as a future option.
+- Share-to-import (Web Share Target): the manifest registers Hearthkeep as a share target (`share_target`, GET, params title/text/url). Sharing a recipe link/text from another app opens Hearthkeep at `/?url=&text=&title=`; the app parses it, routes to the right import tab (YouTube / social / web link / paste text), and opens the importer **pre-filled** (one tap to import — no surprise credit spend). Params are stripped from the URL after handling; if not signed in, the import opens right after sign-in. **Works on Android installed PWAs and is native-ready; iOS PWAs cannot be share targets, so it won't appear in the iOS share sheet until the native app** — but the same `/?url=` deep link works on any device (e.g. via an iOS Shortcut/bookmark) as an interim path.
+- Share a recipe (native): the recipe detail action bar has a Share button that opens the OS share sheet (Web Share API) to send the recipe anywhere — Messages, Mail, Notes, etc. It attaches the branded PDF (with a short summary) when the platform supports file sharing, otherwise shares a clean plain-text version (title, servings, ingredients, directions, notes, "Shared from Hearthkeep"); falls back to copy-to-clipboard / PDF download on browsers without the share API. Reuses the existing PDF builder (refactored to `buildRecipeDoc`). No per-recipe public link yet (recipes are private/account-scoped) — that'd need a public share page, noted as a future option.
 - Import ingredient accuracy: all extraction (and JSON-repair) AI calls now run at temperature 0 so the model transcribes literally instead of paraphrasing/rounding ingredients (the main lever against half-and-half→milk on long, chatty transcripts). Plus a deterministic safety net: a high-signal ingredient list (half-and-half, heavy cream, buttermilk, evaporated/condensed milk, cake/bread flour, powdered/brown sugar, cornstarch, etc.) is compared between the YouTube/social source text and the extracted ingredients; if the source clearly names one that's missing from the recipe, a "double-check the ingredients against the original — the video mentions X" note is added (fires even on otherwise high-quality imports, only when there's a real mismatch). Covered by `import-fidelity-test`.
 - Import ingredient fidelity: extraction prompts now explicitly forbid substituting/simplifying ingredients into more common equivalents (half-and-half must stay half-and-half; heavy cream/buttermilk/cake flour/etc. preserved exactly), with extra emphasis on noisy YouTube/social transcripts and instructions to keep the source's wording or note uncertainty rather than guess. The ingredient normalizer was confirmed to preserve identity (it keeps the source `name`). Thin YouTube/social imports (`sourceQuality` partial / description-only) now record `sourceQuality` + `importWarnings` on the recipe and prepend a "reconstructed from limited information — please review the ingredients" note (high-quality imports stay uncluttered). Regression test: `npm run import-fidelity-test`.
 - Offline + instant launch (service worker): `public/sw.js` precaches the app shell (index.html, app.js, helper scripts, icons) plus the React/jsPDF/pdf.js/HEIC libraries, and serves them stale-while-revalidate — so the app opens instantly from cache and works offline. Offline you can browse/read saved recipes, meal plan, shopping list, use Cook Mode/timers, and export PDFs; AI/account actions show a clear "you're offline" message. `/api/*` stays network-first (fresh online, app falls back to its localStorage mirror offline). Versioned caches purge on activate; on an update a new worker activates and the page reloads once to apply it. **Bump `VERSION` in `public/sw.js` on each deploy** so updates roll out promptly. Deferred follow-up: a true offline write queue (edit offline → auto-sync on reconnect); today offline edits persist locally and sync on the next online save.
@@ -31,11 +31,12 @@ Last updated: June 26, 2026.
 - Standalone-PWA bottom seam fixed for real: the brand gradient is now a single oversized fixed `body::before` backdrop and every full-screen surface (splash, auth, cook mode) and `#root` is transparent — so there is only ONE gradient in the whole app and no seam where the home-indicator/safe-area strip met a second gradient box. HTML/JS are served `no-cache` so the installed PWA picks up updates.
 - Nutrition + servings on import: extraction now always sets realistic servings (uses stated yield, otherwise estimates from quantities — never defaults to 4) and always fills per-serving macros (uses source nutrition when present, dividing whole-recipe values by servings; otherwise estimates from ingredients — never returns zeros). Recipe detail nutrition card gained a Per serving / Whole recipe toggle and hides entirely if a recipe genuinely has no macros.
 - Native-feel UI polish: the app now reads as a native app, not a browser. Solid brand-green background fallback on html/body/#root + `overscroll-behavior: none` kill the white flash/line before splash and the rubber-band bounce; `maximum-scale=1, user-scalable=no` stops the iOS input-focus zoom; global `-webkit-tap-highlight-color: transparent`, `-webkit-touch-callout: none` on chrome (kept on inputs/recipe text), and antialiased font smoothing. Hover-lift is disabled on touch (`@media (hover:none)`) and replaced with a subtle press-scale; modals get momentum scrolling. Splash and auth screens use `100dvh` + safe-area padding. The PWA manifest already launches standalone with a brand background.
-- Beta usage dashboard: App Control → Usage (master-admin only) shows real AI consumption to tune the tier credit numbers before launch — 30-day billable actions / provider cost / failures, all-time cost, a 14-day daily bar chart, a per-feature breakdown, the heaviest users this month, and a tuning line (avg/max billable actions per active user vs the Free 10 / Plus 100 / Family 250 / Founder 150 caps). Backed by `GET /api/admin/ai-usage-summary`. Read-only aggregation over `ai_usage_events`.
-- First-run onboarding: an empty RecipeBox now shows a warm "Welcome to your RecipeBox" card with clear, tappable "ways to add" tiles (Import from the web / Snap a photo or card / Paste recipe text — each opens the right import tab) plus an "Ask Pantry Chef" option and a sync reassurance line. The empty category grid and redundant filter chips are hidden until the first recipe exists. No fake/sample recipes are injected.
+- Beta usage dashboard: App Control → Usage (master-admin only) shows real AI consumption to tune the tier AI Assist numbers before launch — 30-day billable actions / provider cost / failures, all-time cost, a 14-day daily bar chart, a per-feature breakdown, the heaviest users this month, and a tuning line against the current Free/Plus/Family/Founder allowance model. Backed by `GET /api/admin/ai-usage-summary`. Read-only aggregation over `ai_usage_events`.
+- First-run onboarding: an empty Hearthkeep now shows a warm "Welcome to your Hearthkeep" card with clear, tappable "ways to add" tiles (Import from the web / Snap a photo or card / Paste recipe text — each opens the right import tab) plus an "Ask Pantry Chef" option and a sync reassurance line. The empty category grid and redundant filter chips are hidden until the first recipe exists. No fake/sample recipes are injected.
 - Auth hardening: sign-in/sign-up/password-reset throttling is now DB-backed (`rate_limit_counters`, per IP+email, 20 / 15 min) instead of an in-memory map, so brute-force protection actually holds across serverless instances (the in-memory map remains a local-dev fallback). Passwords use scrypt + constant-time compare, reset tokens are hashed/single-use/expiring, and sessions are DB-backed — all already solid.
 - **Email verification — Done.** New signups insert `email_verified=false` and get a confirmation email (Resend, already configured for password reset; best-effort — signup never fails if delivery is down). `email_verification_tokens` mirrors the reset table: **hashed, single-use, 24h-expiring, rate-limited**; `POST /api/auth/verify-email` (non-enumerating generic error) confirms and invalidates other outstanding tokens; `POST /api/auth/resend-verification` (auth-gated, rate-limited) resends. The session exposes `emailVerified`; Settings shows a "Confirm your email" banner + resend; a `?verify=token` link confirms in-app and refreshes the session. **Access policy (v1):** existing accounts are **grandfathered verified** (column `DEFAULT true`) so beta users are never locked out; unverified new users keep full app use (nothing financially sensitive exists yet, and self-deletion of one's own account stays allowed). The `emailVerified` flag is recorded + surfaced and will gate **payment/subscription actions** when those ship. Covered by `npm run auth-verification-test`.
 - Monetization/entitlement infrastructure is in place (server-side, source of truth): tier config (Free/Plus/Family/Founder/Beta), an `ai_credit_ledger` for non-monthly buckets (purchased + bonus), and `/api/ai` now enforces a credit balance and spends monthly → bonus → purchased. We are in `LAUNCH_PHASE=beta`, so beta stays unlimited (with abuse rate limits) and the tier caps are inert for current users until launch. No payments/ads wired. See the Monetization milestone below.
+- Family/household sharing has moved from roadmap to implementation: household creation/join/invite/remove/disband, roles (Owner/Adult/Member), private-by-default recipe sharing, shared household meal plan, shared shopping list, shared pantry staples, and shared Family/Founder Family AI Assist pools are server-backed. Remaining family work is polish, testing, entitlement/payment launch wiring, and real-time collaboration.
 
 ## Import Reliability (hardening pass — done)
 
@@ -52,7 +53,7 @@ Last updated: June 26, 2026.
 - Improve deterministic shopping-list generation without extra AI calls at list-open time.
 - Keep mobile layouts compact, readable, and safe for native wrapping.
 - Continue production security, privacy, and account-readiness work.
-- Keep AI credit behavior simple, fair, and trust-first: users should never lose extra credits because RecipeBox needed hidden detection, cleanup, or JSON repair passes.
+- Keep AI credit behavior simple, fair, and trust-first: users should never lose extra credits because Hearthkeep needed hidden detection, cleanup, or JSON repair passes.
 
 ## Next Recommended Steps
 
@@ -93,37 +94,38 @@ Last updated: June 26, 2026.
    - **"Copycat" is a tag/smart-discovery concept, never a category.** Categories remain real food types (Breakfast, Entrées, Desserts, etc.). Import/AI now suggests `Copycat` when the title/source clearly indicates a restaurant/brand recreation ("copycat", "restaurant-style", "better than takeout", "<Brand>-style/inspired"), plus a conservative curated set (Quick, Weeknight, Air Fryer, Slow Cooker, Instant Pot, One-Pot, No-Bake, Grill, Make-Ahead, Meal Prep, Freezer-Friendly, Holiday, Party, Budget-Friendly, Kid-Friendly, Comfort Food, Spicy). Diet/allergy tags (Vegan, Vegetarian, Gluten-Free, Dairy-Free) are only added when explicitly stated, never inferred. The tag is descriptive only — no official affiliation or brand logos.
    - Covered by `npm run recipe-tags-test`. No schema/API change (tags still live in the per-user `recipe_json` JSONB, same ownership/privacy/RLS).
    - **Smart shortcuts ("Quick Finds") — Done.** The big 2-column "Collections" card grid was reframed into one compact, horizontally-scrollable **Quick Finds** chip row (it replaced both the old Popular Tags row and the heavy Collections grid — they were duplicative). Built only from tags the user actually has, frequency then alpha, each chip shows its count and taps through to the existing tag filter. Visually lighter than recipe/category cards.
-   - **Library landing redesign — Done.** Recipe-first hierarchy: Header → Search → Quick filters → Quick Finds → Recently Saved → Browse your box → All Recipes. "Recently Saved" gives fast re-entry into the latest imports (shown only at ≥6 recipes so small libraries never feel empty). "Browse your box" now leads with categories that have recipes (by count); empty categories are collapsed behind "Show all categories" so empty scaffolding never dominates. Search now also matches category. Product direction: warmer than Paprika, more modern than Recipe Keeper.
+   - **Library landing redesign — Done.** Recipe-first hierarchy: Header → Search → Quick filters → Quick Finds → Recently Saved → Browse your recipes → All Recipes. "Recently Saved" gives fast re-entry into the latest imports (shown only at ≥6 recipes so small libraries never feel empty). "Browse your recipes" now leads with categories that have recipes (by count); empty categories are collapsed behind "Show all categories" so empty scaffolding never dominates. Search now also matches category. Product direction: warmer than Paprika, more modern than Recipe Keeper.
    - **Remaining future enhancement:** richer smart collections like "Cook Again," "This Week," "From Your Pantry," "Saved from YouTube," "Family Favorites," and "Meal Prep"; plus letting users rename/merge their own tags and save custom collections. Future quick-filter placeholders documented: Planned, Cooked, Shared.
 
 8. Tag backfill + branded, copyright-safe PDF export. **Done.**
    - Settings → "Tag your library" runs the deterministic tag suggester over existing recipes (non-destructive merge, de-dupe, never removes user tags, no AI calls), so recipes saved before the tag system become filterable.
-   - PDF export now includes the recipe Notes (where source links/attribution live), and every page carries a copyright-safe footer: RecipeBox branding, a "personal use · original recipe rights remain with their authors" line (or "Imported from <source>" when a `sourceUrl` is present), and page numbers.
+   - PDF export now includes the recipe Notes (where source links/attribution live), and every page carries a copyright-safe footer: Hearthkeep branding, a "personal use · original recipe rights remain with their authors" line (or "Imported from <source>" when a `sourceUrl` is present), and page numbers.
 
 ## Near-Term AI Credits Policy
 
 AI credits should reflect user-approved outcomes, not internal implementation details.
 
-- One normal import attempt should cost one user-visible credit, even if RecipeBox uses small internal detection, cleanup, or repair calls.
-- If RecipeBox cannot read a source before calling AI, such as a blocked recipe page, it should cost zero user credits.
+- One normal import attempt should cost one user-visible credit, even if Hearthkeep uses small internal detection, cleanup, or repair calls.
+- If Hearthkeep cannot read a source before calling AI, such as a blocked recipe page, it should cost zero user credits.
 - If an import clearly fails during beta, prefer zero user credits or an automatic refund over making users feel charged for broken behavior.
-- If a photo/PDF appears to contain multiple recipes, RecipeBox should pause and ask:
+- If a photo/PDF appears to contain multiple recipes, Hearthkeep should pause and ask:
   - Import one recipe: one credit.
   - Treat as one recipe: one credit.
   - Import both/all recipes: one credit per created recipe, clearly disclosed before running.
 - Internal provider calls, token usage, and estimated cost should still be logged for admin visibility and abuse/cost control.
 - Future implementation should split user-visible credit ledger from provider API-call logs so fairness and cost monitoring can both be true.
 
-## Future Import Preservation: Original Recipe Cards
+## Import Preservation: Original Recipe Cards
 
-RecipeBox should preserve sentimental source material for family recipes while still making the cleaned recipe easy to cook from.
+Hearthkeep should preserve sentimental source material for family recipes while still making the cleaned recipe easy to cook from.
 
-- When a recipe is imported from photos, handwritten cards, screenshots, or PDFs, optionally save the original source with the recipe.
-- Recipe detail can show a small "Original Recipe Card" or "Let's see what the original says" entry near Notes or under the hero image.
-- Tapping the entry should open a simple full-screen viewer for the original image/PDF page.
-- The original source should act as a source of truth for edits and as a sentimental keepsake.
+- **Built now:** photo/image imports, handwritten cards, screenshots, scanned PDFs, and multi-page imports can save a lightweight compressed `originalSource` archive on the recipe.
+- **Built now:** Recipe detail shows a "See the original recipe card / pages" entry with a thumbnail, and tapping it opens a full-screen viewer for the imported image(s)/page(s).
+- **Built now:** the original source is preserved through import review selections and normal edits, stripped out of AI prompts to save cost, excluded from the localStorage mirror to avoid quota issues, persisted server-side for signed-in users, and included in full JSON exports/backups.
+- The original source acts as a source of truth for edits and as a sentimental keepsake.
 - Edit Recipe should allow adding, replacing, downloading, or removing the original source.
-- Keep the first implementation lightweight; avoid complex OCR history/versioning until import reliability is stronger.
+- Text-based PDFs where Hearthkeep extracts embedded text instead of rendering pages do not yet capture an original image.
+- Scanned PDFs may archive rotation-augmented page variants, so the viewer can show an extra rotated copy.
 - Long term, store originals in Blob/object storage rather than large base64 fields in recipe JSON, especially for multi-page PDFs and high-resolution iPhone photos.
 
 ## Future Monetization: Referral Program
@@ -142,22 +144,24 @@ Users should eventually be able to refer a friend and receive a one-time AI cred
 
 The Weekly Meal Plan is a single recurring week keyed by day name (`mealPlan = { Monday:[recipeId,…] }`), persisted to `/api/mealplan`.
 
-- **Mobile polish pass — Done.** Calmer, recipe-first layout: a compact week-summary strip ("This week · <date range> · N meals · ~cal"), a dynamic Shopping List card (prominent "Ingredients from N planned meals" when meals exist; a muted "Generate after adding meals" hint when empty), a "Ready to plan your week?" prompt with Add-from-RecipeBox / Favorites / Quick shortcuts on an empty week, single-tap empty day cards ("Open night · Tap to plan dinner"; "What's for dinner tonight?" for today) instead of a dashed box + competing +Add, a softened Today highlight (inset green accent + pill instead of a thick border), planned rows with recipe thumbnails, and an upgraded add-picker (Favorites/Recent/Quick filters, thumbnails, safe-area padding, tap-scrim to dismiss). No data-model change.
+- **Mobile polish pass — Done.** Calmer, recipe-first layout: a compact week-summary strip ("This week · <date range> · N meals · ~cal"), a dynamic Shopping List card (prominent "Ingredients from N planned meals" when meals exist; a muted "Generate after adding meals" hint when empty), a "Ready to plan your week?" prompt with Add-from-Hearthkeep / Favorites / Quick shortcuts on an empty week, single-tap empty day cards ("Open night · Tap to plan dinner"; "What's for dinner tonight?" for today) instead of a dashed box + competing +Add, a softened Today highlight (inset green accent + pill instead of a thick border), planned rows with recipe thumbnails, and an upgraded add-picker (Favorites/Recent/Quick filters, thumbnails, safe-area padding, tap-scrim to dismiss). No data-model change.
 - **Week navigation (future):** the plan is currently one recurring week with no dates. A real calendar with Previous / Today / Next would require date-keyed plan storage + migration — deferred.
 - **Non-recipe entries (future):** real planning isn't always a recipe. Leftovers, eating out, freezer meals, and free-text notes need the day arrays to hold typed entries (`{type:'note'|'leftovers'|'eatingOut'|'recipe', …}`) instead of bare recipe ids, plus a migration — deferred to avoid a risky schema change.
 - **Planned-row actions (future):** Move to… / Duplicate to… / Use leftovers tomorrow / Swap. (Open + Remove exist today; avoid drag-and-drop on mobile — prefer a simple action menu.)
 - **"Help me plan" (AI, future):** an opt-in flow that proposes a full week for the user to **review before saving** (never auto-fill). Options: quick meals, family-friendly, pantry-first, budget-friendly, high-protein, avoid repeats. Consumes AI credits; always shows the plan for approval first.
-- **Household / family (future):** assign who's cooking, "added by" labels, household notes, shared meal plans + shared shopping list, family preferences / kid-friendly planning. Pairs with the Family Plan subscription below.
+- **Household sharing — Done v1.** When the user is in a household, the app switches the weekly meal plan to the household-backed plan. Shared recipes can be planned by other members, and the shared plan is sanitized server-side so private recipes cannot be slipped into the household plan.
+- **Household / family (future):** assign who's cooking, household notes, family preferences, kid-friendly planning, and richer "added by" context inside planning flows.
 
 ## Shopping Lists
 
 Deterministic, source-aware grocery lists built from one or more recipes. The engine is `public/shopping-list.js` (`RecipeBoxShopping`) — no AI in list generation.
 
 - **Shopping is a primary app tab — Done.** Bottom nav is now Library · Plan · Shop · Pantry · Settings (short labels for the 5-tab fit, safe-area compliant). The Shop tab opens the shopping list directly, or a polished empty state (Add item / Choose recipes / Go to Meal Plan) when empty. The temporary Library "open shopping list" button was removed (redundant); the Library "Make a list" multi-select entry stays. Items are interactive: **tap the row to check/uncheck** (large targets), explicit **edit** (pencil) and **delete** buttons (no swipe-to-delete), and a tappable **source line** that expands the contributing recipes — each opens that recipe. Edits preserve checked state + source context.
-- **Multi-recipe shopping lists — Done.** One combined, grocery-sectioned checklist from many recipes. (1) **Library multi-select** → "Create Shopping List"; (2) **Meal Plan** → "Generate Shopping List" from the week's planned recipes; (3) **Recipe detail** → "Add to my shopping list" (merges into the current list). Conservative consolidation (combines `1 cup + 1/2 cup sugar` → `1 1/2 cups`; **never** merges heavy cream / half-and-half / whole milk / buttermilk, different chocolates, or cheeses; keeps ambiguous units separate). Each item carries **source recipe context** (`item.sources` / `sourceCount`) and shows "Used in N recipes". A `ShoppingListScreen` provides check/uncheck (large tap targets), inline edit, delete, manual add, grocery-section grouping, a renamable title, and copy. List state (recipes + manual items + checked/edits/removed) **persists in `localStorage`** (`recipebox-shopping-v1`), user-specific and derived from the user's own recipes — no server route, no cross-user exposure. The single-recipe shopping view on recipe detail is unchanged.
-- **Pantry-aware exclusion — Done (lightweight).** A pantry-staples inventory (normalized ingredient names, local-only, `recipebox-pantry-v1`): tap the pantry icon on any shopping item to mark "I always keep this on hand," and it's set aside in a collapsible "Already have · N" section and left off this and future lists (tap "Need it" to add one back). Matching is by exact normalized name, so it's conservative — "olive oil" as a staple won't exclude "extra virgin olive oil." No pantry **inventory UI/AI** beyond this; Pantry Chef stays chat-only.
-- **Monetization framing:** Free = single-recipe shopping list + manual checklist. Plus = multi-recipe + meal-plan-generated list + ingredient consolidation + pantry-aware exclusion. Family = shared household list, real-time updates, shared pantry, "added by" labels.
-- **Future:** a durable per-user/household `shopping_lists` + `shopping_list_items` model in Supabase (the local shape mirrors it); pantry-aware "already have / exclude pantry items" (no pantry **inventory** exists yet — Pantry Chef is AI chat only); household shared lists + real-time family sync + assign shopper; list sharing / export / print; store-aisle customization; AI-assisted grouping of genuinely ambiguous items (review-gated, never automatic); dedicated party/event lists; **serving/scale review before generating** and per-occurrence quantities when the same recipe is planned multiple times in a week (v1 counts each planned recipe once).
+- **Multi-recipe shopping lists — Done.** One combined, grocery-sectioned checklist from many recipes. (1) **Library multi-select** → "Create Shopping List"; (2) **Meal Plan** → "Generate Shopping List" from the week's planned recipes; (3) **Recipe detail** → "Add to my shopping list" (merges into the current list). Conservative consolidation (combines `1 cup + 1/2 cup sugar` → `1 1/2 cups`; **never** merges heavy cream / half-and-half / whole milk / buttermilk, different chocolates, or cheeses; keeps ambiguous units separate). Each item carries **source recipe context** (`item.sources` / `sourceCount`) and shows "Used in N recipes". A `ShoppingListScreen` provides check/uncheck (large tap targets), inline edit, delete, manual add, grocery-section grouping, a renamable title, and copy.
+- **Persistence model — Done v1.** Personal shopping list state persists in `localStorage` (`recipebox-shopping-v1`), user-specific and derived from the user's recipes. When a signed-in user is in a household, the app switches to the server-backed household shopping list (`/api/household/shopping-list`) so members share the same list. It is not real-time yet; updates save through the API and refresh on load/source switch.
+- **Pantry-aware exclusion — Done (lightweight).** A pantry-staples inventory (normalized ingredient names): tap the pantry icon on any shopping item to mark "I always keep this on hand," and it's set aside in a collapsible "Already have · N" section and left off this and future lists (tap "Need it" to add one back). Matching is by exact normalized name, so it's conservative — "olive oil" as a staple won't exclude "extra virgin olive oil." Personal pantry staples are localStorage-backed; household pantry staples are server-backed through `/api/household/pantry`. No full pantry **inventory UI/AI** beyond this; Pantry Chef stays chat-only.
+- **Monetization framing:** Free = single-recipe shopping list + manual checklist. Plus = multi-recipe + meal-plan-generated list + ingredient consolidation + pantry-aware exclusion. Family = shared household list, shared pantry, and shared household AI Assist pool.
+- **Future:** durable personal server-backed shopping/pantry storage, real-time household collaboration, "added by" labels, assign shopper, list sharing / export / print, store-aisle customization, AI-assisted grouping of genuinely ambiguous items (review-gated, never automatic), dedicated party/event lists, **serving/scale review before generating**, and per-occurrence quantities when the same recipe is planned multiple times in a week (v1 counts each planned recipe once).
 
 ## Future Native Apps: iOS / Android Widgets
 
@@ -171,15 +175,16 @@ Widgets should help users make useful food decisions without opening the app.
 
 This belongs after native wrapping and release planning. Avoid app architecture choices that would make widgets difficult later.
 
-## Future Subscription: Family Plan
+## Family Plan / Household Sharing
 
-Recommended cap: 4 members.
+Recommended cap: 4 members. The household foundation and Family-tier sharing primitives are now implemented; billing is not live.
 
-- Roles: Owner, Adult, Member.
-- Owner controls billing and invites.
-- Shared library, favorites, meal plans, shopping lists, and pantry.
-- Personal/private recipes remain private unless explicitly shared.
-- Household sharing should be permission-based, not a shared login.
+- **Built now:** roles are Owner, Adult, and Member.
+- **Built now:** Owner/adults can invite; owner can rename, remove members, and disband; members can leave.
+- **Built now:** personal/private recipes remain private unless explicitly shared with the household.
+- **Built now:** shared household library, shared meal plan, shared shopping list, shared pantry staples, and shared Family/Founder Family monthly AI Assist pools.
+- **Built now:** household sharing is permission-based, not a shared login.
+- **Still future:** owner billing controls once payments are live; ownership transfer; real-time collaboration; shared favorites; "added by" labels; household notes/preferences; stronger Family-plan entitlement gates after beta.
 - Do not require members to live in the same household; support roommates, couples, separated families, college students, and caretaking relationships.
 
 ## Future: Swipe Navigation (back burner)
@@ -189,7 +194,7 @@ Swipe-to-navigate was tried on the web/PWA and disabled — it felt unreliable
 own edge-swipe). **Fully removed now:** the `history.pushState`/`popstate`
 back-navigation (which let the OS edge-swipe-back / Android back button drive
 in-app screen/tab changes — the lingering "buggy swipe") is gone, along with the
-dead swipe refs. Until native, RecipeBox uses **explicit buttons/menus only** —
+dead swipe refs. Until native, Hearthkeep uses **explicit buttons/menus only** —
 no swipe navigation and no swipe-to-delete anywhere. Navigation is tap-driven
 (bottom nav + in-screen back buttons) with directional slide transitions.
 
@@ -203,14 +208,14 @@ adjacent tabs with clamped ends. The disabled code/notes live in `src/app.jsx`.
 
 Recipe exports should feel polished, branded, and worth sharing.
 
-- Add RecipeBox branding and logo if available.
+- Add Hearthkeep branding and logo if available.
 - Improve title hierarchy and typography.
 - Add metadata chips for servings, prep time, cook time, total time, category, and rating.
 - Use clean ingredient, directions, and estimated nutrition sections.
-- Footer: "Exported from RecipeBox."
+- Footer: "Exported from Hearthkeep."
 - Avoid imported recipe photos by default unless ownership/licensing is clear.
 - If image inclusion is added, make it optional and default off.
-- Use warm RecipeBox styling: cream, deep green, soft gold, and walnut accents.
+- Use warm Hearthkeep styling: cream, deep green, soft gold, and walnut accents.
 
 ## Milestone: Monetization & Entitlements
 
@@ -218,10 +223,10 @@ Tiers: **Free, Plus, Family, Founder, Beta.** All values are server-side and nev
 
 Built now (server-authoritative):
 - Central config (`ENTITLEMENT_CONFIG` / `PLAN_ENTITLEMENTS`) for tier names, monthly credits, placeholder pricing, credit packs, referral amounts/cap, family member cap (4), an ads-enabled flag (default off, no ad network), and credit rules.
-- Monthly included credits: Free 10, Plus 100, Family 250 (shared — see below), Founder 150, Beta unlimited during beta. `LAUNCH_PHASE` flag (`beta` | `launched`) controls whether beta is unlimited; defaults to `beta`.
-- `ai_credit_ledger` table for non-monthly buckets (`purchased`, `bonus`) with debits; monthly usage stays in `ai_usage_monthly`. Purchased and bonus credits never expire; monthly does not roll over.
-- `/api/ai` checks total remaining (monthly + bonus + purchased) before calling the model and debits one credit in spend order **monthly → bonus → purchased**. Internal repair passes remain non-billable. Beta is unlimited but still IP + per-user daily abuse-rate-limited.
-- `GET /api/me/credits` (auth) returns plan, monthly used/remaining/reset date, bonus, purchased, total. `GET /api/config/entitlements` exposes read-only display config. `POST /api/admin/credits/grant` (master-admin) grants bonus/purchased credits manually until billing exists. Settings shows plan, remaining, bonus/purchased, reset date, and a "coming soon" note (no fake purchase buttons).
+- Monthly included AI Assists: Free 5/mo plus 15 welcome bonus Assists, Plus 250/mo, Family 600 shared/mo, Founder 300/mo, Founder Family 700 shared/mo, Beta unlimited during beta. `LAUNCH_PHASE` flag (`beta` | `launched`) controls whether beta is unlimited; defaults to `beta`.
+- `ai_credit_ledger` table for non-monthly buckets (`purchased`, `bonus`) with debits; monthly usage stays in `ai_usage_monthly` for personal accounts and `household_ai_usage_monthly` for Family/Founder Family household pools. Purchased and bonus credits never expire; monthly does not roll over.
+- `/api/ai` checks total remaining (monthly + bonus + purchased) before calling the model and debits the feature's configured AI Assist cost in spend order **monthly → bonus → purchased**. Internal repair/cleanup passes remain non-billable. Beta is unlimited but still IP + per-user daily abuse-rate-limited.
+- `GET /api/me/credits` (auth) returns plan, monthly used/remaining/reset date, pooled household status when applicable, bonus, purchased, total. `GET /api/config/entitlements` exposes read-only display config. `POST /api/admin/credits/grant` (master-admin) grants bonus/purchased credits manually until billing exists. Settings shows plan, remaining, bonus/purchased, reset date, and a "coming soon" note (no fake purchase buttons).
 - Referral foundation: `grantReferralBonus()` grants 25 credits to each side, capped at 10 paid conversions per referrer per month (`referralBonusAllowed`). Not yet wired to a live conversion event.
 
 Pricing: Plus $4.99/mo or $39.99/yr (250 Assists/mo); Family $7.99/mo or $69.99/yr (600 shared Assists/mo); Founder $29.99/yr forever (beta converts only, 300 Assists/mo). Packs: 25/$1.99, 75/$4.99, 200/$9.99, 500/$19.99. Free is 15 welcome Assists then 5/mo.
@@ -232,9 +237,9 @@ Documented for later (not built now):
   - **Native Android** → Google Play Billing (same model).
   - **Web (the PWA / any future web checkout)** → Stripe is appropriate there and keeps ~97% vs Apple/Google's ~70–85%. Only wire Stripe if/when we sell on the web.
   - **Reconciliation is the same regardless of provider:** server-side entitlements stay the single source of truth. The provider's only job is to send a *verified* signal — an **Apple/Google receipt verified server-side**, or a **Stripe webhook** — that sets the plan or writes a `purchase` ledger grant. Never trust a client-reported purchase. `user_entitlements` already has `stripe_customer_id`/`stripe_subscription_id` columns; add equivalent fields (or a `purchases`/`receipts` table) for IAP transaction IDs when native ships. Apple/Google also handle tax/VAT and receipts, which Stripe does not by default.
-  - Since RecipeBox is currently a **web PWA with no native project yet**, nothing is billable today; pack/upgrade buttons correctly show "coming soon."
+  - Since Hearthkeep is currently a **web PWA with no native project yet**, nothing is billable today; pack/upgrade buttons correctly show "coming soon."
 - **Founder conversion workflow**: at launch, offer beta users Founder ($29.99/yr forever, 300 Assists/mo). Mark eligibility, capture conversion, set plan `founder`.
-- **Family household sharing**: Family tier config exists (600 shared Assists, cap 4) but sharing is not enforced. Build a household model (owner/adult/member, invites, shared library/meal-plan/shopping-list/pantry, private-by-default recipes) and make the 600 Assists a shared household pool. See "Future Subscription: Family Plan".
+- **Family payment enforcement:** household sharing and shared AI Assist pools are built, but billing is not live. At launch, payment provider verification should set the owner's Family/Founder Family entitlement server-side; the owner plan controls the shared monthly household pool.
 - **Referral end-to-end**: per-user referral code/link, self-referral and duplicate-referred protection, conversion detection tied to payments, audit events. Possible tables: `referrals`, `referral_events`. See "Future Monetization: Referral Program".
 - **Optional free-tier ads**: keep the `adsEnabled` config and entitlement shape ready; do not integrate an ad network unless we choose to.
 - **App Control entitlement UI**: a master-admin screen to view/edit tier config, grant AI Assists, and inspect ledgers (extend the existing admin endpoints; keep all enforcement server-side).

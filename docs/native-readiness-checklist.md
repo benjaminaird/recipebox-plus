@@ -1,4 +1,4 @@
-# RecipeBox — Native / Mobile Readiness Checklist
+# Hearthkeep — Native / Mobile Readiness Checklist
 
 Current as of the launch-readiness pass (2026-06-26). This is the **manual,
 real-device QA checklist** — automated/headless mobile testing isn't available

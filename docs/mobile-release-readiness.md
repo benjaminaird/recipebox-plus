@@ -1,11 +1,11 @@
-# RecipeBox Mobile Release Readiness
+# Hearthkeep Mobile Release Readiness
 
-This document tracks the infrastructure needed to ship RecipeBox through the
+This document tracks the infrastructure needed to ship Hearthkeep through the
 Apple App Store and Google Play.
 
 ## App Identity
 
-- App name: RecipeBox
+- App name: Hearthkeep
 - iOS bundle ID: `com.recipeboxapp.recipebox`
 - Android package ID: `com.recipeboxapp.recipebox`
 - Primary domain: `recipeboxapp.com`
@@ -57,12 +57,12 @@ Apple App Store and Google Play.
 
 Short description:
 
-RecipeBox saves family recipes, imports recipes from links and photos, and
+Hearthkeep saves family recipes, imports recipes from links and photos, and
 helps you cook with clean recipe cards, timers, and meal planning.
 
 Full description draft:
 
-RecipeBox is a warm, practical home for your personal recipes. Save family
+Hearthkeep is a warm, practical home for your personal recipes. Save family
 favorites, import recipes from links, YouTube videos, captions, photos, PDFs,
 and screenshots, then turn them into clean recipe cards you can actually cook
 from.
@@ -77,7 +77,7 @@ Key features:
 - Account sync for access across devices.
 - Backup export for your recipe collection.
 
-RecipeBox works best with clear recipe text, public posts that include recipe
+Hearthkeep works best with clear recipe text, public posts that include recipe
 captions, and photos or PDFs where the recipe is readable.
 
 ## Data Safety Notes

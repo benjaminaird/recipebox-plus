@@ -1,6 +1,6 @@
 # Vercel + Supabase Migration Notes
 
-RecipeBox can run on Vercel with the existing Express API through `api/index.js`.
+Hearthkeep can run on Vercel with the existing Express API through `api/index.js`.
 The app still supports local development with `npm start`.
 
 ## Vercel project settings
@@ -24,10 +24,10 @@ Use Supabase's pooled connection string for Vercel/serverless if available.
 2. Open SQL Editor.
 3. Run `docs/supabase-setup.sql`.
 4. Copy the Postgres connection string into Vercel as `DATABASE_URL`.
-5. Deploy RecipeBox on Vercel.
+5. Deploy Hearthkeep on Vercel.
 6. Visit `/api/health`; `database` should be `true`.
 
-This first pass keeps RecipeBox on the current shared `recipebox_store` table.
+This first pass keeps Hearthkeep on the current shared `recipebox_store` table.
 The same SQL file also creates account-ready tables and RLS policies for the next iteration, but the UI is not using those tables yet.
 
 ## Next iteration

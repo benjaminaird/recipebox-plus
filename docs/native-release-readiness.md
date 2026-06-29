@@ -1,10 +1,10 @@
-# RecipeBox Native Release Readiness
+# Hearthkeep Native Release Readiness
 
 Date: June 17, 2026
 
 ## Current Native Readiness Status
 
-RecipeBox is still deployed as a Vercel web app. The codebase now includes
+Hearthkeep is still deployed as a Vercel web app. The codebase now includes
 Capacitor configuration and native-aware API/session infrastructure so the app
 can later be wrapped for iOS and Android without rewriting core behavior.
 
@@ -18,7 +18,7 @@ can later be wrapped for iOS and Android without rewriting core behavior.
 - Support URL: `/support.html`.
 - Account deletion URL: `/delete-account.html`.
 - Apple Sign In added before App Store release if other social logins exist.
-- In-app purchase rules reviewed before selling RecipeBox Plus in iOS.
+- In-app purchase rules reviewed before selling Hearthkeep Plus in iOS.
 - Safe areas tested on:
   - Dynamic Island iPhones
   - older notch iPhones
@@ -36,11 +36,11 @@ can later be wrapped for iOS and Android without rewriting core behavior.
 - Tablet screenshots captured if tablet support is enabled.
 - Data Safety form completed.
 - Account deletion URL provided.
-- Google Play Billing reviewed before selling RecipeBox Plus on Android.
+- Google Play Billing reviewed before selling Hearthkeep Plus on Android.
 
 ## Privacy / Data Safety Checklist
 
-RecipeBox may collect or process:
+Hearthkeep may collect or process:
 
 - email address
 - display name
@@ -52,7 +52,7 @@ RecipeBox may collect or process:
 - AI usage counts
 - account sessions and password reset tokens
 
-RecipeBox should disclose:
+Hearthkeep should disclose:
 
 - data is used for app functionality and sync
 - recipe content may be sent to AI providers for requested AI features

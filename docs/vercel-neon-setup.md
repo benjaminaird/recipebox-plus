@@ -1,6 +1,6 @@
 # Vercel + Neon Setup
 
-RecipeBox is prepared for Vercel through `vercel.json` and `api/index.js`.
+Hearthkeep is prepared for Vercel through `vercel.json` and `api/index.js`.
 The app still supports local development with `npm start`.
 
 ## Recommended first-pass setup
@@ -14,7 +14,7 @@ Supabase free project slot.
 - `DATABASE_URL`: Neon Postgres pooled connection string.
 - `RESEND_API_KEY`: Resend API key for password reset emails.
 - `RESEND_FROM`: sender identity for password reset emails, for example
-  `RecipeBox <hello@yourdomain.com>`.
+  `Hearthkeep <hello@yourdomain.com>`.
 - `APP_BASE_URL`: production app URL used in password reset links, for example
   `https://recipebox-kappa.vercel.app`.
 - `AI_MONTHLY_LIMIT`: optional monthly AI request limit per user. Defaults to
@@ -30,13 +30,13 @@ Supabase free project slot.
 - `AI_EMERGENCY_DISABLE_REASON`: user-facing reason shown when AI is disabled.
 - `MASTER_ADMIN_EMAIL`: optional master admin email for App Control access.
 - `MASTER_ADMIN_PASSWORD_HASH`: preferred master admin password hash generated
-  by RecipeBox's `scrypt$salt$hash` format.
+  by Hearthkeep's `scrypt$salt$hash` format.
 - `MASTER_ADMIN_PASSWORD`: fallback plain-text bootstrap password. Use only
   long enough to create or promote the master account, then replace with
   `MASTER_ADMIN_PASSWORD_HASH`.
 - `MASTER_ADMIN_NAME`: optional display name for the master admin profile.
 - `NATIVE_APP_ORIGIN`: optional trusted origin for a future native shell if it
-  is not one of the built-in RecipeBox web origins.
+  is not one of the built-in Hearthkeep web origins.
 - `YOUTUBE_API_KEY`: optional, but recommended for YouTube metadata fallback.
 
 ## Vercel project settings
@@ -71,7 +71,7 @@ connection string is incorrect.
 
 ## Next auth iteration
 
-RecipeBox now has a first-pass account sync prototype:
+Hearthkeep now has a first-pass account sync prototype:
 
 - Users must sign in or create an account before entering the app.
 - Users create an account with an email address and password.
