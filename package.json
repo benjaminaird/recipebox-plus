@@ -30,6 +30,7 @@
     "security-hardening-test": "node scripts/security-hardening-test.js",
     "nutrition-test": "node scripts/nutrition-test.js",
     "import-extract-test": "node scripts/import-extract-test.js",
+    "nightmare-report-test": "node scripts/nightmare-report-test.js",
     "scraper-fallback-test": "node scripts/scraper-fallback-test.js",
     "grounding-test": "node scripts/grounding-test.js",
     "recipe-schema-test": "node scripts/recipe-schema-test.js",

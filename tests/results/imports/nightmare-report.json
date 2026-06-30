@@ -1,8 +1,10 @@
 {
-  "generated_at": "2026-06-30T02:15:30.870Z",
+  "generated_at": "2026-06-30T03:11:00.413Z",
   "manifest_path": "/Users/benjaminaird/Projects/recipebox-plus/tests/fixtures/imports/nightmare-recipes/manifest.json",
   "options": {
     "ai_enabled": false,
+    "ai_key_available": false,
+    "ai_fallback_implemented": false,
     "server": "http://localhost:3000",
     "limit": null,
     "ids": null,
@@ -11,23 +13,465 @@
   },
   "summary": {
     "recipes_tested": 100,
+    "manifest_count": 100,
+    "attempted_count": 68,
+    "skipped_count": 32,
     "counts": {
-      "pass": 67,
+      "pass": 68,
       "partial": 0,
       "fail": 0,
-      "skipped": 33
+      "skipped": 32
     },
-    "average_confidence_score": 65,
+    "pass_rate_among_attempted": 100,
+    "deterministic_pass_rate": 100,
+    "ai_fallback_pass_rate": null,
+    "total_coverage_rate": 68,
+    "true_fail_rate_among_attempted": 0,
+    "average_confidence_score": 66,
+    "average_attempted_confidence_score": 97,
+    "confidence_by_source_type": {
+      "schema_org_web_page": {
+        "count": 26,
+        "attempted": 24,
+        "skipped": 2,
+        "average_confidence": 91
+      },
+      "food_blog_page": {
+        "count": 59,
+        "attempted": 41,
+        "skipped": 18,
+        "average_confidence": 67
+      },
+      "article_recipe_page": {
+        "count": 6,
+        "attempted": 2,
+        "skipped": 4,
+        "average_confidence": 32
+      },
+      "youtube_video": {
+        "count": 8,
+        "attempted": 0,
+        "skipped": 8,
+        "average_confidence": 0
+      },
+      "recipe_page_check_access_first": {
+        "count": 1,
+        "attempted": 1,
+        "skipped": 0,
+        "average_confidence": 100
+      }
+    },
     "top_failure_categories": [
       {
-        "category": "AI fallback not run",
-        "count": 27
+        "category": "ambiguous source content",
+        "count": 17
+      },
+      {
+        "category": "video transcript/AI fallback not run",
+        "count": 8
       },
       {
         "category": "accessibility/source coverage",
-        "count": 6
+        "count": 5
+      },
+      {
+        "category": "AI fallback not run",
+        "count": 2
       }
     ],
+    "failure_clusters": [
+      {
+        "category": "ambiguous source content",
+        "count": 17
+      },
+      {
+        "category": "video transcript/AI fallback not run",
+        "count": 8
+      },
+      {
+        "category": "accessibility/source coverage",
+        "count": 5
+      },
+      {
+        "category": "AI fallback not run",
+        "count": 2
+      }
+    ],
+    "true_failures": [],
+    "skipped_but_acceptable_cases": [
+      {
+        "id": "nr-028",
+        "title": "Foolproof Pan Pizza - Serious Eats",
+        "source_type": "article_recipe_page",
+        "difficulty_category": "ranges",
+        "skip_classification": "blocked_or_inaccessible",
+        "skip_acceptability": "skipped-but-acceptable",
+        "reason": [
+          "RecipeBox could not read this recipe page. The site may be blocking automated access. Try Paste Text or screenshots instead."
+        ]
+      },
+      {
+        "id": "nr-003",
+        "title": "World's Best Lasagna - Allrecipes",
+        "source_type": "schema_org_web_page",
+        "difficulty_category": "multi_component_recipes",
+        "skip_classification": "blocked_or_inaccessible",
+        "skip_acceptability": "skipped-but-acceptable",
+        "reason": [
+          "RecipeBox could not read this recipe page. The site may be blocking automated access. Try Paste Text or screenshots instead."
+        ]
+      },
+      {
+        "id": "nr-026",
+        "title": "The Best Chili Ever - Serious Eats",
+        "source_type": "article_recipe_page",
+        "difficulty_category": "messy_food_blogs_long_intros",
+        "skip_classification": "blocked_or_inaccessible",
+        "skip_acceptability": "skipped-but-acceptable",
+        "reason": [
+          "RecipeBox could not read this recipe page. The site may be blocking automated access. Try Paste Text or screenshots instead."
+        ]
+      },
+      {
+        "id": "nr-004",
+        "title": "Easy Meatloaf - Allrecipes",
+        "source_type": "schema_org_web_page",
+        "difficulty_category": "imperial_only_recipes",
+        "skip_classification": "blocked_or_inaccessible",
+        "skip_acceptability": "skipped-but-acceptable",
+        "reason": [
+          "RecipeBox could not read this recipe page. The site may be blocking automated access. Try Paste Text or screenshots instead."
+        ]
+      },
+      {
+        "id": "nr-027",
+        "title": "The Best Roast Potatoes Ever - Serious Eats",
+        "source_type": "article_recipe_page",
+        "difficulty_category": "vague_amounts",
+        "skip_classification": "blocked_or_inaccessible",
+        "skip_acceptability": "skipped-but-acceptable",
+        "reason": [
+          "RecipeBox could not read this recipe page. The site may be blocking automated access. Try Paste Text or screenshots instead."
+        ]
+      }
+    ],
+    "skipped_and_needs_product_work_cases": [
+      {
+        "id": "nr-046",
+        "title": "Chocolate Cake - RecipeTin Eats",
+        "source_type": "food_blog_page",
+        "difficulty_category": "us_metric_parentheticals",
+        "skip_classification": "ambiguous_source_content",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "No complete structured recipe found; AI fallback disabled for this run."
+        ]
+      },
+      {
+        "id": "nr-049",
+        "title": "Homemade Pizza - Love and Lemons",
+        "source_type": "food_blog_page",
+        "difficulty_category": "multiple_recipes_one_page",
+        "skip_classification": "ambiguous_source_content",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "No complete structured recipe found; AI fallback disabled for this run."
+        ]
+      },
+      {
+        "id": "nr-029",
+        "title": "5-Minute Tonkotsu-Style Instant Ramen - Serious Eats",
+        "source_type": "article_recipe_page",
+        "difficulty_category": "international_uncommon_ingredients_units",
+        "skip_classification": "ambiguous_source_content",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "No complete structured recipe found; AI fallback disabled for this run."
+        ]
+      },
+      {
+        "id": "nr-043",
+        "title": "Beef Rendang - RecipeTin Eats",
+        "source_type": "food_blog_page",
+        "difficulty_category": "international_uncommon_ingredients_units",
+        "skip_classification": "ambiguous_source_content",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "No complete structured recipe found; AI fallback disabled for this run."
+        ]
+      },
+      {
+        "id": "nr-044",
+        "title": "Pad Thai - RecipeTin Eats",
+        "source_type": "food_blog_page",
+        "difficulty_category": "multi_component_recipes",
+        "skip_classification": "ambiguous_source_content",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "No complete structured recipe found; AI fallback disabled for this run."
+        ]
+      },
+      {
+        "id": "nr-095",
+        "title": "Maangchi Kimchi",
+        "source_type": "food_blog_page",
+        "difficulty_category": "international_uncommon_ingredients_units",
+        "skip_classification": "ai_fallback_needed",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "No complete structured recipe found; AI fallback disabled for this run."
+        ]
+      },
+      {
+        "id": "nr-045",
+        "title": "No Knead Bread - RecipeTin Eats",
+        "source_type": "food_blog_page",
+        "difficulty_category": "ranges",
+        "skip_classification": "ambiguous_source_content",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "No complete structured recipe found; AI fallback disabled for this run."
+        ]
+      },
+      {
+        "id": "nr-047",
+        "title": "Egg Fried Rice - RecipeTin Eats",
+        "source_type": "food_blog_page",
+        "difficulty_category": "vague_amounts",
+        "skip_classification": "ambiguous_source_content",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "No complete structured recipe found; AI fallback disabled for this run."
+        ]
+      },
+      {
+        "id": "nr-048",
+        "title": "Best Guacamole - Love and Lemons",
+        "source_type": "food_blog_page",
+        "difficulty_category": "vague_amounts",
+        "skip_classification": "ambiguous_source_content",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "No complete structured recipe found; AI fallback disabled for this run."
+        ]
+      },
+      {
+        "id": "nr-050",
+        "title": "Butternut Squash Soup - Love and Lemons",
+        "source_type": "food_blog_page",
+        "difficulty_category": "messy_food_blogs_long_intros",
+        "skip_classification": "ambiguous_source_content",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "No complete structured recipe found; AI fallback disabled for this run."
+        ]
+      },
+      {
+        "id": "nr-051",
+        "title": "Vegan Mac and Cheese - Love and Lemons",
+        "source_type": "food_blog_page",
+        "difficulty_category": "substitutions_notes_in_ingredients",
+        "skip_classification": "ambiguous_source_content",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "No complete structured recipe found; AI fallback disabled for this run."
+        ]
+      },
+      {
+        "id": "nr-052",
+        "title": "Shakshuka - Love and Lemons",
+        "source_type": "food_blog_page",
+        "difficulty_category": "international_uncommon_ingredients_units",
+        "skip_classification": "ambiguous_source_content",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "No complete structured recipe found; AI fallback disabled for this run."
+        ]
+      },
+      {
+        "id": "nr-053",
+        "title": "Falafel - Love and Lemons",
+        "source_type": "food_blog_page",
+        "difficulty_category": "international_uncommon_ingredients_units",
+        "skip_classification": "ambiguous_source_content",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "No complete structured recipe found; AI fallback disabled for this run."
+        ]
+      },
+      {
+        "id": "nr-054",
+        "title": "Brownies - Love and Lemons",
+        "source_type": "food_blog_page",
+        "difficulty_category": "baking_precise_weights",
+        "skip_classification": "ambiguous_source_content",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "No complete structured recipe found; AI fallback disabled for this run."
+        ]
+      },
+      {
+        "id": "nr-072",
+        "title": "Gyoza - Just One Cookbook",
+        "source_type": "food_blog_page",
+        "difficulty_category": "ocr_challenge_likely",
+        "skip_classification": "ambiguous_source_content",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "No complete structured recipe found; AI fallback disabled for this run."
+        ]
+      },
+      {
+        "id": "nr-078",
+        "title": "Chicken Teriyaki - Just One Cookbook YouTube",
+        "source_type": "youtube_video",
+        "difficulty_category": "youtube_recipe_transcripts",
+        "skip_classification": "video_transcript_needed",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "Transcript/description fetched, but AI extraction is disabled for this run.",
+          "transcript unavailable",
+          "low confidence extraction"
+        ]
+      },
+      {
+        "id": "nr-079",
+        "title": "How To Make Perfect Chocolate Chip Cookies - Tasty YouTube",
+        "source_type": "youtube_video",
+        "difficulty_category": "youtube_recipe_transcripts",
+        "skip_classification": "video_transcript_needed",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "Transcript/description fetched, but AI extraction is disabled for this run."
+        ]
+      },
+      {
+        "id": "nr-080",
+        "title": "Focaccia - Bon Appetit YouTube",
+        "source_type": "youtube_video",
+        "difficulty_category": "youtube_recipe_transcripts",
+        "skip_classification": "video_transcript_needed",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "Transcript/description fetched, but AI extraction is disabled for this run."
+        ]
+      },
+      {
+        "id": "nr-082",
+        "title": "Butter Chicken - Food Wishes YouTube",
+        "source_type": "youtube_video",
+        "difficulty_category": "youtube_recipe_transcripts",
+        "skip_classification": "video_transcript_needed",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "Transcript/description fetched, but AI extraction is disabled for this run."
+        ]
+      },
+      {
+        "id": "nr-084",
+        "title": "Lemon Bars - Preppy Kitchen YouTube",
+        "source_type": "youtube_video",
+        "difficulty_category": "youtube_recipe_transcripts",
+        "skip_classification": "video_transcript_needed",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "Transcript/description fetched, but AI extraction is disabled for this run.",
+          "transcript unavailable",
+          "low confidence extraction"
+        ]
+      },
+      {
+        "id": "nr-085",
+        "title": "Claire Saffitz Chocolate Chip Cookies - YouTube",
+        "source_type": "youtube_video",
+        "difficulty_category": "youtube_recipe_transcripts",
+        "skip_classification": "video_transcript_needed",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "Transcript/description fetched, but AI extraction is disabled for this run."
+        ]
+      },
+      {
+        "id": "nr-091",
+        "title": "Smitten Kitchen Blueberry Muffins",
+        "source_type": "food_blog_page",
+        "difficulty_category": "messy_food_blogs_long_intros",
+        "skip_classification": "ambiguous_source_content",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "No complete structured recipe found; AI fallback disabled for this run."
+        ]
+      },
+      {
+        "id": "nr-092",
+        "title": "Smitten Kitchen Apple Cider Caramels",
+        "source_type": "food_blog_page",
+        "difficulty_category": "multi_component_recipes",
+        "skip_classification": "ambiguous_source_content",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "No complete structured recipe found; AI fallback disabled for this run."
+        ]
+      },
+      {
+        "id": "nr-093",
+        "title": "Smitten Kitchen Best Birthday Cake",
+        "source_type": "food_blog_page",
+        "difficulty_category": "repeated_ingredients_sections",
+        "skip_classification": "ambiguous_source_content",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "No complete structured recipe found; AI fallback disabled for this run."
+        ]
+      },
+      {
+        "id": "nr-096",
+        "title": "Maangchi Japchae",
+        "source_type": "food_blog_page",
+        "difficulty_category": "international_uncommon_ingredients_units",
+        "skip_classification": "ai_fallback_needed",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "No complete structured recipe found; AI fallback disabled for this run."
+        ]
+      },
+      {
+        "id": "nr-081",
+        "title": "Cacio e Pepe - Food Wishes YouTube",
+        "source_type": "youtube_video",
+        "difficulty_category": "youtube_recipe_transcripts",
+        "skip_classification": "video_transcript_needed",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "Transcript/description fetched, but AI extraction is disabled for this run."
+        ]
+      },
+      {
+        "id": "nr-083",
+        "title": "Molly Baz Caesar Salad - YouTube",
+        "source_type": "youtube_video",
+        "difficulty_category": "vague_amounts",
+        "skip_classification": "video_transcript_needed",
+        "skip_acceptability": "skipped-and-needs-product-work",
+        "reason": [
+          "Transcript/description fetched, but AI extraction is disabled for this run.",
+          "transcript unavailable",
+          "low confidence extraction"
+        ]
+      }
+    ],
+    "skipped_and_needs_manifest_replacement_cases": [],
+    "skipped_classification_counts": {
+      "blocked_or_inaccessible": 5,
+      "ambiguous_source_content": 17,
+      "ai_fallback_needed": 2,
+      "video_transcript_needed": 8
+    },
+    "ai_fallback_requested": false,
+    "ai_fallback_implemented": false,
+    "ai_key_available": false,
+    "estimated_ai_fallback_candidates": 27,
+    "estimated_ai_credits_if_run": 27,
     "top25_must_pass_status": [
       {
         "id": "nr-003",
@@ -180,7 +624,74 @@
         "must_preserve": "Large-batch dough, filling, icing, and yield."
       }
     ],
-    "top_fixed_failure_categories": []
+    "top10_nightmare_status": [
+      {
+        "id": "nr-014",
+        "status": "pass",
+        "confidence": 100,
+        "must_preserve": ""
+      },
+      {
+        "id": "nr-015",
+        "status": "pass",
+        "confidence": 90,
+        "must_preserve": ""
+      },
+      {
+        "id": "nr-022",
+        "status": "pass",
+        "confidence": 95,
+        "must_preserve": ""
+      },
+      {
+        "id": "nr-028",
+        "status": "skipped",
+        "confidence": 0,
+        "must_preserve": ""
+      },
+      {
+        "id": "nr-075",
+        "status": "pass",
+        "confidence": 90,
+        "must_preserve": ""
+      },
+      {
+        "id": "nr-037",
+        "status": "pass",
+        "confidence": 100,
+        "must_preserve": ""
+      },
+      {
+        "id": "nr-040",
+        "status": "pass",
+        "confidence": 100,
+        "must_preserve": ""
+      },
+      {
+        "id": "nr-061",
+        "status": "pass",
+        "confidence": 100,
+        "must_preserve": ""
+      },
+      {
+        "id": "nr-073",
+        "status": "pass",
+        "confidence": 100,
+        "must_preserve": ""
+      },
+      {
+        "id": "nr-094",
+        "status": "pass",
+        "confidence": 100,
+        "must_preserve": ""
+      }
+    ],
+    "top_fixed_failure_categories": [
+      "Classify skipped imports into AI, video transcript, social, blocked/inaccessible, bad URL, unsupported source, and ambiguous content buckets.",
+      "Report attempted pass rate, true fail rate, and total manifest coverage separately so skipped cases do not inflate pass rate.",
+      "Add --with-ai-fallback as the explicit opt-in flag for paid/AI fallback runs.",
+      "Add confidence by source type plus top 10 nightmare status to the generated reports."
+    ]
   },
   "results": [
     {
@@ -277,6 +788,8 @@
       "difficulty_category": "ranges",
       "priority": "high",
       "import_status": "skipped",
+      "skip_classification": "blocked_or_inaccessible",
+      "skip_acceptability": "skipped-but-acceptable",
       "extraction_method_used": "fallback",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -471,6 +984,8 @@
       "difficulty_category": "multi_component_recipes",
       "priority": "high",
       "import_status": "skipped",
+      "skip_classification": "blocked_or_inaccessible",
+      "skip_acceptability": "skipped-but-acceptable",
       "extraction_method_used": "fallback",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -807,6 +1322,8 @@
       "difficulty_category": "us_metric_parentheticals",
       "priority": "high",
       "import_status": "skipped",
+      "skip_classification": "ambiguous_source_content",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "clean page text",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -826,7 +1343,7 @@
       "notes": [
         "No complete structured recipe found; AI fallback disabled for this run."
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "ambiguous source content"
     },
     {
       "id": "nr-049",
@@ -836,6 +1353,8 @@
       "difficulty_category": "multiple_recipes_one_page",
       "priority": "high",
       "import_status": "skipped",
+      "skip_classification": "ambiguous_source_content",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "clean page text",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -855,7 +1374,7 @@
       "notes": [
         "No complete structured recipe found; AI fallback disabled for this run."
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "ambiguous source content"
     },
     {
       "id": "nr-055",
@@ -918,27 +1437,27 @@
       "source_type": "schema_org_web_page",
       "difficulty_category": "clean_schema_org_recipe_pages",
       "priority": "high",
-      "import_status": "skipped",
-      "extraction_method_used": "fallback",
-      "title_match_confidence": 0,
-      "ingredient_count_source": null,
-      "ingredient_count_parsed": 0,
-      "instruction_step_count_source": null,
-      "instruction_step_count_parsed": 0,
+      "import_status": "pass",
+      "extraction_method_used": "schema.org JSON-LD",
+      "title_match_confidence": 100,
+      "ingredient_count_source": 7,
+      "ingredient_count_parsed": 7,
+      "instruction_step_count_source": 6,
+      "instruction_step_count_parsed": 6,
       "missing_ingredients": [],
       "extra_hallucinated_ingredients": [],
       "quantity_mismatches": [],
       "unit_mismatches": [],
       "source_provided_metric_preserved": "not applicable",
-      "directions_include_quantities": "not applicable",
-      "temperature_handling": "fail",
-      "timer_extraction": "fail",
-      "section_preservation": "fail",
-      "overall_confidence_score": 0,
+      "directions_include_quantities": "yes",
+      "temperature_handling": "pass",
+      "timer_extraction": "pass",
+      "section_preservation": "pass",
+      "overall_confidence_score": 95,
       "notes": [
-        "RecipeBox could not read this recipe page. The site may be blocking automated access. Try Paste Text or screenshots instead."
+        "source mixed °F/°C"
       ],
-      "suggested_fix_category": "accessibility/source coverage"
+      "suggested_fix_category": "none"
     },
     {
       "id": "nr-016",
@@ -1033,6 +1552,8 @@
       "difficulty_category": "messy_food_blogs_long_intros",
       "priority": "high",
       "import_status": "skipped",
+      "skip_classification": "blocked_or_inaccessible",
+      "skip_acceptability": "skipped-but-acceptable",
       "extraction_method_used": "fallback",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -1062,6 +1583,8 @@
       "difficulty_category": "international_uncommon_ingredients_units",
       "priority": "high",
       "import_status": "skipped",
+      "skip_classification": "ambiguous_source_content",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "clean page text",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -1081,7 +1604,7 @@
       "notes": [
         "No complete structured recipe found; AI fallback disabled for this run."
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "ambiguous source content"
     },
     {
       "id": "nr-031",
@@ -1120,6 +1643,8 @@
       "difficulty_category": "international_uncommon_ingredients_units",
       "priority": "high",
       "import_status": "skipped",
+      "skip_classification": "ambiguous_source_content",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "clean page text",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -1139,7 +1664,7 @@
       "notes": [
         "No complete structured recipe found; AI fallback disabled for this run."
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "ambiguous source content"
     },
     {
       "id": "nr-044",
@@ -1149,6 +1674,8 @@
       "difficulty_category": "multi_component_recipes",
       "priority": "high",
       "import_status": "skipped",
+      "skip_classification": "ambiguous_source_content",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "clean page text",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -1168,7 +1695,7 @@
       "notes": [
         "No complete structured recipe found; AI fallback disabled for this run."
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "ambiguous source content"
     },
     {
       "id": "nr-062",
@@ -1259,6 +1786,8 @@
       "difficulty_category": "international_uncommon_ingredients_units",
       "priority": "high",
       "import_status": "skipped",
+      "skip_classification": "ai_fallback_needed",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "clean page text",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -1288,6 +1817,8 @@
       "difficulty_category": "imperial_only_recipes",
       "priority": "medium",
       "import_status": "skipped",
+      "skip_classification": "blocked_or_inaccessible",
+      "skip_acceptability": "skipped-but-acceptable",
       "extraction_method_used": "fallback",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -1569,6 +2100,8 @@
       "difficulty_category": "vague_amounts",
       "priority": "medium",
       "import_status": "skipped",
+      "skip_classification": "blocked_or_inaccessible",
+      "skip_acceptability": "skipped-but-acceptable",
       "extraction_method_used": "fallback",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -1762,6 +2295,8 @@
       "difficulty_category": "ranges",
       "priority": "medium",
       "import_status": "skipped",
+      "skip_classification": "ambiguous_source_content",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "clean page text",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -1781,7 +2316,7 @@
       "notes": [
         "No complete structured recipe found; AI fallback disabled for this run."
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "ambiguous source content"
     },
     {
       "id": "nr-047",
@@ -1791,6 +2326,8 @@
       "difficulty_category": "vague_amounts",
       "priority": "medium",
       "import_status": "skipped",
+      "skip_classification": "ambiguous_source_content",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "clean page text",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -1810,7 +2347,7 @@
       "notes": [
         "No complete structured recipe found; AI fallback disabled for this run."
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "ambiguous source content"
     },
     {
       "id": "nr-048",
@@ -1820,6 +2357,8 @@
       "difficulty_category": "vague_amounts",
       "priority": "medium",
       "import_status": "skipped",
+      "skip_classification": "ambiguous_source_content",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "clean page text",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -1839,7 +2378,7 @@
       "notes": [
         "No complete structured recipe found; AI fallback disabled for this run."
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "ambiguous source content"
     },
     {
       "id": "nr-050",
@@ -1849,6 +2388,8 @@
       "difficulty_category": "messy_food_blogs_long_intros",
       "priority": "medium",
       "import_status": "skipped",
+      "skip_classification": "ambiguous_source_content",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "clean page text",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -1868,7 +2409,7 @@
       "notes": [
         "No complete structured recipe found; AI fallback disabled for this run."
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "ambiguous source content"
     },
     {
       "id": "nr-051",
@@ -1878,6 +2419,8 @@
       "difficulty_category": "substitutions_notes_in_ingredients",
       "priority": "medium",
       "import_status": "skipped",
+      "skip_classification": "ambiguous_source_content",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "clean page text",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -1897,7 +2440,7 @@
       "notes": [
         "No complete structured recipe found; AI fallback disabled for this run."
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "ambiguous source content"
     },
     {
       "id": "nr-052",
@@ -1907,6 +2450,8 @@
       "difficulty_category": "international_uncommon_ingredients_units",
       "priority": "medium",
       "import_status": "skipped",
+      "skip_classification": "ambiguous_source_content",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "clean page text",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -1926,7 +2471,7 @@
       "notes": [
         "No complete structured recipe found; AI fallback disabled for this run."
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "ambiguous source content"
     },
     {
       "id": "nr-053",
@@ -1936,6 +2481,8 @@
       "difficulty_category": "international_uncommon_ingredients_units",
       "priority": "medium",
       "import_status": "skipped",
+      "skip_classification": "ambiguous_source_content",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "clean page text",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -1955,7 +2502,7 @@
       "notes": [
         "No complete structured recipe found; AI fallback disabled for this run."
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "ambiguous source content"
     },
     {
       "id": "nr-054",
@@ -1965,6 +2512,8 @@
       "difficulty_category": "baking_precise_weights",
       "priority": "medium",
       "import_status": "skipped",
+      "skip_classification": "ambiguous_source_content",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "clean page text",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -1984,7 +2533,7 @@
       "notes": [
         "No complete structured recipe found; AI fallback disabled for this run."
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "ambiguous source content"
     },
     {
       "id": "nr-056",
@@ -2306,6 +2855,8 @@
       "difficulty_category": "ocr_challenge_likely",
       "priority": "medium",
       "import_status": "skipped",
+      "skip_classification": "ambiguous_source_content",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "clean page text",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -2325,7 +2876,7 @@
       "notes": [
         "No complete structured recipe found; AI fallback disabled for this run."
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "ambiguous source content"
     },
     {
       "id": "nr-074",
@@ -2422,6 +2973,8 @@
       "difficulty_category": "youtube_recipe_transcripts",
       "priority": "medium",
       "import_status": "skipped",
+      "skip_classification": "video_transcript_needed",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "transcript",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -2443,7 +2996,7 @@
         "transcript unavailable",
         "low confidence extraction"
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "video transcript/AI fallback not run"
     },
     {
       "id": "nr-079",
@@ -2453,6 +3006,8 @@
       "difficulty_category": "youtube_recipe_transcripts",
       "priority": "medium",
       "import_status": "skipped",
+      "skip_classification": "video_transcript_needed",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "transcript",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -2472,7 +3027,7 @@
       "notes": [
         "Transcript/description fetched, but AI extraction is disabled for this run."
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "video transcript/AI fallback not run"
     },
     {
       "id": "nr-080",
@@ -2482,6 +3037,8 @@
       "difficulty_category": "youtube_recipe_transcripts",
       "priority": "medium",
       "import_status": "skipped",
+      "skip_classification": "video_transcript_needed",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "transcript",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -2501,7 +3058,7 @@
       "notes": [
         "Transcript/description fetched, but AI extraction is disabled for this run."
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "video transcript/AI fallback not run"
     },
     {
       "id": "nr-082",
@@ -2511,6 +3068,8 @@
       "difficulty_category": "youtube_recipe_transcripts",
       "priority": "medium",
       "import_status": "skipped",
+      "skip_classification": "video_transcript_needed",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "transcript",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -2530,7 +3089,7 @@
       "notes": [
         "Transcript/description fetched, but AI extraction is disabled for this run."
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "video transcript/AI fallback not run"
     },
     {
       "id": "nr-084",
@@ -2540,6 +3099,8 @@
       "difficulty_category": "youtube_recipe_transcripts",
       "priority": "medium",
       "import_status": "skipped",
+      "skip_classification": "video_transcript_needed",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "transcript",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -2561,7 +3122,7 @@
         "transcript unavailable",
         "low confidence extraction"
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "video transcript/AI fallback not run"
     },
     {
       "id": "nr-085",
@@ -2571,6 +3132,8 @@
       "difficulty_category": "youtube_recipe_transcripts",
       "priority": "medium",
       "import_status": "skipped",
+      "skip_classification": "video_transcript_needed",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "transcript",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -2590,7 +3153,7 @@
       "notes": [
         "Transcript/description fetched, but AI extraction is disabled for this run."
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "video transcript/AI fallback not run"
     },
     {
       "id": "nr-086",
@@ -2710,6 +3273,8 @@
       "difficulty_category": "messy_food_blogs_long_intros",
       "priority": "medium",
       "import_status": "skipped",
+      "skip_classification": "ambiguous_source_content",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "clean page text",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -2729,7 +3294,7 @@
       "notes": [
         "No complete structured recipe found; AI fallback disabled for this run."
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "ambiguous source content"
     },
     {
       "id": "nr-092",
@@ -2739,6 +3304,8 @@
       "difficulty_category": "multi_component_recipes",
       "priority": "medium",
       "import_status": "skipped",
+      "skip_classification": "ambiguous_source_content",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "clean page text",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -2758,7 +3325,7 @@
       "notes": [
         "No complete structured recipe found; AI fallback disabled for this run."
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "ambiguous source content"
     },
     {
       "id": "nr-093",
@@ -2768,6 +3335,8 @@
       "difficulty_category": "repeated_ingredients_sections",
       "priority": "medium",
       "import_status": "skipped",
+      "skip_classification": "ambiguous_source_content",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "clean page text",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -2787,7 +3356,7 @@
       "notes": [
         "No complete structured recipe found; AI fallback disabled for this run."
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "ambiguous source content"
     },
     {
       "id": "nr-096",
@@ -2797,6 +3366,8 @@
       "difficulty_category": "international_uncommon_ingredients_units",
       "priority": "medium",
       "import_status": "skipped",
+      "skip_classification": "ai_fallback_needed",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "clean page text",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -2882,6 +3453,8 @@
       "difficulty_category": "youtube_recipe_transcripts",
       "priority": "low",
       "import_status": "skipped",
+      "skip_classification": "video_transcript_needed",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "transcript",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -2901,7 +3474,7 @@
       "notes": [
         "Transcript/description fetched, but AI extraction is disabled for this run."
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "video transcript/AI fallback not run"
     },
     {
       "id": "nr-083",
@@ -2911,6 +3484,8 @@
       "difficulty_category": "vague_amounts",
       "priority": "low",
       "import_status": "skipped",
+      "skip_classification": "video_transcript_needed",
+      "skip_acceptability": "skipped-and-needs-product-work",
       "extraction_method_used": "transcript",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
@@ -2932,7 +3507,7 @@
         "transcript unavailable",
         "low confidence extraction"
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "video transcript/AI fallback not run"
     },
     {
       "id": "nr-090",

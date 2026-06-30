@@ -1,0 +1,121 @@
+{
+  "title": "Easy Meatloaf",
+  "description": "This easy meatloaf recipe comes together quickly to make one of our best recipes that's been made over 8,000 times and never disappoints!",
+  "servings": 8,
+  "prepTime": "15 min",
+  "cookTime": "1 hr",
+  "totalTime": "1 hr 15 min",
+  "heroImage": "https://www.allrecipes.com/thmb/q2i_L11qt7QzJ7gl66atPJmKuU0=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/16354-easy-meatloaf-DDMFS-0034-5186-hero-4x3-30547610d0f64d2fb3c25c0cab909af6.jpg",
+  "notes": "",
+  "tags": [
+    "Dinner",
+    "American",
+    "publisher-tested"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1.5",
+          "unit": "pounds",
+          "name": "ground beef",
+          "raw": "1.5 pounds ground beef"
+        },
+        {
+          "id": "i2",
+          "amount": "1",
+          "unit": "",
+          "name": "egg",
+          "raw": "1 egg"
+        },
+        {
+          "id": "i3",
+          "amount": "1",
+          "unit": "",
+          "name": "onion, chopped",
+          "raw": "1 onion, chopped"
+        },
+        {
+          "id": "i4",
+          "amount": "1",
+          "unit": "cup",
+          "name": "milk",
+          "raw": "1 cup milk"
+        },
+        {
+          "id": "i5",
+          "amount": "1",
+          "unit": "cup",
+          "name": "dried bread crumbs",
+          "raw": "1 cup dried bread crumbs"
+        },
+        {
+          "id": "i6",
+          "amount": "",
+          "unit": "",
+          "name": "salt and pepper to taste",
+          "raw": "salt and pepper to taste"
+        },
+        {
+          "id": "i7",
+          "amount": "0.333",
+          "unit": "cup",
+          "name": "ketchup",
+          "raw": "0.333 cup ketchup"
+        },
+        {
+          "id": "i8",
+          "amount": "2",
+          "unit": "tablespoons",
+          "name": "brown sugar",
+          "raw": "2 tablespoons brown sugar"
+        },
+        {
+          "id": "i9",
+          "amount": "2",
+          "unit": "tablespoons",
+          "name": "prepared mustard",
+          "raw": "2 tablespoons prepared mustard"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Gather the ingredients. Preheat the oven to 350 degrees F (175 degrees C). Lightly grease a 9x5-inch loaf pan.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Combine ground beef, onion, milk, bread crumbs, and egg in a large bowl, and season with salt and pepper. Press mixture evenly into the prepared loaf pan.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "Stir ketchup, brown sugar, and mustard together in a small bowl until smooth, and spread evenly over the meatloaf.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Bake in the preheated oven until no longer pink in the center, about 1 hour. An instant-read thermometer inserted into the middle reads at least 160 degrees F (70 degrees C).",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Serve hot and enjoy!",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 372,
+    "protein": 18,
+    "carbs": 19,
+    "fat": 25,
+    "fiber": 1
+  },
+  "sourceUrl": "https://www.allrecipes.com/recipe/16354/easy-meatloaf/",
+  "importMethod": "structured-data"
+}

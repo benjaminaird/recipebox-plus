@@ -1,0 +1,120 @@
+{
+  "title": "Banana Bread",
+  "description": "This banana bread recipe makes an incredibly moist, delicious loaf with very ripe bananas for loads of banana flavor. It tastes even better toasted!",
+  "servings": 12,
+  "prepTime": "15 min",
+  "cookTime": "1 hr",
+  "totalTime": "1 hr 15 min",
+  "heroImage": "https://www.allrecipes.com/thmb/fAkQn-FhjF89oTJ5JXpgwvwNf34=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/20144-banana-banana-bread-VAT-009-4x3-B-78f1cfc64bfa451e8a0fead814719b9f.jpg",
+  "notes": "",
+  "tags": [
+    "Breakfast",
+    "Brunch",
+    "American",
+    "publisher-tested"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "2",
+          "unit": "cup",
+          "name": "all-purpose flour",
+          "raw": "2 cups all-purpose flour"
+        },
+        {
+          "id": "i2",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "baking soda",
+          "raw": "1 teaspoon baking soda"
+        },
+        {
+          "id": "i3",
+          "amount": "0.25",
+          "unit": "tsp",
+          "name": "salt",
+          "raw": "0.25 teaspoon salt"
+        },
+        {
+          "id": "i4",
+          "amount": "0.75",
+          "unit": "cup",
+          "name": "brown sugar",
+          "raw": "0.75 cup brown sugar"
+        },
+        {
+          "id": "i5",
+          "amount": "0.5",
+          "unit": "cup",
+          "name": "butter",
+          "raw": "0.5 cup butter"
+        },
+        {
+          "id": "i6",
+          "amount": "2",
+          "unit": "",
+          "name": "eggs, beaten",
+          "raw": "2 eggs, beaten"
+        },
+        {
+          "id": "i7",
+          "amount": "2.3333332538605",
+          "unit": "cup",
+          "name": "mashed overripe bananas",
+          "raw": "2.3333332538605 cups mashed overripe bananas"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Gather all ingredients. Preheat the oven to 350 degrees F (175 degrees C). Lightly grease a 9x5-inch loaf pan.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Combine {i1}, {i2}, and {i3} in a large bowl. Beat {i4} and {i5} with an electric mixer in a separate large bowl until smooth. Stir in eggs and mashed {i7} until well blended. Stir banana mixture into flour mixture until just combined.",
+          "ingredientRefs": [
+            "i1",
+            "i2",
+            "i3",
+            "i4",
+            "i5",
+            "i7"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Pour batter into the prepared loaf pan.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Bake in the preheated oven until a toothpick inserted into the center comes out clean, about 60 minutes.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Let bread cool in pan for 10 minutes, then turn out onto a wire rack to cool completely.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Enjoy!",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 231,
+    "protein": 4,
+    "carbs": 35,
+    "fat": 9,
+    "fiber": 2
+  },
+  "sourceUrl": "https://www.allrecipes.com/recipe/20144/banana-banana-bread/",
+  "importMethod": "structured-data"
+}

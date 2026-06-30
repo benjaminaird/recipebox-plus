@@ -25,6 +25,12 @@ const DEBUG_DIR = path.join(RESULTS_DIR, "nightmare-debug");
 const REPORT_JSON = path.join(RESULTS_DIR, "nightmare-report.json");
 const REPORT_MD = path.join(RESULTS_DIR, "nightmare-report.md");
 const SERVER = process.env.RB_SERVER || "http://localhost:3000";
+const FIXES_APPLIED_THIS_RUN = [
+  "Classify skipped imports into AI, video transcript, social, blocked/inaccessible, bad URL, unsupported source, and ambiguous content buckets.",
+  "Report attempted pass rate, true fail rate, and total manifest coverage separately so skipped cases do not inflate pass rate.",
+  "Add --with-ai-fallback as the explicit opt-in flag for paid/AI fallback runs.",
+  "Add confidence by source type plus top 10 nightmare status to the generated reports.",
+];
 
 const args = process.argv.slice(2);
 const LIMIT = numberArg("--limit");
@@ -33,7 +39,8 @@ const CATEGORIES = setArg("--categories");
 const PRIORITIES = setArg("--priority");
 const ONLY_MUST = args.includes("--must-pass");
 const ONLY_NIGHTMARE = args.includes("--nightmare");
-const LIVE_AI = args.includes("--ai");
+const LIVE_AI = args.includes("--ai") || args.includes("--with-ai-fallback") || process.env.RB_NIGHTMARE_AI_FALLBACK === "1";
+const AI_KEY_AVAILABLE = !!process.env.ANTHROPIC_API_KEY;
 const FETCH_DELAY = numberArg("--delay-ms", 250);
 const TIMEOUT_MS = numberArg("--timeout-ms", 15000);
 
@@ -325,7 +332,7 @@ function titleConfidence(entry, recipe) {
 }
 function suggestedFix(result) {
   if (result.import_status === "pass") return "none";
-  if (result.import_status === "skipped") return "accessibility/source coverage";
+  if (result.import_status === "skipped") return result.suggested_fix_category || "source coverage";
   if (result.missing_ingredients.length) return "dropped ingredients";
   if (result.extra_hallucinated_ingredients.length) return "hallucinated ingredients";
   if (result.quantity_mismatches.length) return "quantity parsing";
@@ -336,6 +343,75 @@ function suggestedFix(result) {
   if (result.temperature_handling === "fail") return "temperature conversion/display";
   if (result.timer_extraction === "fail") return "timer extraction";
   return "none";
+}
+
+function skipClassification(entry, page, data, fallbackReason) {
+  const sourceType = String(entry.source_type || "").toLowerCase();
+  const url = String(entry.url || "").toLowerCase();
+  const notes = [data && data.error, fallbackReason].concat((data && data.warnings) || []).filter(Boolean).join(" ");
+  const status = Number((page && page.status) || 0);
+  const isVideo = /youtube|video/.test(sourceType) || /youtube\.com|youtu\.be/.test(url);
+  const isSocial = /instagram|tiktok|pinterest|social/.test(sourceType + " " + url);
+  const blocked = !!(data && data.blocked) || [401, 403, 429, 451, 503].includes(status) || /blocked|forbidden|rate limit|captcha|cloudflare|access/i.test(notes);
+  const badUrl = [404, 410].includes(status) || /not found|gone|invalid url|dns|enotfound/i.test(notes);
+  const unsupported = /unsupported|check_access_first/.test(sourceType);
+  const hasReadableText = !!(data && data.text && data.text.length > 1200);
+
+  let classification = "ai_fallback_needed";
+  if (badUrl) classification = "bad_manifest_url";
+  else if (blocked) classification = "blocked_or_inaccessible";
+  else if (isVideo) classification = "video_transcript_needed";
+  else if (isSocial) classification = "social_fallback_needed";
+  else if (unsupported) classification = "unsupported_source_type";
+  else if (hasReadableText) classification = "ambiguous_source_content";
+
+  let acceptability = "skipped-and-needs-product-work";
+  if (classification === "blocked_or_inaccessible") acceptability = "skipped-but-acceptable";
+  if (classification === "bad_manifest_url") acceptability = "skipped-and-needs-manifest-replacement";
+
+  const fixMap = {
+    ai_fallback_needed: "AI fallback not run",
+    video_transcript_needed: "video transcript/AI fallback not run",
+    social_fallback_needed: "social fallback not run",
+    blocked_or_inaccessible: "accessibility/source coverage",
+    bad_manifest_url: "bad manifest URL",
+    unsupported_source_type: "unsupported source type",
+    ambiguous_source_content: "ambiguous source content",
+  };
+  return { classification, acceptability, suggestedFix: fixMap[classification] || "source coverage" };
+}
+
+function skippedResult(entry, page, data, overrides = {}) {
+  const skip = skipClassification(entry, page, data || {}, overrides.reason || "");
+  return {
+    id: entry.id,
+    title: entry.title,
+    url: entry.url,
+    source_type: entry.source_type,
+    difficulty_category: entry.difficulty_category,
+    priority: entry.priority,
+    import_status: "skipped",
+    skip_classification: skip.classification,
+    skip_acceptability: skip.acceptability,
+    extraction_method_used: overrides.method || "fallback",
+    title_match_confidence: 0,
+    ingredient_count_source: null,
+    ingredient_count_parsed: 0,
+    instruction_step_count_source: null,
+    instruction_step_count_parsed: 0,
+    missing_ingredients: [],
+    extra_hallucinated_ingredients: [],
+    quantity_mismatches: [],
+    unit_mismatches: [],
+    source_provided_metric_preserved: "not applicable",
+    directions_include_quantities: "not applicable",
+    temperature_handling: overrides.temperature || "fail",
+    timer_extraction: "fail",
+    section_preservation: "fail",
+    overall_confidence_score: 0,
+    notes: (overrides.notes || []).concat((data && data.warnings) || []).filter(Boolean).slice(0, 6),
+    suggested_fix_category: skip.suggestedFix,
+  };
 }
 
 function evaluate(entry, method, pageData, parsed) {
@@ -408,33 +484,10 @@ async function runEntry(entry) {
   const page = isVideo ? await fetchVideo(entry) : await fetchRecipePage(entry);
   const data = page.data || {};
   if (data.error) {
-    const skipped = {
-      id: entry.id,
-      title: entry.title,
-      url: entry.url,
-      source_type: entry.source_type,
-      difficulty_category: entry.difficulty_category,
-      priority: entry.priority,
-      import_status: "skipped",
-      extraction_method_used: isVideo ? "transcript" : "fallback",
-      title_match_confidence: 0,
-      ingredient_count_source: null,
-      ingredient_count_parsed: 0,
-      instruction_step_count_source: null,
-      instruction_step_count_parsed: 0,
-      missing_ingredients: [],
-      extra_hallucinated_ingredients: [],
-      quantity_mismatches: [],
-      unit_mismatches: [],
-      source_provided_metric_preserved: "not applicable",
-      directions_include_quantities: "not applicable",
-      temperature_handling: "fail",
-      timer_extraction: "fail",
-      section_preservation: "fail",
-      overall_confidence_score: 0,
-      notes: [data.error].concat(data.warnings || []).slice(0, 6),
-      suggested_fix_category: "accessibility/source coverage",
-    };
+    const skipped = skippedResult(entry, page, data, {
+      method: isVideo ? "transcript" : "fallback",
+      notes: [data.error],
+    });
     writeDebug(entry, { sourceSummary: sourceSummary(entry, page, data), rawExtraction: null, normalized: null });
     return skipped;
   }
@@ -444,38 +497,23 @@ async function runEntry(entry) {
   if (isVideo) {
     method = "transcript";
     if (!LIVE_AI) {
-      const skipped = {
-        id: entry.id,
-        title: entry.title,
-        url: entry.url,
-        source_type: entry.source_type,
-        difficulty_category: entry.difficulty_category,
-        priority: entry.priority,
-        import_status: "skipped",
-        extraction_method_used: method,
-        title_match_confidence: 0,
-        ingredient_count_source: null,
-        ingredient_count_parsed: 0,
-        instruction_step_count_source: null,
-        instruction_step_count_parsed: 0,
-        missing_ingredients: [],
-        extra_hallucinated_ingredients: [],
-        quantity_mismatches: [],
-        unit_mismatches: [],
-        source_provided_metric_preserved: "not applicable",
-        directions_include_quantities: "not applicable",
-        temperature_handling: "pass",
-        timer_extraction: "fail",
-        section_preservation: "fail",
-        overall_confidence_score: 0,
-        notes: ["Transcript/description fetched, but AI extraction is disabled for this run."].concat(data.warnings || []).slice(0, 6),
-        suggested_fix_category: "AI fallback not run",
-      };
+      const skipped = skippedResult(entry, page, data, {
+        method,
+        temperature: "pass",
+        reason: "Transcript/description fetched, but AI extraction is disabled for this run.",
+        notes: ["Transcript/description fetched, but AI extraction is disabled for this run."],
+      });
       writeDebug(entry, { sourceSummary: sourceSummary(entry, page, data), rawExtraction: { transcriptAvailable: !!data.transcript, descriptionAvailable: !!data.description, sourceQuality: data.sourceQuality, warnings: data.warnings || [] }, normalized: null });
       return skipped;
     }
-    // Placeholder for a future paid run; do not silently pretend this happened.
-    throw new Error("--ai mode is not implemented in this harness yet; leave YouTube entries skipped or add explicit API-backed extraction.");
+    const skipped = skippedResult(entry, page, data, {
+      method: "transcript + AI fallback requested",
+      temperature: "pass",
+      reason: AI_KEY_AVAILABLE ? "AI fallback was requested, but nightmare harness extraction wiring is not enabled yet." : "AI fallback was requested, but ANTHROPIC_API_KEY is not set.",
+      notes: [AI_KEY_AVAILABLE ? "AI fallback requested but not implemented in this harness yet." : "AI fallback requested but no ANTHROPIC_API_KEY is available; skipped without spend."],
+    });
+    writeDebug(entry, { sourceSummary: sourceSummary(entry, page, data), rawExtraction: { transcriptAvailable: !!data.transcript, descriptionAvailable: !!data.description, sourceQuality: data.sourceQuality, warnings: data.warnings || [] }, normalized: null });
+    return skipped;
   }
 
   if (data.recipe && data.extractComplete) {
@@ -493,33 +531,15 @@ async function runEntry(entry) {
   }
 
   if (!rawRecipe) {
-    const skipped = {
-      id: entry.id,
-      title: entry.title,
-      url: entry.url,
-      source_type: entry.source_type,
-      difficulty_category: entry.difficulty_category,
-      priority: entry.priority,
-      import_status: "skipped",
-      extraction_method_used: "clean page text",
-      title_match_confidence: 0,
-      ingredient_count_source: null,
-      ingredient_count_parsed: 0,
-      instruction_step_count_source: null,
-      instruction_step_count_parsed: 0,
-      missing_ingredients: [],
-      extra_hallucinated_ingredients: [],
-      quantity_mismatches: [],
-      unit_mismatches: [],
-      source_provided_metric_preserved: "not applicable",
-      directions_include_quantities: "not applicable",
-      temperature_handling: "pass",
-      timer_extraction: "fail",
-      section_preservation: "fail",
-      overall_confidence_score: 0,
-      notes: ["No complete structured recipe found; AI fallback disabled for this run."],
-      suggested_fix_category: "AI fallback not run",
-    };
+    const aiRequestedNote = LIVE_AI
+      ? (AI_KEY_AVAILABLE ? "AI fallback requested but not implemented in this harness yet." : "AI fallback requested but no ANTHROPIC_API_KEY is available; skipped without spend.")
+      : "No complete structured recipe found; AI fallback disabled for this run.";
+    const skipped = skippedResult(entry, page, data, {
+      method: LIVE_AI ? "clean page text + AI fallback requested" : "clean page text",
+      temperature: "pass",
+      reason: aiRequestedNote,
+      notes: [aiRequestedNote],
+    });
     writeDebug(entry, { sourceSummary: sourceSummary(entry, page, data), rawExtraction: null, normalized: null });
     return skipped;
   }
@@ -558,7 +578,10 @@ function sourceSummary(entry, page, data) {
 function aggregate(results, manifest) {
   const counts = { pass: 0, partial: 0, fail: 0, skipped: 0 };
   results.forEach((r) => { counts[r.import_status] = (counts[r.import_status] || 0) + 1; });
+  const attempted = results.filter((r) => r.import_status !== "skipped");
+  const skipped = results.filter((r) => r.import_status === "skipped");
   const avg = results.length ? Math.round(results.reduce((s, r) => s + (r.overall_confidence_score || 0), 0) / results.length) : 0;
+  const attemptedAvg = attempted.length ? Math.round(attempted.reduce((s, r) => s + (r.overall_confidence_score || 0), 0) / attempted.length) : 0;
   const clusterCounts = {};
   results.filter((r) => r.import_status !== "pass").forEach((r) => { clusterCounts[r.suggested_fix_category] = (clusterCounts[r.suggested_fix_category] || 0) + 1; });
   const topFailures = Object.entries(clusterCounts)
@@ -569,21 +592,108 @@ function aggregate(results, manifest) {
   const byId = new Map(results.map((r) => [r.id, r]));
   const top25 = (manifest.must_pass_top_25 || []).map((x) => {
     const r = byId.get(x.id);
-    return { id: x.id, status: r ? r.import_status : "not run", confidence: r ? r.overall_confidence_score : null, must_preserve: x.must_preserve };
+    return { id: x.id, status: r ? r.import_status : "not run", confidence: r ? r.overall_confidence_score : null, must_preserve: x.must_preserve || x.preserve_notes || "" };
   });
-  return { counts, average_confidence_score: avg, top_failure_categories: topFailures, top25_must_pass_status: top25 };
+  const top10 = (manifest.nightmare_top_10 || []).map((x) => {
+    const r = byId.get(x.id);
+    return { id: x.id, status: r ? r.import_status : "not run", confidence: r ? r.overall_confidence_score : null, must_preserve: x.must_preserve || x.preserve_notes || "" };
+  });
+  const manifestCount = (manifest.entries || []).length;
+  const attemptedCount = attempted.length;
+  const pct = (num, den) => den ? Number(((num / den) * 100).toFixed(1)) : null;
+  const bySourceType = {};
+  results.forEach((r) => {
+    const key = r.source_type || "unknown";
+    if (!bySourceType[key]) bySourceType[key] = { count: 0, attempted: 0, skipped: 0, average_confidence: 0, total_confidence: 0 };
+    bySourceType[key].count += 1;
+    bySourceType[key].total_confidence += r.overall_confidence_score || 0;
+    if (r.import_status === "skipped") bySourceType[key].skipped += 1;
+    else bySourceType[key].attempted += 1;
+  });
+  Object.keys(bySourceType).forEach((key) => {
+    bySourceType[key].average_confidence = Math.round(bySourceType[key].total_confidence / bySourceType[key].count);
+    delete bySourceType[key].total_confidence;
+  });
+  const skipClassifications = skipped.reduce((acc, r) => {
+    const key = r.skip_classification || "unclassified";
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+  const skippedDetails = skipped.map((r) => ({
+    id: r.id,
+    title: r.title,
+    source_type: r.source_type,
+    difficulty_category: r.difficulty_category,
+    skip_classification: r.skip_classification || "unclassified",
+    skip_acceptability: r.skip_acceptability || "unclassified",
+    reason: r.notes,
+  }));
+  return {
+    manifest_count: manifestCount,
+    recipes_tested: results.length,
+    attempted_count: attemptedCount,
+    skipped_count: skipped.length,
+    counts,
+    pass_rate_among_attempted: pct(counts.pass, attemptedCount),
+    deterministic_pass_rate: pct(counts.pass, attemptedCount),
+    ai_fallback_pass_rate: LIVE_AI ? pct(results.filter((r) => /AI|transcript|social/i.test(r.extraction_method_used || "") && r.import_status === "pass").length, results.filter((r) => /AI|transcript|social/i.test(r.extraction_method_used || "") && r.import_status !== "skipped").length) : null,
+    total_coverage_rate: pct(attemptedCount, manifestCount),
+    true_fail_rate_among_attempted: pct(counts.fail, attemptedCount),
+    average_confidence_score: avg,
+    average_attempted_confidence_score: attemptedAvg,
+    confidence_by_source_type: bySourceType,
+    top_failure_categories: topFailures,
+    failure_clusters: topFailures,
+    true_failures: results.filter((r) => r.import_status === "fail"),
+    skipped_but_acceptable_cases: skippedDetails.filter((r) => r.skip_acceptability === "skipped-but-acceptable"),
+    skipped_and_needs_product_work_cases: skippedDetails.filter((r) => r.skip_acceptability === "skipped-and-needs-product-work"),
+    skipped_and_needs_manifest_replacement_cases: skippedDetails.filter((r) => r.skip_acceptability === "skipped-and-needs-manifest-replacement"),
+    skipped_classification_counts: skipClassifications,
+    ai_fallback_requested: LIVE_AI,
+    ai_fallback_implemented: false,
+    ai_key_available: AI_KEY_AVAILABLE,
+    estimated_ai_fallback_candidates: skipped.filter((r) => ["ai_fallback_needed", "video_transcript_needed", "social_fallback_needed", "ambiguous_source_content"].includes(r.skip_classification)).length,
+    estimated_ai_credits_if_run: skipped.filter((r) => ["ai_fallback_needed", "video_transcript_needed", "social_fallback_needed", "ambiguous_source_content"].includes(r.skip_classification)).length,
+    top25_must_pass_status: top25,
+    top10_nightmare_status: top10,
+  };
 }
 
 function markdown(report) {
   const lines = [];
+  const mdText = (value) => String(value || "").replace(/\|/g, "\\|");
   lines.push("# Nightmare Recipe Import Report");
   lines.push("");
   lines.push("- Generated: " + report.generated_at);
   lines.push("- Manifest: `" + path.relative(ROOT, report.manifest_path) + "`");
+  lines.push("- Total manifest count: " + report.summary.manifest_count);
   lines.push("- Recipes tested: " + report.summary.recipes_tested);
+  lines.push("- Attempted imports: " + report.summary.attempted_count);
+  lines.push("- Skipped: " + report.summary.skipped_count);
   lines.push("- Pass / partial / fail / skipped: " + ["pass", "partial", "fail", "skipped"].map((k) => report.summary.counts[k] || 0).join(" / "));
+  lines.push("- Pass rate among attempted imports: " + report.summary.pass_rate_among_attempted + "%");
+  lines.push("- True fail rate among attempted imports: " + report.summary.true_fail_rate_among_attempted + "%");
+  lines.push("- Total manifest coverage: " + report.summary.total_coverage_rate + "%");
+  lines.push("- AI fallback pass rate: " + (report.summary.ai_fallback_pass_rate == null ? "not run" : report.summary.ai_fallback_pass_rate + "%"));
+  lines.push("- AI fallback requested: " + (report.summary.ai_fallback_requested ? "yes" : "no"));
+  lines.push("- AI fallback implemented in harness: " + (report.summary.ai_fallback_implemented ? "yes" : "no"));
+  lines.push("- Estimated AI fallback candidates: " + report.summary.estimated_ai_fallback_candidates);
+  lines.push("- Estimated AI credits if fallback run: " + report.summary.estimated_ai_credits_if_run);
   lines.push("- Average confidence: " + report.summary.average_confidence_score);
+  lines.push("- Average attempted confidence: " + report.summary.average_attempted_confidence_score);
   lines.push("- AI fallback: " + (report.options.ai_enabled ? "enabled" : "disabled"));
+  lines.push("");
+  lines.push("## Skip Classification");
+  const skipCounts = report.summary.skipped_classification_counts || {};
+  Object.keys(skipCounts).sort().forEach((key) => lines.push(`- ${key}: ${skipCounts[key]}`));
+  if (!Object.keys(skipCounts).length) lines.push("None.");
+  lines.push("");
+  lines.push("## Coverage By Source Type");
+  lines.push("| source type | count | attempted | skipped | avg confidence |");
+  lines.push("| --- | ---: | ---: | ---: | ---: |");
+  Object.entries(report.summary.confidence_by_source_type || {}).forEach(([sourceType, stats]) => {
+    lines.push(`| ${sourceType} | ${stats.count} | ${stats.attempted} | ${stats.skipped} | ${stats.average_confidence} |`);
+  });
   lines.push("");
   lines.push("## Top Failure Categories");
   report.summary.top_failure_categories.forEach((x, i) => lines.push(`${i + 1}. ${x.category}: ${x.count}`));
@@ -592,14 +702,44 @@ function markdown(report) {
   lines.push("## Top 25 Must-Pass Status");
   lines.push("| id | status | confidence | must preserve |");
   lines.push("| --- | --- | ---: | --- |");
-  report.summary.top25_must_pass_status.forEach((x) => lines.push(`| ${x.id} | ${x.status} | ${x.confidence == null ? "" : x.confidence} | ${x.must_preserve.replace(/\|/g, "\\|")} |`));
+  report.summary.top25_must_pass_status.forEach((x) => lines.push(`| ${x.id} | ${x.status} | ${x.confidence == null ? "" : x.confidence} | ${mdText(x.must_preserve)} |`));
+  lines.push("");
+  lines.push("## Top 10 Nightmare Status");
+  lines.push("| id | status | confidence | must preserve |");
+  lines.push("| --- | --- | ---: | --- |");
+  report.summary.top10_nightmare_status.forEach((x) => lines.push(`| ${x.id} | ${x.status} | ${x.confidence == null ? "" : x.confidence} | ${mdText(x.must_preserve)} |`));
+  lines.push("");
+  lines.push("## Skipped But Acceptable");
+  if (report.summary.skipped_but_acceptable_cases.length) {
+    report.summary.skipped_but_acceptable_cases.forEach((x) => lines.push(`- ${x.id}: ${x.skip_classification} (${x.source_type})`));
+  } else {
+    lines.push("None.");
+  }
+  lines.push("");
+  lines.push("## Skipped And Needs Product Work");
+  if (report.summary.skipped_and_needs_product_work_cases.length) {
+    report.summary.skipped_and_needs_product_work_cases.forEach((x) => lines.push(`- ${x.id}: ${x.skip_classification} (${x.source_type})`));
+  } else {
+    lines.push("None.");
+  }
+  lines.push("");
+  lines.push("## True Failures");
+  if (report.summary.true_failures.length) {
+    report.summary.true_failures.forEach((x) => lines.push(`- ${x.id}: ${x.suggested_fix_category}`));
+  } else {
+    lines.push("None.");
+  }
+  lines.push("");
+  lines.push("## Fixes Applied This Run");
+  (report.summary.top_fixed_failure_categories || []).forEach((x) => lines.push(`- ${x}`));
+  if (!report.summary.top_fixed_failure_categories.length) lines.push("None recorded in this run.");
   lines.push("");
   lines.push("## Results");
-  lines.push("| id | status | confidence | method | source/parsed ingredients | fix category | notes |");
-  lines.push("| --- | --- | ---: | --- | ---: | --- | --- |");
+  lines.push("| id | status | skip class | confidence | method | source/parsed ingredients | fix category | notes |");
+  lines.push("| --- | --- | --- | ---: | --- | ---: | --- | --- |");
   report.results.forEach((r) => {
     const notes = (r.notes || []).join("; ").replace(/\|/g, "\\|");
-    lines.push(`| ${r.id} | ${r.import_status} | ${r.overall_confidence_score} | ${r.extraction_method_used} | ${r.ingredient_count_source ?? ""}/${r.ingredient_count_parsed ?? ""} | ${r.suggested_fix_category} | ${notes} |`);
+    lines.push(`| ${r.id} | ${r.import_status} | ${r.skip_classification || ""} | ${r.overall_confidence_score} | ${r.extraction_method_used} | ${r.ingredient_count_source ?? ""}/${r.ingredient_count_parsed ?? ""} | ${r.suggested_fix_category} | ${notes} |`);
   });
   lines.push("");
   lines.push("## Debug Outputs");
@@ -659,6 +799,8 @@ function markdown(report) {
     manifest_path: MANIFEST_PATH,
     options: {
       ai_enabled: LIVE_AI,
+      ai_key_available: AI_KEY_AVAILABLE,
+      ai_fallback_implemented: false,
       server: SERVER,
       limit: LIMIT || null,
       ids: IDS ? Array.from(IDS) : null,
@@ -668,7 +810,7 @@ function markdown(report) {
     summary: {
       recipes_tested: results.length,
       ...summary,
-      top_fixed_failure_categories: [],
+      top_fixed_failure_categories: FIXES_APPLIED_THIS_RUN,
     },
     results,
   };
