@@ -25,11 +25,15 @@ const DEBUG_DIR = path.join(RESULTS_DIR, "nightmare-debug");
 const REPORT_JSON = path.join(RESULTS_DIR, "nightmare-report.json");
 const REPORT_MD = path.join(RESULTS_DIR, "nightmare-report.md");
 const SERVER = process.env.RB_SERVER || "http://localhost:3000";
+const AI_MODEL = (argsValue("--model") || process.env.RB_NIGHTMARE_AI_MODEL || "claude-sonnet-4-5-20250929");
+const AI_BUDGET = Number(argsValue("--budget") || process.env.RB_NIGHTMARE_AI_BUDGET || 0);
+const AI_PRICE_IN = (Number(argsValue("--price-in") || process.env.RB_NIGHTMARE_PRICE_IN || 3) || 3) / 1e6;
+const AI_PRICE_OUT = (Number(argsValue("--price-out") || process.env.RB_NIGHTMARE_PRICE_OUT || 15) || 15) / 1e6;
+const AI_MAX_FALLBACKS = Number(argsValue("--ai-limit") || process.env.RB_NIGHTMARE_AI_LIMIT || 0);
 const FIXES_APPLIED_THIS_RUN = [
-  "Classify skipped imports into AI, video transcript, social, blocked/inaccessible, bad URL, unsupported source, and ambiguous content buckets.",
-  "Report attempted pass rate, true fail rate, and total manifest coverage separately so skipped cases do not inflate pass rate.",
-  "Add --with-ai-fallback as the explicit opt-in flag for paid/AI fallback runs.",
-  "Add confidence by source type plus top 10 nightmare status to the generated reports.",
+  "Add source-to-final-output audit fields and source-faithful pass rate.",
+  "Wire --with-ai-fallback to an explicit hard budget, key check, candidate cap, and per-entry usage/cost reporting.",
+  "Preserve deterministic baseline behavior when AI fallback is not explicitly enabled.",
 ];
 
 const args = process.argv.slice(2);
@@ -40,14 +44,19 @@ const PRIORITIES = setArg("--priority");
 const ONLY_MUST = args.includes("--must-pass");
 const ONLY_NIGHTMARE = args.includes("--nightmare");
 const LIVE_AI = args.includes("--ai") || args.includes("--with-ai-fallback") || process.env.RB_NIGHTMARE_AI_FALLBACK === "1";
-const AI_KEY_AVAILABLE = !!process.env.ANTHROPIC_API_KEY;
+const ANTHROPIC_KEY = readEnvKey("ANTHROPIC_API_KEY");
+const AI_KEY_AVAILABLE = !!ANTHROPIC_KEY;
 const FETCH_DELAY = numberArg("--delay-ms", 250);
 const TIMEOUT_MS = numberArg("--timeout-ms", 15000);
+const aiUsage = { requested: LIVE_AI, implemented: true, keyAvailable: AI_KEY_AVAILABLE, budget: AI_BUDGET, spent: 0, calls: 0, skippedBudget: 0, skippedNoKey: 0, errors: 0, inputTokens: 0, outputTokens: 0 };
 
 function numberArg(name, fallback) {
   const raw = (args.find((a) => a.startsWith(name + "=")) || "").split("=")[1];
   const n = Number(raw);
   return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+function argsValue(name) {
+  return (process.argv.slice(2).find((a) => a.startsWith(name + "=")) || "").split("=")[1] || "";
 }
 function setArg(name) {
   const raw = (args.find((a) => a.startsWith(name + "=")) || "").split("=")[1];
@@ -57,9 +66,22 @@ function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms || 0
 function ensureDir(dir) { fs.mkdirSync(dir, { recursive: true }); }
 function readJson(file) { return JSON.parse(fs.readFileSync(file, "utf8")); }
 function writeJson(file, value) { fs.writeFileSync(file, JSON.stringify(value, null, 2) + "\n"); }
+function readEnvKey(name) {
+  if (process.env[name]) return process.env[name];
+  const envPath = path.join(ROOT, ".env.local");
+  try {
+    const line = fs.readFileSync(envPath, "utf8").split(/\r?\n/).find((entry) => entry.startsWith(name + "="));
+    if (!line) return "";
+    return line.slice(name.length + 1).trim().replace(/^["']|["']$/g, "");
+  } catch {
+    return "";
+  }
+}
 function cleanId(id) { return String(id || "").replace(/[^a-z0-9_-]/gi, "_"); }
 function textify(value) { return String(value == null ? "" : value).replace(/\s+/g, " ").trim(); }
 function stripHtml(s) { return Extract.stripHtml ? Extract.stripHtml(s) : String(s || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(); }
+function estimatedTokens(value) { return Math.ceil(String(value || "").length / 4); }
+function usd(n) { return Number((n || 0).toFixed(6)); }
 
 function orderedEntries(manifest) {
   const entries = manifest.entries.slice();
@@ -146,6 +168,97 @@ async function fetchVideo(entry) {
   return fetchJson(SERVER + "/api/transcript?url=" + encodeURIComponent(entry.url))
     .then((r) => ({ via: "server:/api/transcript", status: r.status, data: r.data }))
     .catch((err) => ({ via: "server:/api/transcript", status: 0, data: { error: "server unavailable: " + err.message } }));
+}
+
+function loadExtractPrompt() {
+  const appSrc = fs.readFileSync(path.join(ROOT, "src", "app.jsx"), "utf8");
+  const match = appSrc.match(/const EXTRACT_PROMPT = `([\s\S]*?)`;/);
+  if (!match) throw new Error("Could not find EXTRACT_PROMPT in src/app.jsx");
+  return match[1];
+}
+
+async function callAnthropic(messages, maxTokens) {
+  const body = { model: AI_MODEL, max_tokens: maxTokens || 4096, messages, system: loadExtractPrompt() };
+  if (!/opus-4/.test(AI_MODEL)) body.temperature = 0;
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
+    body: JSON.stringify(body),
+  });
+  const json = await r.json();
+  if (!r.ok) throw new Error("Anthropic " + r.status + ": " + ((json.error && json.error.message) || JSON.stringify(json)));
+  const usage = json.usage || {};
+  const cost = (usage.input_tokens || 0) * AI_PRICE_IN + (usage.output_tokens || 0) * AI_PRICE_OUT;
+  return { text: (json.content || []).map((part) => part.text || "").join(""), usage, cost };
+}
+
+function parseAiRecipe(text) {
+  const raw = String(text || "").trim();
+  const start = raw.indexOf("{");
+  const end = raw.lastIndexOf("}");
+  if (start < 0 || end <= start) return { error: "unparseable_ai_json" };
+  try { return JSON.parse(raw.slice(start, end + 1)); }
+  catch { return { error: "unparseable_ai_json" }; }
+}
+
+function buildAiFallback(entry, pageData, isVideo) {
+  if (isVideo) {
+    const content = [
+      "Video title: " + (pageData.title || ""),
+      pageData.author ? "Video channel/source: " + pageData.author : "",
+      pageData.description ? "Video description (prefer this when it contains written recipe details):\n" + pageData.description : "",
+      pageData.transcript ? "Spoken transcript (may be scattered; use only source-stated facts):\n" + pageData.transcript : "",
+      pageData.thumbnail ? "Video thumbnail URL: " + pageData.thumbnail : "",
+      (pageData.warnings || []).length ? "Importer warnings: " + pageData.warnings.join("; ") : "",
+    ].filter(Boolean).join("\n\n");
+    return {
+      maxTokens: 6000,
+      sourceText: content,
+      messages: [{ role: "user", content: "Extract the recipe from this public YouTube source. Use only the description, transcript, and metadata below. Prefer the written description when it contains the recipe. Do not invent ingredients, quantities, steps, servings, times, or notes. If there is not enough recipe detail, return {\"error\":\"not_enough_recipe_text\"}. If the video contains multiple full recipes or variants, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]}.\n\n" + content }],
+    };
+  }
+  const content = [
+    "Source URL: " + (pageData.finalUrl || pageData.url || entry.url),
+    "Page title: " + (pageData.title || ""),
+    "Detected hero image: " + (pageData.image || ""),
+    "JSON-LD / structured data:\n" + JSON.stringify(pageData.jsonLd || []),
+    "Potentially useful source links:\n" + JSON.stringify(pageData.helpfulLinks || []),
+    "Visible page text:\n" + (pageData.text || ""),
+  ].join("\n\n");
+  return {
+    maxTokens: 6000,
+    sourceText: content,
+    messages: [{ role: "user", content: "Extract the recipe ONLY from the source material below. Do not use memory. Do not invent missing quantities, ingredients, steps, times, servings, nutrition, or notes. If something is missing, leave it blank. Put source-grounded cooking tips, substitutions, storage guidance, and helper links in notes only when they appear in the source. If the source contains multiple full recipes, return {\"error\":\"multiple_recipes_detected\",\"recipes\":[\"name 1\",\"name 2\"]}.\n\n" + content }],
+  };
+}
+
+async function runAiFallback(entry, page, data, isVideo) {
+  if (!LIVE_AI) return { skipped: "AI fallback disabled" };
+  if (!AI_KEY_AVAILABLE) {
+    aiUsage.skippedNoKey += 1;
+    return { skipped: "AI fallback requested but no ANTHROPIC_API_KEY is available; skipped without spend." };
+  }
+  if (AI_MAX_FALLBACKS && aiUsage.calls >= AI_MAX_FALLBACKS) return { skipped: "AI fallback candidate cap reached." };
+  if (!AI_BUDGET || AI_BUDGET <= 0) return { skipped: "AI fallback requested but --budget must be greater than 0." };
+  const prepared = buildAiFallback(entry, data, isVideo);
+  const worstCost = estimatedTokens(JSON.stringify(prepared.messages)) * AI_PRICE_IN + prepared.maxTokens * AI_PRICE_OUT;
+  if (aiUsage.spent + worstCost > AI_BUDGET) {
+    aiUsage.skippedBudget += 1;
+    return { skipped: "AI fallback budget guard stopped before this import.", estimatedCost: usd(worstCost) };
+  }
+  try {
+    const response = await callAnthropic(prepared.messages, prepared.maxTokens);
+    aiUsage.calls += 1;
+    aiUsage.spent = usd(aiUsage.spent + response.cost);
+    aiUsage.inputTokens += response.usage.input_tokens || 0;
+    aiUsage.outputTokens += response.usage.output_tokens || 0;
+    const parsed = parseAiRecipe(response.text);
+    if (parsed.error) return { error: parsed.error, rawText: response.text, usage: response.usage, cost: usd(response.cost), sourceText: prepared.sourceText };
+    return { recipe: parsed, rawText: response.text, usage: response.usage, cost: usd(response.cost), sourceText: prepared.sourceText };
+  } catch (err) {
+    aiUsage.errors += 1;
+    return { error: err.message };
+  }
 }
 
 function sourceCounts(pageData) {
@@ -255,6 +368,135 @@ function compareIngredients(sourceRecipe, parsedRecipe) {
   }
   return { missing, extra, quantityMismatches, unitMismatches, sourceCount: source.length, parsedCount: parsed.length };
 }
+function normValue(value) {
+  return textify(value).toLowerCase().replace(/[’']/g, "").replace(/[^a-z0-9./: -]+/g, " ").replace(/\s+/g, " ").trim();
+}
+function classifyTextField(source, parsed) {
+  const s = normValue(source);
+  const p = normValue(parsed);
+  if (!s && !p) return "exact_match";
+  if (s && !p) return "missing";
+  if (!s && p) return "hallucinated";
+  if (s === p) return "exact_match";
+  if (s.includes(p) || p.includes(s)) return "acceptable_normalization";
+  return "changed";
+}
+function classifyTimeField(source, parsed) {
+  const s = normValue(source);
+  const p = normValue(parsed);
+  if (!s && !p) return "exact_match";
+  if (s && !p) return "missing";
+  if (!s && p) return "hallucinated";
+  if (s === p) return "exact_match";
+  const numsS = (s.match(/\d+/g) || []).join("-");
+  const numsP = (p.match(/\d+/g) || []).join("-");
+  return numsS && numsS === numsP ? "acceptable_normalization" : "changed";
+}
+function classifyUrlField(source, parsed) {
+  const s = textify(source);
+  const p = textify(parsed);
+  if (!s && !p) return "exact_match";
+  if (s && !p) return "missing";
+  if (!s && p) return "hallucinated";
+  if (s.replace(/\/$/, "") === p.replace(/\/$/, "")) return "exact_match";
+  try {
+    const su = new URL(s);
+    const pu = new URL(p);
+    if (su.hostname.replace(/^www\./, "") === pu.hostname.replace(/^www\./, "")) return "acceptable_normalization";
+  } catch {}
+  return "changed";
+}
+function classifyCount(sourceCount, parsedCount) {
+  if (sourceCount == null) return parsedCount ? "uncertain" : "exact_match";
+  if (sourceCount === parsedCount) return "exact_match";
+  if (parsedCount > sourceCount) return "hallucinated";
+  return "missing";
+}
+function sourceMetricProblems(sourceRecipe, parsedRecipe) {
+  if (!hasSourceMetric(sourceRecipe)) return [];
+  const parsed = allIngredients(parsedRecipe);
+  const badNames = parsed.filter((ing) => /\(\s*[\d.,\/ ]+\s*(?:g|gram|grams|kg|ml|milliliter|l|liter|litre)s?\s*\)/i.test(ing.name || ""));
+  const missingWeight = !parsed.some((ing) => ing.weightAmount && ing.weightUnit);
+  return badNames.map((ing) => "metric leaked into name: " + (ing.name || ing.line)).concat(missingWeight ? ["source metric not stored as alternate unit"] : []);
+}
+function nutritionStatus(sourceRecipe, parsedRecipe) {
+  const sourceNutrition = sourceRecipe && (sourceRecipe.nutrition || sourceRecipe.macros);
+  const parsedNutrition = parsedRecipe && (parsedRecipe.nutrition || parsedRecipe.macros);
+  if (!sourceNutrition && !parsedNutrition) return "exact_match";
+  if (sourceNutrition && !parsedNutrition) return "missing";
+  if (!sourceNutrition && parsedNutrition) return "hallucinated";
+  return "acceptable_normalization";
+}
+function auditSourceToOutput(entry, sourceRecipe, parsedRecipe) {
+  if (!sourceRecipe) {
+    return {
+      available: false,
+      score: 0,
+      needs_review: true,
+      fields: {},
+      mismatches: [{ field: "source", classification: "uncertain", detail: "No structured source recipe available for deterministic source-to-output audit." }],
+      clusters: ["source audit unavailable"],
+    };
+  }
+  const ingredientCmp = compareIngredients(sourceRecipe, parsedRecipe);
+  const sourceSections = recipeSections(sourceRecipe);
+  const parsedSections = recipeSections(parsedRecipe);
+  const sourceSteps = allSteps(sourceRecipe);
+  const parsedSteps = allSteps(parsedRecipe);
+  const metricProblems = sourceMetricProblems(sourceRecipe, parsedRecipe);
+  const fields = {
+    title: classifyTextField(sourceRecipe.title || entry.title, parsedRecipe.title),
+    servings_yield: classifyTextField(sourceRecipe.servings || sourceRecipe.yield || sourceRecipe.recipeYield, parsedRecipe.servings || parsedRecipe.yield),
+    prep_time: classifyTimeField(sourceRecipe.prepTime, parsedRecipe.prepTime),
+    cook_time: classifyTimeField(sourceRecipe.cookTime, parsedRecipe.cookTime),
+    total_time: classifyTimeField(sourceRecipe.totalTime, parsedRecipe.totalTime),
+    ingredient_sections: classifyCount(sourceSections.filter((s) => s.name && s.name !== "Main").length, parsedSections.filter((s) => s.name && s.name !== "Main").length),
+    every_ingredient: ingredientCmp.missing.length ? "missing" : ingredientCmp.extra.length ? "hallucinated" : "exact_match",
+    every_quantity: ingredientCmp.quantityMismatches.length ? "changed" : "exact_match",
+    every_unit: ingredientCmp.unitMismatches.length ? "changed" : "exact_match",
+    source_alternate_units: metricProblems.length ? "missing" : "exact_match",
+    directions_steps: classifyCount(sourceSteps.length, parsedSteps.length),
+    ingredient_quantities_in_directions: directionsQuantityStatus(parsedRecipe) === "no" ? "needs_review" : "acceptable_normalization",
+    temperatures: tempPass(parsedRecipe) ? "acceptable_normalization" : "changed",
+    timers: timerPass(parsedRecipe) ? "acceptable_normalization" : "needs_review",
+    notes_substitutions: classifyTextField(sourceRecipe.notes, parsedRecipe.notes),
+    nutrition: nutritionStatus(sourceRecipe, parsedRecipe),
+    source_attribution: classifyUrlField(sourceRecipe.sourceUrl || sourceRecipe.url || entry.url, parsedRecipe.sourceUrl || parsedRecipe.url),
+  };
+  const mismatches = [];
+  Object.entries(fields).forEach(([field, classification]) => {
+    if (!["exact_match", "acceptable_normalization"].includes(classification)) {
+      mismatches.push({ field, classification });
+    }
+  });
+  ingredientCmp.missing.slice(0, 10).forEach((detail) => mismatches.push({ field: "ingredient", classification: "missing", detail }));
+  ingredientCmp.extra.slice(0, 10).forEach((detail) => mismatches.push({ field: "ingredient", classification: "hallucinated", detail }));
+  ingredientCmp.quantityMismatches.slice(0, 10).forEach((detail) => mismatches.push({ field: "quantity", classification: "changed", detail }));
+  ingredientCmp.unitMismatches.slice(0, 10).forEach((detail) => mismatches.push({ field: "unit", classification: "changed", detail }));
+  metricProblems.slice(0, 10).forEach((detail) => mismatches.push({ field: "source_alternate_units", classification: "missing", detail }));
+  const weights = { changed: 18, missing: 18, hallucinated: 18, needs_review: 8, uncertain: 4 };
+  const penalty = mismatches.reduce((sum, item) => sum + (weights[item.classification] || 0), 0);
+  const score = Math.max(0, Math.min(100, 100 - penalty));
+  const critical = mismatches.some((item) => ["ingredient", "quantity", "unit", "source_alternate_units"].includes(item.field) && ["changed", "missing", "hallucinated"].includes(item.classification));
+  const clusters = Array.from(new Set(mismatches.map((item) => {
+    if (item.field === "ingredient") return item.classification === "hallucinated" ? "hallucinated ingredients" : "missing ingredients";
+    if (item.field === "quantity") return "wrong quantities";
+    if (item.field === "unit") return "wrong units";
+    if (item.field === "source_alternate_units") return "source metric preservation";
+    if (item.field === "directions_steps" || item.field === "ingredient_quantities_in_directions") return "directions fidelity";
+    if (item.field === "ingredient_sections") return "section preservation";
+    return item.field;
+  })));
+  return {
+    available: true,
+    score,
+    needs_review: score < 90 || mismatches.some((item) => item.classification === "needs_review"),
+    critical_failure: critical,
+    fields,
+    mismatches: mismatches.slice(0, 30),
+    clusters,
+  };
+}
 function amountKey(amount) {
   return Normalize.normalizeFractions(String(amount || ""))
     .replace(/\s+/g, " ")
@@ -342,6 +584,7 @@ function suggestedFix(result) {
   if (result.directions_include_quantities !== "yes") return "direction quantity refs";
   if (result.temperature_handling === "fail") return "temperature conversion/display";
   if (result.timer_extraction === "fail") return "timer extraction";
+  if (result.source_audit && result.source_audit.clusters && result.source_audit.clusters.length) return result.source_audit.clusters[0];
   return "none";
 }
 
@@ -408,6 +651,9 @@ function skippedResult(entry, page, data, overrides = {}) {
     temperature_handling: overrides.temperature || "fail",
     timer_extraction: "fail",
     section_preservation: "fail",
+    source_audit: { available: false, score: 0, needs_review: true, fields: {}, mismatches: [], clusters: [skip.suggestedFix] },
+    source_audit_score: 0,
+    review_needed: true,
     overall_confidence_score: 0,
     notes: (overrides.notes || []).concat((data && data.warnings) || []).filter(Boolean).slice(0, 6),
     suggested_fix_category: skip.suggestedFix,
@@ -427,6 +673,7 @@ function evaluate(entry, method, pageData, parsed) {
   const timerOk = timerPass(parsed);
   const metricStatus = metricPreserved(parsed);
   const dirStatus = directionsQuantityStatus(parsed);
+  const sourceAudit = auditSourceToOutput(entry, source.sourceRecipe, parsed);
   let confidence = quality.score;
   if (ingredientCmp.missing.length) confidence -= 25;
   if (ingredientCmp.extra.length) confidence -= 15;
@@ -437,9 +684,10 @@ function evaluate(entry, method, pageData, parsed) {
   if (!sectionOk) confidence -= 10;
   if (!tempOk) confidence -= 8;
   if (!timerOk) confidence -= 4;
+  if (sourceAudit.available && sourceAudit.score < 90) confidence -= Math.min(25, Math.ceil((90 - sourceAudit.score) / 2));
   confidence = Math.max(0, Math.min(100, Math.round(confidence)));
   const hardFailures = ingredientCmp.missing.length || ingredientCmp.extra.length || ingredientCmp.quantityMismatches.length || ingredientCmp.unitMismatches.length || metricStatus === "no";
-  const import_status = hardFailures ? "fail" : confidence >= 90 ? "pass" : "partial";
+  const import_status = hardFailures || sourceAudit.critical_failure ? "fail" : (confidence >= 90 && sourceAudit.score >= 90 && !sourceAudit.needs_review) ? "pass" : "partial";
   const result = {
     id: entry.id,
     title: entry.title,
@@ -463,8 +711,11 @@ function evaluate(entry, method, pageData, parsed) {
     temperature_handling: tempOk ? "pass" : "fail",
     timer_extraction: timerOk ? "pass" : "fail",
     section_preservation: sectionOk ? "pass" : "fail",
+    source_audit: sourceAudit,
+    source_audit_score: sourceAudit.score,
+    review_needed: sourceAudit.needs_review || quality.needsReview || (grounding && grounding.needsReview) || false,
     overall_confidence_score: confidence,
-    notes: audit.warnings.concat(quality.reasons || []).filter(Boolean).slice(0, 8),
+    notes: audit.warnings.concat(quality.reasons || []).concat(sourceAudit.mismatches || []).map((item) => typeof item === "string" ? item : `${item.field}: ${item.classification}${item.detail ? " - " + JSON.stringify(item.detail) : ""}`).filter(Boolean).slice(0, 8),
     suggested_fix_category: "",
   };
   result.suggested_fix_category = suggestedFix(result);
@@ -494,6 +745,7 @@ async function runEntry(entry) {
 
   let rawRecipe = null;
   let method = "fallback";
+  let aiMeta = null;
   if (isVideo) {
     method = "transcript";
     if (!LIVE_AI) {
@@ -506,23 +758,33 @@ async function runEntry(entry) {
       writeDebug(entry, { sourceSummary: sourceSummary(entry, page, data), rawExtraction: { transcriptAvailable: !!data.transcript, descriptionAvailable: !!data.description, sourceQuality: data.sourceQuality, warnings: data.warnings || [] }, normalized: null });
       return skipped;
     }
-    const skipped = skippedResult(entry, page, data, {
-      method: "transcript + AI fallback requested",
-      temperature: "pass",
-      reason: AI_KEY_AVAILABLE ? "AI fallback was requested, but nightmare harness extraction wiring is not enabled yet." : "AI fallback was requested, but ANTHROPIC_API_KEY is not set.",
-      notes: [AI_KEY_AVAILABLE ? "AI fallback requested but not implemented in this harness yet." : "AI fallback requested but no ANTHROPIC_API_KEY is available; skipped without spend."],
-    });
-    writeDebug(entry, { sourceSummary: sourceSummary(entry, page, data), rawExtraction: { transcriptAvailable: !!data.transcript, descriptionAvailable: !!data.description, sourceQuality: data.sourceQuality, warnings: data.warnings || [] }, normalized: null });
-    return skipped;
+    const ai = await runAiFallback(entry, page, data, true);
+    if (ai.recipe) {
+      rawRecipe = { ...ai.recipe, sourceUrl: entry.url, importMethod: "ai-fallback" };
+      aiMeta = { cost_usd: ai.cost || 0, usage: ai.usage || null };
+      method = "AI fallback transcript";
+      data.text = ai.sourceText || [data.title, data.description, data.transcript].filter(Boolean).join("\n\n");
+      data.recipe = null;
+    } else {
+      const skipped = skippedResult(entry, page, data, {
+        method: "transcript + AI fallback requested",
+        temperature: "pass",
+        reason: ai.skipped || ai.error || "AI fallback did not produce a recipe.",
+        notes: [ai.skipped || ai.error || "AI fallback did not produce a recipe."],
+      });
+      skipped.ai_usage = { cost_usd: ai.cost || 0, usage: ai.usage || null, estimated_cost_usd: ai.estimatedCost || 0 };
+      writeDebug(entry, { sourceSummary: sourceSummary(entry, page, data), rawExtraction: { transcriptAvailable: !!data.transcript, descriptionAvailable: !!data.description, sourceQuality: data.sourceQuality, warnings: data.warnings || [], aiRawText: ai.rawText || "" }, normalized: null });
+      return skipped;
+    }
   }
 
-  if (data.recipe && data.extractComplete) {
+  if (!rawRecipe && data.recipe && data.extractComplete) {
     rawRecipe = { ...data.recipe, sourceUrl: data.finalUrl || data.url || entry.url, importMethod: "structured-data" };
     method = data.extractSource === "microdata" ? "microdata" : "schema.org JSON-LD";
-  } else if (data.recipe) {
+  } else if (!rawRecipe && data.recipe) {
     rawRecipe = { ...data.recipe, sourceUrl: data.finalUrl || data.url || entry.url, importMethod: "partial-structured-data" };
     method = data.extractSource === "microdata" ? "microdata" : "HTML recipe card";
-  } else if (Array.isArray(data.jsonLd) && data.jsonLd.length) {
+  } else if (!rawRecipe && Array.isArray(data.jsonLd) && data.jsonLd.length) {
     const ex = Extract.extractFromJsonLdNodes(data.jsonLd, { url: data.finalUrl || data.url || entry.url });
     if (ex && ex.recipe) {
       rawRecipe = { ...ex.recipe, sourceUrl: data.finalUrl || data.url || entry.url, importMethod: ex.complete ? "structured-data" : "partial-structured-data" };
@@ -531,8 +793,30 @@ async function runEntry(entry) {
   }
 
   if (!rawRecipe) {
+    if (LIVE_AI) {
+      const ai = await runAiFallback(entry, page, data, false);
+      if (ai.recipe) {
+        rawRecipe = { ...ai.recipe, sourceUrl: data.finalUrl || data.url || entry.url, importMethod: "ai-fallback" };
+        aiMeta = { cost_usd: ai.cost || 0, usage: ai.usage || null };
+        method = "AI fallback page text";
+        data.text = ai.sourceText || data.text || "";
+      } else {
+        const skipped = skippedResult(entry, page, data, {
+          method: "clean page text + AI fallback requested",
+          temperature: "pass",
+          reason: ai.skipped || ai.error || "AI fallback did not produce a recipe.",
+          notes: [ai.skipped || ai.error || "AI fallback did not produce a recipe."],
+        });
+        skipped.ai_usage = { cost_usd: ai.cost || 0, usage: ai.usage || null, estimated_cost_usd: ai.estimatedCost || 0 };
+        writeDebug(entry, { sourceSummary: sourceSummary(entry, page, data), rawExtraction: ai.rawText ? { aiRawText: ai.rawText } : null, normalized: null });
+        return skipped;
+      }
+    }
+  }
+
+  if (!rawRecipe) {
     const aiRequestedNote = LIVE_AI
-      ? (AI_KEY_AVAILABLE ? "AI fallback requested but not implemented in this harness yet." : "AI fallback requested but no ANTHROPIC_API_KEY is available; skipped without spend.")
+      ? (AI_KEY_AVAILABLE ? "AI fallback requested but did not produce a recipe." : "AI fallback requested but no ANTHROPIC_API_KEY is available; skipped without spend.")
       : "No complete structured recipe found; AI fallback disabled for this run.";
     const skipped = skippedResult(entry, page, data, {
       method: LIVE_AI ? "clean page text + AI fallback requested" : "clean page text",
@@ -546,6 +830,7 @@ async function runEntry(entry) {
 
   const normalized = sanitizeImportedRecipe(rawRecipe);
   const result = evaluate(entry, method, data, normalized);
+  if (aiMeta) result.ai_usage = aiMeta;
   writeDebug(entry, {
     sourceSummary: sourceSummary(entry, page, data),
     rawExtraction: rawRecipe,
@@ -579,24 +864,33 @@ function aggregate(results, manifest) {
   const counts = { pass: 0, partial: 0, fail: 0, skipped: 0 };
   results.forEach((r) => { counts[r.import_status] = (counts[r.import_status] || 0) + 1; });
   const attempted = results.filter((r) => r.import_status !== "skipped");
+  const deterministicAttempted = attempted.filter((r) => !/^AI fallback/i.test(r.extraction_method_used || ""));
+  const aiAttempted = attempted.filter((r) => /^AI fallback/i.test(r.extraction_method_used || ""));
   const skipped = results.filter((r) => r.import_status === "skipped");
   const avg = results.length ? Math.round(results.reduce((s, r) => s + (r.overall_confidence_score || 0), 0) / results.length) : 0;
   const attemptedAvg = attempted.length ? Math.round(attempted.reduce((s, r) => s + (r.overall_confidence_score || 0), 0) / attempted.length) : 0;
+  const attemptedAuditAvg = attempted.length ? Math.round(attempted.reduce((s, r) => s + (r.source_audit_score || 0), 0) / attempted.length) : 0;
   const clusterCounts = {};
-  results.filter((r) => r.import_status !== "pass").forEach((r) => { clusterCounts[r.suggested_fix_category] = (clusterCounts[r.suggested_fix_category] || 0) + 1; });
+  results.filter((r) => r.import_status !== "pass").forEach((r) => {
+    const keys = new Set([r.suggested_fix_category].concat((r.source_audit && r.source_audit.clusters) || []).filter(Boolean));
+    keys.forEach((key) => { clusterCounts[key] = (clusterCounts[key] || 0) + 1; });
+  });
   const topFailures = Object.entries(clusterCounts)
     .filter(([k]) => k && k !== "none")
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10)
     .map(([category, count]) => ({ category, count }));
   const byId = new Map(results.map((r) => [r.id, r]));
+  const entryById = new Map((manifest.entries || []).map((entry) => [entry.id, entry]));
   const top25 = (manifest.must_pass_top_25 || []).map((x) => {
     const r = byId.get(x.id);
-    return { id: x.id, status: r ? r.import_status : "not run", confidence: r ? r.overall_confidence_score : null, must_preserve: x.must_preserve || x.preserve_notes || "" };
+    const entry = entryById.get(x.id) || {};
+    return { id: x.id, status: r ? r.import_status : "not run", confidence: r ? r.overall_confidence_score : null, must_preserve: x.must_preserve || x.preserve_notes || entry.preserve_notes || "" };
   });
   const top10 = (manifest.nightmare_top_10 || []).map((x) => {
     const r = byId.get(x.id);
-    return { id: x.id, status: r ? r.import_status : "not run", confidence: r ? r.overall_confidence_score : null, must_preserve: x.must_preserve || x.preserve_notes || "" };
+    const entry = entryById.get(x.id) || {};
+    return { id: x.id, status: r ? r.import_status : "not run", confidence: r ? r.overall_confidence_score : null, must_preserve: x.must_preserve || x.preserve_notes || entry.preserve_notes || "" };
   });
   const manifestCount = (manifest.entries || []).length;
   const attemptedCount = attempted.length;
@@ -635,22 +929,39 @@ function aggregate(results, manifest) {
     skipped_count: skipped.length,
     counts,
     pass_rate_among_attempted: pct(counts.pass, attemptedCount),
-    deterministic_pass_rate: pct(counts.pass, attemptedCount),
-    ai_fallback_pass_rate: LIVE_AI ? pct(results.filter((r) => /AI|transcript|social/i.test(r.extraction_method_used || "") && r.import_status === "pass").length, results.filter((r) => /AI|transcript|social/i.test(r.extraction_method_used || "") && r.import_status !== "skipped").length) : null,
+    deterministic_pass_rate: pct(deterministicAttempted.filter((r) => r.import_status === "pass").length, deterministicAttempted.length),
+    ai_fallback_pass_rate: LIVE_AI ? pct(aiAttempted.filter((r) => r.import_status === "pass").length, aiAttempted.length) : null,
+    source_faithful_pass_rate: pct(attempted.filter((r) => r.import_status === "pass" && !r.review_needed && (r.source_audit_score || 0) >= 90).length, attemptedCount),
     total_coverage_rate: pct(attemptedCount, manifestCount),
     true_fail_rate_among_attempted: pct(counts.fail, attemptedCount),
     average_confidence_score: avg,
     average_attempted_confidence_score: attemptedAvg,
+    average_audit_score: attemptedAuditAvg,
+    ai_usage: {
+      requested: aiUsage.requested,
+      implemented: aiUsage.implemented,
+      model: AI_MODEL,
+      key_available: AI_KEY_AVAILABLE,
+      budget_usd: usd(AI_BUDGET),
+      spent_usd: usd(aiUsage.spent),
+      calls: aiUsage.calls,
+      skipped_budget: aiUsage.skippedBudget,
+      skipped_no_key: aiUsage.skippedNoKey,
+      errors: aiUsage.errors,
+      input_tokens: aiUsage.inputTokens,
+      output_tokens: aiUsage.outputTokens,
+    },
     confidence_by_source_type: bySourceType,
     top_failure_categories: topFailures,
     failure_clusters: topFailures,
     true_failures: results.filter((r) => r.import_status === "fail"),
+    partial_cases: results.filter((r) => r.import_status === "partial").map((r) => ({ id: r.id, title: r.title, confidence: r.overall_confidence_score, audit_score: r.source_audit_score, reason: r.notes, clusters: (r.source_audit && r.source_audit.clusters) || [] })),
     skipped_but_acceptable_cases: skippedDetails.filter((r) => r.skip_acceptability === "skipped-but-acceptable"),
     skipped_and_needs_product_work_cases: skippedDetails.filter((r) => r.skip_acceptability === "skipped-and-needs-product-work"),
     skipped_and_needs_manifest_replacement_cases: skippedDetails.filter((r) => r.skip_acceptability === "skipped-and-needs-manifest-replacement"),
     skipped_classification_counts: skipClassifications,
     ai_fallback_requested: LIVE_AI,
-    ai_fallback_implemented: false,
+    ai_fallback_implemented: true,
     ai_key_available: AI_KEY_AVAILABLE,
     estimated_ai_fallback_candidates: skipped.filter((r) => ["ai_fallback_needed", "video_transcript_needed", "social_fallback_needed", "ambiguous_source_content"].includes(r.skip_classification)).length,
     estimated_ai_credits_if_run: skipped.filter((r) => ["ai_fallback_needed", "video_transcript_needed", "social_fallback_needed", "ambiguous_source_content"].includes(r.skip_classification)).length,
@@ -672,6 +983,8 @@ function markdown(report) {
   lines.push("- Skipped: " + report.summary.skipped_count);
   lines.push("- Pass / partial / fail / skipped: " + ["pass", "partial", "fail", "skipped"].map((k) => report.summary.counts[k] || 0).join(" / "));
   lines.push("- Pass rate among attempted imports: " + report.summary.pass_rate_among_attempted + "%");
+  lines.push("- Deterministic pass rate: " + report.summary.deterministic_pass_rate + "%");
+  lines.push("- Source-faithful pass rate: " + report.summary.source_faithful_pass_rate + "%");
   lines.push("- True fail rate among attempted imports: " + report.summary.true_fail_rate_among_attempted + "%");
   lines.push("- Total manifest coverage: " + report.summary.total_coverage_rate + "%");
   lines.push("- AI fallback pass rate: " + (report.summary.ai_fallback_pass_rate == null ? "not run" : report.summary.ai_fallback_pass_rate + "%"));
@@ -679,8 +992,10 @@ function markdown(report) {
   lines.push("- AI fallback implemented in harness: " + (report.summary.ai_fallback_implemented ? "yes" : "no"));
   lines.push("- Estimated AI fallback candidates: " + report.summary.estimated_ai_fallback_candidates);
   lines.push("- Estimated AI credits if fallback run: " + report.summary.estimated_ai_credits_if_run);
+  lines.push("- AI usage/spend: $" + report.summary.ai_usage.spent_usd + " of $" + report.summary.ai_usage.budget_usd + " budget; " + report.summary.ai_usage.calls + " calls");
   lines.push("- Average confidence: " + report.summary.average_confidence_score);
   lines.push("- Average attempted confidence: " + report.summary.average_attempted_confidence_score);
+  lines.push("- Average audit score: " + report.summary.average_audit_score);
   lines.push("- AI fallback: " + (report.options.ai_enabled ? "enabled" : "disabled"));
   lines.push("");
   lines.push("## Skip Classification");
@@ -730,16 +1045,23 @@ function markdown(report) {
     lines.push("None.");
   }
   lines.push("");
+  lines.push("## Partial / Review-Needed Cases");
+  if (report.summary.partial_cases.length) {
+    report.summary.partial_cases.forEach((x) => lines.push(`- ${x.id}: confidence ${x.confidence}, audit ${x.audit_score}, clusters ${(x.clusters || []).join(", ") || "none"}`));
+  } else {
+    lines.push("None.");
+  }
+  lines.push("");
   lines.push("## Fixes Applied This Run");
   (report.summary.top_fixed_failure_categories || []).forEach((x) => lines.push(`- ${x}`));
   if (!report.summary.top_fixed_failure_categories.length) lines.push("None recorded in this run.");
   lines.push("");
   lines.push("## Results");
-  lines.push("| id | status | skip class | confidence | method | source/parsed ingredients | fix category | notes |");
-  lines.push("| --- | --- | --- | ---: | --- | ---: | --- | --- |");
+  lines.push("| id | status | skip class | confidence | audit | review | method | source/parsed ingredients | fix category | notes |");
+  lines.push("| --- | --- | --- | ---: | ---: | --- | --- | ---: | --- | --- |");
   report.results.forEach((r) => {
     const notes = (r.notes || []).join("; ").replace(/\|/g, "\\|");
-    lines.push(`| ${r.id} | ${r.import_status} | ${r.skip_classification || ""} | ${r.overall_confidence_score} | ${r.extraction_method_used} | ${r.ingredient_count_source ?? ""}/${r.ingredient_count_parsed ?? ""} | ${r.suggested_fix_category} | ${notes} |`);
+    lines.push(`| ${r.id} | ${r.import_status} | ${r.skip_classification || ""} | ${r.overall_confidence_score} | ${r.source_audit_score ?? ""} | ${r.review_needed ? "yes" : "no"} | ${r.extraction_method_used} | ${r.ingredient_count_source ?? ""}/${r.ingredient_count_parsed ?? ""} | ${r.suggested_fix_category} | ${notes} |`);
   });
   lines.push("");
   lines.push("## Debug Outputs");
@@ -784,6 +1106,9 @@ function markdown(report) {
         temperature_handling: "fail",
         timer_extraction: "fail",
         section_preservation: "fail",
+        source_audit: { available: false, score: 0, needs_review: true, fields: {}, mismatches: [{ field: "harness", classification: "needs_review", detail: err.message }], clusters: ["harness/runtime failure"] },
+        source_audit_score: 0,
+        review_needed: true,
         overall_confidence_score: 0,
         notes: [err.message],
         suggested_fix_category: "harness/runtime failure",
@@ -800,7 +1125,9 @@ function markdown(report) {
     options: {
       ai_enabled: LIVE_AI,
       ai_key_available: AI_KEY_AVAILABLE,
-      ai_fallback_implemented: false,
+      ai_fallback_implemented: true,
+      ai_budget_usd: usd(AI_BUDGET),
+      ai_spent_usd: usd(aiUsage.spent),
       server: SERVER,
       limit: LIMIT || null,
       ids: IDS ? Array.from(IDS) : null,
