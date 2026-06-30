@@ -702,7 +702,7 @@ function downloadJson(filename, data) {
 
     const EXTRACT_PROMPT = `You are a recipe extraction assistant. Return ONLY a raw JSON object. No markdown, no backticks, no explanation. Start with { and end with }.
 
-Structure: {"title":"string","cookTime":"string","servings":4,"description":"string","notes":"string","heroImage":"URL or empty string","macros":{"calories":0,"protein":0,"carbs":0,"fat":0,"fiber":0},"sections":[{"name":"Main","ingredients":[{"id":"i1","amount":"1","unit":"cup","name":"flour","weightAmount":"","weightUnit":""}],"steps":[{"id":"s1","text":"Mix {i1} with water.","ingredientRefs":["i1"]}]}],"tags":["tag1"]}
+Structure: {"title":"string","cookTime":"string","servings":4,"description":"string","notes":"string","heroImage":"URL or empty string","macros":{"calories":0,"protein":0,"carbs":0,"fat":0,"fiber":0},"sections":[{"name":"Main","ingredients":[{"id":"i1","amount":"1","unit":"cup","name":"flour","weightAmount":"","weightUnit":"","raw":"1 cup flour"}],"steps":[{"id":"s1","text":"Mix {i1} with water.","ingredientRefs":["i1"]}]}],"tags":["tag1"]}
 
 For title:
 - Prefer the name of the recipe itself.
@@ -753,11 +753,14 @@ For ingredient amounts:
 - Never include equipment, tools, bowls, pans, knives, measuring cups/spoons, oven mitts, appliances, or serving utensils as ingredients.
 - Never collapse package sizes. "1 (14-ounce) can full-fat coconut milk" must become amount "1", unit "can", name "(14-ounce) full-fat coconut milk".
 - If the source includes a parenthetical weight like "1 cup (200g) sugar", store amount "1", unit "cup", name "sugar", weightAmount "200", weightUnit "g".
+- Preserve source-provided US and metric quantities separately. If the source says "1 cup (222g) salted butter", US is amount "1" + unit "cup"; metric is weightAmount "222" + weightUnit "g"; name is "salted butter"; raw is the original ingredient line.
+- Do NOT put metric parentheticals or alternate measurements in the ingredient name. Bad name: "(222g) salted butter". Good name: "salted butter".
+- If source-provided metric differs from a calculated conversion, keep the source value. Do not recalculate or overwrite it.
 - If no source weight is listed, leave weightAmount and weightUnit empty.
 - Do not normalize compound measures into less readable units. Do not turn "1/3 cup + 3 Tbsp" into "31 Tbsp" or any other collapsed equivalent.
 - Do not invent weights.
 
-Embed ingredient IDs like {i1} inside step text, but do not repeat the ingredient name right after the placeholder. Example: use "Mix {i1} with water", not "Mix {i1} flour with water". Macros are per serving. Return ONLY the JSON.`;
+Embed ingredient IDs like {i1} inside step text wherever the direction naturally uses that ingredient so RecipeBox can display the actual quantity. Do not repeat the ingredient name right after the placeholder. Example: use "Cream together {i1} and {i2}", not "Cream together {i1} butter and {i2} sugar". If the source step already includes the exact quantity, keep it; otherwise prefer {id} placeholders over bare ingredient names. Macros are per serving. Return ONLY the JSON.`;
 
     const ADJUST_PROMPT = `You are a culinary assistant. Modify the provided RecipeBox recipe JSON as requested. Return ONLY one complete raw JSON object starting with { and ending with }. No markdown, comments, or explanation. Preserve the RecipeBox shape: title, description, heroImage, prepTime, cookTime, totalTime, servings, category, tags, macros, notes, rating, favorite, createdAt, and sections with ingredients and steps. Preserve ids when present. Do not omit sections. Keep "category" as the real food type (never "Copycat"); keep "tags" as a separate concise, deduplicated, Title Case list. "Copycat" may be a tag, never a category.`;
     const REPAIR_JSON_PROMPT = `You repair malformed recipe JSON. Return ONLY one valid raw JSON object. Preserve all recipe content you can, including source-grounded notes. Do not add markdown, comments, or explanation. The JSON must match the RecipeBox recipe structure with notes, sections, ingredients, and steps.`;
@@ -960,7 +963,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       // Stage 2: deterministic RecipeBox normalization (one consistent style;
       // formatting only — quantities/order/structure preserved). Single import
       // chokepoint, so every path (URL/text/photo/PDF/YouTube/social) is normalized.
-      try { return RecipeBoxNormalize.normalizeRecipe(filtered); } catch { return filtered; }
+      try { return RecipeBoxNormalize.quantityAwareDirections(RecipeBoxNormalize.normalizeRecipe(filtered)); } catch { return filtered; }
     }
 
     function StepText({ text, ingredients, scale, metric }) {

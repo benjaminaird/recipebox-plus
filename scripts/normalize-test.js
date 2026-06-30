@@ -119,6 +119,8 @@ assert.strictEqual(
 assert.strictEqual(N.localizeText("Bake at 150°C until set.", "us"), "Bake at 300°F until set.", "direction temp 150C -> 300F");
 assert.strictEqual(N.convertMeasuresInText("Cook 20 minutes", "us"), "Cook 20 minutes", "plain numbers untouched");
 assert.strictEqual(N.localizeText("Add 2 cups flour.", "metric"), "Add 480 ml flour.", "metric mode converts US volume in text");
+assert.strictEqual(N.localizeText("Preheat oven to 350°F (180°C).", "us"), "Preheat oven to 350°F.", "US mode keeps only source Fahrenheit from dual temp");
+assert.strictEqual(N.localizeText("Preheat oven to 350°F (180°C).", "metric"), "Preheat oven to 180°C.", "Metric mode keeps source Celsius from dual temp");
 
 // ── Ingredient-specific localization (US), conservative + case-preserving ──
 assert.strictEqual(N.localizeIngredientName("corn flour", "us"), "cornstarch");
@@ -147,6 +149,58 @@ assert.deepStrictEqual(trueDup, ["sugar"], "identical row twice in one section I
 const cardOz = N.gramsToUsWeight(400);
 const dirText = N.convertMeasuresInText("400 g raspberries", "us");
 assert.strictEqual(dirText, cardOz.amount + " " + cardOz.unit + " raspberries", "card and direction text convert identically");
+
+// ── Source-provided alternate quantities: preserve, clean, and never push into name ──
+const metricAlt = N.normalizeRecipe({
+  sections: [{ ingredients: [
+    { id: "i1", amount: "1", unit: "cup", name: "(222g) salted butter" },
+    { id: "i2", amount: "3", unit: "cups", name: "all-purpose flour", weightAmount: "456", weightUnit: "grams" },
+  ], steps: [] }],
+});
+assert.strictEqual(metricAlt.sections[0].ingredients[0].name, "salted butter", "metric parenthetical removed from ingredient name");
+assert.strictEqual(metricAlt.sections[0].ingredients[0].weightAmount, "222", "source metric amount preserved");
+assert.strictEqual(metricAlt.sections[0].ingredients[0].weightUnit, "g", "source metric unit canonicalized");
+assert.strictEqual(metricAlt.sections[0].ingredients[0].raw, "1 cup (222g) salted butter", "raw source line retained for audit");
+assert.strictEqual(metricAlt.sections[0].ingredients[1].weightAmount, "456", "source metric beats calculated conversion");
+assert.strictEqual(metricAlt.sections[0].ingredients[1].weightUnit, "g");
+
+// ── Quantity-aware directions: deterministic refs, section-scoped repeated ingredients ──
+const oreoCake = N.quantityAwareDirections(N.normalizeRecipe({
+  title: "Oreo Cake",
+  sections: [
+    {
+      name: "Cookie Dough",
+      ingredients: [
+        { id: "i1", amount: "1", unit: "cup", name: "salted butter", weightAmount: "222", weightUnit: "g" },
+        { id: "i2", amount: "1", unit: "cup", name: "granulated sugar", weightAmount: "230", weightUnit: "g" },
+        { id: "i3", amount: "1", unit: "tsp", name: "vanilla extract" },
+        { id: "i4", amount: "12", unit: "", name: "Oreos, chopped" },
+      ],
+      steps: [
+        { id: "s1", text: "Cream together the butter and sugar." },
+        { id: "s2", text: "Mix in the vanilla extract and chopped Oreos." },
+      ],
+    },
+    {
+      name: "Frosting",
+      ingredients: [
+        { id: "i5", amount: "1/2", unit: "cup", name: "salted butter, softened", weightAmount: "111", weightUnit: "g" },
+        { id: "i6", amount: "3", unit: "cups", name: "powdered sugar", weightAmount: "321", weightUnit: "g" },
+        { id: "i7", amount: "1", unit: "tsp", name: "vanilla extract" },
+        { id: "i8", amount: "8", unit: "", name: "Oreos, chopped" },
+      ],
+      steps: [
+        { id: "s3", text: "Beat butter, powdered sugar, and vanilla extract until fluffy." },
+        { id: "s4", text: "Fold in the chopped Oreos." },
+      ],
+    },
+  ],
+}));
+assert.strictEqual(oreoCake.sections[0].steps[0].text, "Cream together {i1} and {i2}.", "butter + sugar become quantity-aware refs");
+assert.deepStrictEqual(oreoCake.sections[0].steps[0].ingredientRefs, ["i1", "i2"]);
+assert.strictEqual(oreoCake.sections[0].steps[1].text, "Mix in {i3} and {i4}.", "vanilla + Oreos become quantity-aware refs");
+assert.strictEqual(oreoCake.sections[1].steps[0].text, "Beat {i5}, {i6}, and {i7} until fluffy.", "frosting repeats use frosting ids");
+assert.strictEqual(oreoCake.sections[1].steps[1].text, "Fold in {i8}.", "frosting Oreos use frosting id");
 
 // ── Quality score: bands + useful (not noisy) ──
 const cleanQ = N.qualityScore({ title: "Clean", sections: [{ ingredients: [{ amount: "1", unit: "cup", name: "flour" }], steps: [{ text: "Mix and bake." }] }] }, { system: "us" });

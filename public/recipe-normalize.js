@@ -93,11 +93,31 @@
     if (typeof ing === "string") return normalizeText(ing);
     if (!ing || typeof ing !== "object") return ing;
     var out = Object.assign({}, ing);
+    if (out.raw == null) {
+      var rawParts = [out.amount, out.unit, out.name].filter(function (x) { return String(x || "").trim(); });
+      if (rawParts.length) out.raw = rawParts.join(" ");
+    }
     if (out.amount != null) out.amount = normalizeFractions(String(out.amount)).replace(/\s+/g, " ").trim();
-    if (out.unit != null && String(out.unit).trim()) out.unit = canonicalUnit(out.unit);
     if (out.name != null) out.name = normalizeText(out.name); // name: clean but no forced period
+    splitParentheticalMetric(out);
+    if (out.unit != null && String(out.unit).trim()) out.unit = canonicalUnit(out.unit);
     if (out.weightUnit != null && String(out.weightUnit).trim()) out.weightUnit = canonicalUnit(out.weightUnit);
     return out;
+  }
+
+  function splitParentheticalMetric(ing) {
+    if (!ing || typeof ing !== "object") return ing;
+    var metricRe = /\(\s*([\d.,]+(?:\s+\d+\/\d+)?|\d+\/\d+)\s*(g|gram|grams|kg|kilogram|kilograms|ml|milliliter|milliliters|l|liter|liters|litre|litres)\s*\)/i;
+    var fields = ["name", "amount", "unit"];
+    for (var i = 0; i < fields.length; i++) {
+      var key = fields[i], value = String(ing[key] == null ? "" : ing[key]);
+      var m = value.match(metricRe);
+      if (!m) continue;
+      if (!ing.weightAmount) ing.weightAmount = normalizeFractions(m[1]).replace(/,/g, "").trim();
+      if (!ing.weightUnit) ing.weightUnit = m[2];
+      ing[key] = normalizeText(value.replace(metricRe, " ").replace(/\s+/g, " ").trim());
+    }
+    return ing;
   }
 
   // Normalize a whole recipe (returns a NEW object; input is not mutated). Only
@@ -136,6 +156,12 @@
   function convertTempsInText(text, system) {
     var s = String(text == null ? "" : text);
     var to = system === "metric" ? "metric" : "us";
+    s = s.replace(/(-?\d{2,3})\s*(°|º|deg(?:rees)?\.?)?\s*([Ff])\s*\(\s*(-?\d{2,3})\s*(°|º|deg(?:rees)?\.?)?\s*([Cc])\s*\)/g, function (m, f, fm, fl, c) {
+      return to === "metric" ? (Number(c) + "°C") : (Number(f) + "°F");
+    });
+    s = s.replace(/(-?\d{2,3})\s*(°|º|deg(?:rees)?\.?)?\s*([Cc])\s*\(\s*(-?\d{2,3})\s*(°|º|deg(?:rees)?\.?)?\s*([Ff])\s*\)/g, function (m, c, cm, cl, f) {
+      return to === "metric" ? (Number(c) + "°C") : (Number(f) + "°F");
+    });
     // Matches "180°C", "180 deg C", "180 C", AND a bare "180c" (no degree symbol —
     // very common in scraped/handwritten recipes, e.g. "heat the oven to 180c").
     // The degree marker is optional; when it's absent we only treat the match as a
@@ -380,6 +406,86 @@
   }
 
   function escapeRe(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+  var ALIAS_DROP = /\b(salted|unsalted|granulated|powdered|confectioners?|all[- ]purpose|plain|self[- ]rising|self[- ]raising|chopped|softened|melted|room temperature|large|small|fresh|finely|roughly|crushed|mini)\b/g;
+  var AMOUNT_WORD = "(?:\\d|¼|½|¾|⅓|⅔|⅛|⅜|⅝|⅞|one|two|three|four|five|six|seven|eight|nine|ten|a|an)";
+  function cleanIngredientName(name) {
+    return String(name || "").toLowerCase()
+      .replace(/\([^)]*\)/g, " ")
+      .replace(/[^a-z0-9& -]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+  function ingredientAliases(ing, sectionIngredients) {
+    var full = cleanIngredientName(ing && ing.name);
+    if (!full) return [];
+    var aliases = [full];
+    var rawName = String((ing && ing.name) || "").toLowerCase();
+    if (rawName.indexOf(",") !== -1) {
+      var pieces = rawName.split(",").map(cleanIngredientName).filter(Boolean);
+      if (pieces.length >= 2) aliases.push(pieces.slice(1).join(" ") + " " + pieces[0]);
+    }
+    var stripped = full.replace(ALIAS_DROP, " ").replace(/\s+/g, " ").trim();
+    if (stripped && stripped !== full) aliases.push(stripped);
+    var words = stripped.split(/\s+/).filter(Boolean);
+    if (words.length > 1) aliases.push(words.slice(-2).join(" "));
+    if (words.length) aliases.push(words[words.length - 1]);
+    var counts = Object.create(null);
+    (sectionIngredients || []).forEach(function (other) {
+      var seen = Object.create(null);
+      ingredientAliasesShallow(other).forEach(function (a) {
+        if (seen[a]) return;
+        seen[a] = true;
+        counts[a] = (counts[a] || 0) + 1;
+      });
+    });
+    return aliases
+      .filter(function (a, idx, arr) { return a && arr.indexOf(a) === idx; })
+      .filter(function (a) { return a.length >= 4 || /^(egg|eggs)$/.test(a); })
+      .filter(function (a) { return counts[a] == null || counts[a] === 1 || a === full; })
+      .sort(function (a, b) { return b.length - a.length; });
+  }
+  function ingredientAliasesShallow(ing) {
+    var full = cleanIngredientName(ing && ing.name);
+    if (!full) return [];
+    var stripped = full.replace(ALIAS_DROP, " ").replace(/\s+/g, " ").trim();
+    var words = stripped.split(/\s+/).filter(Boolean);
+    return [full, stripped, words.slice(-2).join(" "), words[words.length - 1]].filter(Boolean);
+  }
+  function quantityAwareDirections(recipe) {
+    if (!recipe || !Array.isArray(recipe.sections)) return recipe;
+    var out = Object.assign({}, recipe);
+    out.sections = recipe.sections.map(function (sec) {
+      if (!sec || !Array.isArray(sec.steps) || !Array.isArray(sec.ingredients)) return sec;
+      var ingredients = sec.ingredients;
+      var next = Object.assign({}, sec);
+      next.steps = sec.steps.map(function (step) {
+        var st = (typeof step === "string") ? { text: step } : Object.assign({}, step || {});
+        var text = String(st.text || "");
+        if (!text.trim()) return st;
+        var refs = Array.isArray(st.ingredientRefs) ? st.ingredientRefs.slice() : [];
+        ingredients.forEach(function (ing) {
+          if (!ing || !ing.id || !String(ing.amount || "").trim() || text.indexOf("{" + ing.id + "}") !== -1) return;
+          var aliases = ingredientAliases(ing, ingredients);
+          for (var ai = 0; ai < aliases.length; ai++) {
+            var alias = aliases[ai];
+            var re = new RegExp("\\b(?:the\\s+)?(" + escapeRe(alias) + ")\\b", "i");
+            var match = text.match(re);
+            if (!match) continue;
+            var before = text.slice(Math.max(0, match.index - 28), match.index).toLowerCase();
+            if (new RegExp("\\b" + AMOUNT_WORD + "\\b\\s*(?:[\\w/-]+\\s*){0,4}$", "i").test(before)) continue;
+            text = text.slice(0, match.index) + "{" + ing.id + "}" + text.slice(match.index + match[0].length);
+            if (refs.indexOf(ing.id) === -1) refs.push(ing.id);
+            break;
+          }
+        });
+        st.text = text;
+        st.ingredientRefs = refs;
+        return st;
+      });
+      return next;
+    });
+    return out;
+  }
   // Conservative: a step with NO digit anywhere that names an ingredient (>=4
   // chars) which itself has a quantity. Drops {id} chips first (those already
   // inject the amount on display). Used only to decide whether to run cleanup.
@@ -437,6 +543,7 @@
     fixTypos: fixTypos,
     normalizeIngredient: normalizeIngredient,
     normalizeRecipe: normalizeRecipe,
+    quantityAwareDirections: quantityAwareDirections,
     convertTempsInText: convertTempsInText,
     convertMeasuresInText: convertMeasuresInText,
     gramsToUsWeight: gramsToUsWeight,

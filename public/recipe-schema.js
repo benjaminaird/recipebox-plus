@@ -26,9 +26,10 @@
       id: { type: "string", description: "Stable id like i1, i2 (referenced by step ingredientRefs)." },
       amount: { type: "string", description: "Quantity as written, e.g. '2', '1 1/2', '1-2'. Empty if none." },
       unit: { type: "string", description: "Unit as written, e.g. 'cup', 'tbsp', 'clove'. Empty if none." },
-      name: { type: "string", description: "Ingredient name, e.g. 'all-purpose flour'." },
-      weightAmount: { type: "string" },
-      weightUnit: { type: "string" },
+      name: { type: "string", description: "Clean ingredient name only, e.g. 'all-purpose flour'. Do not include parenthetical metric quantities here." },
+      weightAmount: { type: "string", description: "Source-provided metric/weight alternate, e.g. '222' from '1 cup (222g) butter'. Leave empty if absent." },
+      weightUnit: { type: "string", description: "Unit for weightAmount, e.g. 'g', 'kg', 'ml'. Leave empty if absent." },
+      raw: { type: "string", description: "Original ingredient line for audit/source preservation." },
     },
     required: ["name"],
   };
