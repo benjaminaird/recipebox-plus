@@ -1,6 +1,224 @@
 {
-  "transcriptAvailable": true,
-  "descriptionAvailable": true,
-  "sourceQuality": "good",
-  "warnings": []
+  "title": "Focaccia Bread - Ethan Chlebowski",
+  "cookTime": "3 hours 30 minutes",
+  "servings": 12,
+  "description": "A high hydration focaccia with a thin, crisp crust and soft interior with large holes, perfect for sandwiches. Made with pantry staples, mixed by hand, and baked in a 9x13 pan.",
+  "notes": "This recipe uses a 75% hydration dough (water is 75% of flour weight), which creates a thin crisp crust and soft interior with fairly large holes, ideal for sandwiches. High hydration dough will be sticky but develops gluten through stretch and folds without kneading. If dough springs back when working it into the pan, cover and rest 10-15 minutes, then try again. Full recipe: https://www.ethanchlebowski.com/cooking-techniques-recipes/how-to-make-focaccia",
+  "heroImage": "https://i.ytimg.com/vi/HTD-z1wd0tw/hqdefault.jpg",
+  "macros": {
+    "calories": 145,
+    "protein": 3,
+    "carbs": 23,
+    "fat": 4,
+    "fiber": 1
+  },
+  "category": "Sides",
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "335",
+          "unit": "grams",
+          "name": "water, heated to 100-115°F",
+          "weightAmount": "335",
+          "weightUnit": "g",
+          "raw": "335 grams water, heated to 100-115°F"
+        },
+        {
+          "id": "i2",
+          "amount": "9",
+          "unit": "grams",
+          "name": "instant yeast",
+          "weightAmount": "9",
+          "weightUnit": "g",
+          "raw": "9 grams instant yeast"
+        },
+        {
+          "id": "i3",
+          "amount": "1",
+          "unit": "spoonful",
+          "name": "flour (for proofing yeast)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 spoonful flour (for proofing yeast)"
+        },
+        {
+          "id": "i4",
+          "amount": "450",
+          "unit": "grams",
+          "name": "all-purpose or bread flour",
+          "weightAmount": "450",
+          "weightUnit": "g",
+          "raw": "450 grams all-purpose or bread flour"
+        },
+        {
+          "id": "i5",
+          "amount": "9",
+          "unit": "grams",
+          "name": "salt",
+          "weightAmount": "9",
+          "weightUnit": "g",
+          "raw": "9 grams salt"
+        },
+        {
+          "id": "i6",
+          "amount": "9",
+          "unit": "grams",
+          "name": "olive oil (for dough)",
+          "weightAmount": "9",
+          "weightUnit": "g",
+          "raw": "9 grams olive oil (for dough)"
+        },
+        {
+          "id": "i7",
+          "amount": "",
+          "unit": "",
+          "name": "olive oil (for pan)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "olive oil (for pan)"
+        },
+        {
+          "id": "i8",
+          "amount": "20",
+          "unit": "grams",
+          "name": "olive oil (for topping)",
+          "weightAmount": "20",
+          "weightUnit": "g",
+          "raw": "20 grams olive oil (for topping)"
+        },
+        {
+          "id": "i9",
+          "amount": "20",
+          "unit": "grams",
+          "name": "water (for topping)",
+          "weightAmount": "20",
+          "weightUnit": "g",
+          "raw": "20 grams water (for topping)"
+        },
+        {
+          "id": "i10",
+          "amount": "",
+          "unit": "",
+          "name": "fresh rosemary sprigs",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "fresh rosemary sprigs"
+        },
+        {
+          "id": "i11",
+          "amount": "",
+          "unit": "",
+          "name": "flaky salt",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "flaky salt"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Heat {i1} in the microwave to 100-115°F. Add {i2} and {i3}, mix until combined. Let proof 5-10 minutes until a foamy surface rises to the top. If not foamy, yeast is dead and should be discarded.",
+          "ingredientRefs": [
+            "i1",
+            "i2",
+            "i3"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "In a large mixing bowl, add {i4} and {i5}. Pour in the proofed yeast mixture.",
+          "ingredientRefs": [
+            "i4",
+            "i5"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Work the dough with your hands until no dry flour remains and a shaggy dough has formed. It will be very sticky.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Pour {i6} into the dough and continue working it until the oil is completely absorbed.",
+          "ingredientRefs": [
+            "i6"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Let the dough rest for 20 minutes.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Perform a stretch and fold: dip your hands in water, pull one corner of the dough as high as you can without tearing, fold it over to the other side. Rotate the bowl and repeat for a total of 4 stretch and folds in one set.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Perform 4 sets of stretch and folds total, with 30 minutes of rest between each set. By the fourth set, the dough should be smooth and elastic with air bubbles.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s8",
+          "text": "Drizzle {i7} into the bottom of a 9x13 inch baking pan. Turn the dough out into the oiled pan and flip it over so both sides are coated.",
+          "ingredientRefs": [
+            "i7"
+          ]
+        },
+        {
+          "id": "s9",
+          "text": "Gently work the dough into the edges of the pan. If it springs back, cover and rest 10-15 minutes, then try again.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s10",
+          "text": "Let the dough proof for 45-60 minutes until well risen and puffy with air bubbles.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s11",
+          "text": "Lightly wet your fingers and gently push dimples into the dough, pressing to the bottom of the pan but not through the dough.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s12",
+          "text": "Mix {i8} and {i9} in a bowl until an emulsion forms. Pour this mixture over the dough where it will pool into the dimples.",
+          "ingredientRefs": [
+            "i8",
+            "i9"
+          ]
+        },
+        {
+          "id": "s13",
+          "text": "Top with {i10} and a big sprinkle of {i11}.",
+          "ingredientRefs": [
+            "i10",
+            "i11"
+          ]
+        },
+        {
+          "id": "s14",
+          "text": "Bake in the middle rack of a 450°F oven for about 25 minutes until deeply golden brown on top and crispy on the bottom.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s15",
+          "text": "Turn the focaccia out onto a wire rack. The top should be golden and the bottom slightly deeper brown and crispy. Slice and serve as is, with more olive oil, or use for sandwiches.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "tags": [
+    "Make-Ahead",
+    "Vegetarian",
+    "Comfort Food",
+    "Sandwich Bread"
+  ],
+  "sourceUrl": "https://www.youtube.com/watch?v=HTD-z1wd0tw",
+  "importMethod": "ai-fallback"
 }

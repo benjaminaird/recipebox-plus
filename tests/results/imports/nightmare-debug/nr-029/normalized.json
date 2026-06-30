@@ -1,0 +1,163 @@
+{
+  "title": "5-Minute Tonkotsu-Style Instant Ramen - Serious Eats",
+  "cookTime": "5 minutes",
+  "servings": 1,
+  "description": "A quick trick that transforms instant ramen into rich, creamy tonkotsu-style ramen using gelatin, lard, and milk.",
+  "notes": "Bloom the gelatin in room-temperature liquid first to prevent clumping. If you add gelatin directly to simmering water, it will clump up. Add the milk after bringing the broth to a rolling boil and at the same time as the noodles to avoid a foamy ramen cappuccino. If you can't find pork-flavor instant ramen, beef or chicken work too. Using lard is ideal, but you can substitute another animal fat, such as chicken or duck fat. In a pinch, a neutral oil such as sunflower oil will add fattiness but have less body and no flavor. For chashu slices, prepare in advance. Related recipe: https: //www.seriouseats.com/rich-and-creamy-tonkotsu-ramen-broth-from-scratch-recipe",
+  "heroImage": "https://www.seriouseats.com/thmb/IBikLAGkkP2QVaF3vLIk_LeNqHM=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/rich-and-creamy-tonkotsu-ramen-broth-from-scratch-recipe-Diana-Chistruga-hero-6d318fadcca64cc9ac3e1c40fc7682fb.JPG",
+  "macros": {
+    "calories": 420,
+    "protein": 12,
+    "carbs": 48,
+    "fat": 18,
+    "fiber": 2
+  },
+  "category": "Entrées",
+  "tags": [
+    "Quick",
+    "Weeknight",
+    "Copycat",
+    "One-Pot",
+    "Comfort Food"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1 1/2",
+          "unit": "cup",
+          "name": "water",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 1/2 cups water"
+        },
+        {
+          "id": "i2",
+          "amount": "2",
+          "unit": "packets",
+          "name": "powdered gelatin (1/4-ounce each)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 1/4-ounce packets powdered gelatin"
+        },
+        {
+          "id": "i3",
+          "amount": "1",
+          "unit": "packet",
+          "name": "instant ramen seasoning (pork, beef, or chicken flavor)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 ramen seasoning packet"
+        },
+        {
+          "id": "i4",
+          "amount": "1 1/2",
+          "unit": "Tbsp",
+          "name": "lard (or chicken fat, duck fat, or neutral oil)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 1/2 tablespoons lard"
+        },
+        {
+          "id": "i5",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "whole milk",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/2 cup whole milk"
+        },
+        {
+          "id": "i6",
+          "amount": "1",
+          "unit": "packet",
+          "name": "instant ramen noodles",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 packet instant ramen noodles"
+        },
+        {
+          "id": "i7",
+          "amount": "",
+          "unit": "",
+          "name": "pickled ginger, for topping",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "pickled ginger, for topping",
+          "optional": true
+        },
+        {
+          "id": "i8",
+          "amount": "",
+          "unit": "",
+          "name": "thinly sliced scallions, for topping",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "thinly sliced scallions, for topping",
+          "optional": true
+        },
+        {
+          "id": "i9",
+          "amount": "",
+          "unit": "",
+          "name": "chashu slices, for topping",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "chashu slices, for topping",
+          "optional": true
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Stir {i2} and {i1} together in a saucepan. Let the gelatin bloom for at least 1 minute.",
+          "ingredientRefs": [
+            "i2",
+            "i1"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "Add {i3} and {i4} to the saucepan.",
+          "ingredientRefs": [
+            "i3",
+            "i4"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Bring the mixture to a rolling boil over high heat.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Reduce heat to medium-high. Add {i5} and {i6} at the same time.",
+          "ingredientRefs": [
+            "i5",
+            "i6"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Cook {i6} according to package directions until done.",
+          "ingredientRefs": [
+            "i6"
+          ]
+        },
+        {
+          "id": "s6",
+          "text": "Transfer to a serving bowl. Top with {i7}, {i8}, and {i9} if desired.",
+          "ingredientRefs": [
+            "i7",
+            "i8",
+            "i9"
+          ]
+        }
+      ]
+    }
+  ],
+  "sourceUrl": "https://www.seriouseats.com/5-minute-tonkotsu-trick-11896465",
+  "importMethod": "ai-fallback"
+}

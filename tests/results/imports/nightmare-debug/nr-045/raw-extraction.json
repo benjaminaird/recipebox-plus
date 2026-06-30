@@ -1,0 +1,134 @@
+{
+  "title": "World's Easiest Yeast Bread - RecipeTin Eats",
+  "cookTime": "40 minutes",
+  "servings": 12,
+  "description": "This super crusty homemade bread recipe is going to blow your mind! The world's easiest yeast bread that's just like the very best artisan bread you pay top dollar for, with an incredible crispy, chewy crust, and big fat holes like sourdough.",
+  "notes": "MAKE AHEAD/Storage: Fridge up to 3 days — Rise dough per recipe, then leave in bowl and refrigerate up to 3 days. Flavour gets better with time. Dough will stay bubbly for a day or two, then will deflate — that's fine. Shape into round and place on paper per recipe, then leave for 45 – 60 minutes to take the chill out of it, then bake per recipe. Cold dough won't rise as well. Bread in photos & video is 2 hr rise, immediate bake. Cooked bread — great fresh for 2 days, then after that, better warmed or toasted. Keep in an airtight container or ziplock bag. This stays more fresh than usual homemade bread, especially if you use bread flour. Freeze cooked bread for up to 3 months.\n\nWater temperature — if it's so scorching hot you wouldn't bathe in it, it will kill the yeast. If it's a lovely temp you could sit in for hours in a bubble bath, it's the perfect temp.\n\nDough consistency can be affected by factors like different brands of flour, humidity in air. If dough is too dry, add touch of water. Too wet, add a touch of flour.\n\nDough rising — time will vary depending on room temperature, humidity, flour you use etc. It's fine if it rises faster or slower — you just need to achieve the dough rise as specified (double volume, bubbly surface, wobbly consistency). If it's coldish in your kitchen (22°C/70°F or less) OR it's just not rising (check at 1 hour), then tuck the bowl somewhere warmer. Yeast loves warmth! Simple method: in sink with warm (not hot) water, with ramekin to elevate bowl above water level. Or run dryer for a few minutes then place bowl in there. Do not put bowl in direct sunlight indoors — too hot. But in shade near sunlight is good! If dough rises faster than 2 hours (eg super hot day), then put bowl in fridge to stop the rise while you preheat the oven. On super hot summer days, it can rise in 45 minutes!\n\nNo dutch oven method — use 20cm/8\" square metal pan (or similar but NOT glass, may shatter). Place in oven on middle shelf where bread will bake (or shelf under if tray won't fit on same shelf), preheat oven. Boil kettle. Place paper with shaped dough on a baking tray. When you put the bread in, work fast as follows — place bread in oven, fill pan with boiling water, shut oven door = makeshift dutch oven steamer effect! Bake for full 40 minutes.",
+  "heroImage": "https://www.recipetineats.com/tachyon/2020/03/No-Knead-Easy-Yeast-Bread-recipe.jpg",
+  "macros": {
+    "calories": 140,
+    "protein": 4,
+    "carbs": 29,
+    "fat": 1,
+    "fiber": 1
+  },
+  "category": "Sides",
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "3",
+          "unit": "cups",
+          "name": "flour, bread or plain/all purpose",
+          "weightAmount": "450",
+          "weightUnit": "g",
+          "raw": "3 cups (450g) flour, bread or plain/all purpose"
+        },
+        {
+          "id": "i2",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "instant or rapid rise yeast",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 tsp instant or rapid rise yeast"
+        },
+        {
+          "id": "i3",
+          "amount": "1 1/2",
+          "unit": "tsp",
+          "name": "cooking salt / kosher salt, HALVE if using table salt",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 1/2 tsp cooking salt / kosher salt, HALVE if using table salt"
+        },
+        {
+          "id": "i4",
+          "amount": "1 1/2",
+          "unit": "cups",
+          "name": "very warm tap water, NOT boiling or super hot (ie up to 55°C/130°F)",
+          "weightAmount": "375",
+          "weightUnit": "ml",
+          "raw": "1 1/2 cups (375 ml) very warm tap water, NOT boiling or super hot (ie up to 55°C/130°F)"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Mix {i1}, {i2} and {i3} in a large bowl. Add {i4}, then use the handle of a wooden spoon to mix until all the flour is incorporated. Dough will be wet and sloppy – not kneadable, but not runny like cake batter. Adjust with more water or flour if needed for right consistency.",
+          "ingredientRefs": [
+            "i1",
+            "i2",
+            "i3",
+            "i4"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "Cover with cling wrap or plate, leave on counter for 2 – 3 hours until it doubles in volume, it's wobbly like jelly and the top is bubbly. If after 1 hour it doesn't seem to be rising, move it somewhere warmer.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "Optional – refrigerate for flavour development: At this stage, you can either bake immediately (move onto Step 5) or refrigerate for up to 3 days.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Take chill out of refrigerated dough – if you refrigerated dough per above, leave the bowl on the counter for 45 – 60 minutes while the oven is preheating. Cold dough does not rise as well.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Preheat oven – Put dutch oven in oven with lid on (26cm/10\" or larger). Preheat to 230°C/450°F (220° fan) 30 minutes prior to baking.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Shape dough: Sprinkle work surface with 1 tbsp flour, scrape dough out of bowl. Sprinkle top with 1/2 tbsp flour. Using a dough scraper or anything of similar shape (cake server, large knife, spatula), fold the sides inwards (about 6 folds) to roughly form a roundish shape. Don't be too meticulous here – you're about to deform it, it's more about deflating the bubbles in the dough and forming a shape you can move.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Transfer to paper: Slide a large piece of parchment/baking paper (not wax paper) next to the dough, then flip the dough upside down onto the paper (ie seam side down, smooth side up). Slide/push it towards the middle, then reshape it into a round(ish) shape. Don't get too hung up about shape. In fact, lopsided = more ridges = more crunchy bits!",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s8",
+          "text": "Dough in pot: Remove piping hot dutch oven from oven. Use paper to place dough into pot, place lid on.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s9",
+          "text": "Bake 30 minutes covered, then 12 minutes uncovered or until deep golden and crispy. Cool on rack for 10 minutes before slicing.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "Dough shaping",
+      "ingredients": [
+        {
+          "id": "i5",
+          "amount": "1 1/2",
+          "unit": "tbsp",
+          "name": "flour, for dusting",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 1/2 tbsp flour, for dusting"
+        }
+      ],
+      "steps": []
+    }
+  ],
+  "tags": [
+    "No-Knead",
+    "Make-Ahead",
+    "Artisan",
+    "Crusty"
+  ],
+  "sourceUrl": "https://www.recipetineats.com/easy-yeast-bread-recipe-no-knead/",
+  "importMethod": "ai-fallback"
+}

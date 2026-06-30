@@ -1,6 +1,107 @@
 {
-  "transcriptAvailable": true,
-  "descriptionAvailable": true,
-  "sourceQuality": "good",
-  "warnings": []
+  "title": "Cacio e Pepe - Alex",
+  "cookTime": "20 minutes",
+  "servings": 2,
+  "description": "A classic Roman pasta dish with just three ingredients: pasta, pecorino cheese, and black pepper. The technique creates a silky, creamy sauce through emulsification using pasta water and starch.",
+  "notes": "No butter, no cream, no eggs, no oil. The creaminess comes from emulsifying the cheese with starchy pasta water. Use freshly ground black pepper as a main flavor component, not just seasoning. If you master this technique, you can add guanciale to make pasta alla gricia, or add tomatoes to make bucatini all'amatriciana.",
+  "heroImage": "https://i.ytimg.com/vi/Ng7GWl57nQM/hqdefault.jpg",
+  "macros": {
+    "calories": 520,
+    "protein": 22,
+    "carbs": 68,
+    "fat": 16,
+    "fiber": 3
+  },
+  "category": "Entrées",
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "200",
+          "unit": "g",
+          "name": "thick spaghetti (pici or tonarelli)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "200g thick spaghetti (pici or tonarelli)"
+        },
+        {
+          "id": "i2",
+          "amount": "100",
+          "unit": "g",
+          "name": "pecorino cheese, finely grated",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "100g pecorino cheese, finely grated"
+        },
+        {
+          "id": "i3",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "freshly ground black pepper",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 tsp freshly ground black pepper"
+        },
+        {
+          "id": "i4",
+          "amount": "",
+          "unit": "",
+          "name": "salt for pasta water",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "salt for pasta water"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Bring a pot of salted water to a boil and cook {i1} according to package directions until al dente. Reserve pasta cooking water before draining.",
+          "ingredientRefs": [
+            "i1",
+            "i4"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "While pasta cooks, toast {i3} in a large pan over medium heat until fragrant.",
+          "ingredientRefs": [
+            "i3"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Add a ladleful of starchy pasta cooking water to the pan with the pepper to create the base of the sauce.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Add the cooked pasta to the pan and toss to coat. Remove from heat.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Add {i2} gradually while tossing vigorously, adding small amounts of pasta water as needed to create a silky, creamy emulsion that coats the pasta. The starch in the pasta water helps emulsify the cheese and water into a smooth sauce.",
+          "ingredientRefs": [
+            "i2"
+          ]
+        },
+        {
+          "id": "s6",
+          "text": "Serve immediately while the sauce is creamy and smooth.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "tags": [
+    "Italian",
+    "Quick",
+    "Weeknight",
+    "Comfort Food",
+    "High-Protein"
+  ],
+  "sourceUrl": "https://www.youtube.com/watch?v=Ng7GWl57nQM",
+  "importMethod": "ai-fallback"
 }

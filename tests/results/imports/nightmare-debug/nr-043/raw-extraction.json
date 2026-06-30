@@ -1,0 +1,288 @@
+{
+  "title": "Beef Rendang - RecipeTin Eats",
+  "cookTime": "3 hours 20 minutes",
+  "servings": 6,
+  "description": "Beef Rendang is a Malaysian curry and is an extravagantly rich dish that is easy to prepare but takes time and patience to slow cook. Unlike many curries, this is a \"dry\" curry which means the beef is not swimming in sauce. The beef is \"fall apart at a touch\" tender and covered in a thick, saucy curry which then mixes through the rice.",
+  "notes": "This can be made in a slow cooker: do the steps up to searing the beef in a pan then pour the contents in your slow cooker. Pour 1/2 cup water into the pan and bring to simmer, making sure to scrape all the brown bits off the bottom of the pan to mix in with the water, then pour the water into the slow cooker (make sure you scrape in as much of the brown bits as you can!). Slow cook on low for 6 hours. Then pour the curry into a pot and follow the recipe steps to reduce the sauce.\n\nPressure cooker/instant pot: follow slow cooker steps but cook on high for 30 minutes, allow to depressurise naturally for 10 minutes before releasing steam.\n\nOnce the sauce reduces right down, the oil will separate. Then you end up browning the beef in that oil – this is where the deep brown Rendang colour comes from. Rendang is not a wet, saucy curry, it all reduces down into a sticky paste that coats the beef. By this time, the beef should be \"fall apart at a touch\" and there will be bits of shredded beef that looks like coconut that stick to the beef.\n\nSimple Lightly Pickled Cucumber Side that goes with this well: Slice cucumbers on the diagonal and place into a bowl. For each cucumber you are using, sprinkle over 1 tsp of rice wine vinegar, a small pinch of salt and white sugar (each). Leave to lightly pickle for at least 20 minutes, up to 24 hours.\n\nRendang, like other slow cooked things, just gets better with time. Great on the day it's made, fantastic the next day and the next. Freezes well too.\n\nCoconut Rice recipe: https://www.recipetineats.com/restaurant-style-coconut-rice/",
+  "heroImage": "https://www.recipetineats.com/tachyon/2014/11/Beef-Rendang-13.jpg",
+  "category": "Entrées",
+  "macros": {
+    "calories": 675,
+    "protein": 63,
+    "carbs": 11,
+    "fat": 42,
+    "fiber": 3
+  },
+  "sections": [
+    {
+      "name": "Spice Paste",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "12",
+          "unit": "",
+          "name": "dried chilies, rehydrated in boiling water, or 12 large fresh",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "12 dried chilies, rehydrated in boiling water, or 12 large fresh"
+        },
+        {
+          "id": "i2",
+          "amount": "1",
+          "unit": "small",
+          "name": "onion, finely chopped",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 small onion, finely chopped"
+        },
+        {
+          "id": "i3",
+          "amount": "5",
+          "unit": "cloves",
+          "name": "garlic, minced",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "5 cloves garlic, minced"
+        },
+        {
+          "id": "i4",
+          "amount": "3",
+          "unit": "",
+          "name": "lemongrass stalks, white part only, sliced",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "3 lemongrass stalks, white part only, sliced"
+        },
+        {
+          "id": "i5",
+          "amount": "1 1/2",
+          "unit": "tbsp",
+          "name": "fresh galangal, finely chopped",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 1/2 tbsp fresh galangal, finely chopped"
+        },
+        {
+          "id": "i6",
+          "amount": "1 1/2",
+          "unit": "tbsp",
+          "name": "fresh ginger, minced",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 1/2 tbsp fresh ginger, minced"
+        },
+        {
+          "id": "i7",
+          "amount": "2",
+          "unit": "tbsp",
+          "name": "oil (vegetable, canola or peanut oil)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 tbsp oil (vegetable, canola or peanut oil)"
+        }
+      ],
+      "steps": []
+    },
+    {
+      "name": "Curry",
+      "ingredients": [
+        {
+          "id": "i8",
+          "amount": "2",
+          "unit": "lb",
+          "name": "chuck steak, or other slow cooking beef, cut into 4cm cubes",
+          "weightAmount": "1",
+          "weightUnit": "kg",
+          "raw": "2 lb/ 1 kg chuck steak, or other slow cooking beef, cut into 4cm / 1.6\" cubes"
+        },
+        {
+          "id": "i9",
+          "amount": "1",
+          "unit": "tbsp",
+          "name": "oil (vegetable, peanut, canola)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 tbsp oil (vegetable, peanut, canola)"
+        },
+        {
+          "id": "i10",
+          "amount": "1",
+          "unit": "",
+          "name": "cinnamon stick",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 cinnamon stick"
+        },
+        {
+          "id": "i11",
+          "amount": "1/4",
+          "unit": "tsp",
+          "name": "clove powder",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/4 tsp clove powder"
+        },
+        {
+          "id": "i12",
+          "amount": "3",
+          "unit": "",
+          "name": "star anise",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "3 star anise"
+        },
+        {
+          "id": "i13",
+          "amount": "1/2",
+          "unit": "tsp",
+          "name": "cardamon powder",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/2 tsp cardamon powder"
+        },
+        {
+          "id": "i14",
+          "amount": "1",
+          "unit": "",
+          "name": "lemongrass stick, bottom half of the stick only and smashed",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 lemongrass stick, bottom half of the stick only and smashed"
+        },
+        {
+          "id": "i15",
+          "amount": "400",
+          "unit": "ml",
+          "name": "coconut milk (1 standard can)",
+          "weightAmount": "14",
+          "weightUnit": "oz",
+          "raw": "400ml / 14 oz coconut milk (1 standard can)"
+        },
+        {
+          "id": "i16",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "tamarind puree / paste, or tamarind pulp soaked in 1 tbsp of hot water, seeds removed",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 tsp tamarind puree / paste, or tamarind pulp soaked in 1 tbsp of hot water, seeds removed"
+        },
+        {
+          "id": "i17",
+          "amount": "4",
+          "unit": "large",
+          "name": "kaffir lime leaves (or 6 small), very finely sliced",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "4 large kaffir lime leaves (or 6 small), very finely sliced"
+        },
+        {
+          "id": "i18",
+          "amount": "1/3",
+          "unit": "cup",
+          "name": "desiccated coconut (finely shredded coconut)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/3 cup desiccated coconut (finely shredded coconut)"
+        },
+        {
+          "id": "i19",
+          "amount": "1",
+          "unit": "tbsp",
+          "name": "brown sugar or grated palm sugar",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 tbsp brown sugar or grated palm sugar"
+        },
+        {
+          "id": "i20",
+          "amount": "1 1/2",
+          "unit": "tsp",
+          "name": "salt",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 1/2 tsp salt"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Place Spice Paste ingredients ({i1}, {i2}, {i3}, {i4}, {i5}, {i6}, {i7}) in a small food processor and whizz until fine. NOTE: If using dried chilli and you know your food processor is not that powerful, chop the chilli first.",
+          "ingredientRefs": [
+            "i1",
+            "i2",
+            "i3",
+            "i4",
+            "i5",
+            "i6",
+            "i7"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "Heat {i9} in a large heavy based pot over high heat. Add half the {i8} and brown, then remove onto plate. Repeat with remaining beef.",
+          "ingredientRefs": [
+            "i9",
+            "i8"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Lower heat to medium low. Add Spice Paste and cook for 2 – 3 minutes until the wetness has reduced and the spice paste darkens (don't breathe in too much, the chilli will make you cough!).",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Add remaining Curry ingredients ({i10}, {i11}, {i12}, {i13}, {i14}, {i15}, {i16}, {i17}, {i18}, {i19}, {i20}) and beef. Stir to combine.",
+          "ingredientRefs": [
+            "i10",
+            "i11",
+            "i12",
+            "i13",
+            "i14",
+            "i15",
+            "i16",
+            "i17",
+            "i18",
+            "i19",
+            "i20"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Bring to simmer, then immediately turn down the heat to low or medium low so the sauce is bubbling very gently. Put the lid on the pot and leave it to simmer for 1 hr 15 minutes.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Remove lid and check the beef to see how tender it is. You don't want it to be \"fall apart at a touch\" at this stage, but it should be quite tender. If it is fall apart already, remove the beef from the pot before proceeding.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Turn up heat to medium and reduce sauce for 30 – 40 minutes, stirring every now and then at first, then frequently towards the end until the beef browns and the sauce reduces to a paste that coats the beef.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s8",
+          "text": "The beef should now be very tender, fall apart at a touch. If not, add a splash of water and keep cooking.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s9",
+          "text": "Remove from heat and serve with plain or Restaurant Style Coconut Rice.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "tags": [
+    "Malaysian",
+    "Slow Cooking",
+    "Freezer-Friendly",
+    "Make-Ahead",
+    "Spicy"
+  ],
+  "sourceUrl": "https://www.recipetineats.com/beef-rendang/",
+  "importMethod": "ai-fallback"
+}

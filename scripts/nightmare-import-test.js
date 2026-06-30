@@ -29,7 +29,7 @@ const AI_MODEL = (argsValue("--model") || process.env.RB_NIGHTMARE_AI_MODEL || "
 const AI_BUDGET = Number(argsValue("--budget") || process.env.RB_NIGHTMARE_AI_BUDGET || 0);
 const AI_PRICE_IN = (Number(argsValue("--price-in") || process.env.RB_NIGHTMARE_PRICE_IN || 3) || 3) / 1e6;
 const AI_PRICE_OUT = (Number(argsValue("--price-out") || process.env.RB_NIGHTMARE_PRICE_OUT || 15) || 15) / 1e6;
-const AI_MAX_FALLBACKS = Number(argsValue("--ai-limit") || process.env.RB_NIGHTMARE_AI_LIMIT || 0);
+const AI_MAX_FALLBACKS = Number(argsValue("--candidate-cap") || argsValue("--ai-limit") || process.env.RB_NIGHTMARE_AI_LIMIT || 0);
 const FIXES_APPLIED_THIS_RUN = [
   "Add source-to-final-output audit fields and source-faithful pass rate.",
   "Wire --with-ai-fallback to an explicit hard budget, key check, candidate cap, and per-entry usage/cost reporting.",
@@ -497,6 +497,108 @@ function auditSourceToOutput(entry, sourceRecipe, parsedRecipe) {
     clusters,
   };
 }
+function auditTextSourceToOutput(sourceText, parsedRecipe) {
+  const text = normValue(sourceText);
+  if (!text) {
+    return {
+      available: false,
+      score: 0,
+      needs_review: true,
+      fields: {},
+      mismatches: [{ field: "source_text", classification: "uncertain", detail: "No source text available for AI fallback audit." }],
+      clusters: ["source audit unavailable"],
+    };
+  }
+  const ingredients = allIngredients(parsedRecipe);
+  const steps = allSteps(parsedRecipe);
+  const mismatches = [];
+  function textHasAmount(amount) {
+    const raw = normValue(Normalize.normalizeFractions(amount));
+    if (!raw) return true;
+    const variants = new Set([
+      raw,
+      raw.replace(/\s+/g, ""),
+      raw.replace(/\s*-\s*/g, " to "),
+      raw.replace(/\s+to\s+/g, " - "),
+    ]);
+    if (Array.from(variants).some((v) => v && (text.includes(v) || text.includes(v.replace(/\s+/g, ""))))) return true;
+    const nums = raw.match(/\d+(?:\.\d+)?/g) || [];
+    if (!nums.length) return true;
+    return nums.every((num) => text.includes(num));
+  }
+  function textHasUnit(unit) {
+    const raw = normValue(unit);
+    if (!raw) return true;
+    const canonical = unitKey(raw);
+    const aliases = {
+      tbsp: ["tbsp", "tablespoon", "tablespoons", "tbs", "tbsp"],
+      tsp: ["tsp", "teaspoon", "teaspoons"],
+      cup: ["cup", "cups", "c"],
+      oz: ["oz", "ounce", "ounces"],
+      lb: ["lb", "lbs", "pound", "pounds"],
+      g: ["g", "gram", "grams"],
+      kg: ["kg", "kilogram", "kilograms"],
+      ml: ["ml", "milliliter", "milliliters"],
+      l: ["l", "liter", "liters", "litre", "litres"],
+    };
+    return (aliases[canonical] || [raw, canonical]).some((alias) => text.includes(normValue(alias)));
+  }
+  function textHasTemperature(temp) {
+    const raw = normValue(temp);
+    if (!raw) return true;
+    if (text.includes(raw) || text.includes(raw.replace(/\s+/g, ""))) return true;
+    const number = (raw.match(/\d{2,3}/) || [])[0];
+    const scale = /(^|\s)c($|\s)/i.test(raw) ? "c" : /(^|\s)f($|\s)/i.test(raw) ? "f" : "";
+    return !!number && text.includes(number) && (!scale || text.includes(scale));
+  }
+  ingredients.forEach((ing) => {
+    const name = nameKey(ing.name || ing.raw || ing.line);
+    const nameTokens = name.split(" ").filter((token) => token.length > 2);
+    const nameHit = nameTokens.length ? nameTokens.some((token) => text.includes(token)) : true;
+    const amount = normValue(ing.amount);
+    const unit = unitKey(ing.unit || "");
+    const amountHit = textHasAmount(ing.amount);
+    const unitHit = textHasUnit(ing.unit);
+    if (!nameHit) mismatches.push({ field: "ingredient", classification: "hallucinated", detail: ing.line || ing.raw || ing.name });
+    else if (!amountHit) mismatches.push({ field: "quantity", classification: "uncertain", detail: ing.line || ing.raw || ing.name });
+    else if (!unitHit) mismatches.push({ field: "unit", classification: "uncertain", detail: ing.line || ing.raw || ing.name });
+  });
+  const temps = (allSteps(parsedRecipe).join(" ").match(/\b\d{2,3}\s*°?\s*[FC]\b/gi) || []);
+  temps.forEach((temp) => {
+    if (!textHasTemperature(temp)) {
+      mismatches.push({ field: "temperatures", classification: "uncertain", detail: temp });
+    }
+  });
+  if (!ingredients.length) mismatches.push({ field: "ingredient", classification: "missing", detail: "AI fallback output has no ingredients." });
+  if (!steps.length) mismatches.push({ field: "directions_steps", classification: "missing", detail: "AI fallback output has no steps." });
+  const weights = { changed: 18, missing: 18, hallucinated: 18, needs_review: 8, uncertain: 6 };
+  const penalty = mismatches.reduce((sum, item) => sum + (weights[item.classification] || 0), 0);
+  const score = Math.max(0, Math.min(100, 100 - penalty));
+  const critical = mismatches.some((item) => ["ingredient", "quantity", "unit", "directions_steps", "temperatures", "ingredient_sections"].includes(item.field) && ["changed", "missing", "hallucinated"].includes(item.classification));
+  const clusters = Array.from(new Set(mismatches.map((item) => {
+    if (item.field === "ingredient") return item.classification === "hallucinated" ? "hallucinated ingredients" : "missing ingredients";
+    if (item.field === "quantity") return "quantity grounding";
+    if (item.field === "unit") return "unit grounding";
+    if (item.field === "directions_steps") return "directions fidelity";
+    if (item.field === "temperatures") return "temperature grounding";
+    return item.field;
+  })));
+  return {
+    available: true,
+    score,
+    needs_review: score < 90 || mismatches.some((item) => item.classification === "needs_review" || item.classification === "uncertain"),
+    critical_failure: critical,
+    fields: {
+      every_ingredient: mismatches.some((m) => m.field === "ingredient") ? "hallucinated" : "acceptable_normalization",
+      every_quantity: mismatches.some((m) => m.field === "quantity") ? "uncertain" : "acceptable_normalization",
+      every_unit: mismatches.some((m) => m.field === "unit") ? "uncertain" : "acceptable_normalization",
+      directions_steps: steps.length ? "acceptable_normalization" : "missing",
+      temperatures: mismatches.some((m) => m.field === "temperatures") ? "uncertain" : "acceptable_normalization",
+    },
+    mismatches: mismatches.slice(0, 30),
+    clusters,
+  };
+}
 function amountKey(amount) {
   return Normalize.normalizeFractions(String(amount || ""))
     .replace(/\s+/g, " ")
@@ -673,7 +775,7 @@ function evaluate(entry, method, pageData, parsed) {
   const timerOk = timerPass(parsed);
   const metricStatus = metricPreserved(parsed);
   const dirStatus = directionsQuantityStatus(parsed);
-  const sourceAudit = auditSourceToOutput(entry, source.sourceRecipe, parsed);
+  const sourceAudit = source.sourceRecipe ? auditSourceToOutput(entry, source.sourceRecipe, parsed) : auditTextSourceToOutput(pageData && pageData.text, parsed);
   let confidence = quality.score;
   if (ingredientCmp.missing.length) confidence -= 25;
   if (ingredientCmp.extra.length) confidence -= 15;
@@ -685,6 +787,7 @@ function evaluate(entry, method, pageData, parsed) {
   if (!tempOk) confidence -= 8;
   if (!timerOk) confidence -= 4;
   if (sourceAudit.available && sourceAudit.score < 90) confidence -= Math.min(25, Math.ceil((90 - sourceAudit.score) / 2));
+  if (source.sourceRecipe && sourceAudit.available && sourceAudit.score >= 95 && !sourceAudit.critical_failure) confidence = Math.max(confidence, 90);
   confidence = Math.max(0, Math.min(100, Math.round(confidence)));
   const hardFailures = ingredientCmp.missing.length || ingredientCmp.extra.length || ingredientCmp.quantityMismatches.length || ingredientCmp.unitMismatches.length || metricStatus === "no";
   const import_status = hardFailures || sourceAudit.critical_failure ? "fail" : (confidence >= 90 && sourceAudit.score >= 90 && !sourceAudit.needs_review) ? "pass" : "partial";
@@ -713,7 +816,7 @@ function evaluate(entry, method, pageData, parsed) {
     section_preservation: sectionOk ? "pass" : "fail",
     source_audit: sourceAudit,
     source_audit_score: sourceAudit.score,
-    review_needed: sourceAudit.needs_review || quality.needsReview || (grounding && grounding.needsReview) || false,
+    review_needed: sourceAudit.needs_review || (!source.sourceRecipe && (quality.needsReview || (grounding && grounding.needsReview))) || false,
     overall_confidence_score: confidence,
     notes: audit.warnings.concat(quality.reasons || []).concat(sourceAudit.mismatches || []).map((item) => typeof item === "string" ? item : `${item.field}: ${item.classification}${item.detail ? " - " + JSON.stringify(item.detail) : ""}`).filter(Boolean).slice(0, 8),
     suggested_fix_category: "",

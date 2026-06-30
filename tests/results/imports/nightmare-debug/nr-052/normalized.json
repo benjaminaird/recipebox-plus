@@ -1,0 +1,207 @@
+{
+  "title": "Shakshuka",
+  "cookTime": "35 minutes",
+  "servings": 4,
+  "description": "This shakshuka recipe features gently poached eggs in a flavorful tomato and red pepper sauce. Try it for an easy, healthy breakfast, lunch, or dinner!",
+  "notes": "Cover the pan for perfectly cooked eggs. It will help the egg whites cook through while keeping the yolks runny. If you don't have a lid for your pan, you can cover it with a baking sheet. If you prefer to use fresh tomatoes, replace the canned ones with 4 cups diced fresh tomatoes. Feel free to skip the cayenne if you're sensitive to heat.",
+  "heroImage": "https://cdn.loveandlemons.com/wp-content/uploads/2026/01/shakshuka-social.jpg",
+  "macros": {
+    "calories": 207,
+    "protein": 11,
+    "carbs": 7,
+    "fat": 16,
+    "fiber": 1
+  },
+  "category": "Breakfast",
+  "tags": [
+    "Middle Eastern",
+    "North African",
+    "Vegetarian",
+    "One-Pot",
+    "Quick",
+    "Weeknight"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "2",
+          "unit": "Tbsp",
+          "name": "extra-virgin olive oil",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 tablespoons extra-virgin olive oil"
+        },
+        {
+          "id": "i2",
+          "amount": "1",
+          "unit": "small",
+          "name": "white onion, diced",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 small white onion, diced"
+        },
+        {
+          "id": "i3",
+          "amount": "1",
+          "unit": "",
+          "name": "red bell pepper, stemmed, seeded, and diced",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 red bell pepper, stemmed, seeded, and diced"
+        },
+        {
+          "id": "i4",
+          "amount": "3",
+          "unit": "cloves",
+          "name": "garlic, minced",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "3 garlic cloves, minced"
+        },
+        {
+          "id": "i5",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "ground cumin",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 teaspoon ground cumin"
+        },
+        {
+          "id": "i6",
+          "amount": "1/2",
+          "unit": "tsp",
+          "name": "paprika",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/2 teaspoon paprika"
+        },
+        {
+          "id": "i7",
+          "amount": "Pinch",
+          "unit": "",
+          "name": "cayenne pepper, optional",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "Pinch cayenne pepper, optional",
+          "optional": true
+        },
+        {
+          "id": "i8",
+          "amount": "1",
+          "unit": "can",
+          "name": "(28-ounce) fire-roasted crushed tomatoes",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 (28-ounce) can fire-roasted crushed tomatoes"
+        },
+        {
+          "id": "i9",
+          "amount": "1/2",
+          "unit": "tsp",
+          "name": "sea salt, plus more to taste",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/2 teaspoon sea salt, plus more to taste"
+        },
+        {
+          "id": "i10",
+          "amount": "",
+          "unit": "",
+          "name": "Freshly ground black pepper",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "Freshly ground black pepper"
+        },
+        {
+          "id": "i11",
+          "amount": "6",
+          "unit": "large",
+          "name": "eggs",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "6 large eggs"
+        },
+        {
+          "id": "i12",
+          "amount": "1/4",
+          "unit": "cup",
+          "name": "fresh parsley or cilantro leaves",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/4 cup fresh parsley or cilantro leaves"
+        },
+        {
+          "id": "i13",
+          "amount": "1/4",
+          "unit": "cup",
+          "name": "crumbled feta cheese",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/4 cup crumbled feta cheese"
+        },
+        {
+          "id": "i14",
+          "amount": "",
+          "unit": "",
+          "name": "Pita, for serving",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "Pita, for serving"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Heat {i1} in a large lidded skillet over medium heat. Add {i2} and {i3} and cook for 5 to 8 minutes, or until softened.",
+          "ingredientRefs": [
+            "i1",
+            "i2",
+            "i3"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "Add {i4}, {i5}, {i6}, and {i7}, if using, and cook, stirring, for 30 seconds, or until fragrant.",
+          "ingredientRefs": [
+            "i4",
+            "i5",
+            "i6",
+            "i7"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Add {i8}, {i9}, and several grinds of {i10}. Simmer over low heat, stirring often, for 15 minutes, or until the sauce has thickened.",
+          "ingredientRefs": [
+            "i8",
+            "i9",
+            "i10"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "Make 6 wells in the sauce and crack one {i11} into each well. Cover and cook until the eggs are set, 4 to 8 minutes. The timing will depend on how runny or firm you like your eggs.",
+          "ingredientRefs": [
+            "i11"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Season {i9} with salt and pepper and top with {i12} and {i13}. Serve with {i14}.",
+          "ingredientRefs": [
+            "i12",
+            "i13",
+            "i14",
+            "i9"
+          ]
+        }
+      ]
+    }
+  ],
+  "sourceUrl": "https://www.loveandlemons.com/shakshuka-recipe/",
+  "importMethod": "ai-fallback"
+}

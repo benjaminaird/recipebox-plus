@@ -1,0 +1,138 @@
+{
+  "title": "Best Guacamole Recipe - Love and Lemons",
+  "cookTime": "10 minutes",
+  "servings": 5,
+  "description": "The BEST guacamole recipe! It's easy to make with simple, fresh ingredients. Serve it as a dip with tortilla chips or with Tex Mex and Mexican dishes like tacos, burritos, and more.",
+  "notes": "Buy the avocados ahead of time. Shop a few days in advance and store unripe avocados at room temperature until they're soft to the touch. Then, transfer them to the fridge until you're ready to make guac. Planning ahead is the best way to ensure you'll have perfectly ripe avocados for this recipe.\n\nThe final texture is up to you. Mash less if you like your guac a little chunky. Mash more if you like it smoother.\n\nTo prevent leftover guac from browning, squeeze a little lemon juice or lime juice over its surface before sealing the container. You could also press a layer of plastic wrap over the top of the guacamole before placing on the lid. Store leftovers in an airtight container in the fridge for up to 2 days.",
+  "heroImage": "https://cdn.loveandlemons.com/wp-content/uploads/2025/04/guacamole-social.jpg",
+  "category": "Appetizers",
+  "macros": {
+    "calories": 251,
+    "protein": 3,
+    "carbs": 15,
+    "fat": 22,
+    "fiber": 10
+  },
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "3",
+          "unit": "",
+          "name": "avocados, ripe",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "3 avocados, ripe"
+        },
+        {
+          "id": "i2",
+          "amount": "1/4",
+          "unit": "cup",
+          "name": "diced red onion",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/4 cup diced red onion"
+        },
+        {
+          "id": "i3",
+          "amount": "1/4",
+          "unit": "cup",
+          "name": "finely chopped fresh cilantro",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/4 cup finely chopped fresh cilantro"
+        },
+        {
+          "id": "i4",
+          "amount": "2",
+          "unit": "limes",
+          "name": "zest and juice",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "Zest and juice of 2 limes"
+        },
+        {
+          "id": "i5",
+          "amount": "1",
+          "unit": "small",
+          "name": "jalapeño pepper, diced",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 small jalapeño pepper, diced"
+        },
+        {
+          "id": "i6",
+          "amount": "1/2",
+          "unit": "teaspoon",
+          "name": "sea salt, plus more to taste",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/2 teaspoon sea salt, plus more to taste"
+        },
+        {
+          "id": "i7",
+          "amount": "1/2",
+          "unit": "teaspoon",
+          "name": "ground cumin",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/2 teaspoon ground cumin, optional",
+          "optional": true
+        },
+        {
+          "id": "i8",
+          "amount": "1 to 2",
+          "unit": "",
+          "name": "Roma tomatoes, seeded and diced",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "optional: 1 to 2 Roma tomatoes, seeded and diced",
+          "optional": true
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "In a large bowl, combine {i1}, {i2}, {i3}, {i4}, {i5}, {i6}, and {i7}, if using.",
+          "ingredientRefs": [
+            "i1",
+            "i2",
+            "i3",
+            "i4",
+            "i5",
+            "i6",
+            "i7"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "Mash until the ingredients are combined but still a bit chunky.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "Fold in {i8}, if using.",
+          "ingredientRefs": [
+            "i8"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "Season to taste and serve.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "tags": [
+    "Quick",
+    "Vegetarian",
+    "Gluten-Free",
+    "Dairy-Free",
+    "Vegan"
+  ],
+  "sourceUrl": "https://www.loveandlemons.com/guacamole-recipe/",
+  "importMethod": "ai-fallback"
+}

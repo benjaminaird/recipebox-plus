@@ -1,0 +1,196 @@
+{
+  "title": "Fried Rice - RecipeTin Eats",
+  "cookTime": "15 minutes",
+  "servings": 3,
+  "description": "Fried rice is a side that goes with all Chinese and Asian foods! This one truly stacks up to your favourite Chinese restaurant. Made with egg, veggies and a handful of bacon. But it's totally customisable – make it your own!",
+  "notes": "Chinese cooking wine or Mirin (or cooking sake or dry sherry) is an essential ingredient for making a truly \"restaurant standard\" fried rice. Though many recipes suggest using liquid chicken broth, please do not do this – it makes your fried rice wet and gluey! If you can't consume alcohol, adjust recipe as follows: Reduce oyster and soy sauce to 2 tsp each, and add 1 tbsp water to the Sauce. Proceed with recipe. When you add the rice, add 1/2 tsp chicken or vegetable stock powder (or bouillon cube crumbled). Stir through, then add remaining Sauce ingredients exc the Cooking wine. Proceed with recipe, add tiny sprinkle of salt at end if you want it saltier.\n\nSoy sauce – Any soy sauce is fine here (but not sweet or flavoured). Light and all-purpose soy keeps the fried rice a light colour like you get at Chinese restaurants. Dark soy will stain the rice a mahogany colour which is also appealing, and the rice will have a stronger soy flavour which many people enjoy!\n\nSKILLET: If using a skillet, add about 1/2 tbsp extra oil at the start to compensate for larger cooking surface. Also, if you use a large skillet, you can scale up the recipe by 50% – click on the Servings number and slide the scaler until the rice becomes 3 cups, it will change all the ingredients. Once you add the rice, use 2 wooden spoons to toss it – makes up for not having the high walls of a wok.\n\nGLUTEN FREE: Make sure you use gluten free soy sauce and Oyster Sauce if you want to make this gluten free.\n\nDon't have day old rice? Make this reader-favourite Emergency Baked Fried Rice instead.\n\nChinese Broccoli with Oyster Sauce: https: //www.recipetineats.com/restaurant-style-chinese-broccoli-oyster-sauce/\nJapanese Fried Rice: https: //japan.recipetineats.com/japanese-fried-rice-chahan-with-instant-seasoning/",
+  "heroImage": "https://www.recipetineats.com/tachyon/2018/03/Egg-Fried-Rice_5-1.jpg",
+  "category": "Sides",
+  "tags": [
+    "Quick",
+    "Weeknight",
+    "Asian",
+    "Chinese",
+    "15 Minute Meals"
+  ],
+  "macros": {
+    "calories": 522,
+    "protein": 18,
+    "carbs": 52,
+    "fat": 26,
+    "fiber": 3
+  },
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "2",
+          "unit": "Tbsp",
+          "name": "oil",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 tbsp oil"
+        },
+        {
+          "id": "i2",
+          "amount": "1/2",
+          "unit": "",
+          "name": "onion, finely chopped",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/2 onion, finely chopped"
+        },
+        {
+          "id": "i3",
+          "amount": "2",
+          "unit": "cloves",
+          "name": "garlic, minced",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 garlic cloves, minced"
+        },
+        {
+          "id": "i4",
+          "amount": "120",
+          "unit": "g",
+          "name": "bacon, chopped (optional, or use ham)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "120 g/4 oz bacon, chopped (optional, or use ham)"
+        },
+        {
+          "id": "i5",
+          "amount": "1 - 1 1/2",
+          "unit": "cup",
+          "name": "diced vegetables, frozen or fresh",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 – 1 1/2 cups diced vegetables, frozen or fresh"
+        },
+        {
+          "id": "i6",
+          "amount": "2",
+          "unit": "cups (packed)",
+          "name": "cooked day old white rice (refrigerated or frozen defrosted)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 cups (packed) cooked day old white rice (refrigerated or frozen defrosted)"
+        },
+        {
+          "id": "i7",
+          "amount": "3",
+          "unit": "",
+          "name": "eggs, whisked",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "3 eggs, whisked"
+        },
+        {
+          "id": "i8",
+          "amount": "3/4",
+          "unit": "cup",
+          "name": "green onions, sliced",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "3/4 cup green onions, (shallots / scallions) sliced"
+        },
+        {
+          "id": "i9",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "Chinese cooking wine (sub Mirin, cooking sake or dry sherry)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 tbsp Chinese cooking wine (sub Mirin, cooking sake or dry sherry)"
+        },
+        {
+          "id": "i10",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "Oyster Sauce",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 tbsp Oyster Sauce"
+        },
+        {
+          "id": "i11",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "light soy sauce (or all purpose)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 tbsp light soy sauce (or all purpose)"
+        },
+        {
+          "id": "i12",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "sesame oil, optional",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 tsp sesame oil, optional"
+        },
+        {
+          "id": "i13",
+          "amount": "1/4",
+          "unit": "tsp",
+          "name": "white pepper",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/4 tsp white pepper"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Heat about 1 1/2 tbsp {i1} in a wok or 2 tbsp oil in a skillet over high heat until smoking. Add {i2}, {i3} and {i4}. Cook until bacon is light golden – about 1 1/2 minutes.",
+          "ingredientRefs": [
+            "i1",
+            "i2",
+            "i3",
+            "i4"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "Add {i5} (still frozen is fine). Cook for 2 minutes so they defrost and water evaporates.",
+          "ingredientRefs": [
+            "i5"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Add {i6} and Sauce ingredients ({i9}, {i10}, {i11}, {i12}, {i13}). Cook for 1 1/2 minutes until liquid evaporates.",
+          "ingredientRefs": [
+            "i6",
+            "i9",
+            "i10",
+            "i11",
+            "i12",
+            "i13"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "Shove {i6} to the side of the wok / skillet. Add 1/2 tbsp oil into the cleared space, shift wok so the heat is centred over the cleared space. Pour in {i7} then scramble – cook it through properly, don't \"soft scramble\".",
+          "ingredientRefs": [
+            "i7",
+            "i6"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Add {i8} then stir the egg into {i6}. Remove from heat and serve immediately!",
+          "ingredientRefs": [
+            "i8",
+            "i6"
+          ]
+        }
+      ]
+    }
+  ],
+  "sourceUrl": "https://www.recipetineats.com/egg-fried-rice/",
+  "importMethod": "ai-fallback"
+}

@@ -1,0 +1,211 @@
+{
+  "title": "Chocolate Chip Cookies - Claire Saffitz",
+  "cookTime": "12+ hours (includes chilling)",
+  "servings": 16,
+  "description": "A chewy-edged, soft-centered chocolate chip cookie with puddles of dark and milk chocolate, plenty of salt, and butterscotch-y flavor from vanilla, brown sugar, and brown butter. No stand mixer required.",
+  "notes": "Chilling the dough is crucial: age for at least 12 hours and up to 48 hours in the fridge before baking. Even 2-4 hours will help. This process allows the butter to solidify, sugar to recrystallize, and flavors to develop, resulting in a chewier cookie with more developed flavor. If using Morton kosher salt instead of Diamond Crystal, use only 1 teaspoon (Morton is saltier). You can use chocolate chips instead of disks, but disks melt into sheets of chocolate which is preferred. Heavy cream can be substituted with half-and-half or whole milk. Brown the butter carefully on low heat to prevent burning—it should be a shade or two past golden brown, not black. Use high-quality vanilla extract, not imitation.",
+  "heroImage": "https://i.ytimg.com/vi/kPauR6tP_cg/hqdefault.jpg",
+  "category": "Desserts",
+  "tags": [
+    "Cookies",
+    "Make-Ahead",
+    "Comfort Food",
+    "Kid-Friendly"
+  ],
+  "macros": {
+    "calories": 285,
+    "protein": 3,
+    "carbs": 34,
+    "fat": 16,
+    "fiber": 1
+  },
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "2",
+          "unit": "sticks",
+          "name": "unsalted butter, cut into tablespoons",
+          "weightAmount": "227",
+          "weightUnit": "g",
+          "raw": "2 sticks unsalted butter (8 oz / 227g), cut into tablespoons"
+        },
+        {
+          "id": "i2",
+          "amount": "2",
+          "unit": "Tbsp",
+          "name": "heavy cream, half-and-half, or whole milk",
+          "weightAmount": "28",
+          "weightUnit": "g",
+          "raw": "2 tablespoons heavy cream, half-and-half, or whole milk (1 oz / 28g)"
+        },
+        {
+          "id": "i3",
+          "amount": "2",
+          "unit": "cup",
+          "name": "all-purpose flour",
+          "weightAmount": "260",
+          "weightUnit": "g",
+          "raw": "2 cups all-purpose flour (9.2 oz / 260g)"
+        },
+        {
+          "id": "i4",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "Diamond Crystal kosher salt",
+          "weightAmount": "6",
+          "weightUnit": "g",
+          "raw": "2 teaspoons Diamond Crystal kosher salt (0.22 oz / 6g)"
+        },
+        {
+          "id": "i5",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "baking soda",
+          "weightAmount": "6",
+          "weightUnit": "g",
+          "raw": "1 teaspoon baking soda (0.21 oz / 6g)"
+        },
+        {
+          "id": "i6",
+          "amount": "3/4",
+          "unit": "cup",
+          "name": "packed dark brown sugar",
+          "weightAmount": "150",
+          "weightUnit": "g",
+          "raw": "3/4 cup packed dark brown sugar (5.3 oz / 150g)"
+        },
+        {
+          "id": "i7",
+          "amount": "3/4",
+          "unit": "cup",
+          "name": "granulated sugar",
+          "weightAmount": "150",
+          "weightUnit": "g",
+          "raw": "3/4 cup granulated sugar (5.3 oz / 150g)"
+        },
+        {
+          "id": "i8",
+          "amount": "2",
+          "unit": "",
+          "name": "large eggs, cold from the refrigerator",
+          "weightAmount": "100",
+          "weightUnit": "g",
+          "raw": "2 large eggs (3.5 oz / 100g), cold from the refrigerator"
+        },
+        {
+          "id": "i9",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "vanilla extract",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 tablespoon vanilla extract"
+        },
+        {
+          "id": "i10",
+          "amount": "5",
+          "unit": "oz",
+          "name": "bittersweet chocolate disks, half coarsely chopped",
+          "weightAmount": "142",
+          "weightUnit": "g",
+          "raw": "5 ounces (142g) bittersweet chocolate disks, half coarsely chopped"
+        },
+        {
+          "id": "i11",
+          "amount": "5",
+          "unit": "oz",
+          "name": "milk chocolate disks, half coarsely chopped",
+          "weightAmount": "142",
+          "weightUnit": "g",
+          "raw": "5 ounces (142g) milk chocolate disks, half coarsely chopped"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Brown {i1} in a saucepan over low to medium-low heat, stirring constantly with a heat-proof spatula to prevent {i2} solids from sticking and burning. Continue cooking until the butter is a shade or two past golden brown (not black). Turn off heat.",
+          "ingredientRefs": [
+            "i1",
+            "i2"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "Add {i2} to the browned butter and stir to combine. Transfer mixture to a metal bowl and place in an ice bath, stirring constantly until completely cooled and homogeneous.",
+          "ingredientRefs": [
+            "i2"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Add {i6} and {i7} to the cooled butter mixture. Whisk until smooth and homogeneous (no need to cream until light and fluffy).",
+          "ingredientRefs": [
+            "i6",
+            "i7"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "Add {i8} one at a time, whisking well after each addition until the mixture is silky and smooth.",
+          "ingredientRefs": [
+            "i8"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Whisk in {i9}.",
+          "ingredientRefs": [
+            "i9"
+          ]
+        },
+        {
+          "id": "s6",
+          "text": "In a separate bowl, whisk together {i3}, {i5}, and {i4}.",
+          "ingredientRefs": [
+            "i3",
+            "i5",
+            "i4"
+          ]
+        },
+        {
+          "id": "s7",
+          "text": "Chop half of {i10} and half of {i11} coarsely, leaving the other half of each as whole disks. Reserve the chocolate dust from chopping.",
+          "ingredientRefs": [
+            "i10",
+            "i11"
+          ]
+        },
+        {
+          "id": "s8",
+          "text": "Add the dry ingredients to the wet ingredients and whisk or fold with a spatula until just combined.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s9",
+          "text": "Fold in all the chocolate (chopped and whole pieces, plus any chocolate dust) until evenly distributed.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s10",
+          "text": "Using a 2-ounce scoop or 1/4 cup measure, portion the dough into level scoops and place on a baking sheet (they can be close together since they're not baking yet).",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s11",
+          "text": "Cover and refrigerate the portioned dough for at least 12 hours and up to 48 hours before baking. (Even 2-4 hours will help if you can't wait the full time.)",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s12",
+          "text": "When ready to bake, preheat oven and prepare baking sheets. Space chilled dough portions appropriately on prepared pans and bake until edges are crispy and centers are soft and chewy.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "sourceUrl": "https://www.youtube.com/watch?v=kPauR6tP_cg",
+  "importMethod": "ai-fallback"
+}

@@ -1,0 +1,182 @@
+{
+  "title": "Chocolate Cake",
+  "cookTime": "35 minutes",
+  "servings": 10,
+  "description": "This is a really easy yet exceptional Chocolate Cake that truly tastes of chocolate. The crumb is beautifully tender and moist, and it keeps for up to 5 days. It requires no beater, just a wooden spoon.",
+  "notes": "The secret to the chocolate flavor is adding boiling water – it makes the chocolate flavour \"bloom\". The cake stays moist for 4 to 5 days. This cake is more forgiving than most, having once accidentally been left in the oven for 15 minutes longer than necessary and it still wasn't dry. If your oven is large enough for both cake pans to be on one shelf, place the shelf in the middle of the oven. If it's not large enough, put one shelf 1/3 of the way down the oven, then the next shelf below it. If cakes are on separate shelves, take out the top one at 35 minutes, then move the bottom one up to the top shelf and bake for a further 5 minutes. Even the best springform pans are not 100% leakproof so with very thin batters like this cake, you will get a small amount of leakage. The best way to combat this is to \"plug\" the space where the sides meets the base with butter, and place a tray on the bottom of the oven to catch drips (don't put cake pans on the tray, it affects heat circulation). Turn the cakes out upside down so the flat base becomes the surface used for frosting. Flat surface just looks nicer when you cut into the cake. This cake comes out pretty level, but if you want to be extra neat, feel free to level the cakes using a serrated knife. Keeps in an airtight container for up to 5 days and is still lovely and moist. Refrigerate if frosted and it's very hot where you are. Freezing not ideal because it's such a moist cake that it makes the crumb a bit wet so while it still looks like cake, when you eat it the texture is almost like chocolate pudding cake. Still tasty, just not as cakey as it should be. Chocolate Buttercream Frosting: https://www.recipetineats.com/chocolate-buttercream-frosting/. Chocolate Mirror Glaze: https://www.recipetineats.com/chocolate-mirror-glaze/",
+  "heroImage": "https://www.recipetineats.com/tachyon/2018/03/Chocolate-Cake_2.jpg",
+  "category": "Desserts",
+  "tags": [
+    "Chocolate",
+    "Cake",
+    "Birthday",
+    "Easy",
+    "One-Bowl"
+  ],
+  "macros": {
+    "calories": 351,
+    "protein": 5,
+    "carbs": 58,
+    "fat": 12,
+    "fiber": 2
+  },
+  "sections": [
+    {
+      "name": "Cake",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1 3/4",
+          "unit": "cups",
+          "name": "plain / all purpose flour",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 3/4 cups plain / all purpose flour"
+        },
+        {
+          "id": "i2",
+          "amount": "3/4",
+          "unit": "cup",
+          "name": "cocoa powder, unsweetened",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "3/4 cup cocoa powder, unsweetened"
+        },
+        {
+          "id": "i3",
+          "amount": "1 1/2",
+          "unit": "tsp",
+          "name": "baking powder",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 1/2 tsp baking powder"
+        },
+        {
+          "id": "i4",
+          "amount": "1 1/2",
+          "unit": "tsp",
+          "name": "baking soda (bi-carb soda)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 1/2 tsp baking soda (bi-carb soda)"
+        },
+        {
+          "id": "i5",
+          "amount": "2",
+          "unit": "cups",
+          "name": "white sugar",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 cups white sugar"
+        },
+        {
+          "id": "i6",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "salt",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 tsp salt"
+        },
+        {
+          "id": "i7",
+          "amount": "2",
+          "unit": "",
+          "name": "eggs (~55-65g / 2 oz each)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 eggs (~55-65g / 2 oz each)"
+        },
+        {
+          "id": "i8",
+          "amount": "1",
+          "unit": "cup",
+          "name": "milk (low or full fat)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 cup milk (low or full fat)"
+        },
+        {
+          "id": "i9",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "vegetable oil (or canola)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/2 cup vegetable oil (or canola)"
+        },
+        {
+          "id": "i10",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "vanilla extract",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 tsp vanilla extract"
+        },
+        {
+          "id": "i11",
+          "amount": "1",
+          "unit": "cup",
+          "name": "boiling water",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 cup boiling water"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Preheat oven to 180°C/350°F (160°C fan). Grease 2 x 22cm/9\" cake pans with butter, then line the base.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Sift {i1}, {i2}, {i3} and {i4} into a large bowl. Add {i5} and {i6}. Whisk briefly to combine.",
+          "ingredientRefs": [
+            "i1",
+            "i2",
+            "i3",
+            "i4",
+            "i5",
+            "i6"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Add {i7}, {i8}, {i9} and {i10}. Whisk well to combine until lump free – about 30 seconds.",
+          "ingredientRefs": [
+            "i7",
+            "i8",
+            "i9",
+            "i10"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "Add {i11} and whisk to incorporate. The batter is VERY thin.",
+          "ingredientRefs": [
+            "i11"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Pour batter into cake pans.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Bake for 35 minutes or until a wooden skewer inserted into the centre comes out clean.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Cool for 10 minutes, then turn out onto wire racks upside down. Cool completely before frosting.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "sourceUrl": "https://www.recipetineats.com/chocolate-cake/",
+  "importMethod": "ai-fallback"
+}

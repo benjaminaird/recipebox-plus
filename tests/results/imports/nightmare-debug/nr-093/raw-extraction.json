@@ -1,0 +1,264 @@
+{
+  "title": "Best Birthday Cake - Smitten Kitchen",
+  "cookTime": "35-40 minutes",
+  "servings": 12,
+  "description": "Two moist and flavorful vanilla cake layers swathed in a shiny, simple chocolate frosting. The cake has no weird preservatives or unnatural flavorings. The frosting has no butter or eggs, and barely any added sweetener. Neither take long to make.",
+  "notes": "Layer cake tips: https://smittenkitchen.com/2009/03/layer-cake-tips-the-biggest-birthday-cake-yet/\n\nFor the frosting: Be sure that your sour cream is at room temperature before you make the frosting. Room temperature sour cream (a temperature closer to the tepid chocolate) should allow you to avoid the chocolate seizing. If the frosting becomes too thick or stiff, just leave it out until it softens again. This should not take more than 30 minutes in the refrigerator to reach spreadable consistency.\n\nIf you find the Chocolate Sour Cream Frosting a bit too sour for your tastes, for a more classic chocolate buttercream, try this Instant Fudge Frosting instead: https://smittenkitchen.com/2009/08/espresso-chiffon-cake-with-fudge-frosting/\n\nMake your own cake flour: https://smittenkitchen.com/tips/make-your-own-cake-flour/\n\nMake your own buttermilk: https://smittenkitchen.com/tips/make-your-own-buttermilk/\n\nStore the frosted cake in the fridge since the frosting contains sour cream.",
+  "heroImage": "https://i0.wp.com/smittenkitchen.com/wp-content/uploads//2009/07/best-birthday-cake.jpg?fit=1024%2C680&quality=89&ssl=1",
+  "macros": {
+    "calories": 520,
+    "protein": 7,
+    "carbs": 68,
+    "fat": 26,
+    "fiber": 2
+  },
+  "category": "Desserts",
+  "tags": [
+    "Birthday",
+    "Celebration",
+    "Layer Cake",
+    "Chocolate Frosting",
+    "Buttermilk",
+    "Make-Ahead"
+  ],
+  "sections": [
+    {
+      "name": "Best Yellow Layer Cake",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "4 cups + 2 tablespoons",
+          "unit": "",
+          "name": "cake flour (not self-rising)",
+          "weightAmount": "480-530",
+          "weightUnit": "g",
+          "raw": "4 cups plus 2 tablespoons (480 to 530 grams due to variance between brands) cake flour (not self-rising)"
+        },
+        {
+          "id": "i2",
+          "amount": "2",
+          "unit": "teaspoons",
+          "name": "baking powder",
+          "weightAmount": "10",
+          "weightUnit": "g",
+          "raw": "2 teaspoons (10 grams) baking powder"
+        },
+        {
+          "id": "i3",
+          "amount": "1 1/2",
+          "unit": "teaspoons",
+          "name": "baking soda",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 1/2 teaspoons baking soda"
+        },
+        {
+          "id": "i4",
+          "amount": "1",
+          "unit": "teaspoon",
+          "name": "table salt",
+          "weightAmount": "5",
+          "weightUnit": "g",
+          "raw": "1 teaspoon (5 grams) table salt"
+        },
+        {
+          "id": "i5",
+          "amount": "2",
+          "unit": "sticks",
+          "name": "unsalted butter, softened",
+          "weightAmount": "225",
+          "weightUnit": "g",
+          "raw": "2 sticks (1 cup, 1/2 pound or 225 grams) unsalted butter, softened"
+        },
+        {
+          "id": "i6",
+          "amount": "2",
+          "unit": "cups",
+          "name": "sugar",
+          "weightAmount": "400",
+          "weightUnit": "g",
+          "raw": "2 cups (400 grams) sugar"
+        },
+        {
+          "id": "i7",
+          "amount": "2",
+          "unit": "teaspoons",
+          "name": "pure vanilla extract",
+          "weightAmount": "10",
+          "weightUnit": "ml",
+          "raw": "2 teaspoons (10 ml) pure vanilla extract"
+        },
+        {
+          "id": "i8",
+          "amount": "4",
+          "unit": "",
+          "name": "large eggs, at room temperature",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "4 large eggs, at room temperature"
+        },
+        {
+          "id": "i9",
+          "amount": "2",
+          "unit": "cups",
+          "name": "buttermilk, well-shaken",
+          "weightAmount": "475",
+          "weightUnit": "ml",
+          "raw": "2 cups buttermilk (475 ml), well-shaken"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Preheat oven to 350°F. Butter two 9-inch round cake pans and line with circles of parchment paper, then butter parchment. (Alternately, you can use a cooking spray, either with just butter or butter and flour to speed this process up.)",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Sift together {i1}, {i2}, {i3}, and {i4} in a medium bowl.",
+          "ingredientRefs": [
+            "i1",
+            "i2",
+            "i3",
+            "i4"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "In a large mixing bowl, beat {i5} and {i6} with an electric mixer at medium speed until pale and fluffy, then beat in {i7}.",
+          "ingredientRefs": [
+            "i5",
+            "i6",
+            "i7"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "Add {i8} 1 at a time, beating well and scraping down the bowl after each addition.",
+          "ingredientRefs": [
+            "i8"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "At low speed, beat in {i9} until just combined (mixture will look curdled).",
+          "ingredientRefs": [
+            "i9"
+          ]
+        },
+        {
+          "id": "s6",
+          "text": "Add flour mixture in three batches, mixing until each addition is just incorporated.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Spread batter evenly in cake pans, then rap pans on counter several times to eliminate air bubbles. (I like to drop mine a few times from two inches up, making a great big noisy fuss.)",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s8",
+          "text": "Bake until golden and a wooden pick inserted in center of cake comes out clean, 35 to 40 minutes.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s9",
+          "text": "Cool in pans on a rack 10 minutes, then run a knife around edge of pans. Invert onto rack and discard parchment, then cool completely, about 1 hour.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "Chocolate Sour Cream Frosting",
+      "ingredients": [
+        {
+          "id": "i10",
+          "amount": "15",
+          "unit": "ounces",
+          "name": "semisweet or bittersweet chocolate, chopped",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "15 ounces semisweet or bittersweet chocolate, chopped"
+        },
+        {
+          "id": "i11",
+          "amount": "1 1/4",
+          "unit": "teaspoons",
+          "name": "instant espresso",
+          "weightAmount": "",
+          "weightUnit": "",
+          "optional": true,
+          "raw": "1 1/4 teaspoons instant espresso (optional, but can be used to pick up the flavor of average chocolate)"
+        },
+        {
+          "id": "i12",
+          "amount": "2 1/4",
+          "unit": "cups",
+          "name": "sour cream, at room temperature",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 1/4 cups sour cream, at room temperature"
+        },
+        {
+          "id": "i13",
+          "amount": "1/4 to 1/2",
+          "unit": "cup",
+          "name": "light corn syrup",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/4 to 1/2 cup light corn syrup"
+        },
+        {
+          "id": "i14",
+          "amount": "3/4",
+          "unit": "teaspoon",
+          "name": "vanilla extract",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "3/4 teaspoon vanilla extract"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s10",
+          "text": "Combine {i10} and {i11}, if using, in the top of a double-boiler or in a heatproof bowl over simmering water. Stir until the chocolate is melted. (Alternately, you can melt the chocolate in a microwave for 30 seconds, stirring well, and then heating in 15 second increments, stirring between each, until the chocolate is melted.)",
+          "ingredientRefs": [
+            "i10",
+            "i11"
+          ]
+        },
+        {
+          "id": "s11",
+          "text": "Remove from heat and let chocolate cool until tepid.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s12",
+          "text": "Whisk together {i12}, 1/4 cup of {i13} and {i14} until combined.",
+          "ingredientRefs": [
+            "i12",
+            "i13",
+            "i14"
+          ]
+        },
+        {
+          "id": "s13",
+          "text": "Add the tepid chocolate slowly and stir quickly until the mixture is uniform.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s14",
+          "text": "Taste for sweetness, and if needed, add additional corn syrup in one tablespoon increments until desired level of sweetness is achieved.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s15",
+          "text": "Let cool in the refrigerator until the frosting is a spreadable consistency. This should not take more than 30 minutes. Should the frosting become too thick or stiff, just leave it out until it softens again.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "sourceUrl": "https://smittenkitchen.com/2009/07/best-birthday-cake/",
+  "importMethod": "ai-fallback"
+}

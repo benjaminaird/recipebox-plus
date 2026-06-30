@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-06-30T11:00:10.884Z",
+  "generated_at": "2026-06-30T12:20:12.663Z",
   "manifest_path": "/Users/benjaminaird/Projects/recipebox-plus/tests/fixtures/imports/nightmare-recipes/manifest.json",
   "options": {
-    "ai_enabled": false,
+    "ai_enabled": true,
     "ai_key_available": true,
     "ai_fallback_implemented": true,
-    "ai_budget_usd": 0,
-    "ai_spent_usd": 0,
+    "ai_budget_usd": 5,
+    "ai_spent_usd": 1.198695,
     "server": "http://localhost:3000",
     "limit": null,
     "ids": null,
@@ -16,61 +16,61 @@
   "summary": {
     "recipes_tested": 100,
     "manifest_count": 100,
-    "attempted_count": 66,
-    "skipped_count": 34,
+    "attempted_count": 89,
+    "skipped_count": 11,
     "counts": {
-      "pass": 66,
-      "partial": 0,
+      "pass": 88,
+      "partial": 1,
       "fail": 0,
-      "skipped": 34
+      "skipped": 11
     },
-    "pass_rate_among_attempted": 100,
+    "pass_rate_among_attempted": 98.9,
     "deterministic_pass_rate": 100,
-    "ai_fallback_pass_rate": null,
-    "source_faithful_pass_rate": 100,
-    "total_coverage_rate": 66,
+    "ai_fallback_pass_rate": 95.5,
+    "source_faithful_pass_rate": 98.9,
+    "total_coverage_rate": 89,
     "true_fail_rate_among_attempted": 0,
-    "average_confidence_score": 64,
-    "average_attempted_confidence_score": 97,
+    "average_confidence_score": 87,
+    "average_attempted_confidence_score": 98,
     "average_audit_score": 100,
     "ai_usage": {
-      "requested": false,
+      "requested": true,
       "implemented": true,
       "model": "claude-sonnet-4-5-20250929",
       "key_available": true,
-      "budget_usd": 0,
-      "spent_usd": 0,
-      "calls": 0,
+      "budget_usd": 5,
+      "spent_usd": 1.198695,
+      "calls": 27,
       "skipped_budget": 0,
       "skipped_no_key": 0,
       "errors": 0,
-      "input_tokens": 0,
-      "output_tokens": 0
+      "input_tokens": 151740,
+      "output_tokens": 49565
     },
     "confidence_by_source_type": {
       "schema_org_web_page": {
         "count": 26,
-        "attempted": 22,
-        "skipped": 4,
-        "average_confidence": 83
+        "attempted": 23,
+        "skipped": 3,
+        "average_confidence": 87
       },
       "food_blog_page": {
         "count": 59,
-        "attempted": 41,
-        "skipped": 18,
-        "average_confidence": 67
+        "attempted": 57,
+        "skipped": 2,
+        "average_confidence": 94
       },
       "article_recipe_page": {
         "count": 6,
-        "attempted": 2,
-        "skipped": 4,
-        "average_confidence": 32
+        "attempted": 3,
+        "skipped": 3,
+        "average_confidence": 48
       },
       "youtube_video": {
         "count": 8,
-        "attempted": 0,
-        "skipped": 8,
-        "average_confidence": 0
+        "attempted": 5,
+        "skipped": 3,
+        "average_confidence": 61
       },
       "recipe_page_check_access_first": {
         "count": 1,
@@ -81,42 +81,59 @@
     },
     "top_failure_categories": [
       {
-        "category": "ambiguous source content",
-        "count": 17
-      },
-      {
-        "category": "video transcript/AI fallback not run",
+        "category": "accessibility/source coverage",
         "count": 8
       },
       {
-        "category": "accessibility/source coverage",
-        "count": 7
+        "category": "video transcript/AI fallback not run",
+        "count": 3
       },
       {
-        "category": "AI fallback not run",
-        "count": 2
+        "category": "quantity grounding",
+        "count": 1
+      },
+      {
+        "category": "unit grounding",
+        "count": 1
       }
     ],
     "failure_clusters": [
       {
-        "category": "ambiguous source content",
-        "count": 17
-      },
-      {
-        "category": "video transcript/AI fallback not run",
+        "category": "accessibility/source coverage",
         "count": 8
       },
       {
-        "category": "accessibility/source coverage",
-        "count": 7
+        "category": "video transcript/AI fallback not run",
+        "count": 3
       },
       {
-        "category": "AI fallback not run",
-        "count": 2
+        "category": "quantity grounding",
+        "count": 1
+      },
+      {
+        "category": "unit grounding",
+        "count": 1
       }
     ],
     "true_failures": [],
-    "partial_cases": [],
+    "partial_cases": [
+      {
+        "id": "nr-081",
+        "title": "Cacio e Pepe - Food Wishes YouTube",
+        "confidence": 88,
+        "audit_score": 82,
+        "reason": [
+          "source mixed US/metric units",
+          "quantity: uncertain - \"200 g thick spaghetti (pici or tonarelli)\"",
+          "quantity: uncertain - \"100 g pecorino cheese, finely grated\"",
+          "unit: uncertain - \"2 tsp freshly ground black pepper\""
+        ],
+        "clusters": [
+          "quantity grounding",
+          "unit grounding"
+        ]
+      }
+    ],
     "skipped_but_acceptable_cases": [
       {
         "id": "nr-028",
@@ -163,21 +180,21 @@
         ]
       },
       {
+        "id": "nr-095",
+        "title": "Maangchi Kimchi",
+        "source_type": "food_blog_page",
+        "difficulty_category": "international_uncommon_ingredients_units",
+        "skip_classification": "blocked_or_inaccessible",
+        "skip_acceptability": "skipped-but-acceptable",
+        "reason": [
+          "blocked_by_cloudflare"
+        ]
+      },
+      {
         "id": "nr-004",
         "title": "Easy Meatloaf - Allrecipes",
         "source_type": "schema_org_web_page",
         "difficulty_category": "imperial_only_recipes",
-        "skip_classification": "blocked_or_inaccessible",
-        "skip_acceptability": "skipped-but-acceptable",
-        "reason": [
-          "RecipeBox could not read this recipe page. The site may be blocking automated access. Try Paste Text or screenshots instead."
-        ]
-      },
-      {
-        "id": "nr-005",
-        "title": "Perfect Pumpkin Pie - Allrecipes",
-        "source_type": "schema_org_web_page",
-        "difficulty_category": "temperatures_f_and_c",
         "skip_classification": "blocked_or_inaccessible",
         "skip_acceptability": "skipped-but-acceptable",
         "reason": [
@@ -194,174 +211,20 @@
         "reason": [
           "RecipeBox could not read this recipe page. The site may be blocking automated access. Try Paste Text or screenshots instead."
         ]
+      },
+      {
+        "id": "nr-096",
+        "title": "Maangchi Japchae",
+        "source_type": "food_blog_page",
+        "difficulty_category": "international_uncommon_ingredients_units",
+        "skip_classification": "blocked_or_inaccessible",
+        "skip_acceptability": "skipped-but-acceptable",
+        "reason": [
+          "source_blocked"
+        ]
       }
     ],
     "skipped_and_needs_product_work_cases": [
-      {
-        "id": "nr-046",
-        "title": "Chocolate Cake - RecipeTin Eats",
-        "source_type": "food_blog_page",
-        "difficulty_category": "us_metric_parentheticals",
-        "skip_classification": "ambiguous_source_content",
-        "skip_acceptability": "skipped-and-needs-product-work",
-        "reason": [
-          "No complete structured recipe found; AI fallback disabled for this run."
-        ]
-      },
-      {
-        "id": "nr-049",
-        "title": "Homemade Pizza - Love and Lemons",
-        "source_type": "food_blog_page",
-        "difficulty_category": "multiple_recipes_one_page",
-        "skip_classification": "ambiguous_source_content",
-        "skip_acceptability": "skipped-and-needs-product-work",
-        "reason": [
-          "No complete structured recipe found; AI fallback disabled for this run."
-        ]
-      },
-      {
-        "id": "nr-029",
-        "title": "5-Minute Tonkotsu-Style Instant Ramen - Serious Eats",
-        "source_type": "article_recipe_page",
-        "difficulty_category": "international_uncommon_ingredients_units",
-        "skip_classification": "ambiguous_source_content",
-        "skip_acceptability": "skipped-and-needs-product-work",
-        "reason": [
-          "No complete structured recipe found; AI fallback disabled for this run."
-        ]
-      },
-      {
-        "id": "nr-043",
-        "title": "Beef Rendang - RecipeTin Eats",
-        "source_type": "food_blog_page",
-        "difficulty_category": "international_uncommon_ingredients_units",
-        "skip_classification": "ambiguous_source_content",
-        "skip_acceptability": "skipped-and-needs-product-work",
-        "reason": [
-          "No complete structured recipe found; AI fallback disabled for this run."
-        ]
-      },
-      {
-        "id": "nr-044",
-        "title": "Pad Thai - RecipeTin Eats",
-        "source_type": "food_blog_page",
-        "difficulty_category": "multi_component_recipes",
-        "skip_classification": "ambiguous_source_content",
-        "skip_acceptability": "skipped-and-needs-product-work",
-        "reason": [
-          "No complete structured recipe found; AI fallback disabled for this run."
-        ]
-      },
-      {
-        "id": "nr-095",
-        "title": "Maangchi Kimchi",
-        "source_type": "food_blog_page",
-        "difficulty_category": "international_uncommon_ingredients_units",
-        "skip_classification": "ai_fallback_needed",
-        "skip_acceptability": "skipped-and-needs-product-work",
-        "reason": [
-          "No complete structured recipe found; AI fallback disabled for this run."
-        ]
-      },
-      {
-        "id": "nr-045",
-        "title": "No Knead Bread - RecipeTin Eats",
-        "source_type": "food_blog_page",
-        "difficulty_category": "ranges",
-        "skip_classification": "ambiguous_source_content",
-        "skip_acceptability": "skipped-and-needs-product-work",
-        "reason": [
-          "No complete structured recipe found; AI fallback disabled for this run."
-        ]
-      },
-      {
-        "id": "nr-047",
-        "title": "Egg Fried Rice - RecipeTin Eats",
-        "source_type": "food_blog_page",
-        "difficulty_category": "vague_amounts",
-        "skip_classification": "ambiguous_source_content",
-        "skip_acceptability": "skipped-and-needs-product-work",
-        "reason": [
-          "No complete structured recipe found; AI fallback disabled for this run."
-        ]
-      },
-      {
-        "id": "nr-048",
-        "title": "Best Guacamole - Love and Lemons",
-        "source_type": "food_blog_page",
-        "difficulty_category": "vague_amounts",
-        "skip_classification": "ambiguous_source_content",
-        "skip_acceptability": "skipped-and-needs-product-work",
-        "reason": [
-          "No complete structured recipe found; AI fallback disabled for this run."
-        ]
-      },
-      {
-        "id": "nr-050",
-        "title": "Butternut Squash Soup - Love and Lemons",
-        "source_type": "food_blog_page",
-        "difficulty_category": "messy_food_blogs_long_intros",
-        "skip_classification": "ambiguous_source_content",
-        "skip_acceptability": "skipped-and-needs-product-work",
-        "reason": [
-          "No complete structured recipe found; AI fallback disabled for this run."
-        ]
-      },
-      {
-        "id": "nr-051",
-        "title": "Vegan Mac and Cheese - Love and Lemons",
-        "source_type": "food_blog_page",
-        "difficulty_category": "substitutions_notes_in_ingredients",
-        "skip_classification": "ambiguous_source_content",
-        "skip_acceptability": "skipped-and-needs-product-work",
-        "reason": [
-          "No complete structured recipe found; AI fallback disabled for this run."
-        ]
-      },
-      {
-        "id": "nr-052",
-        "title": "Shakshuka - Love and Lemons",
-        "source_type": "food_blog_page",
-        "difficulty_category": "international_uncommon_ingredients_units",
-        "skip_classification": "ambiguous_source_content",
-        "skip_acceptability": "skipped-and-needs-product-work",
-        "reason": [
-          "No complete structured recipe found; AI fallback disabled for this run."
-        ]
-      },
-      {
-        "id": "nr-053",
-        "title": "Falafel - Love and Lemons",
-        "source_type": "food_blog_page",
-        "difficulty_category": "international_uncommon_ingredients_units",
-        "skip_classification": "ambiguous_source_content",
-        "skip_acceptability": "skipped-and-needs-product-work",
-        "reason": [
-          "No complete structured recipe found; AI fallback disabled for this run."
-        ]
-      },
-      {
-        "id": "nr-054",
-        "title": "Brownies - Love and Lemons",
-        "source_type": "food_blog_page",
-        "difficulty_category": "baking_precise_weights",
-        "skip_classification": "ambiguous_source_content",
-        "skip_acceptability": "skipped-and-needs-product-work",
-        "reason": [
-          "No complete structured recipe found; AI fallback disabled for this run."
-        ]
-      },
-      {
-        "id": "nr-072",
-        "title": "Gyoza - Just One Cookbook",
-        "source_type": "food_blog_page",
-        "difficulty_category": "ocr_challenge_likely",
-        "skip_classification": "ambiguous_source_content",
-        "skip_acceptability": "skipped-and-needs-product-work",
-        "reason": [
-          "No complete structured recipe found; AI fallback disabled for this run."
-        ]
-      },
       {
         "id": "nr-078",
         "title": "Chicken Teriyaki - Just One Cookbook YouTube",
@@ -370,42 +233,9 @@
         "skip_classification": "video_transcript_needed",
         "skip_acceptability": "skipped-and-needs-product-work",
         "reason": [
-          "Transcript/description fetched, but AI extraction is disabled for this run.",
+          "not_enough_recipe_text",
           "transcript unavailable",
           "low confidence extraction"
-        ]
-      },
-      {
-        "id": "nr-079",
-        "title": "How To Make Perfect Chocolate Chip Cookies - Tasty YouTube",
-        "source_type": "youtube_video",
-        "difficulty_category": "youtube_recipe_transcripts",
-        "skip_classification": "video_transcript_needed",
-        "skip_acceptability": "skipped-and-needs-product-work",
-        "reason": [
-          "Transcript/description fetched, but AI extraction is disabled for this run."
-        ]
-      },
-      {
-        "id": "nr-080",
-        "title": "Focaccia - Bon Appetit YouTube",
-        "source_type": "youtube_video",
-        "difficulty_category": "youtube_recipe_transcripts",
-        "skip_classification": "video_transcript_needed",
-        "skip_acceptability": "skipped-and-needs-product-work",
-        "reason": [
-          "Transcript/description fetched, but AI extraction is disabled for this run."
-        ]
-      },
-      {
-        "id": "nr-082",
-        "title": "Butter Chicken - Food Wishes YouTube",
-        "source_type": "youtube_video",
-        "difficulty_category": "youtube_recipe_transcripts",
-        "skip_classification": "video_transcript_needed",
-        "skip_acceptability": "skipped-and-needs-product-work",
-        "reason": [
-          "Transcript/description fetched, but AI extraction is disabled for this run."
         ]
       },
       {
@@ -416,75 +246,9 @@
         "skip_classification": "video_transcript_needed",
         "skip_acceptability": "skipped-and-needs-product-work",
         "reason": [
-          "Transcript/description fetched, but AI extraction is disabled for this run.",
+          "not_enough_recipe_text",
           "transcript unavailable",
           "low confidence extraction"
-        ]
-      },
-      {
-        "id": "nr-085",
-        "title": "Claire Saffitz Chocolate Chip Cookies - YouTube",
-        "source_type": "youtube_video",
-        "difficulty_category": "youtube_recipe_transcripts",
-        "skip_classification": "video_transcript_needed",
-        "skip_acceptability": "skipped-and-needs-product-work",
-        "reason": [
-          "Transcript/description fetched, but AI extraction is disabled for this run."
-        ]
-      },
-      {
-        "id": "nr-091",
-        "title": "Smitten Kitchen Blueberry Muffins",
-        "source_type": "food_blog_page",
-        "difficulty_category": "messy_food_blogs_long_intros",
-        "skip_classification": "ambiguous_source_content",
-        "skip_acceptability": "skipped-and-needs-product-work",
-        "reason": [
-          "No complete structured recipe found; AI fallback disabled for this run."
-        ]
-      },
-      {
-        "id": "nr-092",
-        "title": "Smitten Kitchen Apple Cider Caramels",
-        "source_type": "food_blog_page",
-        "difficulty_category": "multi_component_recipes",
-        "skip_classification": "ambiguous_source_content",
-        "skip_acceptability": "skipped-and-needs-product-work",
-        "reason": [
-          "No complete structured recipe found; AI fallback disabled for this run."
-        ]
-      },
-      {
-        "id": "nr-093",
-        "title": "Smitten Kitchen Best Birthday Cake",
-        "source_type": "food_blog_page",
-        "difficulty_category": "repeated_ingredients_sections",
-        "skip_classification": "ambiguous_source_content",
-        "skip_acceptability": "skipped-and-needs-product-work",
-        "reason": [
-          "No complete structured recipe found; AI fallback disabled for this run."
-        ]
-      },
-      {
-        "id": "nr-096",
-        "title": "Maangchi Japchae",
-        "source_type": "food_blog_page",
-        "difficulty_category": "international_uncommon_ingredients_units",
-        "skip_classification": "ai_fallback_needed",
-        "skip_acceptability": "skipped-and-needs-product-work",
-        "reason": [
-          "No complete structured recipe found; AI fallback disabled for this run."
-        ]
-      },
-      {
-        "id": "nr-081",
-        "title": "Cacio e Pepe - Food Wishes YouTube",
-        "source_type": "youtube_video",
-        "difficulty_category": "youtube_recipe_transcripts",
-        "skip_classification": "video_transcript_needed",
-        "skip_acceptability": "skipped-and-needs-product-work",
-        "reason": [
-          "Transcript/description fetched, but AI extraction is disabled for this run."
         ]
       },
       {
@@ -495,7 +259,7 @@
         "skip_classification": "video_transcript_needed",
         "skip_acceptability": "skipped-and-needs-product-work",
         "reason": [
-          "Transcript/description fetched, but AI extraction is disabled for this run.",
+          "not_enough_recipe_text",
           "transcript unavailable",
           "low confidence extraction"
         ]
@@ -503,16 +267,14 @@
     ],
     "skipped_and_needs_manifest_replacement_cases": [],
     "skipped_classification_counts": {
-      "blocked_or_inaccessible": 7,
-      "ambiguous_source_content": 17,
-      "ai_fallback_needed": 2,
-      "video_transcript_needed": 8
+      "blocked_or_inaccessible": 8,
+      "video_transcript_needed": 3
     },
-    "ai_fallback_requested": false,
+    "ai_fallback_requested": true,
     "ai_fallback_implemented": true,
     "ai_key_available": true,
-    "estimated_ai_fallback_candidates": 27,
-    "estimated_ai_credits_if_run": 27,
+    "estimated_ai_fallback_candidates": 3,
+    "estimated_ai_credits_if_run": 3,
     "top25_must_pass_status": [
       {
         "id": "nr-003",
@@ -624,14 +386,14 @@
       },
       {
         "id": "nr-046",
-        "status": "skipped",
-        "confidence": 0,
+        "status": "pass",
+        "confidence": 95,
         "must_preserve": "US and metric quantities without duplicate display."
       },
       {
         "id": "nr-049",
-        "status": "skipped",
-        "confidence": 0,
+        "status": "pass",
+        "confidence": 100,
         "must_preserve": "Primary recipe versus variations."
       },
       {
@@ -1965,41 +1727,59 @@
       "source_type": "food_blog_page",
       "difficulty_category": "us_metric_parentheticals",
       "priority": "high",
-      "import_status": "skipped",
-      "skip_classification": "ambiguous_source_content",
-      "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "clean page text",
-      "title_match_confidence": 0,
+      "import_status": "pass",
+      "extraction_method_used": "AI fallback page text",
+      "title_match_confidence": 100,
       "ingredient_count_source": null,
-      "ingredient_count_parsed": 0,
+      "ingredient_count_parsed": 11,
       "instruction_step_count_source": null,
-      "instruction_step_count_parsed": 0,
+      "instruction_step_count_parsed": 7,
       "missing_ingredients": [],
       "extra_hallucinated_ingredients": [],
       "quantity_mismatches": [],
       "unit_mismatches": [],
-      "source_provided_metric_preserved": "not applicable",
-      "directions_include_quantities": "not applicable",
+      "source_provided_metric_preserved": "yes",
+      "directions_include_quantities": "yes",
       "temperature_handling": "pass",
-      "timer_extraction": "fail",
-      "section_preservation": "fail",
+      "timer_extraction": "pass",
+      "section_preservation": "pass",
       "source_audit": {
-        "available": false,
-        "score": 0,
-        "needs_review": true,
-        "fields": {},
+        "available": true,
+        "score": 100,
+        "needs_review": false,
+        "critical_failure": false,
+        "fields": {
+          "every_ingredient": "acceptable_normalization",
+          "every_quantity": "acceptable_normalization",
+          "every_unit": "acceptable_normalization",
+          "directions_steps": "acceptable_normalization",
+          "temperatures": "acceptable_normalization"
+        },
         "mismatches": [],
-        "clusters": [
-          "ambiguous source content"
-        ]
+        "clusters": []
       },
-      "source_audit_score": 0,
-      "review_needed": true,
-      "overall_confidence_score": 0,
+      "source_audit_score": 100,
+      "review_needed": false,
+      "overall_confidence_score": 95,
       "notes": [
-        "No complete structured recipe found; AI fallback disabled for this run."
+        "source mixed °F/°C"
       ],
-      "suggested_fix_category": "ambiguous source content"
+      "suggested_fix_category": "none",
+      "ai_usage": {
+        "cost_usd": 0.054096,
+        "usage": {
+          "input_tokens": 7867,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 2033,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
     },
     {
       "id": "nr-049",
@@ -2008,41 +1788,57 @@
       "source_type": "food_blog_page",
       "difficulty_category": "multiple_recipes_one_page",
       "priority": "high",
-      "import_status": "skipped",
-      "skip_classification": "ambiguous_source_content",
-      "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "clean page text",
-      "title_match_confidence": 0,
+      "import_status": "pass",
+      "extraction_method_used": "AI fallback page text",
+      "title_match_confidence": 100,
       "ingredient_count_source": null,
-      "ingredient_count_parsed": 0,
+      "ingredient_count_parsed": 21,
       "instruction_step_count_source": null,
-      "instruction_step_count_parsed": 0,
+      "instruction_step_count_parsed": 16,
       "missing_ingredients": [],
       "extra_hallucinated_ingredients": [],
       "quantity_mismatches": [],
       "unit_mismatches": [],
       "source_provided_metric_preserved": "not applicable",
-      "directions_include_quantities": "not applicable",
+      "directions_include_quantities": "yes",
       "temperature_handling": "pass",
-      "timer_extraction": "fail",
-      "section_preservation": "fail",
+      "timer_extraction": "pass",
+      "section_preservation": "pass",
       "source_audit": {
-        "available": false,
-        "score": 0,
-        "needs_review": true,
-        "fields": {},
+        "available": true,
+        "score": 100,
+        "needs_review": false,
+        "critical_failure": false,
+        "fields": {
+          "every_ingredient": "acceptable_normalization",
+          "every_quantity": "acceptable_normalization",
+          "every_unit": "acceptable_normalization",
+          "directions_steps": "acceptable_normalization",
+          "temperatures": "acceptable_normalization"
+        },
         "mismatches": [],
-        "clusters": [
-          "ambiguous source content"
-        ]
+        "clusters": []
       },
-      "source_audit_score": 0,
-      "review_needed": true,
-      "overall_confidence_score": 0,
-      "notes": [
-        "No complete structured recipe found; AI fallback disabled for this run."
-      ],
-      "suggested_fix_category": "ambiguous source content"
+      "source_audit_score": 100,
+      "review_needed": false,
+      "overall_confidence_score": 100,
+      "notes": [],
+      "suggested_fix_category": "none",
+      "ai_usage": {
+        "cost_usd": 0.062496,
+        "usage": {
+          "input_tokens": 5812,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 3004,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
     },
     {
       "id": "nr-055",
@@ -2421,41 +2217,57 @@
       "source_type": "article_recipe_page",
       "difficulty_category": "international_uncommon_ingredients_units",
       "priority": "high",
-      "import_status": "skipped",
-      "skip_classification": "ambiguous_source_content",
-      "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "clean page text",
-      "title_match_confidence": 0,
+      "import_status": "pass",
+      "extraction_method_used": "AI fallback page text",
+      "title_match_confidence": 100,
       "ingredient_count_source": null,
-      "ingredient_count_parsed": 0,
+      "ingredient_count_parsed": 9,
       "instruction_step_count_source": null,
-      "instruction_step_count_parsed": 0,
+      "instruction_step_count_parsed": 6,
       "missing_ingredients": [],
       "extra_hallucinated_ingredients": [],
       "quantity_mismatches": [],
       "unit_mismatches": [],
       "source_provided_metric_preserved": "not applicable",
-      "directions_include_quantities": "not applicable",
+      "directions_include_quantities": "yes",
       "temperature_handling": "pass",
-      "timer_extraction": "fail",
-      "section_preservation": "fail",
+      "timer_extraction": "pass",
+      "section_preservation": "pass",
       "source_audit": {
-        "available": false,
-        "score": 0,
-        "needs_review": true,
-        "fields": {},
+        "available": true,
+        "score": 100,
+        "needs_review": false,
+        "critical_failure": false,
+        "fields": {
+          "every_ingredient": "acceptable_normalization",
+          "every_quantity": "acceptable_normalization",
+          "every_unit": "acceptable_normalization",
+          "directions_steps": "acceptable_normalization",
+          "temperatures": "acceptable_normalization"
+        },
         "mismatches": [],
-        "clusters": [
-          "ambiguous source content"
-        ]
+        "clusters": []
       },
-      "source_audit_score": 0,
-      "review_needed": true,
-      "overall_confidence_score": 0,
-      "notes": [
-        "No complete structured recipe found; AI fallback disabled for this run."
-      ],
-      "suggested_fix_category": "ambiguous source content"
+      "source_audit_score": 100,
+      "review_needed": false,
+      "overall_confidence_score": 100,
+      "notes": [],
+      "suggested_fix_category": "none",
+      "ai_usage": {
+        "cost_usd": 0.043446,
+        "usage": {
+          "input_tokens": 6522,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 1592,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
     },
     {
       "id": "nr-031",
@@ -2522,41 +2334,59 @@
       "source_type": "food_blog_page",
       "difficulty_category": "international_uncommon_ingredients_units",
       "priority": "high",
-      "import_status": "skipped",
-      "skip_classification": "ambiguous_source_content",
-      "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "clean page text",
-      "title_match_confidence": 0,
+      "import_status": "pass",
+      "extraction_method_used": "AI fallback page text",
+      "title_match_confidence": 100,
       "ingredient_count_source": null,
-      "ingredient_count_parsed": 0,
+      "ingredient_count_parsed": 20,
       "instruction_step_count_source": null,
-      "instruction_step_count_parsed": 0,
+      "instruction_step_count_parsed": 9,
       "missing_ingredients": [],
       "extra_hallucinated_ingredients": [],
       "quantity_mismatches": [],
       "unit_mismatches": [],
-      "source_provided_metric_preserved": "not applicable",
-      "directions_include_quantities": "not applicable",
+      "source_provided_metric_preserved": "yes",
+      "directions_include_quantities": "yes",
       "temperature_handling": "pass",
-      "timer_extraction": "fail",
-      "section_preservation": "fail",
+      "timer_extraction": "pass",
+      "section_preservation": "pass",
       "source_audit": {
-        "available": false,
-        "score": 0,
-        "needs_review": true,
-        "fields": {},
+        "available": true,
+        "score": 100,
+        "needs_review": false,
+        "critical_failure": false,
+        "fields": {
+          "every_ingredient": "acceptable_normalization",
+          "every_quantity": "acceptable_normalization",
+          "every_unit": "acceptable_normalization",
+          "directions_steps": "acceptable_normalization",
+          "temperatures": "acceptable_normalization"
+        },
         "mismatches": [],
-        "clusters": [
-          "ambiguous source content"
-        ]
+        "clusters": []
       },
-      "source_audit_score": 0,
-      "review_needed": true,
-      "overall_confidence_score": 0,
+      "source_audit_score": 100,
+      "review_needed": false,
+      "overall_confidence_score": 92,
       "notes": [
-        "No complete structured recipe found; AI fallback disabled for this run."
+        "source mixed US/metric units"
       ],
-      "suggested_fix_category": "ambiguous source content"
+      "suggested_fix_category": "none",
+      "ai_usage": {
+        "cost_usd": 0.072444,
+        "usage": {
+          "input_tokens": 7873,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 3255,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
     },
     {
       "id": "nr-044",
@@ -2565,41 +2395,59 @@
       "source_type": "food_blog_page",
       "difficulty_category": "multi_component_recipes",
       "priority": "high",
-      "import_status": "skipped",
-      "skip_classification": "ambiguous_source_content",
-      "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "clean page text",
-      "title_match_confidence": 0,
+      "import_status": "pass",
+      "extraction_method_used": "AI fallback page text",
+      "title_match_confidence": 100,
       "ingredient_count_source": null,
-      "ingredient_count_parsed": 0,
+      "ingredient_count_parsed": 17,
       "instruction_step_count_source": null,
-      "instruction_step_count_parsed": 0,
+      "instruction_step_count_parsed": 9,
       "missing_ingredients": [],
       "extra_hallucinated_ingredients": [],
       "quantity_mismatches": [],
       "unit_mismatches": [],
       "source_provided_metric_preserved": "not applicable",
-      "directions_include_quantities": "not applicable",
+      "directions_include_quantities": "yes",
       "temperature_handling": "pass",
-      "timer_extraction": "fail",
-      "section_preservation": "fail",
+      "timer_extraction": "pass",
+      "section_preservation": "pass",
       "source_audit": {
-        "available": false,
-        "score": 0,
-        "needs_review": true,
-        "fields": {},
+        "available": true,
+        "score": 100,
+        "needs_review": false,
+        "critical_failure": false,
+        "fields": {
+          "every_ingredient": "acceptable_normalization",
+          "every_quantity": "acceptable_normalization",
+          "every_unit": "acceptable_normalization",
+          "directions_steps": "acceptable_normalization",
+          "temperatures": "acceptable_normalization"
+        },
         "mismatches": [],
-        "clusters": [
-          "ambiguous source content"
-        ]
+        "clusters": []
       },
-      "source_audit_score": 0,
-      "review_needed": true,
-      "overall_confidence_score": 0,
+      "source_audit_score": 100,
+      "review_needed": false,
+      "overall_confidence_score": 92,
       "notes": [
-        "No complete structured recipe found; AI fallback disabled for this run."
+        "source mixed US/metric units"
       ],
-      "suggested_fix_category": "ambiguous source content"
+      "suggested_fix_category": "none",
+      "ai_usage": {
+        "cost_usd": 0.069117,
+        "usage": {
+          "input_tokens": 7979,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 3012,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
     },
     {
       "id": "nr-062",
@@ -2777,9 +2625,9 @@
       "difficulty_category": "international_uncommon_ingredients_units",
       "priority": "high",
       "import_status": "skipped",
-      "skip_classification": "ai_fallback_needed",
-      "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "clean page text",
+      "skip_classification": "blocked_or_inaccessible",
+      "skip_acceptability": "skipped-but-acceptable",
+      "extraction_method_used": "clean page text + AI fallback requested",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
       "ingredient_count_parsed": 0,
@@ -2801,16 +2649,32 @@
         "fields": {},
         "mismatches": [],
         "clusters": [
-          "AI fallback not run"
+          "accessibility/source coverage"
         ]
       },
       "source_audit_score": 0,
       "review_needed": true,
       "overall_confidence_score": 0,
       "notes": [
-        "No complete structured recipe found; AI fallback disabled for this run."
+        "blocked_by_cloudflare"
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "accessibility/source coverage",
+      "ai_usage": {
+        "cost_usd": 0.007704,
+        "usage": {
+          "input_tokens": 2418,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 30,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        },
+        "estimated_cost_usd": 0
+      }
     },
     {
       "id": "nr-004",
@@ -2862,41 +2726,56 @@
       "source_type": "schema_org_web_page",
       "difficulty_category": "temperatures_f_and_c",
       "priority": "medium",
-      "import_status": "skipped",
-      "skip_classification": "blocked_or_inaccessible",
-      "skip_acceptability": "skipped-but-acceptable",
-      "extraction_method_used": "fallback",
-      "title_match_confidence": 0,
-      "ingredient_count_source": null,
-      "ingredient_count_parsed": 0,
-      "instruction_step_count_source": null,
-      "instruction_step_count_parsed": 0,
+      "import_status": "pass",
+      "extraction_method_used": "schema.org JSON-LD",
+      "title_match_confidence": 100,
+      "ingredient_count_source": 8,
+      "ingredient_count_parsed": 8,
+      "instruction_step_count_source": 5,
+      "instruction_step_count_parsed": 5,
       "missing_ingredients": [],
       "extra_hallucinated_ingredients": [],
       "quantity_mismatches": [],
       "unit_mismatches": [],
       "source_provided_metric_preserved": "not applicable",
-      "directions_include_quantities": "not applicable",
-      "temperature_handling": "fail",
-      "timer_extraction": "fail",
-      "section_preservation": "fail",
+      "directions_include_quantities": "yes",
+      "temperature_handling": "pass",
+      "timer_extraction": "pass",
+      "section_preservation": "pass",
       "source_audit": {
-        "available": false,
-        "score": 0,
-        "needs_review": true,
-        "fields": {},
+        "available": true,
+        "score": 100,
+        "needs_review": false,
+        "critical_failure": false,
+        "fields": {
+          "title": "exact_match",
+          "servings_yield": "exact_match",
+          "prep_time": "exact_match",
+          "cook_time": "exact_match",
+          "total_time": "exact_match",
+          "ingredient_sections": "exact_match",
+          "every_ingredient": "exact_match",
+          "every_quantity": "exact_match",
+          "every_unit": "exact_match",
+          "source_alternate_units": "exact_match",
+          "directions_steps": "exact_match",
+          "ingredient_quantities_in_directions": "acceptable_normalization",
+          "temperatures": "acceptable_normalization",
+          "timers": "acceptable_normalization",
+          "notes_substitutions": "exact_match",
+          "nutrition": "acceptable_normalization",
+          "source_attribution": "exact_match"
+        },
         "mismatches": [],
-        "clusters": [
-          "accessibility/source coverage"
-        ]
+        "clusters": []
       },
-      "source_audit_score": 0,
-      "review_needed": true,
-      "overall_confidence_score": 0,
+      "source_audit_score": 100,
+      "review_needed": false,
+      "overall_confidence_score": 95,
       "notes": [
-        "RecipeBox could not read this recipe page. The site may be blocking automated access. Try Paste Text or screenshots instead."
+        "source mixed °F/°C"
       ],
-      "suggested_fix_category": "accessibility/source coverage"
+      "suggested_fix_category": "none"
     },
     {
       "id": "nr-006",
@@ -3741,41 +3620,59 @@
       "source_type": "food_blog_page",
       "difficulty_category": "ranges",
       "priority": "medium",
-      "import_status": "skipped",
-      "skip_classification": "ambiguous_source_content",
-      "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "clean page text",
-      "title_match_confidence": 0,
+      "import_status": "pass",
+      "extraction_method_used": "AI fallback page text",
+      "title_match_confidence": 33,
       "ingredient_count_source": null,
-      "ingredient_count_parsed": 0,
+      "ingredient_count_parsed": 5,
       "instruction_step_count_source": null,
-      "instruction_step_count_parsed": 0,
+      "instruction_step_count_parsed": 9,
       "missing_ingredients": [],
       "extra_hallucinated_ingredients": [],
       "quantity_mismatches": [],
       "unit_mismatches": [],
-      "source_provided_metric_preserved": "not applicable",
-      "directions_include_quantities": "not applicable",
+      "source_provided_metric_preserved": "yes",
+      "directions_include_quantities": "yes",
       "temperature_handling": "pass",
-      "timer_extraction": "fail",
-      "section_preservation": "fail",
+      "timer_extraction": "pass",
+      "section_preservation": "pass",
       "source_audit": {
-        "available": false,
-        "score": 0,
-        "needs_review": true,
-        "fields": {},
+        "available": true,
+        "score": 100,
+        "needs_review": false,
+        "critical_failure": false,
+        "fields": {
+          "every_ingredient": "acceptable_normalization",
+          "every_quantity": "acceptable_normalization",
+          "every_unit": "acceptable_normalization",
+          "directions_steps": "acceptable_normalization",
+          "temperatures": "acceptable_normalization"
+        },
         "mismatches": [],
-        "clusters": [
-          "ambiguous source content"
-        ]
+        "clusters": []
       },
-      "source_audit_score": 0,
-      "review_needed": true,
-      "overall_confidence_score": 0,
+      "source_audit_score": 100,
+      "review_needed": false,
+      "overall_confidence_score": 95,
       "notes": [
-        "No complete structured recipe found; AI fallback disabled for this run."
+        "source mixed °F/°C"
       ],
-      "suggested_fix_category": "ambiguous source content"
+      "suggested_fix_category": "none",
+      "ai_usage": {
+        "cost_usd": 0.059715,
+        "usage": {
+          "input_tokens": 8410,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 2299,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
     },
     {
       "id": "nr-047",
@@ -3784,41 +3681,59 @@
       "source_type": "food_blog_page",
       "difficulty_category": "vague_amounts",
       "priority": "medium",
-      "import_status": "skipped",
-      "skip_classification": "ambiguous_source_content",
-      "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "clean page text",
-      "title_match_confidence": 0,
+      "import_status": "pass",
+      "extraction_method_used": "AI fallback page text",
+      "title_match_confidence": 67,
       "ingredient_count_source": null,
-      "ingredient_count_parsed": 0,
+      "ingredient_count_parsed": 13,
       "instruction_step_count_source": null,
-      "instruction_step_count_parsed": 0,
+      "instruction_step_count_parsed": 5,
       "missing_ingredients": [],
       "extra_hallucinated_ingredients": [],
       "quantity_mismatches": [],
       "unit_mismatches": [],
       "source_provided_metric_preserved": "not applicable",
-      "directions_include_quantities": "not applicable",
+      "directions_include_quantities": "yes",
       "temperature_handling": "pass",
-      "timer_extraction": "fail",
-      "section_preservation": "fail",
+      "timer_extraction": "pass",
+      "section_preservation": "pass",
       "source_audit": {
-        "available": false,
-        "score": 0,
-        "needs_review": true,
-        "fields": {},
+        "available": true,
+        "score": 100,
+        "needs_review": false,
+        "critical_failure": false,
+        "fields": {
+          "every_ingredient": "acceptable_normalization",
+          "every_quantity": "acceptable_normalization",
+          "every_unit": "acceptable_normalization",
+          "directions_steps": "acceptable_normalization",
+          "temperatures": "acceptable_normalization"
+        },
         "mismatches": [],
-        "clusters": [
-          "ambiguous source content"
-        ]
+        "clusters": []
       },
-      "source_audit_score": 0,
-      "review_needed": true,
-      "overall_confidence_score": 0,
+      "source_audit_score": 100,
+      "review_needed": false,
+      "overall_confidence_score": 92,
       "notes": [
-        "No complete structured recipe found; AI fallback disabled for this run."
+        "source mixed US/metric units"
       ],
-      "suggested_fix_category": "ambiguous source content"
+      "suggested_fix_category": "none",
+      "ai_usage": {
+        "cost_usd": 0.057945,
+        "usage": {
+          "input_tokens": 7995,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 2264,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
     },
     {
       "id": "nr-048",
@@ -3827,41 +3742,57 @@
       "source_type": "food_blog_page",
       "difficulty_category": "vague_amounts",
       "priority": "medium",
-      "import_status": "skipped",
-      "skip_classification": "ambiguous_source_content",
-      "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "clean page text",
-      "title_match_confidence": 0,
+      "import_status": "pass",
+      "extraction_method_used": "AI fallback page text",
+      "title_match_confidence": 100,
       "ingredient_count_source": null,
-      "ingredient_count_parsed": 0,
+      "ingredient_count_parsed": 8,
       "instruction_step_count_source": null,
-      "instruction_step_count_parsed": 0,
+      "instruction_step_count_parsed": 4,
       "missing_ingredients": [],
       "extra_hallucinated_ingredients": [],
       "quantity_mismatches": [],
       "unit_mismatches": [],
       "source_provided_metric_preserved": "not applicable",
-      "directions_include_quantities": "not applicable",
+      "directions_include_quantities": "yes",
       "temperature_handling": "pass",
-      "timer_extraction": "fail",
-      "section_preservation": "fail",
+      "timer_extraction": "pass",
+      "section_preservation": "pass",
       "source_audit": {
-        "available": false,
-        "score": 0,
-        "needs_review": true,
-        "fields": {},
+        "available": true,
+        "score": 100,
+        "needs_review": false,
+        "critical_failure": false,
+        "fields": {
+          "every_ingredient": "acceptable_normalization",
+          "every_quantity": "acceptable_normalization",
+          "every_unit": "acceptable_normalization",
+          "directions_steps": "acceptable_normalization",
+          "temperatures": "acceptable_normalization"
+        },
         "mismatches": [],
-        "clusters": [
-          "ambiguous source content"
-        ]
+        "clusters": []
       },
-      "source_audit_score": 0,
-      "review_needed": true,
-      "overall_confidence_score": 0,
-      "notes": [
-        "No complete structured recipe found; AI fallback disabled for this run."
-      ],
-      "suggested_fix_category": "ambiguous source content"
+      "source_audit_score": 100,
+      "review_needed": false,
+      "overall_confidence_score": 100,
+      "notes": [],
+      "suggested_fix_category": "none",
+      "ai_usage": {
+        "cost_usd": 0.037503,
+        "usage": {
+          "input_tokens": 5836,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 1333,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
     },
     {
       "id": "nr-050",
@@ -3870,41 +3801,57 @@
       "source_type": "food_blog_page",
       "difficulty_category": "messy_food_blogs_long_intros",
       "priority": "medium",
-      "import_status": "skipped",
-      "skip_classification": "ambiguous_source_content",
-      "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "clean page text",
-      "title_match_confidence": 0,
+      "import_status": "pass",
+      "extraction_method_used": "AI fallback page text",
+      "title_match_confidence": 100,
       "ingredient_count_source": null,
-      "ingredient_count_parsed": 0,
+      "ingredient_count_parsed": 10,
       "instruction_step_count_source": null,
-      "instruction_step_count_parsed": 0,
+      "instruction_step_count_parsed": 6,
       "missing_ingredients": [],
       "extra_hallucinated_ingredients": [],
       "quantity_mismatches": [],
       "unit_mismatches": [],
       "source_provided_metric_preserved": "not applicable",
-      "directions_include_quantities": "not applicable",
+      "directions_include_quantities": "yes",
       "temperature_handling": "pass",
-      "timer_extraction": "fail",
-      "section_preservation": "fail",
+      "timer_extraction": "pass",
+      "section_preservation": "pass",
       "source_audit": {
-        "available": false,
-        "score": 0,
-        "needs_review": true,
-        "fields": {},
+        "available": true,
+        "score": 100,
+        "needs_review": false,
+        "critical_failure": false,
+        "fields": {
+          "every_ingredient": "acceptable_normalization",
+          "every_quantity": "acceptable_normalization",
+          "every_unit": "acceptable_normalization",
+          "directions_steps": "acceptable_normalization",
+          "temperatures": "acceptable_normalization"
+        },
         "mismatches": [],
-        "clusters": [
-          "ambiguous source content"
-        ]
+        "clusters": []
       },
-      "source_audit_score": 0,
-      "review_needed": true,
-      "overall_confidence_score": 0,
-      "notes": [
-        "No complete structured recipe found; AI fallback disabled for this run."
-      ],
-      "suggested_fix_category": "ambiguous source content"
+      "source_audit_score": 100,
+      "review_needed": false,
+      "overall_confidence_score": 100,
+      "notes": [],
+      "suggested_fix_category": "none",
+      "ai_usage": {
+        "cost_usd": 0.04266,
+        "usage": {
+          "input_tokens": 6100,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 1624,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
     },
     {
       "id": "nr-051",
@@ -3913,41 +3860,57 @@
       "source_type": "food_blog_page",
       "difficulty_category": "substitutions_notes_in_ingredients",
       "priority": "medium",
-      "import_status": "skipped",
-      "skip_classification": "ambiguous_source_content",
-      "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "clean page text",
-      "title_match_confidence": 0,
+      "import_status": "pass",
+      "extraction_method_used": "AI fallback page text",
+      "title_match_confidence": 100,
       "ingredient_count_source": null,
-      "ingredient_count_parsed": 0,
+      "ingredient_count_parsed": 12,
       "instruction_step_count_source": null,
-      "instruction_step_count_parsed": 0,
+      "instruction_step_count_parsed": 4,
       "missing_ingredients": [],
       "extra_hallucinated_ingredients": [],
       "quantity_mismatches": [],
       "unit_mismatches": [],
       "source_provided_metric_preserved": "not applicable",
-      "directions_include_quantities": "not applicable",
+      "directions_include_quantities": "yes",
       "temperature_handling": "pass",
-      "timer_extraction": "fail",
-      "section_preservation": "fail",
+      "timer_extraction": "pass",
+      "section_preservation": "pass",
       "source_audit": {
-        "available": false,
-        "score": 0,
-        "needs_review": true,
-        "fields": {},
+        "available": true,
+        "score": 100,
+        "needs_review": false,
+        "critical_failure": false,
+        "fields": {
+          "every_ingredient": "acceptable_normalization",
+          "every_quantity": "acceptable_normalization",
+          "every_unit": "acceptable_normalization",
+          "directions_steps": "acceptable_normalization",
+          "temperatures": "acceptable_normalization"
+        },
         "mismatches": [],
-        "clusters": [
-          "ambiguous source content"
-        ]
+        "clusters": []
       },
-      "source_audit_score": 0,
-      "review_needed": true,
-      "overall_confidence_score": 0,
-      "notes": [
-        "No complete structured recipe found; AI fallback disabled for this run."
-      ],
-      "suggested_fix_category": "ambiguous source content"
+      "source_audit_score": 100,
+      "review_needed": false,
+      "overall_confidence_score": 100,
+      "notes": [],
+      "suggested_fix_category": "none",
+      "ai_usage": {
+        "cost_usd": 0.044103,
+        "usage": {
+          "input_tokens": 5401,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 1860,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
     },
     {
       "id": "nr-052",
@@ -3956,41 +3919,57 @@
       "source_type": "food_blog_page",
       "difficulty_category": "international_uncommon_ingredients_units",
       "priority": "medium",
-      "import_status": "skipped",
-      "skip_classification": "ambiguous_source_content",
-      "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "clean page text",
-      "title_match_confidence": 0,
+      "import_status": "pass",
+      "extraction_method_used": "AI fallback page text",
+      "title_match_confidence": 100,
       "ingredient_count_source": null,
-      "ingredient_count_parsed": 0,
+      "ingredient_count_parsed": 14,
       "instruction_step_count_source": null,
-      "instruction_step_count_parsed": 0,
+      "instruction_step_count_parsed": 5,
       "missing_ingredients": [],
       "extra_hallucinated_ingredients": [],
       "quantity_mismatches": [],
       "unit_mismatches": [],
       "source_provided_metric_preserved": "not applicable",
-      "directions_include_quantities": "not applicable",
+      "directions_include_quantities": "yes",
       "temperature_handling": "pass",
-      "timer_extraction": "fail",
-      "section_preservation": "fail",
+      "timer_extraction": "pass",
+      "section_preservation": "pass",
       "source_audit": {
-        "available": false,
-        "score": 0,
-        "needs_review": true,
-        "fields": {},
+        "available": true,
+        "score": 100,
+        "needs_review": false,
+        "critical_failure": false,
+        "fields": {
+          "every_ingredient": "acceptable_normalization",
+          "every_quantity": "acceptable_normalization",
+          "every_unit": "acceptable_normalization",
+          "directions_steps": "acceptable_normalization",
+          "temperatures": "acceptable_normalization"
+        },
         "mismatches": [],
-        "clusters": [
-          "ambiguous source content"
-        ]
+        "clusters": []
       },
-      "source_audit_score": 0,
-      "review_needed": true,
-      "overall_confidence_score": 0,
-      "notes": [
-        "No complete structured recipe found; AI fallback disabled for this run."
-      ],
-      "suggested_fix_category": "ambiguous source content"
+      "source_audit_score": 100,
+      "review_needed": false,
+      "overall_confidence_score": 100,
+      "notes": [],
+      "suggested_fix_category": "none",
+      "ai_usage": {
+        "cost_usd": 0.04248,
+        "usage": {
+          "input_tokens": 4730,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 1886,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
     },
     {
       "id": "nr-053",
@@ -3999,41 +3978,57 @@
       "source_type": "food_blog_page",
       "difficulty_category": "international_uncommon_ingredients_units",
       "priority": "medium",
-      "import_status": "skipped",
-      "skip_classification": "ambiguous_source_content",
-      "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "clean page text",
-      "title_match_confidence": 0,
+      "import_status": "pass",
+      "extraction_method_used": "AI fallback page text",
+      "title_match_confidence": 100,
       "ingredient_count_source": null,
-      "ingredient_count_parsed": 0,
+      "ingredient_count_parsed": 18,
       "instruction_step_count_source": null,
-      "instruction_step_count_parsed": 0,
+      "instruction_step_count_parsed": 7,
       "missing_ingredients": [],
       "extra_hallucinated_ingredients": [],
       "quantity_mismatches": [],
       "unit_mismatches": [],
       "source_provided_metric_preserved": "not applicable",
-      "directions_include_quantities": "not applicable",
+      "directions_include_quantities": "yes",
       "temperature_handling": "pass",
-      "timer_extraction": "fail",
-      "section_preservation": "fail",
+      "timer_extraction": "pass",
+      "section_preservation": "pass",
       "source_audit": {
-        "available": false,
-        "score": 0,
-        "needs_review": true,
-        "fields": {},
+        "available": true,
+        "score": 100,
+        "needs_review": false,
+        "critical_failure": false,
+        "fields": {
+          "every_ingredient": "acceptable_normalization",
+          "every_quantity": "acceptable_normalization",
+          "every_unit": "acceptable_normalization",
+          "directions_steps": "acceptable_normalization",
+          "temperatures": "acceptable_normalization"
+        },
         "mismatches": [],
-        "clusters": [
-          "ambiguous source content"
-        ]
+        "clusters": []
       },
-      "source_audit_score": 0,
-      "review_needed": true,
-      "overall_confidence_score": 0,
-      "notes": [
-        "No complete structured recipe found; AI fallback disabled for this run."
-      ],
-      "suggested_fix_category": "ambiguous source content"
+      "source_audit_score": 100,
+      "review_needed": false,
+      "overall_confidence_score": 100,
+      "notes": [],
+      "suggested_fix_category": "none",
+      "ai_usage": {
+        "cost_usd": 0.058737,
+        "usage": {
+          "input_tokens": 6809,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 2554,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
     },
     {
       "id": "nr-054",
@@ -4042,41 +4037,57 @@
       "source_type": "food_blog_page",
       "difficulty_category": "baking_precise_weights",
       "priority": "medium",
-      "import_status": "skipped",
-      "skip_classification": "ambiguous_source_content",
-      "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "clean page text",
-      "title_match_confidence": 0,
+      "import_status": "pass",
+      "extraction_method_used": "AI fallback page text",
+      "title_match_confidence": 100,
       "ingredient_count_source": null,
-      "ingredient_count_parsed": 0,
+      "ingredient_count_parsed": 10,
       "instruction_step_count_source": null,
-      "instruction_step_count_parsed": 0,
+      "instruction_step_count_parsed": 7,
       "missing_ingredients": [],
       "extra_hallucinated_ingredients": [],
       "quantity_mismatches": [],
       "unit_mismatches": [],
       "source_provided_metric_preserved": "not applicable",
-      "directions_include_quantities": "not applicable",
+      "directions_include_quantities": "yes",
       "temperature_handling": "pass",
-      "timer_extraction": "fail",
-      "section_preservation": "fail",
+      "timer_extraction": "pass",
+      "section_preservation": "pass",
       "source_audit": {
-        "available": false,
-        "score": 0,
-        "needs_review": true,
-        "fields": {},
+        "available": true,
+        "score": 100,
+        "needs_review": false,
+        "critical_failure": false,
+        "fields": {
+          "every_ingredient": "acceptable_normalization",
+          "every_quantity": "acceptable_normalization",
+          "every_unit": "acceptable_normalization",
+          "directions_steps": "acceptable_normalization",
+          "temperatures": "acceptable_normalization"
+        },
         "mismatches": [],
-        "clusters": [
-          "ambiguous source content"
-        ]
+        "clusters": []
       },
-      "source_audit_score": 0,
-      "review_needed": true,
-      "overall_confidence_score": 0,
-      "notes": [
-        "No complete structured recipe found; AI fallback disabled for this run."
-      ],
-      "suggested_fix_category": "ambiguous source content"
+      "source_audit_score": 100,
+      "review_needed": false,
+      "overall_confidence_score": 100,
+      "notes": [],
+      "suggested_fix_category": "none",
+      "ai_usage": {
+        "cost_usd": 0.043566,
+        "usage": {
+          "input_tokens": 5627,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 1779,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
     },
     {
       "id": "nr-056",
@@ -4716,41 +4727,57 @@
       "source_type": "food_blog_page",
       "difficulty_category": "ocr_challenge_likely",
       "priority": "medium",
-      "import_status": "skipped",
-      "skip_classification": "ambiguous_source_content",
-      "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "clean page text",
-      "title_match_confidence": 0,
+      "import_status": "pass",
+      "extraction_method_used": "AI fallback page text",
+      "title_match_confidence": 100,
       "ingredient_count_source": null,
-      "ingredient_count_parsed": 0,
+      "ingredient_count_parsed": 19,
       "instruction_step_count_source": null,
-      "instruction_step_count_parsed": 0,
+      "instruction_step_count_parsed": 25,
       "missing_ingredients": [],
       "extra_hallucinated_ingredients": [],
       "quantity_mismatches": [],
       "unit_mismatches": [],
-      "source_provided_metric_preserved": "not applicable",
-      "directions_include_quantities": "not applicable",
+      "source_provided_metric_preserved": "yes",
+      "directions_include_quantities": "yes",
       "temperature_handling": "pass",
-      "timer_extraction": "fail",
-      "section_preservation": "fail",
+      "timer_extraction": "pass",
+      "section_preservation": "pass",
       "source_audit": {
-        "available": false,
-        "score": 0,
-        "needs_review": true,
-        "fields": {},
+        "available": true,
+        "score": 100,
+        "needs_review": false,
+        "critical_failure": false,
+        "fields": {
+          "every_ingredient": "acceptable_normalization",
+          "every_quantity": "acceptable_normalization",
+          "every_unit": "acceptable_normalization",
+          "directions_steps": "acceptable_normalization",
+          "temperatures": "acceptable_normalization"
+        },
         "mismatches": [],
-        "clusters": [
-          "ambiguous source content"
-        ]
+        "clusters": []
       },
-      "source_audit_score": 0,
-      "review_needed": true,
-      "overall_confidence_score": 0,
-      "notes": [
-        "No complete structured recipe found; AI fallback disabled for this run."
-      ],
-      "suggested_fix_category": "ambiguous source content"
+      "source_audit_score": 100,
+      "review_needed": false,
+      "overall_confidence_score": 100,
+      "notes": [],
+      "suggested_fix_category": "none",
+      "ai_usage": {
+        "cost_usd": 0.085671,
+        "usage": {
+          "input_tokens": 8022,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 4107,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
     },
     {
       "id": "nr-074",
@@ -4936,7 +4963,7 @@
       "import_status": "skipped",
       "skip_classification": "video_transcript_needed",
       "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "transcript",
+      "extraction_method_used": "transcript + AI fallback requested",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
       "ingredient_count_parsed": 0,
@@ -4965,11 +4992,27 @@
       "review_needed": true,
       "overall_confidence_score": 0,
       "notes": [
-        "Transcript/description fetched, but AI extraction is disabled for this run.",
+        "not_enough_recipe_text",
         "transcript unavailable",
         "low confidence extraction"
       ],
-      "suggested_fix_category": "video transcript/AI fallback not run"
+      "suggested_fix_category": "video transcript/AI fallback not run",
+      "ai_usage": {
+        "cost_usd": 0.00681,
+        "usage": {
+          "input_tokens": 2200,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 14,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        },
+        "estimated_cost_usd": 0
+      }
     },
     {
       "id": "nr-079",
@@ -4978,41 +5021,57 @@
       "source_type": "youtube_video",
       "difficulty_category": "youtube_recipe_transcripts",
       "priority": "medium",
-      "import_status": "skipped",
-      "skip_classification": "video_transcript_needed",
-      "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "transcript",
-      "title_match_confidence": 0,
+      "import_status": "pass",
+      "extraction_method_used": "AI fallback transcript",
+      "title_match_confidence": 57,
       "ingredient_count_source": null,
-      "ingredient_count_parsed": 0,
+      "ingredient_count_parsed": 14,
       "instruction_step_count_source": null,
-      "instruction_step_count_parsed": 0,
+      "instruction_step_count_parsed": 10,
       "missing_ingredients": [],
       "extra_hallucinated_ingredients": [],
       "quantity_mismatches": [],
       "unit_mismatches": [],
       "source_provided_metric_preserved": "not applicable",
-      "directions_include_quantities": "not applicable",
+      "directions_include_quantities": "yes",
       "temperature_handling": "pass",
-      "timer_extraction": "fail",
-      "section_preservation": "fail",
+      "timer_extraction": "pass",
+      "section_preservation": "pass",
       "source_audit": {
-        "available": false,
-        "score": 0,
-        "needs_review": true,
-        "fields": {},
+        "available": true,
+        "score": 100,
+        "needs_review": false,
+        "critical_failure": false,
+        "fields": {
+          "every_ingredient": "acceptable_normalization",
+          "every_quantity": "acceptable_normalization",
+          "every_unit": "acceptable_normalization",
+          "directions_steps": "acceptable_normalization",
+          "temperatures": "acceptable_normalization"
+        },
         "mismatches": [],
-        "clusters": [
-          "video transcript/AI fallback not run"
-        ]
+        "clusters": []
       },
-      "source_audit_score": 0,
-      "review_needed": true,
-      "overall_confidence_score": 0,
-      "notes": [
-        "Transcript/description fetched, but AI extraction is disabled for this run."
-      ],
-      "suggested_fix_category": "video transcript/AI fallback not run"
+      "source_audit_score": 100,
+      "review_needed": false,
+      "overall_confidence_score": 100,
+      "notes": [],
+      "suggested_fix_category": "none",
+      "ai_usage": {
+        "cost_usd": 0.041799,
+        "usage": {
+          "input_tokens": 4198,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 1947,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
     },
     {
       "id": "nr-080",
@@ -5021,41 +5080,57 @@
       "source_type": "youtube_video",
       "difficulty_category": "youtube_recipe_transcripts",
       "priority": "medium",
-      "import_status": "skipped",
-      "skip_classification": "video_transcript_needed",
-      "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "transcript",
-      "title_match_confidence": 0,
+      "import_status": "pass",
+      "extraction_method_used": "AI fallback transcript",
+      "title_match_confidence": 100,
       "ingredient_count_source": null,
-      "ingredient_count_parsed": 0,
+      "ingredient_count_parsed": 10,
       "instruction_step_count_source": null,
-      "instruction_step_count_parsed": 0,
+      "instruction_step_count_parsed": 15,
       "missing_ingredients": [],
       "extra_hallucinated_ingredients": [],
       "quantity_mismatches": [],
       "unit_mismatches": [],
-      "source_provided_metric_preserved": "not applicable",
-      "directions_include_quantities": "not applicable",
+      "source_provided_metric_preserved": "yes",
+      "directions_include_quantities": "yes",
       "temperature_handling": "pass",
-      "timer_extraction": "fail",
-      "section_preservation": "fail",
+      "timer_extraction": "pass",
+      "section_preservation": "pass",
       "source_audit": {
-        "available": false,
-        "score": 0,
-        "needs_review": true,
-        "fields": {},
+        "available": true,
+        "score": 100,
+        "needs_review": false,
+        "critical_failure": false,
+        "fields": {
+          "every_ingredient": "acceptable_normalization",
+          "every_quantity": "acceptable_normalization",
+          "every_unit": "acceptable_normalization",
+          "directions_steps": "acceptable_normalization",
+          "temperatures": "acceptable_normalization"
+        },
         "mismatches": [],
-        "clusters": [
-          "video transcript/AI fallback not run"
-        ]
+        "clusters": []
       },
-      "source_audit_score": 0,
-      "review_needed": true,
-      "overall_confidence_score": 0,
-      "notes": [
-        "Transcript/description fetched, but AI extraction is disabled for this run."
-      ],
-      "suggested_fix_category": "video transcript/AI fallback not run"
+      "source_audit_score": 100,
+      "review_needed": false,
+      "overall_confidence_score": 100,
+      "notes": [],
+      "suggested_fix_category": "none",
+      "ai_usage": {
+        "cost_usd": 0.046287,
+        "usage": {
+          "input_tokens": 4284,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 2229,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
     },
     {
       "id": "nr-082",
@@ -5064,41 +5139,57 @@
       "source_type": "youtube_video",
       "difficulty_category": "youtube_recipe_transcripts",
       "priority": "medium",
-      "import_status": "skipped",
-      "skip_classification": "video_transcript_needed",
-      "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "transcript",
-      "title_match_confidence": 0,
+      "import_status": "pass",
+      "extraction_method_used": "AI fallback transcript",
+      "title_match_confidence": 100,
       "ingredient_count_source": null,
-      "ingredient_count_parsed": 0,
+      "ingredient_count_parsed": 18,
       "instruction_step_count_source": null,
-      "instruction_step_count_parsed": 0,
+      "instruction_step_count_parsed": 9,
       "missing_ingredients": [],
       "extra_hallucinated_ingredients": [],
       "quantity_mismatches": [],
       "unit_mismatches": [],
       "source_provided_metric_preserved": "not applicable",
-      "directions_include_quantities": "not applicable",
+      "directions_include_quantities": "yes",
       "temperature_handling": "pass",
-      "timer_extraction": "fail",
-      "section_preservation": "fail",
+      "timer_extraction": "pass",
+      "section_preservation": "pass",
       "source_audit": {
-        "available": false,
-        "score": 0,
-        "needs_review": true,
-        "fields": {},
+        "available": true,
+        "score": 100,
+        "needs_review": false,
+        "critical_failure": false,
+        "fields": {
+          "every_ingredient": "acceptable_normalization",
+          "every_quantity": "acceptable_normalization",
+          "every_unit": "acceptable_normalization",
+          "directions_steps": "acceptable_normalization",
+          "temperatures": "acceptable_normalization"
+        },
         "mismatches": [],
-        "clusters": [
-          "video transcript/AI fallback not run"
-        ]
+        "clusters": []
       },
-      "source_audit_score": 0,
-      "review_needed": true,
-      "overall_confidence_score": 0,
-      "notes": [
-        "Transcript/description fetched, but AI extraction is disabled for this run."
-      ],
-      "suggested_fix_category": "video transcript/AI fallback not run"
+      "source_audit_score": 100,
+      "review_needed": false,
+      "overall_confidence_score": 100,
+      "notes": [],
+      "suggested_fix_category": "none",
+      "ai_usage": {
+        "cost_usd": 0.045672,
+        "usage": {
+          "input_tokens": 3694,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 2306,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
     },
     {
       "id": "nr-084",
@@ -5110,7 +5201,7 @@
       "import_status": "skipped",
       "skip_classification": "video_transcript_needed",
       "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "transcript",
+      "extraction_method_used": "transcript + AI fallback requested",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
       "ingredient_count_parsed": 0,
@@ -5139,11 +5230,27 @@
       "review_needed": true,
       "overall_confidence_score": 0,
       "notes": [
-        "Transcript/description fetched, but AI extraction is disabled for this run.",
+        "not_enough_recipe_text",
         "transcript unavailable",
         "low confidence extraction"
       ],
-      "suggested_fix_category": "video transcript/AI fallback not run"
+      "suggested_fix_category": "video transcript/AI fallback not run",
+      "ai_usage": {
+        "cost_usd": 0.00681,
+        "usage": {
+          "input_tokens": 2200,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 14,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        },
+        "estimated_cost_usd": 0
+      }
     },
     {
       "id": "nr-085",
@@ -5152,41 +5259,57 @@
       "source_type": "youtube_video",
       "difficulty_category": "youtube_recipe_transcripts",
       "priority": "medium",
-      "import_status": "skipped",
-      "skip_classification": "video_transcript_needed",
-      "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "transcript",
-      "title_match_confidence": 0,
+      "import_status": "pass",
+      "extraction_method_used": "AI fallback transcript",
+      "title_match_confidence": 100,
       "ingredient_count_source": null,
-      "ingredient_count_parsed": 0,
+      "ingredient_count_parsed": 11,
       "instruction_step_count_source": null,
-      "instruction_step_count_parsed": 0,
+      "instruction_step_count_parsed": 12,
       "missing_ingredients": [],
       "extra_hallucinated_ingredients": [],
       "quantity_mismatches": [],
       "unit_mismatches": [],
-      "source_provided_metric_preserved": "not applicable",
-      "directions_include_quantities": "not applicable",
+      "source_provided_metric_preserved": "yes",
+      "directions_include_quantities": "yes",
       "temperature_handling": "pass",
-      "timer_extraction": "fail",
-      "section_preservation": "fail",
+      "timer_extraction": "pass",
+      "section_preservation": "pass",
       "source_audit": {
-        "available": false,
-        "score": 0,
-        "needs_review": true,
-        "fields": {},
+        "available": true,
+        "score": 100,
+        "needs_review": false,
+        "critical_failure": false,
+        "fields": {
+          "every_ingredient": "acceptable_normalization",
+          "every_quantity": "acceptable_normalization",
+          "every_unit": "acceptable_normalization",
+          "directions_steps": "acceptable_normalization",
+          "temperatures": "acceptable_normalization"
+        },
         "mismatches": [],
-        "clusters": [
-          "video transcript/AI fallback not run"
-        ]
+        "clusters": []
       },
-      "source_audit_score": 0,
-      "review_needed": true,
-      "overall_confidence_score": 0,
-      "notes": [
-        "Transcript/description fetched, but AI extraction is disabled for this run."
-      ],
-      "suggested_fix_category": "video transcript/AI fallback not run"
+      "source_audit_score": 100,
+      "review_needed": false,
+      "overall_confidence_score": 100,
+      "notes": [],
+      "suggested_fix_category": "none",
+      "ai_usage": {
+        "cost_usd": 0.050871,
+        "usage": {
+          "input_tokens": 5627,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 2266,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
     },
     {
       "id": "nr-086",
@@ -5421,41 +5544,57 @@
       "source_type": "food_blog_page",
       "difficulty_category": "messy_food_blogs_long_intros",
       "priority": "medium",
-      "import_status": "skipped",
-      "skip_classification": "ambiguous_source_content",
-      "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "clean page text",
-      "title_match_confidence": 0,
+      "import_status": "pass",
+      "extraction_method_used": "AI fallback page text",
+      "title_match_confidence": 100,
       "ingredient_count_source": null,
-      "ingredient_count_parsed": 0,
+      "ingredient_count_parsed": 11,
       "instruction_step_count_source": null,
-      "instruction_step_count_parsed": 0,
+      "instruction_step_count_parsed": 6,
       "missing_ingredients": [],
       "extra_hallucinated_ingredients": [],
       "quantity_mismatches": [],
       "unit_mismatches": [],
-      "source_provided_metric_preserved": "not applicable",
-      "directions_include_quantities": "not applicable",
+      "source_provided_metric_preserved": "yes",
+      "directions_include_quantities": "yes",
       "temperature_handling": "pass",
-      "timer_extraction": "fail",
-      "section_preservation": "fail",
+      "timer_extraction": "pass",
+      "section_preservation": "pass",
       "source_audit": {
-        "available": false,
-        "score": 0,
-        "needs_review": true,
-        "fields": {},
+        "available": true,
+        "score": 100,
+        "needs_review": false,
+        "critical_failure": false,
+        "fields": {
+          "every_ingredient": "acceptable_normalization",
+          "every_quantity": "acceptable_normalization",
+          "every_unit": "acceptable_normalization",
+          "directions_steps": "acceptable_normalization",
+          "temperatures": "acceptable_normalization"
+        },
         "mismatches": [],
-        "clusters": [
-          "ambiguous source content"
-        ]
+        "clusters": []
       },
-      "source_audit_score": 0,
-      "review_needed": true,
-      "overall_confidence_score": 0,
-      "notes": [
-        "No complete structured recipe found; AI fallback disabled for this run."
-      ],
-      "suggested_fix_category": "ambiguous source content"
+      "source_audit_score": 100,
+      "review_needed": false,
+      "overall_confidence_score": 100,
+      "notes": [],
+      "suggested_fix_category": "none",
+      "ai_usage": {
+        "cost_usd": 0.057984,
+        "usage": {
+          "input_tokens": 8103,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 2245,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
     },
     {
       "id": "nr-092",
@@ -5464,41 +5603,57 @@
       "source_type": "food_blog_page",
       "difficulty_category": "multi_component_recipes",
       "priority": "medium",
-      "import_status": "skipped",
-      "skip_classification": "ambiguous_source_content",
-      "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "clean page text",
-      "title_match_confidence": 0,
+      "import_status": "pass",
+      "extraction_method_used": "AI fallback page text",
+      "title_match_confidence": 100,
       "ingredient_count_source": null,
-      "ingredient_count_parsed": 0,
+      "ingredient_count_parsed": 7,
       "instruction_step_count_source": null,
-      "instruction_step_count_parsed": 0,
+      "instruction_step_count_parsed": 9,
       "missing_ingredients": [],
       "extra_hallucinated_ingredients": [],
       "quantity_mismatches": [],
       "unit_mismatches": [],
-      "source_provided_metric_preserved": "not applicable",
-      "directions_include_quantities": "not applicable",
+      "source_provided_metric_preserved": "yes",
+      "directions_include_quantities": "yes",
       "temperature_handling": "pass",
-      "timer_extraction": "fail",
-      "section_preservation": "fail",
+      "timer_extraction": "pass",
+      "section_preservation": "pass",
       "source_audit": {
-        "available": false,
-        "score": 0,
-        "needs_review": true,
-        "fields": {},
+        "available": true,
+        "score": 100,
+        "needs_review": false,
+        "critical_failure": false,
+        "fields": {
+          "every_ingredient": "acceptable_normalization",
+          "every_quantity": "acceptable_normalization",
+          "every_unit": "acceptable_normalization",
+          "directions_steps": "acceptable_normalization",
+          "temperatures": "acceptable_normalization"
+        },
         "mismatches": [],
-        "clusters": [
-          "ambiguous source content"
-        ]
+        "clusters": []
       },
-      "source_audit_score": 0,
-      "review_needed": true,
-      "overall_confidence_score": 0,
-      "notes": [
-        "No complete structured recipe found; AI fallback disabled for this run."
-      ],
-      "suggested_fix_category": "ambiguous source content"
+      "source_audit_score": 100,
+      "review_needed": false,
+      "overall_confidence_score": 100,
+      "notes": [],
+      "suggested_fix_category": "none",
+      "ai_usage": {
+        "cost_usd": 0.051939,
+        "usage": {
+          "input_tokens": 7648,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 1933,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
     },
     {
       "id": "nr-093",
@@ -5507,41 +5662,57 @@
       "source_type": "food_blog_page",
       "difficulty_category": "repeated_ingredients_sections",
       "priority": "medium",
-      "import_status": "skipped",
-      "skip_classification": "ambiguous_source_content",
-      "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "clean page text",
-      "title_match_confidence": 0,
+      "import_status": "pass",
+      "extraction_method_used": "AI fallback page text",
+      "title_match_confidence": 100,
       "ingredient_count_source": null,
-      "ingredient_count_parsed": 0,
+      "ingredient_count_parsed": 14,
       "instruction_step_count_source": null,
-      "instruction_step_count_parsed": 0,
+      "instruction_step_count_parsed": 15,
       "missing_ingredients": [],
       "extra_hallucinated_ingredients": [],
       "quantity_mismatches": [],
       "unit_mismatches": [],
-      "source_provided_metric_preserved": "not applicable",
-      "directions_include_quantities": "not applicable",
+      "source_provided_metric_preserved": "yes",
+      "directions_include_quantities": "yes",
       "temperature_handling": "pass",
-      "timer_extraction": "fail",
-      "section_preservation": "fail",
+      "timer_extraction": "pass",
+      "section_preservation": "pass",
       "source_audit": {
-        "available": false,
-        "score": 0,
-        "needs_review": true,
-        "fields": {},
+        "available": true,
+        "score": 100,
+        "needs_review": false,
+        "critical_failure": false,
+        "fields": {
+          "every_ingredient": "acceptable_normalization",
+          "every_quantity": "acceptable_normalization",
+          "every_unit": "acceptable_normalization",
+          "directions_steps": "acceptable_normalization",
+          "temperatures": "acceptable_normalization"
+        },
         "mismatches": [],
-        "clusters": [
-          "ambiguous source content"
-        ]
+        "clusters": []
       },
-      "source_audit_score": 0,
-      "review_needed": true,
-      "overall_confidence_score": 0,
-      "notes": [
-        "No complete structured recipe found; AI fallback disabled for this run."
-      ],
-      "suggested_fix_category": "ambiguous source content"
+      "source_audit_score": 100,
+      "review_needed": false,
+      "overall_confidence_score": 100,
+      "notes": [],
+      "suggested_fix_category": "none",
+      "ai_usage": {
+        "cost_usd": 0.06891,
+        "usage": {
+          "input_tokens": 8395,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 2915,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
     },
     {
       "id": "nr-096",
@@ -5551,9 +5722,9 @@
       "difficulty_category": "international_uncommon_ingredients_units",
       "priority": "medium",
       "import_status": "skipped",
-      "skip_classification": "ai_fallback_needed",
-      "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "clean page text",
+      "skip_classification": "blocked_or_inaccessible",
+      "skip_acceptability": "skipped-but-acceptable",
+      "extraction_method_used": "clean page text + AI fallback requested",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
       "ingredient_count_parsed": 0,
@@ -5575,16 +5746,32 @@
         "fields": {},
         "mismatches": [],
         "clusters": [
-          "AI fallback not run"
+          "accessibility/source coverage"
         ]
       },
       "source_audit_score": 0,
       "review_needed": true,
       "overall_confidence_score": 0,
       "notes": [
-        "No complete structured recipe found; AI fallback disabled for this run."
+        "source_blocked"
       ],
-      "suggested_fix_category": "AI fallback not run"
+      "suggested_fix_category": "accessibility/source coverage",
+      "ai_usage": {
+        "cost_usd": 0.007854,
+        "usage": {
+          "input_tokens": 2413,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 41,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        },
+        "estimated_cost_usd": 0
+      }
     },
     {
       "id": "nr-097",
@@ -5707,41 +5894,81 @@
       "source_type": "youtube_video",
       "difficulty_category": "youtube_recipe_transcripts",
       "priority": "low",
-      "import_status": "skipped",
-      "skip_classification": "video_transcript_needed",
-      "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "transcript",
-      "title_match_confidence": 0,
+      "import_status": "partial",
+      "extraction_method_used": "AI fallback transcript",
+      "title_match_confidence": 100,
       "ingredient_count_source": null,
-      "ingredient_count_parsed": 0,
+      "ingredient_count_parsed": 4,
       "instruction_step_count_source": null,
-      "instruction_step_count_parsed": 0,
+      "instruction_step_count_parsed": 6,
       "missing_ingredients": [],
       "extra_hallucinated_ingredients": [],
       "quantity_mismatches": [],
       "unit_mismatches": [],
       "source_provided_metric_preserved": "not applicable",
-      "directions_include_quantities": "not applicable",
+      "directions_include_quantities": "yes",
       "temperature_handling": "pass",
-      "timer_extraction": "fail",
-      "section_preservation": "fail",
+      "timer_extraction": "pass",
+      "section_preservation": "pass",
       "source_audit": {
-        "available": false,
-        "score": 0,
+        "available": true,
+        "score": 82,
         "needs_review": true,
-        "fields": {},
-        "mismatches": [],
+        "critical_failure": false,
+        "fields": {
+          "every_ingredient": "acceptable_normalization",
+          "every_quantity": "uncertain",
+          "every_unit": "uncertain",
+          "directions_steps": "acceptable_normalization",
+          "temperatures": "acceptable_normalization"
+        },
+        "mismatches": [
+          {
+            "field": "quantity",
+            "classification": "uncertain",
+            "detail": "200 g thick spaghetti (pici or tonarelli)"
+          },
+          {
+            "field": "quantity",
+            "classification": "uncertain",
+            "detail": "100 g pecorino cheese, finely grated"
+          },
+          {
+            "field": "unit",
+            "classification": "uncertain",
+            "detail": "2 tsp freshly ground black pepper"
+          }
+        ],
         "clusters": [
-          "video transcript/AI fallback not run"
+          "quantity grounding",
+          "unit grounding"
         ]
       },
-      "source_audit_score": 0,
+      "source_audit_score": 82,
       "review_needed": true,
-      "overall_confidence_score": 0,
+      "overall_confidence_score": 88,
       "notes": [
-        "Transcript/description fetched, but AI extraction is disabled for this run."
+        "source mixed US/metric units",
+        "quantity: uncertain - \"200 g thick spaghetti (pici or tonarelli)\"",
+        "quantity: uncertain - \"100 g pecorino cheese, finely grated\"",
+        "unit: uncertain - \"2 tsp freshly ground black pepper\""
       ],
-      "suggested_fix_category": "video transcript/AI fallback not run"
+      "suggested_fix_category": "quantity grounding",
+      "ai_usage": {
+        "cost_usd": 0.025263,
+        "usage": {
+          "input_tokens": 3376,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 1009,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
     },
     {
       "id": "nr-083",
@@ -5753,7 +5980,7 @@
       "import_status": "skipped",
       "skip_classification": "video_transcript_needed",
       "skip_acceptability": "skipped-and-needs-product-work",
-      "extraction_method_used": "transcript",
+      "extraction_method_used": "transcript + AI fallback requested",
       "title_match_confidence": 0,
       "ingredient_count_source": null,
       "ingredient_count_parsed": 0,
@@ -5782,11 +6009,27 @@
       "review_needed": true,
       "overall_confidence_score": 0,
       "notes": [
-        "Transcript/description fetched, but AI extraction is disabled for this run.",
+        "not_enough_recipe_text",
         "transcript unavailable",
         "low confidence extraction"
       ],
-      "suggested_fix_category": "video transcript/AI fallback not run"
+      "suggested_fix_category": "video transcript/AI fallback not run",
+      "ai_usage": {
+        "cost_usd": 0.006813,
+        "usage": {
+          "input_tokens": 2201,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 14,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        },
+        "estimated_cost_usd": 0
+      }
     },
     {
       "id": "nr-090",

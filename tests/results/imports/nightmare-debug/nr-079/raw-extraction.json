@@ -1,6 +1,235 @@
 {
-  "transcriptAvailable": true,
-  "descriptionAvailable": true,
-  "sourceQuality": "good",
-  "warnings": []
+  "title": "Perfect Chocolate Chip Cookies - Tasty",
+  "cookTime": "12-15 minutes",
+  "servings": 24,
+  "description": "The ultimate chocolate chip cookie recipe with browned butter, a blend of sugars and flours, and a mix of chocolate chips and dark chocolate chunks for the perfect balance of chewy, crispy, and gooey.",
+  "notes": "For best flavor, chill the dough overnight in the fridge. Scoop the cookies before chilling to make baking easier. If you can't wait, you can bake them immediately and they'll still be delicious. The brown butter adds a nutty depth of flavor. Use a serrated knife to cut dark chocolate into chunks for varied chocolate distribution throughout the cookies. Recipe source: https://www.buzzfeed.com/marietelling/brown-butter-chocolate-chip-cookies",
+  "heroImage": "https://i.ytimg.com/vi/rEdl2Uetpvo/hqdefault.jpg",
+  "category": "Desserts",
+  "macros": {
+    "calories": 180,
+    "protein": 2,
+    "carbs": 24,
+    "fat": 9,
+    "fiber": 1
+  },
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "all purpose flour",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/2 cup all purpose flour"
+        },
+        {
+          "id": "i2",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "bread flour",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/2 cup bread flour"
+        },
+        {
+          "id": "i3",
+          "amount": "",
+          "unit": "",
+          "name": "salt",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "salt"
+        },
+        {
+          "id": "i4",
+          "amount": "",
+          "unit": "",
+          "name": "baking soda",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "baking soda"
+        },
+        {
+          "id": "i5",
+          "amount": "1",
+          "unit": "cup",
+          "name": "butter, browned",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 cup butter, browned"
+        },
+        {
+          "id": "i6",
+          "amount": "",
+          "unit": "",
+          "name": "water, as needed to top up brown butter to 1 cup",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "water, as needed to top up brown butter to 1 cup"
+        },
+        {
+          "id": "i7",
+          "amount": "",
+          "unit": "",
+          "name": "white sugar",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "white sugar"
+        },
+        {
+          "id": "i8",
+          "amount": "",
+          "unit": "",
+          "name": "dark brown sugar",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "dark brown sugar"
+        },
+        {
+          "id": "i9",
+          "amount": "",
+          "unit": "",
+          "name": "vanilla",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "vanilla"
+        },
+        {
+          "id": "i10",
+          "amount": "",
+          "unit": "",
+          "name": "espresso powder",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "espresso powder"
+        },
+        {
+          "id": "i11",
+          "amount": "1",
+          "unit": "",
+          "name": "egg",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 egg"
+        },
+        {
+          "id": "i12",
+          "amount": "1",
+          "unit": "",
+          "name": "egg yolk",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 egg yolk"
+        },
+        {
+          "id": "i13",
+          "amount": "",
+          "unit": "",
+          "name": "chocolate chips",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "chocolate chips"
+        },
+        {
+          "id": "i14",
+          "amount": "",
+          "unit": "",
+          "name": "dark chocolate, cut into chunks",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "dark chocolate, cut into chunks"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Brown {i5} in a saucepan by bringing it to a boil. After a few minutes, the milk solids will start to toast and turn a gorgeous brown, nutty color. Keep stirring to ensure even browning. Once you see dark brown bits on the bottom, pour into a liquid measuring cup to stop the cooking.",
+          "ingredientRefs": [
+            "i5"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "Top up the browned butter with {i6} until you reach 1 cup total liquid. Let cool to room temperature.",
+          "ingredientRefs": [
+            "i6"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Sift together {i1}, {i2}, {i3}, and {i4}.",
+          "ingredientRefs": [
+            "i1",
+            "i2",
+            "i3",
+            "i4"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "In a separate bowl, cream together {i7} and {i8}. Add {i9} and {i10}.",
+          "ingredientRefs": [
+            "i7",
+            "i8",
+            "i9",
+            "i10"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Add the cooled browned butter to the sugar mixture and cream together until well incorporated.",
+          "ingredientRefs": [
+            "i5"
+          ]
+        },
+        {
+          "id": "s6",
+          "text": "Add {i11} and {i12} to the butter-sugar mixture and beat until combined.",
+          "ingredientRefs": [
+            "i11",
+            "i12"
+          ]
+        },
+        {
+          "id": "s7",
+          "text": "Add the flour mixture in thirds, beating until you don't see a ton of extra flour. It's okay if a little flour remains unincorporated.",
+          "ingredientRefs": [
+            "i1",
+            "i2",
+            "i3",
+            "i4"
+          ]
+        },
+        {
+          "id": "s8",
+          "text": "Fold in {i13} and {i14} until just combined, finishing the incorporation of any remaining flour.",
+          "ingredientRefs": [
+            "i13",
+            "i14"
+          ]
+        },
+        {
+          "id": "s9",
+          "text": "For best flavor, scoop the dough onto a baking sheet and chill in the fridge overnight. Alternatively, you can bake immediately.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s10",
+          "text": "Bake until the cookies have cracks and crinkles, with a gooey center and crunchy outside.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "tags": [
+    "Desserts",
+    "Make-Ahead",
+    "Comfort Food"
+  ],
+  "sourceUrl": "https://www.youtube.com/watch?v=rEdl2Uetpvo",
+  "importMethod": "ai-fallback"
 }

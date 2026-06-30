@@ -1,0 +1,186 @@
+{
+  "title": "Vegan Mac and Cheese - Love and Lemons",
+  "cookTime": "30 minutes",
+  "servings": 4,
+  "description": "The BEST vegan mac and cheese recipe! With a creamy, cheesy sauce made from sweet potatoes and nutritional yeast, it's just as good as the real thing.",
+  "notes": "The sauce can be made days in advance; just cook and coat the pasta when you're ready to eat. Best served fresh, though leftovers can be reheated. For a smoky twist, blend 1/4 to 1/2 teaspoon smoked paprika into the sauce, or stir in crumbled tempeh bacon bits. For spicy mac and cheese, puree the sauce with 1 tablespoon pickled jalapeños or a chipotle pepper from a can of chipotles in adobo. You can swap the sweet potato for an equal amount of diced carrot or butternut squash. For gluten-free, use your favorite gluten-free pasta (brown rice elbow macaroni works well). Add extra veggies like thawed frozen peas, spinach, or steamed broccoli for a bright pop of green. If broiling with breadcrumb topping, broil for just a few minutes until browned on top; the sauce gets less creamy if baked for too long. For a less sweet version, add more salt to balance. For a tangier version, adjust the apple cider vinegar and nutritional yeast to taste.",
+  "heroImage": "https://cdn.loveandlemons.com/wp-content/uploads/opengraph/2013/01/vegan-mac-and-cheese.jpg",
+  "category": "Entrées",
+  "tags": [
+    "Vegan",
+    "Comfort Food",
+    "Quick",
+    "Weeknight",
+    "Kid-Friendly"
+  ],
+  "macros": {
+    "calories": 420,
+    "protein": 12,
+    "carbs": 62,
+    "fat": 14,
+    "fiber": 5
+  },
+  "sections": [
+    {
+      "name": "Vegan Cheese Sauce",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "3/4",
+          "unit": "cup",
+          "name": "peeled and diced Yukon Gold potato",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "3/4 cup peeled and diced Yukon Gold potato"
+        },
+        {
+          "id": "i2",
+          "amount": "3/4",
+          "unit": "cup",
+          "name": "peeled and diced sweet potato",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "3/4 cup peeled and diced sweet potato"
+        },
+        {
+          "id": "i3",
+          "amount": "2",
+          "unit": "",
+          "name": "garlic cloves",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 garlic cloves"
+        },
+        {
+          "id": "i4",
+          "amount": "1/4",
+          "unit": "cup",
+          "name": "raw cashews",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/4 cup raw cashews"
+        },
+        {
+          "id": "i5",
+          "amount": "1",
+          "unit": "tablespoon",
+          "name": "apple cider vinegar",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 tablespoon apple cider vinegar"
+        },
+        {
+          "id": "i6",
+          "amount": "2",
+          "unit": "tablespoons",
+          "name": "nutritional yeast",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 tablespoons nutritional yeast"
+        },
+        {
+          "id": "i7",
+          "amount": "1/2",
+          "unit": "teaspoon",
+          "name": "onion powder",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/2 teaspoon onion powder"
+        },
+        {
+          "id": "i8",
+          "amount": "1/2",
+          "unit": "teaspoon",
+          "name": "sea salt",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/2 teaspoon sea salt"
+        },
+        {
+          "id": "i9",
+          "amount": "1/4",
+          "unit": "cup",
+          "name": "extra-virgin olive oil",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/4 cup extra-virgin olive oil"
+        },
+        {
+          "id": "i10",
+          "amount": "1/4",
+          "unit": "cup",
+          "name": "water",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/4 cup water"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Place {i1} and {i2} in a saucepan and cover with cold water by 1 inch. Add a few pinches of salt. Bring to a boil, then reduce the heat and simmer, uncovered, until fork-tender, 8 to 12 minutes.",
+          "ingredientRefs": [
+            "i1",
+            "i2"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "Drain the potatoes and transfer to a high-speed blender with {i3}, {i4}, {i5}, {i6}, {i7}, {i8}, {i9}, and {i10}. Blend until smooth.",
+          "ingredientRefs": [
+            "i3",
+            "i4",
+            "i5",
+            "i6",
+            "i7",
+            "i8",
+            "i9",
+            "i10"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Mac and Cheese",
+      "ingredients": [
+        {
+          "id": "i11",
+          "amount": "12",
+          "unit": "ounces",
+          "name": "elbow macaroni",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "12 ounces elbow macaroni"
+        },
+        {
+          "id": "i12",
+          "amount": "",
+          "unit": "",
+          "name": "sea salt, to taste",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "sea salt, to taste",
+          "optional": true
+        }
+      ],
+      "steps": [
+        {
+          "id": "s3",
+          "text": "Bring a large pot of salted water to a boil. Prepare {i11} according to the package instructions, cooking until al dente. Reserve 1/2 cup of the pasta cooking water before draining.",
+          "ingredientRefs": [
+            "i11"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "Drain and transfer the pasta back to the pot. Stir in the vegan cheese sauce, adding up to 1/2 cup pasta water to loosen the sauce, as necessary. Season to taste with {i12} and serve.",
+          "ingredientRefs": [
+            "i12"
+          ]
+        }
+      ]
+    }
+  ],
+  "sourceUrl": "https://www.loveandlemons.com/vegan-mac-and-cheese/",
+  "importMethod": "ai-fallback"
+}

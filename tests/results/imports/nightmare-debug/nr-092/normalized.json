@@ -1,0 +1,157 @@
+{
+  "title": "Apple Cider Caramels - Smitten Kitchen",
+  "cookTime": "45 minutes, plus cooling time",
+  "servings": 64,
+  "description": "These apple cider caramels pack everything wonderful about autumn in New York City into one tiny square. Fresh apple cider is boiled down to a syrupy concentrate, then expanded into a cinnamon-scented buttery caramel with hidden crunches of sea salt. The most intense caramels you'll ever make.",
+  "notes": "Apple cider (sometimes called sweet or \"soft\" cider), as referred to here, is different from both apple juice and the hard, or alcoholic, fermented apple cider. It's a fresh, unfiltered (it has sediment), raw apple juice — the juice literally pressed from fresh apples. It's unpasteurized, and must be refrigerated, because it's perishable. In the Northeast, it's usually found at farm stands and some grocery stores. Occasionally vacuum-sealed bottles called apple cider are found in the juice aisle, but none of the bottled varieties have the same delicate apple flavor as the more perishable stuff sold in the refrigerator section.\n\nDon't have a candy or deep-fry thermometer? Have a bowl of very cold water ready, and cook the caramel until a tiny spoonful dropped into the water becomes firm, chewy, and able to be plied into a ball.\n\nCaramels keep, in an airtight container at room temperature, for two weeks. Caramels will be somewhat on the soft side at room temperature, and chewy/firm from the fridge.",
+  "heroImage": "https://i0.wp.com/smittenkitchen.com/wp-content/uploads/2012/10/apple-cider-caramels-scaled.jpg?fit=1200%2C800&quality=89&ssl=1",
+  "macros": {
+    "calories": 45,
+    "protein": 0,
+    "carbs": 7,
+    "fat": 2,
+    "fiber": 0
+  },
+  "category": "Desserts",
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "4",
+          "unit": "cup",
+          "name": "apple cider",
+          "weightAmount": "945",
+          "weightUnit": "ml",
+          "raw": "4 cups (945 ml) apple cider"
+        },
+        {
+          "id": "i2",
+          "amount": "1/2",
+          "unit": "tsp",
+          "name": "ground cinnamon",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/2 teaspoon ground cinnamon"
+        },
+        {
+          "id": "i3",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "flaky sea salt, such as Maldon, or less of a finer one",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 teaspoons flaky sea salt, such as Maldon, or less of a finer one"
+        },
+        {
+          "id": "i4",
+          "amount": "8",
+          "unit": "Tbsp",
+          "name": "unsalted butter, cut into chunks",
+          "weightAmount": "115",
+          "weightUnit": "g",
+          "raw": "8 tablespoons (115 grams or 1 stick) unsalted butter, cut into chunks"
+        },
+        {
+          "id": "i5",
+          "amount": "1",
+          "unit": "cup",
+          "name": "granulated sugar",
+          "weightAmount": "200",
+          "weightUnit": "g",
+          "raw": "1 cup (200 grams) granulated sugar"
+        },
+        {
+          "id": "i6",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "packed light brown sugar",
+          "weightAmount": "110",
+          "weightUnit": "g",
+          "raw": "1/2 cup (110 grams) packed light brown sugar"
+        },
+        {
+          "id": "i7",
+          "amount": "1/3",
+          "unit": "cup",
+          "name": "heavy cream",
+          "weightAmount": "80",
+          "weightUnit": "ml",
+          "raw": "1/3 cup (80 ml) heavy cream"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Boil {i1} in a 3- to 4-quart saucepan over high heat until it is reduced to a dark, thick syrup, between 1/3 and 1/2 cup in volume. This takes about 35 to 40 minutes. Stir occasionally.",
+          "ingredientRefs": [
+            "i1"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "Meanwhile, get your other ingredients in order, because you won't have time to spare once the candy is cooking. Line the bottom and sides of an 8-inch straight-sided square metal baking pan with 2 long sheets of crisscrossed parchment. Set it aside.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "Stir {i2} and {i3} together in a small dish.",
+          "ingredientRefs": [
+            "i2",
+            "i3"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "Once you are finished reducing {i1}, remove it from the heat and stir in {i4}, {i5}, {i6}, and {i7}.",
+          "ingredientRefs": [
+            "i4",
+            "i5",
+            "i6",
+            "i7",
+            "i1"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Return the pot to medium-high heat with a candy thermometer attached to the side, and let it boil until the thermometer reads 252 degrees, only about 5 minutes. Keep a close eye on it.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Immediately remove caramel from heat, add {i2}-salt mixture, and give the caramel several stirs to distribute it evenly.",
+          "ingredientRefs": [
+            "i2"
+          ]
+        },
+        {
+          "id": "s7",
+          "text": "Pour caramel into the prepared pan. Let it sit until cool and firm—about 2 hours, though it goes faster in the fridge.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s8",
+          "text": "Once caramel is firm, use your parchment paper sling to transfer the block to a cutting board. Use a well-oiled knife, oiling it after each cut (trust me!), to cut the caramel into 1-by-1-inch squares.",
+          "ingredientRefs": [
+            "i8"
+          ]
+        },
+        {
+          "id": "s9",
+          "text": "Wrap each one in a 4-inch square of waxed paper, twisting the sides to close.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "tags": [
+    "Candy",
+    "Fall",
+    "Food Gifts",
+    "Egg-Free",
+    "Make-Ahead"
+  ],
+  "sourceUrl": "https://smittenkitchen.com/2012/10/apple-cider-caramels/",
+  "importMethod": "ai-fallback"
+}

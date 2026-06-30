@@ -1,0 +1,348 @@
+{
+  "title": "Homemade Pizza - Love and Lemons",
+  "cookTime": "10 minutes",
+  "servings": 4,
+  "description": "This homemade pizza recipe is perfect for parties! Everyone loves pizza, and your guests can customize their toppings to suit their personal tastes.",
+  "notes": "Get a good pizza pan. The key to a good crust is a good pizza pan. You want one that will cook the crust evenly on all sides, including the bottom. Lots of cooks swear by a pizza stone. To use a pizza stone, preheat it in the oven (on the \"stone\" setting if you have a Wolf oven) while you stretch and top your dough. Then, quickly slide the assembled pizza onto the stone and transfer both to the oven to bake. The hot stone will help your crust get nice & crisp on the bottom.\n\nKeep your dough covered. As your homemade pizza dough rises, make sure to keep it covered. You want to lock moisture in with the dough to keep it soft & pliable. Otherwise, a crusty film will develop around the dough ball, and it will dry out and lose its flexibility.\n\nBake, then garnish! Fresh, delicate toppings like herbs will wilt and lose their flavor in the hot oven, so top them onto your pie right before serving.",
+  "heroImage": "https://cdn.loveandlemons.com/wp-content/uploads/opengraph/2019/07/homemade-pizza.jpg",
+  "macros": {
+    "calories": 420,
+    "protein": 18,
+    "carbs": 48,
+    "fat": 16,
+    "fiber": 3
+  },
+  "category": "Entrées",
+  "tags": [
+    "Vegetarian",
+    "Party",
+    "Customizable",
+    "Kid-Friendly",
+    "Weeknight"
+  ],
+  "sections": [
+    {
+      "name": "Margherita Pizza",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1",
+          "unit": "recipe",
+          "name": "Pizza Dough",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "Pizza Dough, 1 recipe per pizza"
+        },
+        {
+          "id": "i2",
+          "amount": "heaping 1/2",
+          "unit": "cup",
+          "name": "pizza sauce",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "Heaping ½ cup pizza sauce"
+        },
+        {
+          "id": "i3",
+          "amount": "8",
+          "unit": "ounces",
+          "name": "fresh bocconcini mozzarella, sliced",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "8 ounces fresh bocconcini mozzarella, sliced"
+        },
+        {
+          "id": "i4",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "sliced cherry tomatoes",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "½ cup sliced cherry tomatoes"
+        },
+        {
+          "id": "i5",
+          "amount": "10",
+          "unit": "",
+          "name": "fresh basil leaves",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "10 fresh basil leaves"
+        },
+        {
+          "id": "i6",
+          "amount": "",
+          "unit": "",
+          "name": "Red pepper flakes",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "Red pepper flakes"
+        },
+        {
+          "id": "i7",
+          "amount": "",
+          "unit": "",
+          "name": "Extra-virgin olive oil, for drizzling",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "Extra-virgin olive oil, for drizzling"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Preheat the oven to 500°F.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Spread {i2} onto {i1}.",
+          "ingredientRefs": [
+            "i2",
+            "i1"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Top with {i3} and {i4} and bake for 10 to 12 minutes, or until the crust is browned.",
+          "ingredientRefs": [
+            "i3",
+            "i4"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "Remove from the oven and top with {i5} and a pinch of {i6}.",
+          "ingredientRefs": [
+            "i5",
+            "i6"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Drizzle with {i7} and serve.",
+          "ingredientRefs": [
+            "i7"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Peach & Basil Pizza",
+      "ingredients": [
+        {
+          "id": "i8",
+          "amount": "1",
+          "unit": "recipe",
+          "name": "Pizza Dough",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "Pizza Dough, 1 recipe per pizza"
+        },
+        {
+          "id": "i9",
+          "amount": "1",
+          "unit": "tablespoon",
+          "name": "extra-virgin olive oil, plus more for drizzling",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 tablespoon extra-virgin olive oil, plus more for drizzling"
+        },
+        {
+          "id": "i10",
+          "amount": "1/2",
+          "unit": "",
+          "name": "garlic clove, minced",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "½ garlic clove, minced"
+        },
+        {
+          "id": "i11",
+          "amount": "8",
+          "unit": "ounces",
+          "name": "fresh bocconcini mozzarella, sliced",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "8 ounces fresh bocconcini mozzarella, sliced"
+        },
+        {
+          "id": "i12",
+          "amount": "2",
+          "unit": "",
+          "name": "ripe peaches, sliced",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 ripe peaches, sliced"
+        },
+        {
+          "id": "i13",
+          "amount": "3",
+          "unit": "tablespoons",
+          "name": "pesto",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "3 tablespoons pesto"
+        },
+        {
+          "id": "i14",
+          "amount": "10",
+          "unit": "",
+          "name": "fresh basil leaves",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "10 fresh basil leaves"
+        },
+        {
+          "id": "i15",
+          "amount": "",
+          "unit": "",
+          "name": "Red pepper flakes",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "Red pepper flakes"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s6",
+          "text": "Preheat the oven to 500°F.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Combine {i9} and {i10} in a small bowl.",
+          "ingredientRefs": [
+            "i9",
+            "i10"
+          ]
+        },
+        {
+          "id": "s8",
+          "text": "Brush the garlic oil onto {i8}, then top with {i11} and {i12}.",
+          "ingredientRefs": [
+            "i8",
+            "i11",
+            "i12"
+          ]
+        },
+        {
+          "id": "s9",
+          "text": "Bake for 10 to 12 minutes, or until the crust is browned.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s10",
+          "text": "Remove from the oven. Dollop {i13} onto the pizza, then top with {i14} and pinches of {i15}.",
+          "ingredientRefs": [
+            "i13",
+            "i14",
+            "i15"
+          ]
+        },
+        {
+          "id": "s11",
+          "text": "Drizzle with olive oil and serve.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "Roasted Red Pepper Pesto Pizza",
+      "ingredients": [
+        {
+          "id": "i16",
+          "amount": "1",
+          "unit": "recipe",
+          "name": "Pizza Dough",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "Pizza Dough, 1 recipe per pizza"
+        },
+        {
+          "id": "i17",
+          "amount": "",
+          "unit": "",
+          "name": "Pesto, for spreading & dolloping",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "Pesto, for spreading & dolloping"
+        },
+        {
+          "id": "i18",
+          "amount": "1 1/2",
+          "unit": "cups",
+          "name": "grated smoked mozzarella cheese",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1½ cups grated smoked mozzarella cheese"
+        },
+        {
+          "id": "i19",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "sliced roasted red peppers",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "½ cup sliced roasted red peppers"
+        },
+        {
+          "id": "i20",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "fresh mint leaves",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "½ cup fresh mint leaves"
+        },
+        {
+          "id": "i21",
+          "amount": "",
+          "unit": "",
+          "name": "Red pepper flakes",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "Red pepper flakes"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s12",
+          "text": "Preheat the oven to 500°F.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s13",
+          "text": "Spread a thin layer of {i17} onto {i16}.",
+          "ingredientRefs": [
+            "i17",
+            "i16"
+          ]
+        },
+        {
+          "id": "s14",
+          "text": "Top with {i18} and {i19}.",
+          "ingredientRefs": [
+            "i18",
+            "i19"
+          ]
+        },
+        {
+          "id": "s15",
+          "text": "Bake for 10 to 12 minutes, or until the crust is browned.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s16",
+          "text": "Remove from the oven. Top with dollops of more pesto, {i20}, and pinches of {i21}.",
+          "ingredientRefs": [
+            "i20",
+            "i21"
+          ]
+        }
+      ]
+    }
+  ],
+  "sourceUrl": "https://www.loveandlemons.com/homemade-pizza/",
+  "importMethod": "ai-fallback"
+}

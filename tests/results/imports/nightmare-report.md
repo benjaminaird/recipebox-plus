@@ -1,48 +1,46 @@
 # Nightmare Recipe Import Report
 
-- Generated: 2026-06-30T11:00:10.884Z
+- Generated: 2026-06-30T12:20:12.663Z
 - Manifest: `tests/fixtures/imports/nightmare-recipes/manifest.json`
 - Total manifest count: 100
 - Recipes tested: 100
-- Attempted imports: 66
-- Skipped: 34
-- Pass / partial / fail / skipped: 66 / 0 / 0 / 34
-- Pass rate among attempted imports: 100%
+- Attempted imports: 89
+- Skipped: 11
+- Pass / partial / fail / skipped: 88 / 1 / 0 / 11
+- Pass rate among attempted imports: 98.9%
 - Deterministic pass rate: 100%
-- Source-faithful pass rate: 100%
+- Source-faithful pass rate: 98.9%
 - True fail rate among attempted imports: 0%
-- Total manifest coverage: 66%
-- AI fallback pass rate: not run
-- AI fallback requested: no
+- Total manifest coverage: 89%
+- AI fallback pass rate: 95.5%
+- AI fallback requested: yes
 - AI fallback implemented in harness: yes
-- Estimated AI fallback candidates: 27
-- Estimated AI credits if fallback run: 27
-- AI usage/spend: $0 of $0 budget; 0 calls
-- Average confidence: 64
-- Average attempted confidence: 97
+- Estimated AI fallback candidates: 3
+- Estimated AI credits if fallback run: 3
+- AI usage/spend: $1.198695 of $5 budget; 27 calls
+- Average confidence: 87
+- Average attempted confidence: 98
 - Average audit score: 100
-- AI fallback: disabled
+- AI fallback: enabled
 
 ## Skip Classification
-- ai_fallback_needed: 2
-- ambiguous_source_content: 17
-- blocked_or_inaccessible: 7
-- video_transcript_needed: 8
+- blocked_or_inaccessible: 8
+- video_transcript_needed: 3
 
 ## Coverage By Source Type
 | source type | count | attempted | skipped | avg confidence |
 | --- | ---: | ---: | ---: | ---: |
-| schema_org_web_page | 26 | 22 | 4 | 83 |
-| food_blog_page | 59 | 41 | 18 | 67 |
-| article_recipe_page | 6 | 2 | 4 | 32 |
-| youtube_video | 8 | 0 | 8 | 0 |
+| schema_org_web_page | 26 | 23 | 3 | 87 |
+| food_blog_page | 59 | 57 | 2 | 94 |
+| article_recipe_page | 6 | 3 | 3 | 48 |
+| youtube_video | 8 | 5 | 3 | 61 |
 | recipe_page_check_access_first | 1 | 1 | 0 | 100 |
 
 ## Top Failure Categories
-1. ambiguous source content: 17
-2. video transcript/AI fallback not run: 8
-3. accessibility/source coverage: 7
-4. AI fallback not run: 2
+1. accessibility/source coverage: 8
+2. video transcript/AI fallback not run: 3
+3. quantity grounding: 1
+4. unit grounding: 1
 
 ## Top 25 Must-Pass Status
 | id | status | confidence | must preserve |
@@ -65,8 +63,8 @@
 | nr-036 | pass | 100 | Metric/gas mark UK cake data. |
 | nr-040 | pass | 100 | Marinade/sauce stages and spice quantities. |
 | nr-042 | pass | 92 | Marinade ingredients and serving suggestions separated. |
-| nr-046 | skipped | 0 | US and metric quantities without duplicate display. |
-| nr-049 | skipped | 0 | Primary recipe versus variations. |
+| nr-046 | pass | 95 | US and metric quantities without duplicate display. |
+| nr-049 | pass | 100 | Primary recipe versus variations. |
 | nr-055 | pass | 100 | Special-diet substitutions as source-grounded notes. |
 | nr-061 | pass | 100 | Marinade/sauce sections and Chinese pantry names. |
 | nr-067 | pass | 100 | Japanese pantry terms and egg/dashi quantities. |
@@ -92,44 +90,21 @@
 - nr-003: blocked_or_inaccessible (schema_org_web_page)
 - nr-001: blocked_or_inaccessible (schema_org_web_page)
 - nr-026: blocked_or_inaccessible (article_recipe_page)
+- nr-095: blocked_or_inaccessible (food_blog_page)
 - nr-004: blocked_or_inaccessible (schema_org_web_page)
-- nr-005: blocked_or_inaccessible (schema_org_web_page)
 - nr-027: blocked_or_inaccessible (article_recipe_page)
+- nr-096: blocked_or_inaccessible (food_blog_page)
 
 ## Skipped And Needs Product Work
-- nr-046: ambiguous_source_content (food_blog_page)
-- nr-049: ambiguous_source_content (food_blog_page)
-- nr-029: ambiguous_source_content (article_recipe_page)
-- nr-043: ambiguous_source_content (food_blog_page)
-- nr-044: ambiguous_source_content (food_blog_page)
-- nr-095: ai_fallback_needed (food_blog_page)
-- nr-045: ambiguous_source_content (food_blog_page)
-- nr-047: ambiguous_source_content (food_blog_page)
-- nr-048: ambiguous_source_content (food_blog_page)
-- nr-050: ambiguous_source_content (food_blog_page)
-- nr-051: ambiguous_source_content (food_blog_page)
-- nr-052: ambiguous_source_content (food_blog_page)
-- nr-053: ambiguous_source_content (food_blog_page)
-- nr-054: ambiguous_source_content (food_blog_page)
-- nr-072: ambiguous_source_content (food_blog_page)
 - nr-078: video_transcript_needed (youtube_video)
-- nr-079: video_transcript_needed (youtube_video)
-- nr-080: video_transcript_needed (youtube_video)
-- nr-082: video_transcript_needed (youtube_video)
 - nr-084: video_transcript_needed (youtube_video)
-- nr-085: video_transcript_needed (youtube_video)
-- nr-091: ambiguous_source_content (food_blog_page)
-- nr-092: ambiguous_source_content (food_blog_page)
-- nr-093: ambiguous_source_content (food_blog_page)
-- nr-096: ai_fallback_needed (food_blog_page)
-- nr-081: video_transcript_needed (youtube_video)
 - nr-083: video_transcript_needed (youtube_video)
 
 ## True Failures
 None.
 
 ## Partial / Review-Needed Cases
-None.
+- nr-081: confidence 88, audit 82, clusters quantity grounding, unit grounding
 
 ## Fixes Applied This Run
 - Add source-to-final-output audit fields and source-faithful pass rate.
@@ -161,8 +136,8 @@ None.
 | nr-032 | pass |  | 100 | 100 | no | schema.org JSON-LD | 17/17 | none |  |
 | nr-036 | pass |  | 100 | 100 | no | schema.org JSON-LD | 11/11 | none |  |
 | nr-042 | pass |  | 92 | 100 | no | schema.org JSON-LD | 18/18 | none | source mixed US/metric units |
-| nr-046 | skipped | ambiguous_source_content | 0 | 0 | yes | clean page text | /0 | ambiguous source content | No complete structured recipe found; AI fallback disabled for this run. |
-| nr-049 | skipped | ambiguous_source_content | 0 | 0 | yes | clean page text | /0 | ambiguous source content | No complete structured recipe found; AI fallback disabled for this run. |
+| nr-046 | pass |  | 95 | 100 | no | AI fallback page text | /11 | none | source mixed °F/°C |
+| nr-049 | pass |  | 100 | 100 | no | AI fallback page text | /21 | none |  |
 | nr-055 | pass |  | 100 | 100 | no | schema.org JSON-LD | 13/13 | none |  |
 | nr-067 | pass |  | 100 | 100 | no | schema.org JSON-LD | 12/12 | none |  |
 | nr-001 | skipped | blocked_or_inaccessible | 0 | 0 | yes | fallback | /0 | accessibility/source coverage | RecipeBox could not read this recipe page. The site may be blocking automated access. Try Paste Text or screenshots instead. |
@@ -170,16 +145,16 @@ None.
 | nr-021 | pass |  | 95 | 100 | no | schema.org JSON-LD | 19/19 | none | source mixed °F/°C |
 | nr-025 | pass |  | 95 | 100 | no | schema.org JSON-LD | 17/17 | none | source mixed °F/°C |
 | nr-026 | skipped | blocked_or_inaccessible | 0 | 0 | yes | fallback | /0 | accessibility/source coverage | RecipeBox could not read this recipe page. The site may be blocking automated access. Try Paste Text or screenshots instead. |
-| nr-029 | skipped | ambiguous_source_content | 0 | 0 | yes | clean page text | /0 | ambiguous source content | No complete structured recipe found; AI fallback disabled for this run. |
+| nr-029 | pass |  | 100 | 100 | no | AI fallback page text | /9 | none |  |
 | nr-031 | pass |  | 95 | 100 | no | schema.org JSON-LD | 11/11 | none | source mixed °F/°C |
-| nr-043 | skipped | ambiguous_source_content | 0 | 0 | yes | clean page text | /0 | ambiguous source content | No complete structured recipe found; AI fallback disabled for this run. |
-| nr-044 | skipped | ambiguous_source_content | 0 | 0 | yes | clean page text | /0 | ambiguous source content | No complete structured recipe found; AI fallback disabled for this run. |
+| nr-043 | pass |  | 92 | 100 | no | AI fallback page text | /20 | none | source mixed US/metric units |
+| nr-044 | pass |  | 92 | 100 | no | AI fallback page text | /17 | none | source mixed US/metric units |
 | nr-062 | pass |  | 100 | 100 | no | schema.org JSON-LD | 15/15 | none |  |
 | nr-063 | pass |  | 100 | 100 | no | schema.org JSON-LD | 14/14 | none |  |
 | nr-071 | pass |  | 100 | 100 | no | schema.org JSON-LD | 16/16 | none |  |
-| nr-095 | skipped | ai_fallback_needed | 0 | 0 | yes | clean page text | /0 | AI fallback not run | No complete structured recipe found; AI fallback disabled for this run. |
+| nr-095 | skipped | blocked_or_inaccessible | 0 | 0 | yes | clean page text + AI fallback requested | /0 | accessibility/source coverage | blocked_by_cloudflare |
 | nr-004 | skipped | blocked_or_inaccessible | 0 | 0 | yes | fallback | /0 | accessibility/source coverage | RecipeBox could not read this recipe page. The site may be blocking automated access. Try Paste Text or screenshots instead. |
-| nr-005 | skipped | blocked_or_inaccessible | 0 | 0 | yes | fallback | /0 | accessibility/source coverage | RecipeBox could not read this recipe page. The site may be blocking automated access. Try Paste Text or screenshots instead. |
+| nr-005 | pass |  | 95 | 100 | no | schema.org JSON-LD | 8/8 | none | source mixed °F/°C |
 | nr-006 | pass |  | 100 | 100 | no | schema.org JSON-LD | 15/15 | none |  |
 | nr-007 | pass |  | 95 | 100 | no | schema.org JSON-LD | 5/5 | none | source mixed °F/°C |
 | nr-008 | pass |  | 95 | 100 | no | schema.org JSON-LD | 7/7 | none | source mixed °F/°C |
@@ -195,14 +170,14 @@ None.
 | nr-038 | pass |  | 100 | 100 | no | schema.org JSON-LD | 8/8 | none |  |
 | nr-039 | pass |  | 100 | 100 | no | schema.org JSON-LD | 6/6 | none |  |
 | nr-041 | pass |  | 100 | 100 | no | schema.org JSON-LD | 4/4 | none |  |
-| nr-045 | skipped | ambiguous_source_content | 0 | 0 | yes | clean page text | /0 | ambiguous source content | No complete structured recipe found; AI fallback disabled for this run. |
-| nr-047 | skipped | ambiguous_source_content | 0 | 0 | yes | clean page text | /0 | ambiguous source content | No complete structured recipe found; AI fallback disabled for this run. |
-| nr-048 | skipped | ambiguous_source_content | 0 | 0 | yes | clean page text | /0 | ambiguous source content | No complete structured recipe found; AI fallback disabled for this run. |
-| nr-050 | skipped | ambiguous_source_content | 0 | 0 | yes | clean page text | /0 | ambiguous source content | No complete structured recipe found; AI fallback disabled for this run. |
-| nr-051 | skipped | ambiguous_source_content | 0 | 0 | yes | clean page text | /0 | ambiguous source content | No complete structured recipe found; AI fallback disabled for this run. |
-| nr-052 | skipped | ambiguous_source_content | 0 | 0 | yes | clean page text | /0 | ambiguous source content | No complete structured recipe found; AI fallback disabled for this run. |
-| nr-053 | skipped | ambiguous_source_content | 0 | 0 | yes | clean page text | /0 | ambiguous source content | No complete structured recipe found; AI fallback disabled for this run. |
-| nr-054 | skipped | ambiguous_source_content | 0 | 0 | yes | clean page text | /0 | ambiguous source content | No complete structured recipe found; AI fallback disabled for this run. |
+| nr-045 | pass |  | 95 | 100 | no | AI fallback page text | /5 | none | source mixed °F/°C |
+| nr-047 | pass |  | 92 | 100 | no | AI fallback page text | /13 | none | source mixed US/metric units |
+| nr-048 | pass |  | 100 | 100 | no | AI fallback page text | /8 | none |  |
+| nr-050 | pass |  | 100 | 100 | no | AI fallback page text | /10 | none |  |
+| nr-051 | pass |  | 100 | 100 | no | AI fallback page text | /12 | none |  |
+| nr-052 | pass |  | 100 | 100 | no | AI fallback page text | /14 | none |  |
+| nr-053 | pass |  | 100 | 100 | no | AI fallback page text | /18 | none |  |
+| nr-054 | pass |  | 100 | 100 | no | AI fallback page text | /10 | none |  |
 | nr-056 | pass |  | 94 | 100 | no | schema.org JSON-LD | 12/12 | none | Some directions may be missing amounts.; directions missing amounts |
 | nr-057 | pass |  | 100 | 100 | no | schema.org JSON-LD | 23/23 | none |  |
 | nr-058 | pass |  | 94 | 100 | no | schema.org JSON-LD | 12/12 | none | Some directions may be missing amounts.; directions missing amounts |
@@ -214,28 +189,28 @@ None.
 | nr-068 | pass |  | 95 | 100 | no | schema.org JSON-LD | 14/14 | none | source mixed °F/°C |
 | nr-069 | pass |  | 95 | 100 | no | schema.org JSON-LD | 7/7 | none | source mixed °F/°C |
 | nr-070 | pass |  | 95 | 100 | no | schema.org JSON-LD | 14/14 | none | source mixed °F/°C |
-| nr-072 | skipped | ambiguous_source_content | 0 | 0 | yes | clean page text | /0 | ambiguous source content | No complete structured recipe found; AI fallback disabled for this run. |
+| nr-072 | pass |  | 100 | 100 | no | AI fallback page text | /19 | none |  |
 | nr-074 | pass |  | 90 | 100 | no | schema.org JSON-LD | 19/19 | none | Possible duplicate ingredient: spiced rum.; duplicate ingredient lines |
 | nr-076 | pass |  | 94 | 100 | no | schema.org JSON-LD | 16/16 | none | Some directions may be missing amounts.; directions missing amounts |
 | nr-077 | pass |  | 100 | 100 | no | schema.org JSON-LD | 12/12 | none |  |
-| nr-078 | skipped | video_transcript_needed | 0 | 0 | yes | transcript | /0 | video transcript/AI fallback not run | Transcript/description fetched, but AI extraction is disabled for this run.; transcript unavailable; low confidence extraction |
-| nr-079 | skipped | video_transcript_needed | 0 | 0 | yes | transcript | /0 | video transcript/AI fallback not run | Transcript/description fetched, but AI extraction is disabled for this run. |
-| nr-080 | skipped | video_transcript_needed | 0 | 0 | yes | transcript | /0 | video transcript/AI fallback not run | Transcript/description fetched, but AI extraction is disabled for this run. |
-| nr-082 | skipped | video_transcript_needed | 0 | 0 | yes | transcript | /0 | video transcript/AI fallback not run | Transcript/description fetched, but AI extraction is disabled for this run. |
-| nr-084 | skipped | video_transcript_needed | 0 | 0 | yes | transcript | /0 | video transcript/AI fallback not run | Transcript/description fetched, but AI extraction is disabled for this run.; transcript unavailable; low confidence extraction |
-| nr-085 | skipped | video_transcript_needed | 0 | 0 | yes | transcript | /0 | video transcript/AI fallback not run | Transcript/description fetched, but AI extraction is disabled for this run. |
+| nr-078 | skipped | video_transcript_needed | 0 | 0 | yes | transcript + AI fallback requested | /0 | video transcript/AI fallback not run | not_enough_recipe_text; transcript unavailable; low confidence extraction |
+| nr-079 | pass |  | 100 | 100 | no | AI fallback transcript | /14 | none |  |
+| nr-080 | pass |  | 100 | 100 | no | AI fallback transcript | /10 | none |  |
+| nr-082 | pass |  | 100 | 100 | no | AI fallback transcript | /18 | none |  |
+| nr-084 | skipped | video_transcript_needed | 0 | 0 | yes | transcript + AI fallback requested | /0 | video transcript/AI fallback not run | not_enough_recipe_text; transcript unavailable; low confidence extraction |
+| nr-085 | pass |  | 100 | 100 | no | AI fallback transcript | /11 | none |  |
 | nr-086 | pass |  | 95 | 100 | no | schema.org JSON-LD | 12/12 | none | source mixed °F/°C |
 | nr-087 | pass |  | 100 | 100 | no | schema.org JSON-LD | 13/13 | none |  |
 | nr-088 | pass |  | 100 | 100 | no | schema.org JSON-LD | 10/10 | none |  |
 | nr-089 | pass |  | 100 | 100 | no | schema.org JSON-LD | 19/19 | none |  |
-| nr-091 | skipped | ambiguous_source_content | 0 | 0 | yes | clean page text | /0 | ambiguous source content | No complete structured recipe found; AI fallback disabled for this run. |
-| nr-092 | skipped | ambiguous_source_content | 0 | 0 | yes | clean page text | /0 | ambiguous source content | No complete structured recipe found; AI fallback disabled for this run. |
-| nr-093 | skipped | ambiguous_source_content | 0 | 0 | yes | clean page text | /0 | ambiguous source content | No complete structured recipe found; AI fallback disabled for this run. |
-| nr-096 | skipped | ai_fallback_needed | 0 | 0 | yes | clean page text | /0 | AI fallback not run | No complete structured recipe found; AI fallback disabled for this run. |
+| nr-091 | pass |  | 100 | 100 | no | AI fallback page text | /11 | none |  |
+| nr-092 | pass |  | 100 | 100 | no | AI fallback page text | /7 | none |  |
+| nr-093 | pass |  | 100 | 100 | no | AI fallback page text | /14 | none |  |
+| nr-096 | skipped | blocked_or_inaccessible | 0 | 0 | yes | clean page text + AI fallback requested | /0 | accessibility/source coverage | source_blocked |
 | nr-097 | pass |  | 100 | 100 | no | schema.org JSON-LD | 10/10 | none |  |
 | nr-098 | pass |  | 95 | 100 | no | schema.org JSON-LD | 9/9 | none | source mixed °F/°C |
-| nr-081 | skipped | video_transcript_needed | 0 | 0 | yes | transcript | /0 | video transcript/AI fallback not run | Transcript/description fetched, but AI extraction is disabled for this run. |
-| nr-083 | skipped | video_transcript_needed | 0 | 0 | yes | transcript | /0 | video transcript/AI fallback not run | Transcript/description fetched, but AI extraction is disabled for this run.; transcript unavailable; low confidence extraction |
+| nr-081 | partial |  | 88 | 82 | yes | AI fallback transcript | /4 | quantity grounding | source mixed US/metric units; quantity: uncertain - "200 g thick spaghetti (pici or tonarelli)"; quantity: uncertain - "100 g pecorino cheese, finely grated"; unit: uncertain - "2 tsp freshly ground black pepper" |
+| nr-083 | skipped | video_transcript_needed | 0 | 0 | yes | transcript + AI fallback requested | /0 | video transcript/AI fallback not run | not_enough_recipe_text; transcript unavailable; low confidence extraction |
 | nr-090 | pass |  | 100 | 100 | no | schema.org JSON-LD | 4/4 | none |  |
 | nr-099 | pass |  | 100 | 100 | no | schema.org JSON-LD | 12/12 | none |  |
 | nr-100 | pass |  | 90 | 100 | no | schema.org JSON-LD | 19/19 | none | Possible duplicate ingredient: Italian seasoning ($0.02), garlic powder ($0.02), smoked paprika ($0.02), black pepper (freshly cracked, $0.02).; duplicate ingredient lines |

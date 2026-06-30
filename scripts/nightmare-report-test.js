@@ -51,4 +51,20 @@ const attempted = results.filter((r) => r.import_status !== "skipped");
 const expectedPassRate = attempted.length ? Number(((summary.counts.pass / attempted.length) * 100).toFixed(1)) : null;
 assert.strictEqual(summary.pass_rate_among_attempted, expectedPassRate, "pass rate excludes skipped imports");
 
+const byId = new Map(results.map((row) => [row.id, row]));
+const hummus = byId.get("nr-088");
+if (hummus) {
+  assert.strictEqual(hummus.import_status, "pass", "perfect structured source audit overrides noisy text grounding for nr-088");
+  assert.strictEqual(hummus.source_audit_score, 100, "nr-088 keeps a perfect source audit score");
+}
+if (summary.ai_fallback_requested) {
+  assert.ok(summary.ai_usage.calls <= 27, "AI calls stay within candidate cap");
+  assert.ok(summary.ai_usage.spent_usd <= summary.ai_usage.budget_usd, "AI spend stays inside budget");
+  const aiRows = results.filter((row) => /^AI fallback/i.test(row.extraction_method_used || ""));
+  assert.ok(aiRows.length > 0, "AI fallback run records AI-attempted rows");
+  aiRows.forEach((row) => {
+    assert.ok(row.source_audit && row.source_audit.available, `${row.id} has source-text audit for AI fallback`);
+  });
+}
+
 console.log("nightmare-report-test: ok");

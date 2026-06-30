@@ -1,0 +1,395 @@
+{
+  "title": "Gyoza (Japanese Potstickers)",
+  "cookTime": "1 hour 20 minutes",
+  "servings": 52,
+  "description": "Gyoza are Japanese pan-fried dumplings with a juicy pork-and-cabbage filling and a golden, crispy bottom. Serve them with a simple homemade soy-vinegar dipping sauce.",
+  "notes": "Salting draws out the moisture so the wrappers don't get soggy. Alternatively, you can blanch or microwave the thick, hard leaves until soft, or skip wilting altogether. Kneading binds the meat proteins so the texture is springy and smooth. The gyoza skin edges dry out quickly. Covering with a damp kitchen cloth or paper towel keeps them moist and easy to use. Do not overstuff the gyoza or the filling will squeeze out and make folding difficult. Cook the gyoza in batches or use two frying pans. You can also arrange them in one or two rows if preferred, leaving space between each piece. Steam frozen gyoza an extra 1–2 minutes. Because you flash froze the gyoza, they won't stick to each other in the bag. Shape leftover filling into mini meatballs or patties and pan-fry until cooked through. Cool, pack in an airtight container, and store in the fridge for up to 3 days or in the freezer for up to a month. Fill leftover wrappers with sliced cheese, fold and press to seal, and pan-fry until golden on both sides. They are a favorite with kids! For a different folding style, see How to Fold Gyoza: https: //www.justonecookbook.com/how-to-fold-gyoza/. Vegetable Gyoza recipe: https: //www.justonecookbook.com/vegetable-gyoza/. Homemade Gyoza Wrappers: https: //www.justonecookbook.com/gyoza-wrappers/. Homemade La-yu: https: //www.justonecookbook.com/homemade-la-yu/.",
+  "heroImage": "https://www.justonecookbook.com/wp-content/uploads/2027/05/Gyoza-Recipe-7463-I-3.jpg",
+  "macros": {
+    "calories": 32,
+    "protein": 1,
+    "carbs": 4,
+    "fat": 1,
+    "fiber": 0
+  },
+  "category": "Appetizers",
+  "tags": [
+    "Weeknight",
+    "Freezer-Friendly",
+    "Party",
+    "Kid-Friendly"
+  ],
+  "sections": [
+    {
+      "name": "Filling",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1/2",
+          "unit": "lb",
+          "name": "ground pork",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/2 lb ground pork"
+        },
+        {
+          "id": "i2",
+          "amount": "3/4",
+          "unit": "lb",
+          "name": "green cabbage",
+          "weightAmount": "1/4",
+          "weightUnit": "L",
+          "raw": "3/4 lb green cabbage (1/4 large head)"
+        },
+        {
+          "id": "i3",
+          "amount": "2",
+          "unit": "",
+          "name": "shiitake mushrooms",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 shiitake mushrooms"
+        },
+        {
+          "id": "i4",
+          "amount": "2",
+          "unit": "",
+          "name": "green onions/scallions",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 green onions/scallions"
+        },
+        {
+          "id": "i5",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "ginger (grated, with juice; from a 1-inch, 2.5-cm knob)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 tsp ginger (grated, with juice; from a 1-inch, 2.5-cm knob)"
+        },
+        {
+          "id": "i6",
+          "amount": "2",
+          "unit": "cloves",
+          "name": "garlic",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 cloves garlic"
+        },
+        {
+          "id": "i7",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "sake (to remove the pork's gamey taste; optional)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 tsp sake (to remove the pork's gamey taste; optional)",
+          "optional": true
+        },
+        {
+          "id": "i8",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "toasted sesame oil",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 tsp toasted sesame oil"
+        },
+        {
+          "id": "i9",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "soy sauce",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 tsp soy sauce"
+        },
+        {
+          "id": "i10",
+          "amount": "1/8",
+          "unit": "tsp",
+          "name": "freshly ground black pepper",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/8 tsp freshly ground black pepper"
+        },
+        {
+          "id": "i11",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "Diamond Crystal kosher salt (for the cabbage)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 tsp Diamond Crystal kosher salt (for the cabbage)"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Cut the thick core from {i2} and cut the leaves into 1/3-inch (1 cm) strips. Finely chop crosswise. Pay extra attention to the thick white ribs—mince them until very fine.",
+          "ingredientRefs": [
+            "i2"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "Sprinkle with {i11} and rub it in with your hands. Transfer to a bowl and let sit until wilted.",
+          "ingredientRefs": [
+            "i11"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Mince {i4} into small pieces.",
+          "ingredientRefs": [
+            "i4"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "Cut off the stems from {i3}, thinly slice the caps, then mince the slices into small pieces.",
+          "ingredientRefs": [
+            "i3"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Grate the ginger with a ceramic grater and add {i5} to a small plate.",
+          "ingredientRefs": [
+            "i5"
+          ]
+        },
+        {
+          "id": "s6",
+          "text": "Mince or press {i6} (I use a garlic press) and add to the plate.",
+          "ingredientRefs": [
+            "i6"
+          ]
+        },
+        {
+          "id": "s7",
+          "text": "Add {i1}, the green onions, and {i3} to a large bowl.",
+          "ingredientRefs": [
+            "i1",
+            "i3"
+          ]
+        },
+        {
+          "id": "s8",
+          "text": "Add {i7}, {i8}, {i9}, {i10}, {i5}, and {i6}.",
+          "ingredientRefs": [
+            "i7",
+            "i8",
+            "i9",
+            "i10",
+            "i5",
+            "i6"
+          ]
+        },
+        {
+          "id": "s9",
+          "text": "Put on plastic disposable gloves if preferred, then knead the mixture until sticky and pale.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s10",
+          "text": "Squeeze the water from the salted {i2} and add to {i1} mixture. Knead the filling until the cabbage is fully incorporated and the mixture is uniform.",
+          "ingredientRefs": [
+            "i1",
+            "i2"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Folding",
+      "ingredients": [
+        {
+          "id": "i12",
+          "amount": "1",
+          "unit": "package",
+          "name": "gyoza wrappers (52 sheets per package; you can make homemade Gyoza Wrappers)",
+          "weightAmount": "284",
+          "weightUnit": "g",
+          "raw": "1 package gyoza wrappers (52 sheets per package (10 oz, 284 g); you can make homemade Gyoza Wrappers)"
+        },
+        {
+          "id": "i13",
+          "amount": "",
+          "unit": "",
+          "name": "water (to seal the wrappers)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "water (to seal the wrappers)"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s11",
+          "text": "Prepare a small bowl of water and a baking sheet lined with parchment paper or dusted with 2 Tbsp potato starch (or cornstarch).",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s12",
+          "text": "Open {i12} and cover them with a damp towel or plastic wrap at all times.",
+          "ingredientRefs": [
+            "i12"
+          ]
+        },
+        {
+          "id": "s13",
+          "text": "Hold one wrapper in the palm of your non-dominant hand (left hand for me). Measure 1 level Tbsp (or a scant 3/4 Tbsp for beginners) of filling with a small cookie scoop. Place the filling in the center of the wrapper and flatten it with the scooper bowl to press out any trapped air.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s14",
+          "text": "Dip one finger in {i13} and use it to moisten a circle on the wrapper's outer 1/4 inch (6 mm).",
+          "ingredientRefs": [
+            "i13"
+          ]
+        },
+        {
+          "id": "s15",
+          "text": "Fold the wrapper in half over the filling. Pinch the two sides together at the top center, but don't seal it yet.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s16",
+          "text": "Right side: Starting to the right of top center, fold a pleat leaning toward the center into the top half of the wrapper using your right thumb and index finger. Tightly press the folded pleat against the back half of the wrapper using your left thumb and index finger. Fold 2–3 more pleats on the right side 1/4 inch (6 mm) apart. Press to seal any gaps.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s17",
+          "text": "Left side: To the left of top center, fold a pleat leaning toward the center into the top half of the wrapper using your left thumb and index finger. Tightly press the folded pleat against the back half of the wrapper using your right thumb and index finger. Fold 2–3 more pleats along the left side every 1/4 inch (6 mm). Press one last time to seal any gaps and secure the pleats.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s18",
+          "text": "Evenly distribute the filling and make the bottom flat so the gyoza sits upright. Place on the baking sheet and cover with plastic wrap to avoid drying. Fold the remaining gyoza. Cook or freeze the folded dumplings right away before the filling releases moisture and makes {i12} soggy.",
+          "ingredientRefs": [
+            "i12"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Cooking (per batch)",
+      "ingredients": [
+        {
+          "id": "i14",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "neutral oil",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 Tbsp neutral oil"
+        },
+        {
+          "id": "i15",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "toasted sesame oil",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 tsp toasted sesame oil"
+        },
+        {
+          "id": "i16",
+          "amount": "4",
+          "unit": "Tbsp",
+          "name": "water",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "4 Tbsp water"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s19",
+          "text": "Heat a large nonstick or carbon steel frying pan over medium heat. When hot, add {i14}.",
+          "ingredientRefs": [
+            "i14"
+          ]
+        },
+        {
+          "id": "s20",
+          "text": "Dust off any potato starch from the gyoza bottoms with a pastry brush.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s21",
+          "text": "Place the gyoza in the pan, flat side down in a single layer in a circular pattern. Leave space between each piece so they don't touch. Cook about 3 minutes, until the bottoms are golden brown and release cleanly from the pan.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s22",
+          "text": "Add {i16} to the pan and immediately cover with a lid. Steam for about 3 minutes, until most of the water evaporates.",
+          "ingredientRefs": [
+            "i16"
+          ]
+        },
+        {
+          "id": "s23",
+          "text": "Remove the lid and cook until {i16} fully evaporates, about 1 minute.",
+          "ingredientRefs": [
+            "i16"
+          ]
+        },
+        {
+          "id": "s24",
+          "text": "Drizzle {i15} around the gyoza and cook, uncovered, until the bottoms are deep golden and crisp.",
+          "ingredientRefs": [
+            "i15"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Dipping Sauce (per serving)",
+      "ingredients": [
+        {
+          "id": "i17",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "soy sauce",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 Tbsp soy sauce"
+        },
+        {
+          "id": "i18",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "rice vinegar (unseasoned)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 Tbsp rice vinegar (unseasoned)"
+        },
+        {
+          "id": "i19",
+          "amount": "1/8",
+          "unit": "tsp",
+          "name": "la-yu (Japanese chili oil) (you can make Homemade La-yu)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/8 tsp la-yu (Japanese chili oil) (you can make Homemade La-yu)",
+          "optional": true
+        }
+      ],
+      "steps": [
+        {
+          "id": "s25",
+          "text": "Transfer to a plate and serve with a side of dipping sauce. For each serving, mix {i18}, {i17}, and optional {i19} in an individual sauce plate or bowl.",
+          "ingredientRefs": [
+            "i17",
+            "i18",
+            "i19"
+          ]
+        }
+      ]
+    }
+  ],
+  "sourceUrl": "https://www.justonecookbook.com/gyoza/",
+  "importMethod": "ai-fallback"
+}

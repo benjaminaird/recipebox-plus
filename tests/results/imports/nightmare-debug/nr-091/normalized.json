@@ -1,0 +1,176 @@
+{
+  "title": "Perfect Blueberry Muffins - Smitten Kitchen",
+  "cookTime": "30 to 40 minutes",
+  "servings": 9,
+  "description": "Thick-battered blueberry muffins with a high dome, crunchy turbinado sugar top, and bursting berries. Works with fresh or frozen blueberries.",
+  "notes": "This began with an adaptation of an old Cook's Illustrated blueberry muffin but with so many changes, it no longer resembles the original. I use yogurt instead of buttermilk, less sugar, I've adapted it to make it one-bowl and then in August 2016 it got the biggest overhaul yet after a month of blueberry muffin studies. From Stella Parks at Serious Eats (https: //www.seriouseats.com/recipes/2016/07/classic-blueberry-muffin-recipe.html), I came to agree that a full teaspoon of coarse sugar on top of each muffin sounds crazy but actually makes a delightfully crunchy lid. If the muffin underneath it isn't too sweet, it doesn't put it over the top at all — it's just right. I also found her combination of coriander (I know!) and nutmeg crazy good and worth trying if you're curious, even if I'm still defaulting to my lemon zest only here. From Blythe Danner, I realized you could put an inordinate amount of berries in each muffin and still have a very good muffin. I ended up doubling the berries in my go-to in the last batch and regret not-a-thing. (Should you be hesitant, just an increase from 3/4 cups to 1 1/4 is excellent but not over-the-top improvement.) I found it made 9 taller and more gorgeous muffins than it did of the 10 to 11 in the original recipe; just double it for a crowd. These, like most muffins, are best on the first day, we've found through extensive \"research\" that if you run them split open under a broiler on day two with a pat of salted butter, it's so good that you're going to forever hope for more blueberry muffin leftovers. I prefer them with paper liners because occasionally, a blueberry gets lost, stuck to the pan, and that's just no way for a blueberry to go out. It doesn't much matter whether your berries are frozen or fresh, but I don't care for defrosting them first as they just get so wet and slumpy.",
+  "heroImage": "https://i0.wp.com/smittenkitchen.com/wp-content/uploads/2010/08/perfect-blueberry-muffins-scaled.jpg?fit=1200%2C800&quality=89&ssl=1",
+  "macros": {
+    "calories": 245,
+    "protein": 4,
+    "carbs": 42,
+    "fat": 7,
+    "fiber": 2
+  },
+  "category": "Breakfast",
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "5",
+          "unit": "Tbsp",
+          "name": "unsalted butter, cold is fine",
+          "weightAmount": "70",
+          "weightUnit": "g",
+          "raw": "5 tablespoons (70 grams) unsalted butter, cold is fine"
+        },
+        {
+          "id": "i2",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "sugar",
+          "weightAmount": "100",
+          "weightUnit": "g",
+          "raw": "1/2 cup (100 grams) sugar"
+        },
+        {
+          "id": "i3",
+          "amount": "",
+          "unit": "",
+          "name": "finely grated zest from half a lemon",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "Finely grated zest from half a lemon"
+        },
+        {
+          "id": "i4",
+          "amount": "3/4",
+          "unit": "cup",
+          "name": "plain unsweetened yogurt or sour cream",
+          "weightAmount": "180",
+          "weightUnit": "g",
+          "raw": "3/4 cup (180 grams) plain unsweetened yogurt or sour cream"
+        },
+        {
+          "id": "i5",
+          "amount": "1",
+          "unit": "",
+          "name": "large egg",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 large egg"
+        },
+        {
+          "id": "i6",
+          "amount": "1 1/2",
+          "unit": "tsp",
+          "name": "baking powder",
+          "weightAmount": "7",
+          "weightUnit": "g",
+          "raw": "1 1/2 teaspoons (7 grams) baking powder"
+        },
+        {
+          "id": "i7",
+          "amount": "1/4",
+          "unit": "tsp",
+          "name": "baking soda",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/4 teaspoon baking soda"
+        },
+        {
+          "id": "i8",
+          "amount": "1/4",
+          "unit": "tsp",
+          "name": "fine sea or table salt",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/4 teaspoon fine sea or table salt"
+        },
+        {
+          "id": "i9",
+          "amount": "1 1/2",
+          "unit": "cup",
+          "name": "all-purpose flour",
+          "weightAmount": "195",
+          "weightUnit": "g",
+          "raw": "1 1/2 cups (195 grams) all-purpose flour"
+        },
+        {
+          "id": "i10",
+          "amount": "1 1/4 to 1 1/2",
+          "unit": "cup",
+          "name": "blueberries, fresh or frozen (no need to defrost)",
+          "weightAmount": "215 to 255",
+          "weightUnit": "g",
+          "raw": "1 1/4 to 1 1/2 cups (215 to 255 grams) blueberries, fresh or frozen (no need to defrost)"
+        },
+        {
+          "id": "i11",
+          "amount": "3",
+          "unit": "Tbsp",
+          "name": "turbinado sugar (sugar in the raw)",
+          "weightAmount": "35",
+          "weightUnit": "g",
+          "raw": "3 tablespoons (35 grams) turbinado sugar (sugar in the raw)"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Heat oven to 375°F. Line a muffin tin with 9 paper liners or spray each cup with a nonstick spray.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Melt {i1} in the bottom of a large bowl and whisk in {i2}, {i3}, {i4} and {i5} until smooth.",
+          "ingredientRefs": [
+            "i1",
+            "i2",
+            "i3",
+            "i4",
+            "i5"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Whisk in {i6}, {i7} and {i8} until fully combined, then lightly fold in {i9} and {i10}. Batter will be very thick, like a cookie dough.",
+          "ingredientRefs": [
+            "i6",
+            "i7",
+            "i8",
+            "i9",
+            "i10"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "Divide between prepared muffin cups and sprinkle each with 1 teaspoon {i11}, which will seem over-the-top but I promise, will be the perfect crunchy lid at the end.",
+          "ingredientRefs": [
+            "i11"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Bake for 25 to 30 minutes, until tops are golden and a tester inserted into the center of muffins comes out clean (you know, except for blueberry goo).",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Let cool in pan for 10 minutes then the rest of the way on a rack.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "tags": [
+    "Quick",
+    "Weeknight",
+    "Make-Ahead",
+    "Best of 2024"
+  ],
+  "sourceUrl": "https://smittenkitchen.com/2010/08/perfect-blueberry-muffins/",
+  "importMethod": "ai-fallback"
+}

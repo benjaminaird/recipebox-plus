@@ -1,0 +1,253 @@
+{
+  "title": "Falafel - Love and Lemons",
+  "cookTime": "25 minutes",
+  "prepTime": "15 minutes",
+  "totalTime": "1 day 40 minutes",
+  "servings": 4,
+  "description": "Falafel are flavorful balls of ground chickpeas, herbs, and spices. In Middle Eastern cooking, they're typically fried, but here, I bake them for an easy homemade twist. Serve them in a pita wrap with all the fixings.",
+  "notes": "Canned chickpeas cannot be substituted in this recipe or your falafel will turn out mushy. You MUST use dried chickpeas and soak them for 24 hours (or at least overnight) before making the recipe. Do not cook the chickpeas after soaking. Drizzle the patties generously with olive oil before baking—this is the key to making them moist and crisp since we're not frying. Don't pack your patties too tightly or they will be dense. Form the falafel balls gently. If your mixture isn't holding together, pulse it a bit more in the food processor. If it's still too crumbly, pop it in the fridge to chill for 30 minutes before shaping and baking. Make a double batch and freeze the extras. To reheat frozen falafel, pop them in a 400°F oven for about 10 minutes, until they're crisp and heated through.",
+  "heroImage": "https://cdn.loveandlemons.com/wp-content/uploads/opengraph/2019/09/falafel-1.jpg",
+  "macros": {
+    "calories": 248,
+    "protein": 11,
+    "carbs": 38,
+    "fat": 7,
+    "fiber": 11
+  },
+  "category": "Entrées",
+  "tags": [
+    "Vegetarian",
+    "Vegan",
+    "Middle Eastern",
+    "Make-Ahead",
+    "Freezer-Friendly",
+    "Meal Prep"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1",
+          "unit": "cup",
+          "name": "uncooked chickpeas, soaked 24 hours, drained, rinsed, and patted dry",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 cup uncooked chickpeas, soaked 24 hours, drained, rinsed, and patted dry"
+        },
+        {
+          "id": "i2",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "chopped shallot or yellow onion",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/2 cup chopped shallot or yellow onion"
+        },
+        {
+          "id": "i3",
+          "amount": "3",
+          "unit": "",
+          "name": "garlic cloves",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "3 garlic cloves"
+        },
+        {
+          "id": "i4",
+          "amount": "1",
+          "unit": "teaspoon",
+          "name": "lemon zest",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 teaspoon lemon zest"
+        },
+        {
+          "id": "i5",
+          "amount": "1",
+          "unit": "teaspoon",
+          "name": "ground cumin",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 teaspoon ground cumin"
+        },
+        {
+          "id": "i6",
+          "amount": "1",
+          "unit": "teaspoon",
+          "name": "ground coriander",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 teaspoon ground coriander"
+        },
+        {
+          "id": "i7",
+          "amount": "3/4",
+          "unit": "teaspoon",
+          "name": "sea salt",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "3/4 teaspoon sea salt"
+        },
+        {
+          "id": "i8",
+          "amount": "1/4",
+          "unit": "teaspoon",
+          "name": "cayenne pepper",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/4 teaspoon cayenne pepper"
+        },
+        {
+          "id": "i9",
+          "amount": "1/4",
+          "unit": "teaspoon",
+          "name": "baking powder",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/4 teaspoon baking powder"
+        },
+        {
+          "id": "i10",
+          "amount": "1",
+          "unit": "cup",
+          "name": "chopped fresh cilantro leaves and stems, patted dry",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 cup chopped fresh cilantro leaves and stems, patted dry"
+        },
+        {
+          "id": "i11",
+          "amount": "1",
+          "unit": "cup",
+          "name": "chopped fresh parsley leaves and stems, patted dry",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 cup chopped fresh parsley leaves and stems, patted dry"
+        },
+        {
+          "id": "i12",
+          "amount": "1",
+          "unit": "tablespoon",
+          "name": "extra-virgin olive oil, plus more for drizzling",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 tablespoon extra-virgin olive oil, plus more for drizzling"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Preheat the oven to 400°F and line a large baking sheet with parchment paper.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "In a large food processor, place {i1}, {i2}, {i3}, {i4}, {i5}, {i6}, {i7}, {i8}, {i9}, {i10}, {i11}, and {i12}. Pulse until well combined but not pureed. Use a spatula to scrape down the sides of the bowl as needed.",
+          "ingredientRefs": [
+            "i1",
+            "i2",
+            "i3",
+            "i4",
+            "i5",
+            "i6",
+            "i7",
+            "i8",
+            "i9",
+            "i10",
+            "i11",
+            "i12"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Use a 2-tablespoon scoop and your hands to form the mixture into 12 to 15 thick patties (be careful not to pack them too tight or your falafel will be dense). If they're not holding together, give the mixture a few more pulses in the food processor.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Place the patties on the baking sheet. Drizzle generously with olive oil (this is the key to making these moist and crisp since we're not frying) and bake for 14 minutes.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Flip and bake for 10 to 12 minutes more or until golden brown and crisp on the outside.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "During the last few minutes of baking, wrap the pita in foil and warm in the oven.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Assemble pitas with a slather of hummus, diced veggies, falafel, herbs, pickled red onions, and generous drizzles of tahini sauce.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "For Serving",
+      "ingredients": [
+        {
+          "id": "i13",
+          "amount": "",
+          "unit": "",
+          "name": "pita bread (use gluten-free pita if needed)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "Pita bread, use gluten-free pita if needed"
+        },
+        {
+          "id": "i14",
+          "amount": "",
+          "unit": "",
+          "name": "hummus",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "Hummus"
+        },
+        {
+          "id": "i15",
+          "amount": "",
+          "unit": "",
+          "name": "diced veggies (tomato, cucumber)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "Diced veggies, tomato, cucumber"
+        },
+        {
+          "id": "i16",
+          "amount": "",
+          "unit": "",
+          "name": "fresh herbs (chopped parsley, fresh mint)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "Fresh herbs, chopped parsley, fresh mint"
+        },
+        {
+          "id": "i17",
+          "amount": "",
+          "unit": "",
+          "name": "pickled red onions",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "Pickled Red Onions"
+        },
+        {
+          "id": "i18",
+          "amount": "",
+          "unit": "",
+          "name": "tahini sauce",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "Tahini Sauce"
+        }
+      ],
+      "steps": []
+    }
+  ],
+  "sourceUrl": "https://www.loveandlemons.com/falafel/",
+  "importMethod": "ai-fallback"
+}

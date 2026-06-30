@@ -1,0 +1,167 @@
+{
+  "title": "Butternut Squash Soup",
+  "cookTime": "45 minutes",
+  "servings": 6,
+  "description": "This vegan butternut squash soup is the ultimate fall comfort food! Creamy and nourishing, perfect for satisfying cozy fall cravings.",
+  "notes": "Store in the fridge for up to 4 days, or freeze for up to a few months. If your soup is too thick, add up to 1 cup more broth and blend. Vegetable broth: https: //www.amazon.com/365-Everyday-Value-Organic-Vegetable/dp/B074VDHXHB?&linkCode=sl1&tag=loveandlemobl-20&linkId=aed19db3717e5f73e58e4bc8b4fdd81e&language=en_US&ref_=as_li_ss_tl",
+  "heroImage": "https://cdn.loveandlemons.com/wp-content/uploads/opengraph/2019/10/butternut-squash-soup.jpg",
+  "category": "Entrées",
+  "macros": {
+    "calories": 140,
+    "protein": 3,
+    "carbs": 28,
+    "fat": 5,
+    "fiber": 5
+  },
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "2",
+          "unit": "Tbsp",
+          "name": "extra-virgin olive oil",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 tablespoons extra-virgin olive oil"
+        },
+        {
+          "id": "i2",
+          "amount": "1",
+          "unit": "large",
+          "name": "yellow onion, chopped",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 large yellow onion, chopped"
+        },
+        {
+          "id": "i3",
+          "amount": "1/2",
+          "unit": "tsp",
+          "name": "sea salt",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/2 teaspoon sea salt"
+        },
+        {
+          "id": "i4",
+          "amount": "1",
+          "unit": "(3-pound)",
+          "name": "butternut squash, peeled, seeded, and cubed",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 (3-pound) butternut squash, peeled, seeded, and cubed"
+        },
+        {
+          "id": "i5",
+          "amount": "3",
+          "unit": "cloves",
+          "name": "garlic, chopped",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "3 garlic cloves, chopped"
+        },
+        {
+          "id": "i6",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "chopped fresh sage",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 tablespoon chopped fresh sage"
+        },
+        {
+          "id": "i7",
+          "amount": "1/2",
+          "unit": "Tbsp",
+          "name": "minced fresh rosemary",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/2 tablespoon minced fresh rosemary"
+        },
+        {
+          "id": "i8",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "grated fresh ginger",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 teaspoon grated fresh ginger"
+        },
+        {
+          "id": "i9",
+          "amount": "3 to 4",
+          "unit": "cup",
+          "name": "vegetable broth",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "3 to 4 cups vegetable broth"
+        },
+        {
+          "id": "i10",
+          "amount": "",
+          "unit": "",
+          "name": "freshly ground black pepper",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "Freshly ground black pepper"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Heat {i1} in a large pot over medium heat. Add {i2}, {i3}, and several grinds of {i10} and sauté until soft, 5 to 8 minutes.",
+          "ingredientRefs": [
+            "i1",
+            "i2",
+            "i3",
+            "i10"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "Add {i4} and cook until it begins to soften, stirring occasionally, for 8 to 10 minutes.",
+          "ingredientRefs": [
+            "i4"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Add {i5}, {i6}, {i7}, and {i8}. Stir and cook 30 seconds to 1 minute, until fragrant, then add 3 cups of {i9}.",
+          "ingredientRefs": [
+            "i5",
+            "i6",
+            "i7",
+            "i8",
+            "i9"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "Bring to a boil, cover, and reduce heat to a simmer. Cook until the squash is tender, 20 to 30 minutes.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Let cool slightly and pour the soup into a blender, working in batches if necessary, and blend until smooth. If your soup is too thick, add up to 1 cup more broth and blend.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Season to taste and serve with chopped parsley, toasted pepitas, and crusty bread.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "tags": [
+    "Vegan",
+    "Comfort Food",
+    "Fall",
+    "Make-Ahead",
+    "Freezer-Friendly"
+  ],
+  "sourceUrl": "https://www.loveandlemons.com/butternut-squash-soup/",
+  "importMethod": "ai-fallback"
+}

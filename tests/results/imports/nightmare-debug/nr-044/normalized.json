@@ -1,0 +1,285 @@
+{
+  "title": "Pad Thai - RecipeTin Eats",
+  "cookTime": "30 minutes",
+  "servings": 2,
+  "description": "This is a Pad Thai recipe that truly stacks up to great Thai restaurants yet is totally doable for every home cook with just a trip to your every day grocery store. With the slippery noodles, signature sweet-savoury flavour, sprinkle of peanuts and tang from lime, this is a Thai food favourite for good reason!",
+  "notes": "Tamarind is the heart and soul of Pad Thai. The authentic version starts with tamarind pulp which needs to be soaked then strained. Puree is sold in a jar at supermarkets (Asian section), far easier! It's a scoopable soft paste. It can be labelled as Tamarind Puree or Paste (not to be confused with Tamarind concentrate which is stronger – use about 1/3 of the amount if you have this). There's a few different ones on Amazon US – here is the cheapest one: https: //www.amazon.com/Tamicon-Tamarind-Paste-Grams-Ounces/dp/B00I9P242U/ref=sr_1_13_a_it?ie=UTF8&qid=1525644950&sr=8-13&keywords=tamarind&th=1. Use leftovers for Beef Rendang! KETCHUP SUBSTITUTE if you can't find tamarind. Use this for the Pad Thai Sauce instead of ingredients listed above: 1 tbsp ketchup, 2 tbsp brown sugar, 2 tbsp fish sauce, 2 tsp oyster sauce, 1 tsp dark soy sauce, 2 tbsp rice vinegar (or 1 tbsp white vinegar). This is mainly for colour, so can be substituted with light or normal soy sauce and flavour will still be the same. Don't leave noodles sitting around for more than 5–10 minutes after soaking. If using the Erawan brand rice noodles, soak in room temp tap water for 40–45 minutes until noodles are silky but still a touch firm. DO NOT follow the packet directions to boil – they disintegrate in the pan! Garlic chives look like blades of grass and taste like garlicky chives. If you can't find them, it's not a deal killer. Best to substitute with chopped shallots (aka green onion/scallions). Fish sauce can be substituted with light soy sauce though you will lose a bit of the flavour edge that fish sauce gives it. Oyster sauce is not in authentic Pad Thai but is essential for this everyday version. I use a skillet here, I find it easier. But if you have a well seasoned wok, make it in that if you want!",
+  "heroImage": "https://www.recipetineats.com/tachyon/2018/05/Chicken-Pad-Thai_9.jpg",
+  "macros": {
+    "calories": 650,
+    "protein": 30,
+    "carbs": 85,
+    "fat": 20,
+    "fiber": 4
+  },
+  "category": "Entrées",
+  "tags": [
+    "Thai",
+    "Quick",
+    "Weeknight",
+    "Stir Fry",
+    "Noodles"
+  ],
+  "sections": [
+    {
+      "name": "Noodles",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "125",
+          "unit": "g",
+          "name": "Chang's Pad Thai dried rice sticks",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "125 g / 4oz Chang's Pad Thai dried rice sticks"
+        }
+      ],
+      "steps": []
+    },
+    {
+      "name": "Sauce",
+      "ingredients": [
+        {
+          "id": "i2",
+          "amount": "1 1/2",
+          "unit": "Tbsp",
+          "name": "tamarind puree, NOT concentrate",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 1/2 tbsp tamarind puree, NOT concentrate"
+        },
+        {
+          "id": "i3",
+          "amount": "3",
+          "unit": "Tbsp",
+          "name": "(packed) brown sugar",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "3 tbsp (packed) brown sugar"
+        },
+        {
+          "id": "i4",
+          "amount": "2",
+          "unit": "Tbsp",
+          "name": "fish sauce",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 tbsp fish sauce"
+        },
+        {
+          "id": "i5",
+          "amount": "1 1/2",
+          "unit": "Tbsp",
+          "name": "oyster sauce",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 1/2 tbsp oyster sauce"
+        }
+      ],
+      "steps": []
+    },
+    {
+      "name": "Stir Fry",
+      "ingredients": [
+        {
+          "id": "i6",
+          "amount": "2 - 3",
+          "unit": "Tbsp",
+          "name": "vegetable or canola oil",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 – 3 tbsp vegetable or canola oil"
+        },
+        {
+          "id": "i7",
+          "amount": "1/2",
+          "unit": "",
+          "name": "onion, sliced (brown, yellow)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/2 onion, sliced (brown, yellow)"
+        },
+        {
+          "id": "i8",
+          "amount": "2",
+          "unit": "cloves",
+          "name": "garlic, finely chopped",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 garlic cloves, finely chopped"
+        },
+        {
+          "id": "i9",
+          "amount": "150",
+          "unit": "g",
+          "name": "chicken breast (or thigh), thinly sliced",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "150 g/5oz chicken breast (or thigh), thinly sliced"
+        },
+        {
+          "id": "i10",
+          "amount": "2",
+          "unit": "",
+          "name": "eggs, lightly whisked",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "2 eggs, lightly whisked"
+        },
+        {
+          "id": "i11",
+          "amount": "1 1/2",
+          "unit": "cup",
+          "name": "beansprouts",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1 1/2 cups of beansprouts"
+        },
+        {
+          "id": "i12",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "firm tofu, cut into 3cm / 1 1/4\" batons",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/2 cup firm tofu, cut into 3cm / 1 1/4\" batons"
+        },
+        {
+          "id": "i13",
+          "amount": "1/4",
+          "unit": "cup",
+          "name": "garlic chives, cut into 3cm / 1 1/4\" pieces",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/4 cup garlic chives, cut into 3cm / 1 1/4\" pieces"
+        },
+        {
+          "id": "i14",
+          "amount": "1/4",
+          "unit": "cup",
+          "name": "finely chopped peanuts",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "1/4 cup finely chopped peanuts"
+        }
+      ],
+      "steps": []
+    },
+    {
+      "name": "For Serving",
+      "ingredients": [
+        {
+          "id": "i15",
+          "amount": "",
+          "unit": "",
+          "name": "lime wedges (essential)",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "Lime wedges (essential)",
+          "optional": false
+        },
+        {
+          "id": "i16",
+          "amount": "",
+          "unit": "",
+          "name": "ground chilli or cayenne pepper",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "Ground chilli or cayenne pepper (optional)",
+          "optional": true
+        },
+        {
+          "id": "i17",
+          "amount": "",
+          "unit": "",
+          "name": "more beansprouts",
+          "weightAmount": "",
+          "weightUnit": "",
+          "raw": "More beansprouts",
+          "optional": true
+        }
+      ],
+      "steps": []
+    },
+    {
+      "name": "Main",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Place {i1} in a large bowl, pour over plenty of boiling water. Soak for 5 minutes, then drain in a colander and quickly rinse under cold water. Don't leave them sitting around for more than 5–10 minutes.",
+          "ingredientRefs": [
+            "i1"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "Mix {i2}, {i3}, {i4}, and {i5} in small bowl.",
+          "ingredientRefs": [
+            "i2",
+            "i3",
+            "i4",
+            "i5"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Heat 2 tbsp {i6} in a large non stick pan (or well seasoned skillet) over high heat.",
+          "ingredientRefs": [
+            "i6"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "Add {i8} and {i7}, cook for 30 seconds.",
+          "ingredientRefs": [
+            "i8",
+            "i7"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Add {i9} and cook for 1 1/2 minutes until mostly cooked through.",
+          "ingredientRefs": [
+            "i9"
+          ]
+        },
+        {
+          "id": "s6",
+          "text": "Push to one side of the pan, pour {i10} in on the other side. Scramble using the wooden spoon (add touch of extra oil if pan is too dry), then mix into chicken.",
+          "ingredientRefs": [
+            "i10"
+          ]
+        },
+        {
+          "id": "s7",
+          "text": "Add {i11}, {i12}, noodles then Sauce. Toss gently for about 1 1/2 minutes until Sauce is absorbed by the noodles.",
+          "ingredientRefs": [
+            "i11",
+            "i12"
+          ]
+        },
+        {
+          "id": "s8",
+          "text": "Add {i13} and half the {i14}. Toss through quickly then remove from heat.",
+          "ingredientRefs": [
+            "i13",
+            "i14"
+          ]
+        },
+        {
+          "id": "s9",
+          "text": "Serve immediately, sprinkled with remaining {i14} and {i15} on the side, with a sprinkle of {i16} and a handful of extra {i17} on the side if desired (this is the Thai way!). Squeeze over lime juice to taste before eating.",
+          "ingredientRefs": [
+            "i14",
+            "i15",
+            "i16",
+            "i17"
+          ]
+        }
+      ]
+    }
+  ],
+  "sourceUrl": "https://www.recipetineats.com/chicken-pad-thai/",
+  "importMethod": "ai-fallback"
+}
