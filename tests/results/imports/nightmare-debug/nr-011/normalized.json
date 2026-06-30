@@ -1,0 +1,148 @@
+{
+  "title": "Perfect Pot Roast",
+  "description": "Learn the best meat to use for beef pot roast, easy ways to build flavor and how to long pot roast takes to cook in the oven. Plus, discover why braising is the best way to make tender, flavorful pot roast.",
+  "servings": 6,
+  "prepTime": "",
+  "cookTime": "",
+  "totalTime": "",
+  "heroImage": "https://food.fnr.sndimg.com/content/dam/images/food/fullset/2023/9/12/PERFECT_POT_ROAST_H.jpg.rend.hgtvcom.1280.1280.suffix/1694547512468.webp",
+  "notes": "",
+  "tags": [
+    "main-dish",
+    "Roasted Vegetable",
+    "Roasting",
+    "Roast Beef",
+    "Roast Recipes",
+    "Pot Roast",
+    "Main Dish",
+    "Gluten Free",
+    "Easy Main Dish",
+    "Beef"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "",
+          "unit": "",
+          "name": "Salt and freshly ground black pepper",
+          "raw": "Salt and freshly ground black pepper"
+        },
+        {
+          "id": "i2",
+          "amount": "",
+          "unit": "",
+          "name": "One 3- to 5-pound chuck roast",
+          "raw": "One 3- to 5-pound chuck roast"
+        },
+        {
+          "id": "i3",
+          "amount": "2",
+          "unit": "",
+          "name": "or 3 tablespoons olive oil",
+          "raw": "2 or 3 tablespoons olive oil"
+        },
+        {
+          "id": "i4",
+          "amount": "2",
+          "unit": "",
+          "name": "whole onions, peeled and halved",
+          "raw": "2 whole onions, peeled and halved"
+        },
+        {
+          "id": "i5",
+          "amount": "6 to 8",
+          "unit": "",
+          "name": "whole carrots, unpeeled, cut into 2-inch pieces",
+          "raw": "6 to 8 whole carrots, unpeeled, cut into 2-inch pieces"
+        },
+        {
+          "id": "i6",
+          "amount": "1",
+          "unit": "cup",
+          "name": "red wine, optional",
+          "raw": "1 cup red wine, optional"
+        },
+        {
+          "id": "i7",
+          "amount": "3",
+          "unit": "cup",
+          "name": "beef broth",
+          "raw": "3 cups beef broth"
+        },
+        {
+          "id": "i8",
+          "amount": "2",
+          "unit": "",
+          "name": "or 3 sprigs fresh rosemary",
+          "raw": "2 or 3 sprigs fresh rosemary"
+        },
+        {
+          "id": "i9",
+          "amount": "2",
+          "unit": "",
+          "name": "or 3 sprigs fresh thyme",
+          "raw": "2 or 3 sprigs fresh thyme"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Preheat the oven to 275 degrees F.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Generously salt and pepper the chuck roast.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "Heat {i3} in large pot or Dutch oven over medium-high heat. Add {i4} onions to the pot, browning them on both sides. Remove the onions to a plate.",
+          "ingredientRefs": [
+            "i3",
+            "i4"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "Throw the carrots into the same very hot pot and toss them around a bit until slightly browned, about a minute or so. Reserve the carrots with the onions.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "If needed, add a bit more olive oil to the very hot pot. Place the meat in the pot and sear it for about a minute on all sides until it is nice and brown all over. Remove the roast to a plate.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "With the burner still on high, use either red wine or {i7} (about 1 cup) to deglaze the pot, scraping the bottom with a whisk. Place the roast back into the pot and add enough beef stock to cover the meat halfway.",
+          "ingredientRefs": [
+            "i7"
+          ]
+        },
+        {
+          "id": "s7",
+          "text": "Add in the onions and the carrots, along with the fresh herbs.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s8",
+          "text": "Put the lid on, then roast for 3 hours for a 3-pound roast. For a 4 to 5-pound roast, plan on 4 hours. The roast is ready when it's fall-apart tender.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 531,
+    "protein": 64,
+    "carbs": 15,
+    "fat": 21,
+    "fiber": 4
+  },
+  "sourceUrl": "https://www.foodnetwork.com/recipes/ree-drummond/perfect-pot-roast-recipe-2118771",
+  "importMethod": "structured-data"
+}

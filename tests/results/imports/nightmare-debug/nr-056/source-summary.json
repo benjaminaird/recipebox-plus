@@ -1,0 +1,17 @@
+{
+  "id": "nr-056",
+  "url": "https://minimalistbaker.com/vegan-gluten-free-black-bean-brownies/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://minimalistbaker.com/vegan-gluten-free-black-bean-brownies/",
+  "sourceTitle": "Vegan Gluten-Free Black Bean Brownies | Minimalist Baker Recipes",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 16646,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 12,
+  "sourceStepCount": 10,
+  "warnings": [],
+  "error": ""
+}

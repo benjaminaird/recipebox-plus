@@ -1,0 +1,168 @@
+{
+  "title": "Vegan Gluten-Free Black Bean Brownies",
+  "description": "Black bean brownies (vegan and gluten-free) that require just 1 bowl and about 30 minutes to prepare! Healthy, easy, and delicious — the best kind of dessert.",
+  "servings": 12,
+  "prepTime": "5 min",
+  "cookTime": "25 min",
+  "totalTime": "30 min",
+  "heroImage": "https://minimalistbaker.com/wp-content/uploads/2013/04/Vegan-Gluten-Free-Black-Bean-Brownies-square.jpg",
+  "notes": "",
+  "tags": [
+    "Dessert",
+    "Gluten-Free",
+    "Vegan",
+    "black bean brownies"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "2",
+          "unit": "",
+          "name": "heaping Tbsp flaxseed meal",
+          "raw": "2 heaping Tbsp flaxseed meal"
+        },
+        {
+          "id": "i2",
+          "amount": "6",
+          "unit": "tbsp",
+          "name": "water",
+          "raw": "6 Tbsp water"
+        },
+        {
+          "id": "i3",
+          "amount": "1",
+          "unit": "",
+          "name": "15-oz. can black beans ((well rinsed and drained // 1 can yields ~ 1 3/4 cups))",
+          "raw": "1 15-oz. can black beans ((well rinsed and drained // 1 can yields ~ 1 3/4 cups))"
+        },
+        {
+          "id": "i4",
+          "amount": "3",
+          "unit": "tbsp",
+          "name": "coconut oil ((melted // or sub other oil of choice))",
+          "raw": "3 Tbsp coconut oil ((melted // or sub other oil of choice))"
+        },
+        {
+          "id": "i5",
+          "amount": "3/4",
+          "unit": "cup",
+          "name": "cocoa powder",
+          "raw": "3/4 cup cocoa powder"
+        },
+        {
+          "id": "i6",
+          "amount": "1/4",
+          "unit": "tsp",
+          "name": "sea salt",
+          "raw": "1/4 tsp sea salt"
+        },
+        {
+          "id": "i7",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "pure vanilla extract",
+          "raw": "1 tsp pure vanilla extract"
+        },
+        {
+          "id": "i8",
+          "amount": "1/2",
+          "unit": "",
+          "name": "heaping cup organic cane sugar ((slightly ground or pulsed in a food processor or coffee grinder for refined texture))",
+          "raw": "1/2 heaping cup organic cane sugar ((slightly ground or pulsed in a food processor or coffee grinder for refined texture))"
+        },
+        {
+          "id": "i9",
+          "amount": "1 1/2",
+          "unit": "tsp",
+          "name": "baking powder",
+          "raw": "1 1/2 tsp baking powder"
+        },
+        {
+          "id": "i10",
+          "amount": "",
+          "unit": "",
+          "name": "Crushed walnuts",
+          "raw": "Crushed walnuts"
+        },
+        {
+          "id": "i11",
+          "amount": "",
+          "unit": "",
+          "name": "Pecans",
+          "raw": "Pecans"
+        },
+        {
+          "id": "i12",
+          "amount": "",
+          "unit": "",
+          "name": "Dairy-free semisweet chocolate chips",
+          "raw": "Dairy-free semisweet chocolate chips"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Preheat oven to 350 degrees F (176 C).",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Lightly grease a 12-slot standard size muffin pan (not mini // adjust pan size if altering batch size). Make sure you've rinsed and thoroughly drained your black beans at this point.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "Prepare flax egg by combining flax and water in the bowl of the food processor. Pulse a couple times and then let rest for a few minutes.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Add remaining ingredients (besides walnuts or other toppings) and puree - about 3 minutes - scraping down sides as needed. You want it pretty smooth.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "If the batter appears too thick, add a Tbsp or two of water and pulse again. It should be slightly less thick than chocolate frosting but nowhere close to runny.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Evenly distribute the batter into the muffin tin and smooth the tops with a spoon or your finger.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Optional: Sprinkle with crushed walnuts, pecans or chocolate chips.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s8",
+          "text": "Bake for 20-26 minutes or until the tops are dry and the edges start to pull away from the sides. I found mine took about 25.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s9",
+          "text": "Remove from oven and let cool for 30 minutes before removing from pan. They will be tender, so remove gently with a fork. The insides are meant to be very fudgy, so don't be concerned if they seem too moist - that's the point. Plus, they're vegan so it doesn't really matter.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s10",
+          "text": "Store in an airtight container for up to a few days. Refrigerate to keep longer.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 113,
+    "protein": 3,
+    "carbs": 18,
+    "fat": 4.7,
+    "fiber": 4.6
+  },
+  "sourceUrl": "https://minimalistbaker.com/vegan-gluten-free-black-bean-brownies/",
+  "importMethod": "structured-data"
+}

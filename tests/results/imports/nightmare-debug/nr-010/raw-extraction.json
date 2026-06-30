@@ -1,0 +1,130 @@
+{
+  "title": "Lemon Bars",
+  "description": "Ina Garten's classic Lemon Bars start out with a shortbread crust and are topped with a super lemony curd filling. They're so easy to make and are the perfect, packable picnic dessert, from Barefoot Contessa on Food Network.",
+  "servings": 20,
+  "prepTime": "",
+  "cookTime": "",
+  "totalTime": "",
+  "heroImage": "https://food.fnr.sndimg.com/content/dam/images/food/fullset/2009/5/11/0/0105037_Lemon-square_s4x3.jpg.rend.hgtvcom.1280.1280.suffix/1384540891845.webp",
+  "notes": "",
+  "tags": [
+    "dessert",
+    "Low Sodium",
+    "Lemon",
+    "Recipes for a Crowd",
+    "Baking"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1/2",
+          "unit": "pound",
+          "name": "unsalted butter, at room temperature",
+          "raw": "1/2 pound unsalted butter, at room temperature"
+        },
+        {
+          "id": "i2",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "granulated sugar",
+          "raw": "1/2 cup granulated sugar"
+        },
+        {
+          "id": "i3",
+          "amount": "2",
+          "unit": "cups",
+          "name": "flour",
+          "raw": "2 cups flour"
+        },
+        {
+          "id": "i4",
+          "amount": "1/8",
+          "unit": "teaspoon",
+          "name": "kosher salt",
+          "raw": "1/8 teaspoon kosher salt"
+        },
+        {
+          "id": "i5",
+          "amount": "6",
+          "unit": "",
+          "name": "extra-large eggs at room temperature",
+          "raw": "6 extra-large eggs at room temperature"
+        },
+        {
+          "id": "i6",
+          "amount": "3",
+          "unit": "cups",
+          "name": "granulated sugar",
+          "raw": "3 cups granulated sugar"
+        },
+        {
+          "id": "i7",
+          "amount": "2",
+          "unit": "tablespoons",
+          "name": "grated lemon zest (4 to 6 lemons)",
+          "raw": "2 tablespoons grated lemon zest (4 to 6 lemons)"
+        },
+        {
+          "id": "i8",
+          "amount": "1",
+          "unit": "cup",
+          "name": "freshly squeezed lemon juice",
+          "raw": "1 cup freshly squeezed lemon juice"
+        },
+        {
+          "id": "i9",
+          "amount": "1",
+          "unit": "cup",
+          "name": "flour",
+          "raw": "1 cup flour"
+        },
+        {
+          "id": "i10",
+          "amount": "",
+          "unit": "",
+          "name": "Confectioners' sugar, for dusting",
+          "raw": "Confectioners' sugar, for dusting"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Preheat the oven to 350 degrees F.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "For the crust, cream the butter and sugar until light in the bowl of an electric mixer fitted with the paddle attachment. Combine the flour and salt and, with the mixer on low, add to the butter until just mixed. Dump the dough onto a well-floured board and gather into a ball. Flatten the dough with floured hands and press it into a 9 by 13 by 2-inch baking sheet, building up a 1/2-inch edge on all sides. Chill.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "Bake the crust for 15 to 20 minutes, until very lightly browned. Let cool on a wire rack. Leave the oven on.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "For the filling, whisk together the eggs, sugar, lemon zest, lemon juice, and flour. Pour over the crust and bake for 30 to 35 minutes, until the filling is set. Let cool to room temperature.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Cut into triangles and dust with confectioners' sugar.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 316,
+    "protein": 4,
+    "carbs": 52,
+    "fat": 11,
+    "fiber": 1
+  },
+  "sourceUrl": "https://www.foodnetwork.com/recipes/ina-garten/lemon-bars-recipe-1941483",
+  "importMethod": "structured-data"
+}

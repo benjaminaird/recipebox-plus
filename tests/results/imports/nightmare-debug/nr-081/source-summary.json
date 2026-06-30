@@ -1,0 +1,17 @@
+{
+  "id": "nr-081",
+  "url": "https://www.youtube.com/watch?v=Ng7GWl57nQM",
+  "fetchVia": "server:/api/transcript",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.youtube.com/watch?v=Ng7GWl57nQM",
+  "sourceTitle": "This Italian Pasta Dish Had A Tremendous Impact On Me... (Cacio e Peppe)",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 0,
+  "jsonLdNodes": null,
+  "sourceIngredientCount": null,
+  "sourceStepCount": null,
+  "warnings": [],
+  "error": ""
+}

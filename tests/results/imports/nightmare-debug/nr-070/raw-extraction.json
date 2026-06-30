@@ -1,0 +1,311 @@
+{
+  "title": "Okonomiyaki",
+  "description": "Learn how to make Okonomiyaki, Osaka’s savory cabbage pancake! This fun, customizable Japanese street food is perfect for dinner and parties.",
+  "servings": 4,
+  "prepTime": "15 min",
+  "cookTime": "25 min",
+  "totalTime": "40 min",
+  "heroImage": "https://www.justonecookbook.com/wp-content/uploads/2024/02/Okonomiyaki-5888-I.jpg",
+  "notes": "",
+  "tags": [
+    "Main Dish",
+    "Japanese",
+    "cabbage",
+    "pork belly"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1",
+          "unit": "cup",
+          "name": "all-purpose flour (plain flour)",
+          "raw": "1 cup all-purpose flour (plain flour)"
+        },
+        {
+          "id": "i2",
+          "amount": "1/4",
+          "unit": "tsp",
+          "name": "Diamond Crystal kosher salt",
+          "raw": "1/4 tsp Diamond Crystal kosher salt"
+        },
+        {
+          "id": "i3",
+          "amount": "1/4",
+          "unit": "tsp",
+          "name": "sugar",
+          "raw": "1/4 tsp sugar"
+        },
+        {
+          "id": "i4",
+          "amount": "1/4",
+          "unit": "tsp",
+          "name": "baking powder",
+          "raw": "1/4 tsp baking powder"
+        },
+        {
+          "id": "i5",
+          "amount": "5.6",
+          "unit": "oz",
+          "name": "nagaimo/yamaimo (mountain yam) ((2–3 inches, 5–8 cm))",
+          "raw": "5.6 oz nagaimo/yamaimo (mountain yam) ((2–3 inches, 5–8 cm))"
+        },
+        {
+          "id": "i6",
+          "amount": "3/4",
+          "unit": "cup",
+          "name": "dashi (Japanese soup stock)",
+          "raw": "3/4 cup dashi (Japanese soup stock)"
+        },
+        {
+          "id": "i7",
+          "amount": "1/2",
+          "unit": "",
+          "name": "head green cabbage ((large; 1.4 lb, 640 g))",
+          "raw": "1/2 head green cabbage ((large; 1.4 lb, 640 g))"
+        },
+        {
+          "id": "i8",
+          "amount": "1/4",
+          "unit": "cup",
+          "name": "pickled red ginger",
+          "raw": "1/4 cup pickled red ginger"
+        },
+        {
+          "id": "i9",
+          "amount": "1/2",
+          "unit": "lb",
+          "name": "sliced pork belly",
+          "raw": "1/2 lb sliced pork belly"
+        },
+        {
+          "id": "i10",
+          "amount": "4",
+          "unit": "",
+          "name": "large eggs (50 g each w/o shell)",
+          "raw": "4 large eggs (50 g each w/o shell)"
+        },
+        {
+          "id": "i11",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "tenkasu/agedama (tempura scraps)",
+          "raw": "1/2 cup tenkasu/agedama (tempura scraps)"
+        },
+        {
+          "id": "i12",
+          "amount": "",
+          "unit": "",
+          "name": "neutral oil ((for cooking the okonomiyaki))",
+          "raw": "neutral oil ((for cooking the okonomiyaki))"
+        },
+        {
+          "id": "i13",
+          "amount": "",
+          "unit": "",
+          "name": "okonomiyaki sauce",
+          "raw": "okonomiyaki sauce"
+        },
+        {
+          "id": "i14",
+          "amount": "",
+          "unit": "",
+          "name": "toppings of your choice",
+          "raw": "toppings of your choice"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Before You Start: If time allows, let the batter rest for at least one hour (and up to overnight) for a fluffier okonomiyaki. Now, gather all the ingredients.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Prepare the Base Batter",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s2",
+          "text": "In a large bowl, combine 1 cup all-purpose flour (plain flour), ¼ tsp Diamond Crystal kosher salt, ¼ tsp sugar, and ¼ tsp baking powder. Mix all together.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "Peel and grate 5.6 oz nagaimo/yamaimo (mountain yam) in a small bowl (I use a ceramic grater that I love). Note: The nagaimo may irritate your skin and cause itchiness. Work quickly and rinse your hands immediately after touching the nagaimo. It is very slimy and slippery, so make sure you have a good grip on the nagaimo if you wear kitchen gloves.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Add the grated nagaimo and ¾ cup dashi (Japanese soup stock) to the bowl.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Mix it all together until combined and set aside while you prepare the ingredients. If time allows, cover the bowl with plastic wrap, put it in the refrigerator, and let the batter rest for at least one hour (and up to overnight). Tip: Resting the batter relaxes the gluten, improves the flavor, and makes the okonomiyaki fluffier. Some okonomiyaki shops refrigerate the batter overnight.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Prepare the Ingredients",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s6",
+          "text": "Discard the core of ½ head green cabbage and cut into ½-inch (1.3-cm) slices.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Then, mince the cabbage strips. Wash the cabbage and drain well (I use a salad spinner) to remove excess moisture that could potentially dilute the batter.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s8",
+          "text": "Chop ¼ cup pickled red ginger. Cut ½ lb sliced pork belly into 4-inch (10-cm) pieces and set aside.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Prepare the Okonomiyaki Batter",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s9",
+          "text": "If you rested the base batter for an hour or longer, take it out from the refrigerator. Add 4 large eggs (50 g each w/o shell), ½ cup tenkasu/agedama (tempura scraps), and two-thirds of the pickled red ginger to the bowl. Mix until combined.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s10",
+          "text": "Add the minced cabbage to the batter, one-third of it at a time. Mix well before each addition.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s11",
+          "text": "Check the consistency of the okonomiyaki batter. Make sure the cabbage is coated well in the batter. You do not need to use all the minced cabbage if it is overpowering the batter.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Cook the Okonomiyaki",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s12",
+          "text": "Prepare a large griddle or two large frying pans with lids to cook two savory pancakes at a time. In the pans, heat a bit of neutral oil on medium heat. When it‘s hot (400ºF or 200ºC), add one portion of the batter to each pan.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s13",
+          "text": "Using spatulas, spread and shape the batter in a circle about 6 inches (15 cm) in diameter. We like thicker okonomiyaki (the final thickness is ¾ inches or 2 cm). If you’re new to making okonomiyaki, make it smaller and thinner so it’s easier to flip.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s14",
+          "text": "Place 3 slices of pork belly on top of each okonomiyaki and cook, covered, on medium-low heat for 5 minutes.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s15",
+          "text": "When the bottom side is nicely browned, flip them over.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s16",
+          "text": "Gently press the okonomiyaki to fix their shape and keep them together. Cook, covered, for another 5 minutes.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s17",
+          "text": "Flip them over one last time and fix their shape. Then cook, uncovered, for 2 minutes.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s18",
+          "text": "Transfer the cooked okonomiyaki to individual plates. Continue cooking the rest of the okonomiyaki.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Make the Quick Okonomiyaki Sauce (optional)",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s19",
+          "text": "Combine 3 Tbsp sugar, ¼ cup (4 Tbsp) oyster sauce, ½ cup (8 Tbsp) ketchup, and 7 Tbsp Worcestershire sauce in a small bowl. Mix all together until the sugar is completely dissolved.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Serve",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s20",
+          "text": "Now, it‘s time to customize your okonomiyaki with the condiments and toppings of your choice. In Japan, we spread okonomiyaki sauce on top with a brush or spoon.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s21",
+          "text": "Then, drizzle Japanese Kewpie mayonnaise (you can make my homemade recipe) in a zigzag pattern. Drag a chopstick tip through the mayo every ½ inch (1.3 cm) to create the iconic look.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s22",
+          "text": "We like to sprinkle the top with katsuobushi (dried bonito flakes), aonori (dried green laver seaweed), and chopped green onions/scallions. Finally, garnish with the remaining pickled red ginger (you can make my homemade beni shoga recipe).",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Store",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s23",
+          "text": "Wrap each okonomiyaki (without the sauce or toppings) in aluminum foil and put it in a freezer bag. Store in the refrigerator for up to 3 days and in the freezer for a month.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Reheat",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s24",
+          "text": "For the okonomiyaki from the refrigerator, reheat it in a toaster oven or oven at 350°F (180°C) for 10–15 minutes. For the okonomiyaki from the freezer, you can defrost it overnight in the refrigerator or reheat the frozen okonomiyaki in the oven for 25–30 minutes. It‘s a great quick meal!",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Cook Several Okonomiyaki at Once",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s25",
+          "text": "If you have a Japanese griddle with a lid (we call it a hot plate), you can cook several pieces of okonomiyaki at once. Otherwise, I recommend cooking one okonomiyaki at a time in a frying pan.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 725,
+    "protein": 21,
+    "carbs": 62,
+    "fat": 44,
+    "fiber": 9
+  },
+  "sourceUrl": "https://www.justonecookbook.com/okonomiyaki/",
+  "importMethod": "structured-data"
+}

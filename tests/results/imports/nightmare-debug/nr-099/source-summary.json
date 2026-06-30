@@ -1,0 +1,17 @@
+{
+  "id": "nr-099",
+  "url": "https://www.kingarthurbaking.com/recipes/king-arthurs-original-cake-pan-cake-recipe",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.kingarthurbaking.com/recipes/king-arthurs-original-cake-pan-cake-recipe",
+  "sourceTitle": "King Arthur&#039;s Original Cake Pan Cake Recipe | King Arthur Baking",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 13678,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 12,
+  "sourceStepCount": 6,
+  "warnings": [],
+  "error": ""
+}

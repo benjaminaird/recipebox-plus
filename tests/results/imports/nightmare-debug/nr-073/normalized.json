@@ -1,0 +1,420 @@
+{
+  "title": "Shoyu Ramen (from Bizentei, Tokyo)",
+  "description": "This comforting Shoyu Ramen is sheer perfection. Master Ueda of the famous Tokyo ramen shop Bizentei has generously shared his recipe that I‘ve scaled here to a family-friendly portion. The slow-cooked, soy sauce-based broth extracts a deep flavor while the tender chashu (braised pork belly) simply melts in your mouth. Despite the simmering time, the active cooking is just 30 minutes, so it‘s easy to make this authentic Tokyo-style ramen at home.",
+  "servings": 8,
+  "prepTime": "30 min",
+  "cookTime": "6 hr 30 min",
+  "totalTime": "6 hr 30 min",
+  "heroImage": "https://www.justonecookbook.com/wp-content/uploads/2023/04/Shoyu-Ramen-8308-I.jpg",
+  "notes": "",
+  "tags": [
+    "Main Dish",
+    "Japanese",
+    "chashu",
+    "ramen"
+  ],
+  "sections": [
+    {
+      "name": "Before You Start...",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "12",
+          "unit": "qt",
+          "name": "water",
+          "raw": "12 QT water"
+        },
+        {
+          "id": "i2",
+          "amount": "1 1/3",
+          "unit": "lb",
+          "name": "pork leg bones",
+          "raw": "11/3 lbs pork leg bones"
+        },
+        {
+          "id": "i3",
+          "amount": "1/2",
+          "unit": "",
+          "name": "onion ((large; skin on and trimmed of the root))",
+          "raw": "1/2 onion ((large; skin on and trimmed of the root))"
+        },
+        {
+          "id": "i4",
+          "amount": "5",
+          "unit": "cloves",
+          "name": "garlic ((skin on))",
+          "raw": "5 cloves garlic ((skin on))"
+        },
+        {
+          "id": "i5",
+          "amount": "1",
+          "unit": "",
+          "name": "knob ginger ((skin on, sliced))",
+          "raw": "1 knob ginger ((skin on, sliced))"
+        },
+        {
+          "id": "i6",
+          "amount": "2",
+          "unit": "lb",
+          "name": "pork belly",
+          "raw": "2 lbs pork belly"
+        },
+        {
+          "id": "i7",
+          "amount": "3.5",
+          "unit": "oz",
+          "name": "rendered chicken fat",
+          "raw": "3.5 oz rendered chicken fat"
+        },
+        {
+          "id": "i8",
+          "amount": "2",
+          "unit": "",
+          "name": "Tokyo negi (long green onion) ((divide into the green and white parts and used separately))",
+          "raw": "2 Tokyo negi (long green onion) ((divide into the green and white parts and used separately))"
+        },
+        {
+          "id": "i9",
+          "amount": "2",
+          "unit": "cup",
+          "name": "reserved soup broth ((see above))",
+          "raw": "2 cups reserved soup broth ((see above))"
+        },
+        {
+          "id": "i10",
+          "amount": "2",
+          "unit": "cup",
+          "name": "soy sauce",
+          "raw": "2 cups soy sauce"
+        },
+        {
+          "id": "i11",
+          "amount": "1/4",
+          "unit": "cup",
+          "name": "sake",
+          "raw": "1/4 cup sake"
+        },
+        {
+          "id": "i12",
+          "amount": "1/4",
+          "unit": "cup",
+          "name": "mirin",
+          "raw": "1/4 cup mirin"
+        },
+        {
+          "id": "i13",
+          "amount": "3",
+          "unit": "Tbsp",
+          "name": "Diamond Crystal kosher salt",
+          "raw": "3 Tbsp Diamond Crystal kosher salt ((1 Tbsp is 8 g))",
+          "weightAmount": "8",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i14",
+          "amount": "2",
+          "unit": "",
+          "name": "green onions/scallions ((you only need the top green parts))",
+          "raw": "2 green onions/scallions ((you only need the top green parts))"
+        },
+        {
+          "id": "i15",
+          "amount": "8",
+          "unit": "",
+          "name": "servings fresh ramen noodles",
+          "raw": "8 servings fresh ramen noodles"
+        },
+        {
+          "id": "i16",
+          "amount": "",
+          "unit": "",
+          "name": "menma (seasoned bamboo shoots)",
+          "raw": "menma (seasoned bamboo shoots)"
+        },
+        {
+          "id": "i17",
+          "amount": "",
+          "unit": "",
+          "name": "nori seaweed",
+          "raw": "nori seaweed"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "日本語のレシピはこちら。.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Please note that {i9} requires 6 hours of inactive cooking prior to serving. You can make the broth, chashu {i6}, and shoyu tare the same day you serve the ramen, or you can refrigerate overnight and serve the next day.",
+          "ingredientRefs": [
+            "i6",
+            "i9"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Please note that this recipe makes 8 servings. If you want to prepare fewer servings, I still recommend making the full portion of {i9}, chashu, and shoyu tare in this recipe. Then, you can freeze any leftovers to enjoy a quick bowl of delicious Shoyu Ramen within a month (please see the To Store section for details).",
+          "ingredientRefs": [
+            "i9"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "To Start the Soup Broth and Chashu (at least 6 hours before serving)",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s4",
+          "text": "Gather all the ingredients.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "To a large stock pot (I use this 12-QT stockpot), add 12 QT water, 1 1/3 lbs pork leg bones, 1/2 onion (skin on, root trimmed off), 5 cloves garlic (skin on), and 1 knob ginger (skin on, sliced). (DO NOT ADD the pork belly, chicken fat, and Tokyo negi yet.) Note: Here, since my pot size is 12 QT, I only added 10 QT or 10 L of water as I need some space for other ingredients. I’ll add the remaining 2 QT later on as soon as there is more space. If your pot is bigger than mine, you can add the full amount.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Turn on the heat to high and bring it to a boil. It takes 20–30 minutes for my stock to boil. You do not need to cover the pot with a lid.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Meanwhile, tie up 2 lbs pork belly with butcher twine to prevent it from falling apart. Run some butcher twine under the far end of the pork belly and tie the twine tightly in a double knot to secure it. Next, start wrapping the twine around the belly back toward the other end. Space each wrap 1/2 inch (1.3 cm) apart.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s8",
+          "text": "Make sure you wrap the pork belly as tightly as possible without squeezing or deforming it. Once you reach the endpoint, run the twine under some of the end wraps; this hooks the twine in place. Tie a double knot and cut the excess twine.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s9",
+          "text": "When the water starts to boil, skim off the foam and scum using a fine-mesh skimmer. Tip: I dip my skimmer in a measuring cup filled with water to clean the fine mesh.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s10",
+          "text": "Gently add the pork belly to the soup broth. Set the timer and cook, uncovered, for 2 HOURS on high heat (or medium-high heat at first, if the soup broth is close to overboiling).",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s11",
+          "text": "Foam and scum will keep appearing on the surface as you cook down the soup broth, so keep skimming every now and then. Skimming is very important to get a clean and clear soup broth, so don’t let the scum incorporate into the broth.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s12",
+          "text": "Some of the liquid will evaporate after a bit of time, making enough space for the additional water that I couldn’t add at the beginning. Here, I’m adding 1 QT (1 L) of water. It’s a small enough amount that the stock will return to a boil quickly. Keep cooking, uncovered, on high heat.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s13",
+          "text": "10 minutes before the 2-hour mark, reserve 2 cups (480 ml) of the soup stock for making the chashu sauce. Then, if you have more space in the pot, add the last 1 QT (1 L) of water and keep cooking.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Make the Chashu Sauce",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s14",
+          "text": "While the stock continues to cook, gather all the ingredients for the chashu sauce.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s15",
+          "text": "To a large pot (I used a 4.5 QT Le Creuset), add 2 cups reserved soup broth, 2 cups soy sauce, 1/4 cup sake, 1/4 cup mirin, and 3 Tbsp Diamond Crystal kosher salt and stir all together. Bring it to a simmer over medium heat. Once simmering, turn off the heat and set aside.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Add the Chicken Fat to the Broth",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s16",
+          "text": "At the 2-hour mark, add to the stockpot 3.5 oz rendered chicken fat and the green parts of 2 Tokyo negi (long green onion), reserving the white parts to use later. Now, set a new timer and cook, uncovered, for 1 HOUR on high heat.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Braise the Chashu (2 Hours)",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s17",
+          "text": "When the 1-hour timer goes off at the 3-hour mark, use a pair of tongs to carefully and gently remove the pork belly from the soup broth and transfer it to a tray (or plate, to support the pork belly’s weight). The pork belly is extremely tender after cooking for a total of 3 hours.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s18",
+          "text": "Transfer the pork belly into the large pot with the chashu sauce.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s19",
+          "text": "Place an otoshibuta (drop lid) on top of the chashu and bring it to a simmer. To learn why we use this in Japanese cooking and how to make one with aluminum foil, see my post What is Otoshibuta (Drop Lid) and How to Make It 落し蓋. You do not need to cover the pot with the pot‘s lid. Once simmering, cook for 2 hours on low heat or simmer.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Simmer the Soup Broth",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s20",
+          "text": "After removing the pork belly, reduce the stockpot to low heat and continue to cook, uncovered. Set a new timer for 3 HOURS.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Finish the Chashu and Shoyu ”Tare”",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s21",
+          "text": "Once in a while, spoon the sauce over the pork belly as it’s extremely tender and hard to flip over without breaking it.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s22",
+          "text": "After 2 hours of cooking the chashu, carefully and gently remove it from the sauce and transfer it to a tray (or plate).",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s23",
+          "text": "With a pair of scissors, cut and remove the butcher twine from the chashu. Try not to handle the chashu too much because it is super tender and can easily fall apart. If some of the meat sticks to the twine, very gently remove it so you don‘t pull off the meat. Cover the tray or plate with plastic and let cool completely. Then, chill the chashu well: Place it in the freezer for up to 1 hour until cold (but not frozen) if you‘re serving it right after the soup broth is made, in the refrigerator if you‘re serving later the same day, or in the refrigerator overnight to serve the following day. Make sure the chashu is cold and firm so it stays together when you thinly slice it; otherwise, it will fall apart.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s24",
+          "text": "Skim the sauce to remove the fat and meat pieces. Transfer the sauce to a smaller pot. This salty sauce is called shoyu tare (sauce) and is the base for the ramen soup broth. It’s now ready to use. Alternatively, let it cool completely and refrigerate overnight to serve the following day.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Finish the Soup Broth",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s25",
+          "text": "When the 3-hour timer rings, turn off the heat. You’ve now cooked the soup broth for a total of 6 hours (2 hours + 1 hour + 3 hours). Using a large fine-mesh strainer, remove the spent bones and aromatics from the broth and discard.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s26",
+          "text": "As you can see, this broth is not too fatty. Optional: I strain the soup broth one more time to yield a clean soup broth.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s27",
+          "text": "The soup broth is now ready to use. Alternatively, you can let it cool completely and refrigerate overnight to serve the following day. If your stockpot doesn’t fit in the refrigerator, transfer the soup broth to a large pot before refrigerating.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Prepare the Ramen",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s28",
+          "text": "Bring a big pot of water to a boil to cook the noodles. Meanwhile, gather all the ingredients (I show you 2 servings here). Then, heat the soup broth on medium heat until it’s piping hot; if you refrigerated your soup broth, remove the pot from the refrigerator and reheat.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s29",
+          "text": "While you reheat the broth, prepare the ramen ingredients. First, cut the green parts off from 2 green onions/scallions. Cut the green leafy parts in half lengthwise.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s30",
+          "text": "Cut the reserved white parts of 2 Tokyo negi (long green onion) in half widthwise. Then cut them in half lengthwise.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s31",
+          "text": "Now, thinly slice the white parts of the Tokyo negi crosswise.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s32",
+          "text": "Take out the chashu from the freezer or refrigerator. It should be cold and firm with the fat solidified when you slice it. Otherwise, the chashu will fall apart completely.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s33",
+          "text": "Hold the chashu steady with one hand (I use a paper towel) and thinly slice it with a sharp knife, about 1/8 inch (3 mm) thick. As you slice, the pork fat will stick to the knife and make slicing difficult. When this happens, dip the knife in the hot soup broth to melt the fat off the knife. This is how Master Ueda does it and it’s very helpful. Tip: Slicing the chashu very thinly is key. When the delicate slices hit the hot soup broth, the succulent meat practically melts in your mouth.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Cook the Noodles and Serve",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s34",
+          "text": "Before cooking the fresh noodles, loosen them up with your hands.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s35",
+          "text": "Once the water in the big pot is boiling, add 8 servings fresh ramen noodles and cook according to the package instructions (typically, 60–90 seconds). While cooking, stir and separate the noodles with chopsticks. Here, I cook the noodles inside a big noodle strainer (I got it in Japan) that I’ve set inside the pot. Tip: I usually undercook my ramen noodles a bit so they are firm and toothsome, to my liking.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s36",
+          "text": "During this short period of time, prepare the ramen bowls. To each bowl, add 1–2 Tbsp of shoyu tare and 1 Tbsp chopped white part of the Tokyo negi. Note: The shoyu tare is extremely salty, so start with 1 Tbsp and see how you like it.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s37",
+          "text": "Pour 1 1/2 cups (360 ml) of the piping-hot soup broth into each bowl. When the noodles are done cooking, drain them well in a strainer, shaking it a few times to drain the water thoroughly (otherwise, it will dilute the soup broth). Note: If your ramen bowl is bigger, you may need to add more tare and soup broth.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s38",
+          "text": "Then, transfer the noodles to the individual ramen bowls. Lift up the noodles with chopsticks a few times to coat them with the soup broth and straighten them. Then, fold the noodles from the edge of the bowl and place them over the noodles in the soup for an attractive presentation.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s39",
+          "text": "Quickly arrange the chashu slices, menma (seasoned bamboo shoots), green onions, and nori seaweed on top of the noodles. Serve immediately.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Store",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s40",
+          "text": "You can keep the soup broth, shoyu tare, and chashu in the refrigerator for 3 days or in the freezer for up to a month. I recommend freezing the broth in individual portions (use these food prep containers) and so you can defrost the amount you need. Cook the noodles right before serving.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 794,
+    "protein": 17,
+    "carbs": 30,
+    "fat": 66,
+    "fiber": 1
+  },
+  "sourceUrl": "https://www.justonecookbook.com/shoyu-ramen/",
+  "importMethod": "structured-data"
+}

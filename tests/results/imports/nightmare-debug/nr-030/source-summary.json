@@ -1,0 +1,17 @@
+{
+  "id": "nr-030",
+  "url": "https://www.seriouseats.com/perfect-prime-rib-beef-recipe",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.seriouseats.com/perfect-prime-rib-beef-recipe",
+  "sourceTitle": "Roasted and Reverse Seared Prime Rib Recipe",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 2,
+  "sourceStepCount": 3,
+  "warnings": [],
+  "error": ""
+}

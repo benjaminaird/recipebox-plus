@@ -1,0 +1,214 @@
+{
+  "title": "Beef Chow Fun",
+  "description": "Learn how to master the art of beef chow fun, one of the most iconic Cantonese dishes, at home!",
+  "servings": 4,
+  "prepTime": "45 min",
+  "cookTime": "5 min",
+  "totalTime": "50 min",
+  "heroImage": "https://thewoksoflife.com/wp-content/uploads/2019/11/beef-chow-fun-14.jpg",
+  "notes": "",
+  "tags": [
+    "Noodles and Pasta",
+    "Chinese",
+    "beef chow fun"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "10",
+          "unit": "oz",
+          "name": "flank steak",
+          "raw": "10 oz. flank steak ((225g, sliced into 1/8 thick pieces))",
+          "weightAmount": "225",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i2",
+          "amount": "1 1/2",
+          "unit": "Tbsp",
+          "name": "water",
+          "raw": "1 1/2 tablespoons water"
+        },
+        {
+          "id": "i3",
+          "amount": "1/4",
+          "unit": "tsp",
+          "name": "baking soda ((optional))",
+          "raw": "1/4 teaspoon baking soda ((optional))"
+        },
+        {
+          "id": "i4",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "cornstarch",
+          "raw": "1 teaspoon cornstarch"
+        },
+        {
+          "id": "i5",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "oyster sauce",
+          "raw": "2 teaspoons oyster sauce"
+        },
+        {
+          "id": "i6",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "Shaoxing wine",
+          "raw": "2 teaspoons Shaoxing wine"
+        },
+        {
+          "id": "i7",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "soy sauce",
+          "raw": "1 teaspoon soy sauce"
+        },
+        {
+          "id": "i8",
+          "amount": "12",
+          "unit": "oz",
+          "name": "fresh wide rice noodles",
+          "raw": "12 oz. fresh wide rice noodles"
+        },
+        {
+          "id": "i9",
+          "amount": "3",
+          "unit": "Tbsp",
+          "name": "vegetable oil",
+          "raw": "3 tablespoons vegetable oil"
+        },
+        {
+          "id": "i10",
+          "amount": "4",
+          "unit": "",
+          "name": "scallions",
+          "raw": "4 scallions"
+        },
+        {
+          "id": "i11",
+          "amount": "3",
+          "unit": "",
+          "name": "thin slices ginger",
+          "raw": "3 thin slices ginger"
+        },
+        {
+          "id": "i12",
+          "amount": "2",
+          "unit": "Tbsp",
+          "name": "Shaoxing wine",
+          "raw": "2 tablespoons Shaoxing wine"
+        },
+        {
+          "id": "i13",
+          "amount": "2",
+          "unit": "Tbsp",
+          "name": "soy sauce",
+          "raw": "2 tablespoons soy sauce"
+        },
+        {
+          "id": "i14",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "dark soy sauce",
+          "raw": "2 teaspoons dark soy sauce"
+        },
+        {
+          "id": "i15",
+          "amount": "1/2",
+          "unit": "tsp",
+          "name": "sesame oil",
+          "raw": "1/2 teaspoon sesame oil"
+        },
+        {
+          "id": "i16",
+          "amount": "1/4",
+          "unit": "tsp",
+          "name": "sugar",
+          "raw": "1/4 teaspoon sugar"
+        },
+        {
+          "id": "i17",
+          "amount": "",
+          "unit": "",
+          "name": "salt and white pepper ((to taste))",
+          "raw": "salt and white pepper ((to taste))"
+        },
+        {
+          "id": "i18",
+          "amount": "4 to 6",
+          "unit": "oz",
+          "name": "fresh mung bean sprouts",
+          "raw": "4 to 6 ounces fresh mung bean sprouts"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Combine the sliced {i1}, {i2}, {i3}, {i4}, {i5}, {i6}, and {i7}. Marinate for at least 30 minutes.",
+          "ingredientRefs": [
+            "i1",
+            "i2",
+            "i3",
+            "i4",
+            "i5",
+            "i6",
+            "i7"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "Some fresh {i8} come as large sheets, while others are already cut. If you have the sheets, slice the rice noodles so they're about 1 inch wide. If the noodles are very stiff and stuck together, bring a wok full of water to a boil, and add the noodles. Blanch them for 30 seconds to loosen. Transfer to an ice bath and drain thoroughly. If using dried rice noodles, soak in hot water for a few hours, or in cold water overnight.",
+          "ingredientRefs": [
+            "i8"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Heat your wok over high heat until smoking, and add 1 1/2 tablespoons oil to coat the wok. Add the beef and sear until browned. As long as your wok is hot enough, the meat shouldn't stick. Set aside. Add 1 1/2 tablespoons more vegetable oil to the wok. Add {i11} to infuse the oil with its rich flavor for about 15 seconds. Add {i10}.",
+          "ingredientRefs": [
+            "i10",
+            "i11"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "Spread {i8} evenly in the wok and stir-fry on high for about 15 seconds. Add {i6} around the perimeter of the wok.",
+          "ingredientRefs": [
+            "i6",
+            "i8"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Next, add the soy sauces, {i15}, {i16}, and the seared beef. Stir-fry, making sure your metal wok spatula scrapes the bottom of the wok. Lift {i8} in an upward motion to mix well and coat them evenly with the sauce.",
+          "ingredientRefs": [
+            "i8",
+            "i15",
+            "i16"
+          ]
+        },
+        {
+          "id": "s6",
+          "text": "Add a bit of salt and white pepper to taste (taste {i8} before adding salt). Add {i18} and stir-fry until they are just tender. Serve!",
+          "ingredientRefs": [
+            "i8",
+            "i18"
+          ]
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 326,
+    "protein": 18,
+    "carbs": 26,
+    "fat": 15,
+    "fiber": 2
+  },
+  "sourceUrl": "https://thewoksoflife.com/beef-chow-fun-noodles/",
+  "importMethod": "structured-data"
+}

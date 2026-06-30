@@ -1,0 +1,305 @@
+{
+  "title": "Hot and Sour Soup - A Chinese Takeout \"Standard\"",
+  "description": "Our family's hot and sour soup recipe comes from my father's father, who worked as a chef after coming to the U.S. and owned a Chinese takeout joint. It's still the best hot and sour soup I've ever had!",
+  "servings": 6,
+  "prepTime": "1 hr",
+  "cookTime": "20 min",
+  "totalTime": "1 hr 20 min",
+  "heroImage": "https://thewoksoflife.com/wp-content/uploads/2019/04/hot-and-sour-soup-2.jpg",
+  "notes": "",
+  "tags": [
+    "Soup",
+    "Chinese",
+    "hot and sour soup"
+  ],
+  "sections": [
+    {
+      "name": "Prepare your pork:",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "4",
+          "unit": "oz",
+          "name": "pork shoulder ((finely julienned))",
+          "raw": "4 oz. pork shoulder ((finely julienned))"
+        },
+        {
+          "id": "i2",
+          "amount": "1",
+          "unit": "tablespoon",
+          "name": "water",
+          "raw": "1 tablespoon water"
+        },
+        {
+          "id": "i3",
+          "amount": "",
+          "unit": "",
+          "name": "Pinch of salt",
+          "raw": "Pinch of salt"
+        },
+        {
+          "id": "i4",
+          "amount": "2",
+          "unit": "teaspoons",
+          "name": "vegetable oil",
+          "raw": "2 teaspoons vegetable oil"
+        },
+        {
+          "id": "i5",
+          "amount": "1",
+          "unit": "teaspoon",
+          "name": "cornstarch",
+          "raw": "1 teaspoon cornstarch"
+        },
+        {
+          "id": "i6",
+          "amount": "1 to 2",
+          "unit": "",
+          "name": "dried red chili peppers",
+          "raw": "1 to 2 dried red chili peppers"
+        },
+        {
+          "id": "i7",
+          "amount": "0.3",
+          "unit": "ounce",
+          "name": "dried lily flower",
+          "raw": "0.3 ounce dried lily flower"
+        },
+        {
+          "id": "i8",
+          "amount": "0.3",
+          "unit": "ounce",
+          "name": "dried wood ear mushrooms",
+          "raw": "0.3 ounce dried wood ear mushrooms"
+        },
+        {
+          "id": "i9",
+          "amount": "0.3",
+          "unit": "ounce",
+          "name": "dried shiitake mushrooms",
+          "raw": "0.3 ounce dried shiitake mushrooms"
+        },
+        {
+          "id": "i10",
+          "amount": "3",
+          "unit": "ounces",
+          "name": "spiced dry tofu",
+          "raw": "3 ounces spiced dry tofu"
+        },
+        {
+          "id": "i11",
+          "amount": "4",
+          "unit": "ounces",
+          "name": "fresh firm tofu",
+          "raw": "4 ounces fresh firm tofu"
+        },
+        {
+          "id": "i12",
+          "amount": "4",
+          "unit": "ounces",
+          "name": "bamboo shoots",
+          "raw": "4 ounces bamboo shoots"
+        },
+        {
+          "id": "i13",
+          "amount": "1",
+          "unit": "",
+          "name": "large egg",
+          "raw": "1 large egg"
+        },
+        {
+          "id": "i14",
+          "amount": "1",
+          "unit": "",
+          "name": "scallion ((finely diced))",
+          "raw": "1 scallion ((finely diced))"
+        },
+        {
+          "id": "i15",
+          "amount": "8",
+          "unit": "cups",
+          "name": "low sodium chicken stock",
+          "raw": "8 cups low sodium chicken stock"
+        },
+        {
+          "id": "i16",
+          "amount": "1/2",
+          "unit": "teaspoon",
+          "name": "salt ((or to taste))",
+          "raw": "1/2 teaspoon salt ((or to taste))"
+        },
+        {
+          "id": "i17",
+          "amount": "1/4",
+          "unit": "teaspoon",
+          "name": "sugar",
+          "raw": "1/4 teaspoon sugar"
+        },
+        {
+          "id": "i18",
+          "amount": "1 to 2",
+          "unit": "teaspoons",
+          "name": "fresh ground white pepper",
+          "raw": "1 to 2 teaspoons fresh ground white pepper"
+        },
+        {
+          "id": "i19",
+          "amount": "2",
+          "unit": "teaspoons",
+          "name": "dark soy or mushroom soy sauce",
+          "raw": "2 teaspoons dark soy or mushroom soy sauce"
+        },
+        {
+          "id": "i20",
+          "amount": "1",
+          "unit": "tablespoon",
+          "name": "light soy sauce or seasoned soy sauce",
+          "raw": "1 tablespoon light soy sauce or seasoned soy sauce"
+        },
+        {
+          "id": "i21",
+          "amount": "1",
+          "unit": "teaspoon",
+          "name": "sesame oil",
+          "raw": "1 teaspoon sesame oil"
+        },
+        {
+          "id": "i22",
+          "amount": "1/3 to 1/2",
+          "unit": "cup",
+          "name": "white vinegar",
+          "raw": "1/3 to 1/2 cup white vinegar"
+        },
+        {
+          "id": "i23",
+          "amount": "1/3",
+          "unit": "cup",
+          "name": "cornstarch",
+          "raw": "1/3 cup cornstarch"
+        },
+        {
+          "id": "i24",
+          "amount": "1/4",
+          "unit": "cup",
+          "name": "water",
+          "raw": "1/4 cup water"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Combine the 4 oz. julienned pork shoulder with 1 tablespoon water until the meat has absorbed the water. Add a pinch of salt, 2 teaspoons vegetable oil, and 1 teaspoon cornstarch and mix until combined. Set aside.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "Prepare your dry ingredients:",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s2",
+          "text": "Cut the dried chilies in half and discard the seeds. Mince them up and set aside.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "In separate bowls, soak the dried lily flowers, wood ears, and shiitake mushrooms in 1 cup of water each for 1-2 hours, until hydrated. Using hot water (like you’re brewing tea) will significantly speed up the process.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Once they’re ready, thinly slice the mushrooms and give the wood ears a rough chop. Trim the tough ends off the lily flowers and cut them in half.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "Prepare the tofu and the rest of the ingredients:",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s5",
+          "text": "Cut both the spiced tofu and the firm tofu into 2-inch long and ¼-inch thick pieces. Julienne the bamboo shoots. Beat the egg in a small bowl. Wash and chop the scallion and set aside.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "Assemble the soup:",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s6",
+          "text": "Bring the chicken stock to a boil in a wok or pot. If the pork has clumped and stuck together, it is best to add another tablespoon of water to loosen it up before adding it to the soup.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Stir in the pork and quickly break up any clumps that may form. Once the soup is simmering again, skim off any foam that floats to the top with a fine meshed strainer.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s8",
+          "text": "Add the salt, sugar, dried chili pepper (if using), white pepper, both soy sauces, and sesame oil.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s9",
+          "text": "Next, add the lily flowers, wood ears, shiitake mushrooms and bamboo shoots and bring the soup to a simmer once again.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s10",
+          "text": "Next, add the two kinds of tofu and the vinegar and stir. It should start to look and smell like the real thing about now!",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s11",
+          "text": "Combine the ⅓ cup cornstarch with ¼ cup water to make a slurry. Ensure it’s well-combined, as the cornstarch tends to settle to the bottom of the bowl.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s12",
+          "text": "Bring the mixture to a simmer and use your soup ladle to stir the soup in a steady circular motion to make a whirlpool while slowly drizzling in the cornstarch slurry. This prevents the cornstarch from clumping. Stop when you’re about ¾ of the way done with your slurry and keep stirring until the soup comes back up to a simmer.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s13",
+          "text": "Check the consistency of the soup, as it should be thick enough to coat your spoon or ladle. Add the rest of the cornstarch slurry if you like it thicker.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "Adjust seasoning:",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s14",
+          "text": "Once the soup is the thickness you prefer, use a spoon to check its flavor and adjust things to your own personal preference. Add more white pepper if you like it hot and add more vinegar if like it sour! White pepper gives the soup its signature heat, and the vinegar levels can be adjusted according to how sour you like your hot and sour soup.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s15",
+          "text": "Keep the soup simmering (it should be bubbling before you add the egg, or the soup will turn cloudy when the egg is added), and begin stirring in a circular motion with your ladle once again. Once you get the soup moving in a slowly swirling motion, slowly drizzle the beaten egg into the soup.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s16",
+          "text": "Serve your hot and sour soup garnished with chopped scallions!",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 189,
+    "protein": 15,
+    "carbs": 17,
+    "fat": 7,
+    "fiber": 1
+  },
+  "sourceUrl": "https://thewoksoflife.com/hot-sour-soup/",
+  "importMethod": "structured-data"
+}

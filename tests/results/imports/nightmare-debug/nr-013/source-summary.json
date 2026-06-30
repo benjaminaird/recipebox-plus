@@ -1,0 +1,17 @@
+{
+  "id": "nr-013",
+  "url": "https://www.kingarthurbaking.com/recipes/extra-tangy-sourdough-bread-recipe",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.kingarthurbaking.com/recipes/extra-tangy-sourdough-bread-recipe",
+  "sourceTitle": "Extra-Tangy Sourdough Bread Recipe | King Arthur Baking",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 15569,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 4,
+  "sourceStepCount": 15,
+  "warnings": [],
+  "error": ""
+}

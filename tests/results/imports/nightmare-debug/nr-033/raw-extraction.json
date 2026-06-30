@@ -1,0 +1,128 @@
+{
+  "title": "Spicy Sriracha Noodles",
+  "description": "These sweet, tangy, and spicy sriracha noodles take only a few minutes to make and are an inexpensive alternative to take out.",
+  "servings": 2,
+  "prepTime": "5 min",
+  "cookTime": "10 min",
+  "totalTime": "15 min",
+  "heroImage": "https://www.budgetbytes.com/wp-content/uploads/2012/08/Spicy-Noodles-skillet.jpg",
+  "notes": "",
+  "tags": [
+    "easy",
+    "Noodles",
+    "Spicy",
+    "Take Out",
+    "Vegetarian"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "4",
+          "unit": "oz",
+          "name": "lo mein noodles ($1.30)",
+          "raw": "4 oz. lo mein noodles ($1.30)"
+        },
+        {
+          "id": "i2",
+          "amount": "2",
+          "unit": "tbsp",
+          "name": "butter ($0.20)",
+          "raw": "2 Tbsp butter ($0.20)"
+        },
+        {
+          "id": "i3",
+          "amount": "1/4",
+          "unit": "tsp",
+          "name": "crushed red pepper ($0.02)",
+          "raw": "1/4 tsp crushed red pepper ($0.02)"
+        },
+        {
+          "id": "i4",
+          "amount": "2",
+          "unit": "",
+          "name": "large eggs ($0.42)",
+          "raw": "2 large eggs ($0.42)"
+        },
+        {
+          "id": "i5",
+          "amount": "1",
+          "unit": "tbsp",
+          "name": "brown sugar ($0.08)",
+          "raw": "1 Tbsp brown sugar ($0.08)"
+        },
+        {
+          "id": "i6",
+          "amount": "1",
+          "unit": "tbsp",
+          "name": "soy sauce ($0.06)",
+          "raw": "1 Tbsp soy sauce ($0.06)"
+        },
+        {
+          "id": "i7",
+          "amount": "2",
+          "unit": "tbsp",
+          "name": "sriracha ($0.22)",
+          "raw": "2 Tbsp sriracha ($0.22)"
+        },
+        {
+          "id": "i8",
+          "amount": "1",
+          "unit": "handful",
+          "name": "fresh cilantro (optional, $0.10)",
+          "raw": "1 handful fresh cilantro (optional, $0.10)"
+        },
+        {
+          "id": "i9",
+          "amount": "1",
+          "unit": "",
+          "name": "green onion, sliced ($0.10)",
+          "raw": "1 green onion, sliced ($0.10)"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Prepare the sauce for the noodles. In a small bowl, stir together the brown sugar, soy sauce, and sriracha. Set the sauce aside.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Bring a pot of water to a boil for the noodles. Once boiling, add the noodles and boil until tender. Drain the noodles in a colander.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "While waiting for the water to boil, crack two eggs into a bowl then whisk lightly.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Heat the butter in a skillet over medium heat, then add the eggs and crushed pepper and lightly scramble the eggs. Avoid over cooking the eggs.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Once the noodles have drained, add them to the skillet with the eggs, then drizzle the sauce over top. Toss the noodles and eggs to coat in the sauce.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Top the noodles with fresh cilantro and sliced green onion, then serve.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 397,
+    "protein": 13,
+    "carbs": 48,
+    "fat": 17,
+    "fiber": 1
+  },
+  "sourceUrl": "https://www.budgetbytes.com/spicy-noodles/",
+  "importMethod": "structured-data"
+}

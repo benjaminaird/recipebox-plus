@@ -1,0 +1,17 @@
+{
+  "id": "nr-014",
+  "url": "https://www.kingarthurbaking.com/recipes/japanese-milk-bread-recipe",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.kingarthurbaking.com/recipes/japanese-milk-bread-recipe",
+  "sourceTitle": "Japanese Milk Bread Recipe | King Arthur Baking",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 12859,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 11,
+  "sourceStepCount": 13,
+  "warnings": [],
+  "error": ""
+}

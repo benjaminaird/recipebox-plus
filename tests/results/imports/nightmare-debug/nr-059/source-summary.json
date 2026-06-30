@@ -1,0 +1,17 @@
+{
+  "id": "nr-059",
+  "url": "https://minimalistbaker.com/easy-vegan-ramen/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://minimalistbaker.com/easy-vegan-ramen/",
+  "sourceTitle": "Easy Vegan Ramen | Minimalist Baker Recipe",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 14369,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 14,
+  "sourceStepCount": 11,
+  "warnings": [],
+  "error": ""
+}

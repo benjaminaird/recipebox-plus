@@ -1,0 +1,17 @@
+{
+  "id": "nr-034",
+  "url": "https://www.budgetbytes.com/basic-chili/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.budgetbytes.com/basic-chili/",
+  "sourceTitle": "Classic Chili Recipe {So Easy!} - Budget Bytes",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 17081,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 17,
+  "sourceStepCount": 5,
+  "warnings": [],
+  "error": ""
+}

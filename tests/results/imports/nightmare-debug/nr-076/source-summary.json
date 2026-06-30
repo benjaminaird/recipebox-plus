@@ -1,0 +1,17 @@
+{
+  "id": "nr-076",
+  "url": "https://downshiftology.com/recipes/chicken-fajitas/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://downshiftology.com/recipes/chicken-fajitas/",
+  "sourceTitle": "Chicken Fajitas (Easy &amp; Flavorful) | Downshiftology",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 16,
+  "sourceStepCount": 7,
+  "warnings": [],
+  "error": ""
+}

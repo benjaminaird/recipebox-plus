@@ -1,0 +1,17 @@
+{
+  "id": "nr-009",
+  "url": "https://www.foodnetwork.com/recipes/alton-brown/good-eats-roast-turkey-recipe-1950271",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.foodnetwork.com/recipes/alton-brown/good-eats-roast-turkey-recipe-1950271",
+  "sourceTitle": "Good Eats Roast Turkey Recipe | Alton Brown | Food Network",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 8718,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 15,
+  "sourceStepCount": 7,
+  "warnings": [],
+  "error": ""
+}

@@ -1,0 +1,17 @@
+{
+  "id": "nr-074",
+  "url": "https://preppykitchen.com/tiramisu/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://preppykitchen.com/tiramisu-blondies/",
+  "sourceTitle": "Chewy Tiramisu Blondies - Preppy Kitchen",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 14750,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 19,
+  "sourceStepCount": 11,
+  "warnings": [],
+  "error": ""
+}

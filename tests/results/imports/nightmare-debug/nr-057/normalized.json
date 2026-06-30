@@ -1,0 +1,255 @@
+{
+  "title": "Easy 1-Pot Massaman Curry",
+  "description": "Simple, 1-pot Massaman curry made without store-bought Massaman curry paste! Simply use spices you have on hand plus Thai red curry paste to achieve this flavorful, rich Massaman curry! Optional protein suggestions for vegans, pescatarians, and meat-eaters!",
+  "servings": 4,
+  "prepTime": "10 min",
+  "cookTime": "30 min",
+  "totalTime": "40 min",
+  "heroImage": "https://minimalistbaker.com/wp-content/uploads/2019/07/Massaman-Curry-SQUARE.jpg",
+  "notes": "",
+  "tags": [
+    "Entrée",
+    "Gluten-Free",
+    "Indian-Inspired",
+    "Thai-Inspired",
+    "Vegan",
+    "massaman curry"
+  ],
+  "sections": [
+    {
+      "name": "PROTEIN OPTIONS",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1",
+          "unit": "",
+          "name": "batch Crispy Baked Peanut Tofu ((vegan-option))",
+          "raw": "1 batch Crispy Baked Peanut Tofu ((vegan-option))"
+        },
+        {
+          "id": "i2",
+          "amount": "1/2",
+          "unit": "lb",
+          "name": "shrimp ((seafood option — wild caught when possible))",
+          "raw": "1/2 lb. shrimp ((seafood option — wild caught when possible))"
+        },
+        {
+          "id": "i3",
+          "amount": "1",
+          "unit": "",
+          "name": "large skinless chicken breast, cubed",
+          "raw": "1 large skinless chicken breast, cubed ((meat option — free-range, local, organic when possible))",
+          "weightAmount": "",
+          "weightUnit": "L"
+        },
+        {
+          "id": "i4",
+          "amount": "2",
+          "unit": "Tbsp",
+          "name": "coconut or avocado oil ((if avoiding oil, sub water and add more as needed))",
+          "raw": "2 Tbsp coconut or avocado oil ((if avoiding oil, sub water and add more as needed))"
+        },
+        {
+          "id": "i5",
+          "amount": "3",
+          "unit": "",
+          "name": "medium shallots, thinly sliced ((or sub 1 small onion))",
+          "raw": "3 medium shallots, thinly sliced ((or sub 1 small onion))"
+        },
+        {
+          "id": "i6",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "whole cumin seed ((or sub powder))",
+          "raw": "1 tsp whole cumin seed ((or sub powder))"
+        },
+        {
+          "id": "i7",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "whole coriander seed ((or sub powder))",
+          "raw": "1 tsp whole coriander seed ((or sub powder))"
+        },
+        {
+          "id": "i8",
+          "amount": "5",
+          "unit": "Tbsp",
+          "name": "red curry paste ((we love Thai Kitchen brand))",
+          "raw": "5 Tbsp red curry paste ((we love Thai Kitchen brand))"
+        },
+        {
+          "id": "i9",
+          "amount": "1 1/2",
+          "unit": "cup",
+          "name": "baby potatoes cut into bite-size pieces",
+          "raw": "1 1/2 cups baby potatoes cut into bite-size pieces"
+        },
+        {
+          "id": "i10",
+          "amount": "2",
+          "unit": "",
+          "name": "large carrots, peeled and diced 1/4-inch thick",
+          "raw": "2 large carrots, peeled and diced 1/4-inch thick"
+        },
+        {
+          "id": "i11",
+          "amount": "2",
+          "unit": "",
+          "name": "14-oz. cans light fat coconut milk",
+          "raw": "2 14-oz. cans light fat coconut milk"
+        },
+        {
+          "id": "i12",
+          "amount": "1-1 1/2",
+          "unit": "cup",
+          "name": "water",
+          "raw": "1-1 1/2 cups water"
+        },
+        {
+          "id": "i13",
+          "amount": "1/4",
+          "unit": "tsp",
+          "name": "ground cinnamon",
+          "raw": "1/4 tsp ground cinnamon"
+        },
+        {
+          "id": "i14",
+          "amount": "1",
+          "unit": "dash",
+          "name": "each cardamom and nutmeg ((if you don't have, omit))",
+          "raw": "1 dash each cardamom and nutmeg ((if you don't have, omit))"
+        },
+        {
+          "id": "i15",
+          "amount": "2-3",
+          "unit": "Tbsp",
+          "name": "coconut aminos ((or sub tamari or soy sauce, but start with less as they're saltier))",
+          "raw": "2-3 Tbsp coconut aminos ((or sub tamari or soy sauce, but start with less as they're saltier))"
+        },
+        {
+          "id": "i16",
+          "amount": "1-2",
+          "unit": "Tbsp",
+          "name": "maple syrup or coconut sugar ((or sub stevia to taste))",
+          "raw": "1-2 Tbsp maple syrup or coconut sugar ((or sub stevia to taste))"
+        },
+        {
+          "id": "i17",
+          "amount": "2",
+          "unit": "Tbsp",
+          "name": "peanut butter ((in place of traditional roasted peanuts — can sub roasted peanuts))",
+          "raw": "2 Tbsp peanut butter ((in place of traditional roasted peanuts — can sub roasted peanuts))"
+        },
+        {
+          "id": "i18",
+          "amount": "1-2",
+          "unit": "Tbsp",
+          "name": "lime juice ((or lemon))",
+          "raw": "1-2 Tbsp lime juice ((or lemon))"
+        },
+        {
+          "id": "i19",
+          "amount": "",
+          "unit": "",
+          "name": "Cauliflower Rice, Rice, or Quinoa",
+          "raw": "Cauliflower Rice, Rice, or Quinoa"
+        },
+        {
+          "id": "i20",
+          "amount": "",
+          "unit": "",
+          "name": "Lime wedges",
+          "raw": "Lime wedges"
+        },
+        {
+          "id": "i21",
+          "amount": "",
+          "unit": "",
+          "name": "Fresh cilantro",
+          "raw": "Fresh cilantro"
+        },
+        {
+          "id": "i22",
+          "amount": "",
+          "unit": "",
+          "name": "Steamed or curried greens",
+          "raw": "Steamed or curried greens"
+        },
+        {
+          "id": "i23",
+          "amount": "",
+          "unit": "",
+          "name": "Roasted salted peanuts, chopped",
+          "raw": "Roasted salted peanuts, chopped"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "You have options for added protein or you can just stick with vegetables. To keep it vegan-friendly, follow the link above to make Crispy {i1}. Or, to keep this a 1-pot recipe, simply add (pressed) {i3} extra-firm tofu to the curry in the last 10 minutes of cooking or sauté pressed tofu in a little oil and season with salt, pepper, and curry powder before cooking the curry. Set aside, then add back in the last few minutes of cooking for best results. Alternatively, add meat such as {i2} or chicken to the curry once it's simmering (during step 4) and simmer until cooked completely through.",
+          "ingredientRefs": [
+            "i1",
+            "i2",
+            "i3"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CURRY",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s2",
+          "text": "Heat a large pot or dutch oven (we like this one) over medium heat. Once hot, add oil (or water) and shallot. Sauté 2 minutes, stirring frequently. Turn down heat if browning too quickly.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "Add whole cumin and coriander seeds (or powder) and sauté for another 1-2 minutes, stirring frequently. Then add red curry paste and stir to combine. Cook for 1 minute more.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Add potatoes and carrots and stir to coat. Cook for 2 minutes. Then add coconut milk, water (starting with the lesser amount), cinnamon, cardamom, nutmeg, coconut aminos, maple syrup, and peanut butter. (Reserve lime juice for later).",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "The liquid should cover all of the ingredients — if it does not, add a bit more coconut milk or water to cover. Bring to a simmer over medium-high heat. Once it reaches a low boil, reduce heat to a simmer (add meat at this time if cooking with shrimp or chicken) and cook for 10-15 minutes uncovered. You don't want it boiling, so ensure it's cooking over low heat at a simmer.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Add lime in the last few minutes of cooking and stir. Then taste and adjust flavor as needed, adding more lime for acidity, salt or coconut aminos for saltiness, curry paste for heat / more intense curry taste, maple syrup for sweetness, cinnamon or nutmeg for warmth, or peanut butter for creaminess / more intense peanut flavor. Stir and cook a few minutes more. Then turn off heat and let stand for at least 5 minutes before serving (this allows the flavors to meld).",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "To serve, divide between serving bowls and enjoy as is or with a side of rice, cauliflower rice, quinoa, or steamed greens (optional). Fresh lime juice, cilantro, and roasted peanuts (optional) make lovely additions as well.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "STORAGE",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s8",
+          "text": "Store cooled leftovers in the refrigerator up to 4-5 days or in the freezer up to 1 month. Reheat in the microwave or in a saucepan. Add more water or coconut milk as needed to rehydrate.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 346,
+    "protein": 5.2,
+    "carbs": 32.2,
+    "fat": 23.6,
+    "fiber": 4.1
+  },
+  "sourceUrl": "https://minimalistbaker.com/easy-1-pot-massaman-curry/",
+  "importMethod": "structured-data"
+}

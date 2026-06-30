@@ -1,0 +1,17 @@
+{
+  "id": "nr-066",
+  "url": "https://thewoksoflife.com/hot-sour-soup/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://thewoksoflife.com/hot-sour-soup/",
+  "sourceTitle": "Hot and Sour Soup: Just Like the Restaurants Make It - The Woks of Life",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 24,
+  "sourceStepCount": 16,
+  "warnings": [],
+  "error": ""
+}

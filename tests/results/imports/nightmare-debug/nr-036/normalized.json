@@ -1,0 +1,159 @@
+{
+  "title": "Classic Victoria sandwich recipe",
+  "description": "The perfect party cake, a Victoria sponge is a traditional bake everyone will love. Makes an easy wedding cake, too",
+  "servings": 10,
+  "prepTime": "40 min",
+  "cookTime": "20 min",
+  "totalTime": "1 hr",
+  "heroImage": "https://images.immediate.co.uk/production/volatile/sites/30/2020/08/recipe-image-legacy-id-1001468_10-81b47f5.jpg?resize=440,400",
+  "notes": "",
+  "tags": [
+    "Afternoon tea",
+    "Buffet",
+    "Supper",
+    "Treat",
+    "British",
+    "BBC Good Food",
+    "Birthday cake",
+    "CAKE",
+    "Classic",
+    "Classic sponge",
+    "Eggs",
+    "Good Food"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "",
+          "unit": "",
+          "name": "200g caster sugar",
+          "raw": "200g caster sugar"
+        },
+        {
+          "id": "i2",
+          "amount": "",
+          "unit": "",
+          "name": "200g softened butter",
+          "raw": "200g softened butter"
+        },
+        {
+          "id": "i3",
+          "amount": "4",
+          "unit": "",
+          "name": "eggs beaten",
+          "raw": "4 eggs beaten"
+        },
+        {
+          "id": "i4",
+          "amount": "",
+          "unit": "",
+          "name": "200g self-raising flour",
+          "raw": "200g self-raising flour"
+        },
+        {
+          "id": "i5",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "baking powder",
+          "raw": "1 tsp baking powder"
+        },
+        {
+          "id": "i6",
+          "amount": "2",
+          "unit": "Tbsp",
+          "name": "milk",
+          "raw": "2 tbsp milk"
+        },
+        {
+          "id": "i7",
+          "amount": "",
+          "unit": "",
+          "name": "100g butter softened",
+          "raw": "100g butter softened"
+        },
+        {
+          "id": "i8",
+          "amount": "",
+          "unit": "",
+          "name": "140g icing sugar sifted",
+          "raw": "140g icing sugar sifted"
+        },
+        {
+          "id": "i9",
+          "amount": "",
+          "unit": "",
+          "name": "drop vanilla extract (optional)",
+          "raw": "drop vanilla extract (optional)"
+        },
+        {
+          "id": "i10",
+          "amount": "",
+          "unit": "",
+          "name": "half a 340g jar good-quality strawberry jam",
+          "raw": "half a 340g jar good-quality strawberry jam"
+        },
+        {
+          "id": "i11",
+          "amount": "",
+          "unit": "",
+          "name": "icing sugar to decorate",
+          "raw": "icing sugar to decorate"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Heat oven to 190C/fan 170C/gas 5. Butter two 20cm sandwich tins and line with non-stick baking paper.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "In a large bowl, beat 200g caster sugar, 200g softened butter, 4 beaten eggs, 200g self-raising flour, 1 tsp baking powder and 2 tbsp milk together until you have a smooth, soft batter.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "Divide the mixture between the tins, smooth the surface with a spatula or the back of a spoon.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Bake for about 20 mins until golden and the cake springs back when pressed.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Turn onto a cooling rack and leave to cool completely.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "To make the filling, beat the 100g softened butter until smooth and creamy, then gradually beat in 140g sifted icing sugar and a drop of vanilla extract (if you’re using it).",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Spread the buttercream over the bottom of one of the sponges. Top it with 170g strawberry jam and sandwich the second sponge on top.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s8",
+          "text": "Dust with a little icing sugar before serving. Keep in an airtight container and eat within 2 days.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 507,
+    "protein": 5,
+    "carbs": 61.02,
+    "fat": 27.05,
+    "fiber": 0.8
+  },
+  "sourceUrl": "https://www.bbcgoodfood.com/recipes/classic-victoria-sandwich-recipe",
+  "importMethod": "structured-data"
+}

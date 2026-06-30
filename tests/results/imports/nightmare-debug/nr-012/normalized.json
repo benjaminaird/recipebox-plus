@@ -1,0 +1,199 @@
+{
+  "title": "Beatty's Chocolate Cake",
+  "description": "If you’re looking for your go-to chocolate cake (complete with a rich buttercream frosting), this is the one. It’s decadent, moist and guaranteed to impress.",
+  "servings": 8,
+  "prepTime": "",
+  "cookTime": "",
+  "totalTime": "",
+  "heroImage": "https://food.fnr.sndimg.com/content/dam/images/food/fullset/2007/3/22/0/ig0807_cake.jpg.rend.hgtvcom.1280.1280.suffix/1384540903614.webp",
+  "notes": "",
+  "tags": [
+    "dessert",
+    "Mixer Recipes",
+    "Recipes for a Crowd",
+    "Chocolate Cake",
+    "Cake",
+    "Baking"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1 3/4",
+          "unit": "cup",
+          "name": "all-purpose flour",
+          "raw": "1 3/4 cups all-purpose flour"
+        },
+        {
+          "id": "i2",
+          "amount": "2",
+          "unit": "cup",
+          "name": "sugar",
+          "raw": "2 cups sugar"
+        },
+        {
+          "id": "i3",
+          "amount": "3/4",
+          "unit": "cup",
+          "name": "good cocoa powder",
+          "raw": "3/4 cup good cocoa powder"
+        },
+        {
+          "id": "i4",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "baking soda",
+          "raw": "2 teaspoons baking soda"
+        },
+        {
+          "id": "i5",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "baking powder",
+          "raw": "1 teaspoon baking powder"
+        },
+        {
+          "id": "i6",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "kosher salt",
+          "raw": "1 teaspoon kosher salt"
+        },
+        {
+          "id": "i7",
+          "amount": "1",
+          "unit": "cup",
+          "name": "buttermilk, shaken",
+          "raw": "1 cup buttermilk, shaken"
+        },
+        {
+          "id": "i8",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "vegetable oil",
+          "raw": "1/2 cup vegetable oil"
+        },
+        {
+          "id": "i9",
+          "amount": "2",
+          "unit": "",
+          "name": "extra-large eggs, at room temperature",
+          "raw": "2 extra-large eggs, at room temperature"
+        },
+        {
+          "id": "i10",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "pure vanilla extract",
+          "raw": "1 teaspoon pure vanilla extract"
+        },
+        {
+          "id": "i11",
+          "amount": "1",
+          "unit": "cup",
+          "name": "freshly brewed hot coffee",
+          "raw": "1 cup freshly brewed hot coffee"
+        },
+        {
+          "id": "i12",
+          "amount": "",
+          "unit": "",
+          "name": "Chocolate Buttercream Frosting, recipe follows",
+          "raw": "Chocolate Buttercream Frosting, recipe follows"
+        },
+        {
+          "id": "i13",
+          "amount": "6",
+          "unit": "oz",
+          "name": "good semisweet chocolate, such as Valrhona",
+          "raw": "6 ounces good semisweet chocolate, such as Valrhona"
+        },
+        {
+          "id": "i14",
+          "amount": "1/2",
+          "unit": "lb",
+          "name": "(2 sticks) unsalted butter, at room temperature",
+          "raw": "1/2 pound (2 sticks) unsalted butter, at room temperature"
+        },
+        {
+          "id": "i15",
+          "amount": "1",
+          "unit": "",
+          "name": "extra-large egg yolk, at room temperature",
+          "raw": "1 extra-large egg yolk, at room temperature"
+        },
+        {
+          "id": "i16",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "pure vanilla extract",
+          "raw": "1 teaspoon pure vanilla extract"
+        },
+        {
+          "id": "i17",
+          "amount": "1 1/4",
+          "unit": "cup",
+          "name": "sifted confectioners' sugar",
+          "raw": "1 1/4 cups sifted confectioners' sugar"
+        },
+        {
+          "id": "i18",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "instant coffee powder",
+          "raw": "1 tablespoon instant coffee powder"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Preheat the oven to 350 degrees F. Butter two 8-inch round cake pans. Line with parchment paper, then butter and {i1} the pans.",
+          "ingredientRefs": [
+            "i1"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "Sift {i1}, {i2}, cocoa, {i4}, {i5}, and {i6} into the bowl of an electric mixer fitted with a paddle attachment and mix on low speed until combined. In another bowl, combine the buttermilk, oil, eggs, and vanilla. With the mixer on low speed, slowly add the wet ingredients to the dry. With mixer still on low, add {i11} and stir just to combine, scraping the bottom of the bowl with a rubber spatula. Pour the batter into the prepared pans and bake for 35 to 40 minutes, until a cake tester comes out clean. Cool in the pans for 30 minutes, then turn them out onto a cooling rack and cool completely.",
+          "ingredientRefs": [
+            "i1",
+            "i2",
+            "i4",
+            "i5",
+            "i6",
+            "i11"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Place 1 layer, flat side up, on a flat plate or cake pedestal. With a knife or offset spatula, spread the top with frosting. Place the second layer on top, rounded side up, and spread the frosting evenly on the top and sides of the cake.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Chop the chocolate and place it in a heat-proof bowl set over a pan of simmering water. Stir until just melted and set aside until cooled to room temperature.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "In the bowl of an electric mixer fitted with a paddle attachment, beat the butter on medium-high speed until light yellow and fluffy, about 3 minutes. Add the egg yolk and vanilla and continue beating for 3 minutes. Turn the mixer to low, gradually add the confectioners' {i2}, then beat at medium speed, scraping down the bowl as necessary, until smooth and creamy. Dissolve {i11} powder in 2 teaspoons of the hottest tap water. On low speed, add the chocolate and coffee to the butter mixture and mix until blended. Don't whip! Spread immediately on the cooled cake.",
+          "ingredientRefs": [
+            "i2",
+            "i11"
+          ]
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 847,
+    "protein": 9,
+    "carbs": 107,
+    "fat": 47,
+    "fiber": 5
+  },
+  "sourceUrl": "https://www.foodnetwork.com/recipes/ina-garten/beattys-chocolate-cake-recipe-1947521",
+  "importMethod": "structured-data"
+}

@@ -1,0 +1,155 @@
+{
+  "title": "Shanghai Scallion Pancakes",
+  "description": "Shanghai scallion pancakes were one of our favorite breakfast street foods in Shanghai. Packed full of scallions and pork fat layered in dough, these Shanghai scallion pancakes are more decadent than the average scallion pancake.",
+  "servings": 8,
+  "prepTime": "2 hr 30 min",
+  "cookTime": "30 min",
+  "totalTime": "3 hr",
+  "heroImage": "https://thewoksoflife.com/wp-content/uploads/2016/07/shanghai-scallion-pancakes-18.jpg",
+  "notes": "",
+  "tags": [
+    "Bread and Pizza",
+    "Chinese",
+    "scallion pancakes"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "2 1/4",
+          "unit": "cup",
+          "name": "all-purpose flour",
+          "raw": "21/4 cups all-purpose flour"
+        },
+        {
+          "id": "i2",
+          "amount": "1/4",
+          "unit": "tsp",
+          "name": "salt",
+          "raw": "1/4 teaspoon salt"
+        },
+        {
+          "id": "i3",
+          "amount": "1",
+          "unit": "cup",
+          "name": "warm water",
+          "raw": "1 cup warm water"
+        },
+        {
+          "id": "i4",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "peanut oil",
+          "raw": "1 teaspoon peanut oil"
+        },
+        {
+          "id": "i5",
+          "amount": "3",
+          "unit": "Tbsp",
+          "name": "vegetable or peanut oil",
+          "raw": "3 tablespoons vegetable or peanut oil"
+        },
+        {
+          "id": "i6",
+          "amount": "1/3",
+          "unit": "cup",
+          "name": "all-purpose flour",
+          "raw": "1/3 cup all-purpose flour"
+        },
+        {
+          "id": "i7",
+          "amount": "1/4",
+          "unit": "tsp",
+          "name": "salt",
+          "raw": "1/4 teaspoon salt"
+        },
+        {
+          "id": "i8",
+          "amount": "2",
+          "unit": "",
+          "name": "bunches scallions ((finely chopped, about 2 cups))",
+          "raw": "2 bunches scallions ((finely chopped, about 2 cups))"
+        },
+        {
+          "id": "i9",
+          "amount": "",
+          "unit": "",
+          "name": "Vegetable or peanut oil ((for cooking the pancakes))",
+          "raw": "Vegetable or peanut oil ((for cooking the pancakes))"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Start by preparing the dough. In a medium mixing bowl, mix 2 1/4 cups flour, 1/4 teaspoon salt, and 1 cup of warm water with a wooden spoon or rubber spatula until a sticky dough forms. The dough should be sticky, but not wet. You can add up to 2 tablespoons more flour if you feel the dough is really wet.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Next, use a teaspoon of oil to coat the top of the dough round. Don’t worry about the dough sticking to the bowl for now. Cover with plastic wrap and let rest for 1 to 2 hours.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "Make the flour and oil roux by combining 3 tablespoons of oil, 1/3 cup of flour, and 1/4 teaspoon salt. Set aside.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "After the dough has rested, use a teaspoon or two of oil to coat your work surface. Any clean stone or wood kitchen surface will do. Take the dough out and use a little more oil if you feel the dough is sticking to your hands or work surface. Is should be soft and pliable, and the oil keeps everything from sticking together.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Divide the dough into 4 equal pieces and roll each piece out lengthwise into a long strip. Next, take about 1/4 of the roux, and spread it across the entire length of the dough with your hands. Take 1/2 cup of the chopped scallions, and spread them generously and evenly across the length of the dough.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Next, roll the dough, folding and tucking in the edges every so often so you don’t have any {i8} leaking out of the sides. You end up with a little bundle of joy that you should set aside and cover with a piece of plastic wrap to avoid drying out. Repeat for the other three pancakes. At this point, you can also let the dough rest for 30 minutes to make rolling easier.",
+          "ingredientRefs": [
+            "i8"
+          ]
+        },
+        {
+          "id": "s7",
+          "text": "Heat a cast iron pan over medium heat, and add 4 tablespoons of oil. Next, place the dough ball with the spiral pattern facing up on your work surface. Flatten it with your hands or a rolling pin, so the dough round is about one inch thick. Place it in the pan.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s8",
+          "text": "The pan should be hot enough so the dough is sizzling, but browning slowly. Move the dough around the oil to cook the sides of the pancake. When the bottom is slightly browned (about 2 minutes), turn the pancake over gently, being careful not to splash the oil.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s9",
+          "text": "Use a cast iron grill press or heavy pot to flatten out the pancake to between 1/4-1/2-inch thick, and let fry in the oil for another 2 minutes. Turn it over if you think more browning is needed.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s10",
+          "text": "Next, transfer the scallion pancake to a preheated oven at 350 degrees F, and let bake for another 5 minutes for more crisping. We used our little countertop toaster oven, which worked just fine.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s11",
+          "text": "Take the pancakes out of the oven and cut into wedges to serve. If you like, now’s the time to sprinkle some extra {i2} on top to taste.",
+          "ingredientRefs": [
+            "i2"
+          ]
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 250,
+    "protein": 5,
+    "carbs": 33,
+    "fat": 11,
+    "fiber": 2
+  },
+  "sourceUrl": "https://thewoksoflife.com/shanghai-scallion-pancakes/",
+  "importMethod": "structured-data"
+}

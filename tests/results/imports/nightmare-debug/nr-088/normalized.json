@@ -1,0 +1,155 @@
+{
+  "title": "Best Hummus",
+  "description": "Learn how to make the best homemade hummus! It's creamy, dreamy and light. This hummus recipe is easy to make—no peeling chickpeas or overnight soak required. Recipe yields about 2 cups.",
+  "servings": 8,
+  "prepTime": "20 min",
+  "cookTime": "20 min",
+  "totalTime": "40 min",
+  "heroImage": "https://cookieandkate.com/images/2018/05/best-hummus-225x225.jpg",
+  "notes": "",
+  "tags": [
+    "Dip",
+    "Israeli",
+    "hummus",
+    "chickpeas",
+    "easy"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1",
+          "unit": "can",
+          "name": "(15 ounces) chickpeas, rinsed and drained, or 1 1/2 cups cooked chickpeas",
+          "raw": "1 can (15 ounces) chickpeas, rinsed and drained, or 1 1/2 cups cooked chickpeas"
+        },
+        {
+          "id": "i2",
+          "amount": "1/2",
+          "unit": "tsp",
+          "name": "baking soda (if you’re using canned chickpeas)",
+          "raw": "1/2 teaspoon baking soda (if you’re using canned chickpeas)"
+        },
+        {
+          "id": "i3",
+          "amount": "1/4",
+          "unit": "cup",
+          "name": "lemon juice, more to taste",
+          "raw": "1/4 cup lemon juice (from 1 1/2 to 2 lemons), more to taste",
+          "weightAmount": "2",
+          "weightUnit": "L"
+        },
+        {
+          "id": "i4",
+          "amount": "1",
+          "unit": "",
+          "name": "medium-to-large clove garlic, roughly chopped",
+          "raw": "1 medium-to-large clove garlic, roughly chopped"
+        },
+        {
+          "id": "i5",
+          "amount": "1/2",
+          "unit": "tsp",
+          "name": "fine sea salt, to taste",
+          "raw": "1/2 teaspoon fine sea salt, to taste"
+        },
+        {
+          "id": "i6",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "tahini",
+          "raw": "1/2 cup tahini"
+        },
+        {
+          "id": "i7",
+          "amount": "2 to 4",
+          "unit": "Tbsp",
+          "name": "ice water, more as needed",
+          "raw": "2 to 4 tablespoons ice water, more as needed"
+        },
+        {
+          "id": "i8",
+          "amount": "1/2",
+          "unit": "tsp",
+          "name": "ground cumin",
+          "raw": "1/2 teaspoon ground cumin"
+        },
+        {
+          "id": "i9",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "extra-virgin olive oil",
+          "raw": "1 tablespoon extra-virgin olive oil"
+        },
+        {
+          "id": "i10",
+          "amount": "",
+          "unit": "",
+          "name": "Any of the following garnishes: drizzle of olive oil or zhoug sauce, sprinkle of ground sumac or paprika, chopped fresh parsley",
+          "raw": "Any of the following garnishes: drizzle of olive oil or zhoug sauce, sprinkle of ground sumac or paprika, chopped fresh parsley"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Place {i1} in a medium saucepan and add the baking {i2}. Cover the chickpeas by several inches of water, then bring the mixture to a boil over high heat. Continue boiling, reducing heat if necessary to prevent overflow, for about 20 minutes, or until the chickpeas look bloated, their skins are falling off, and they’re quite soft. In a fine-mesh strainer, drain the chickpeas and run cool water over them for about 30 seconds. Set aside (no need to peel the chickpeas for this recipe!).",
+          "ingredientRefs": [
+            "i1",
+            "i2"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "Meanwhile, in a food processor or high-powered blender, combine the lemon juice, {i4} and salt. Process until the garlic is very finely chopped, then let the mixture rest so the garlic flavor can mellow, ideally 10 minutes or longer.",
+          "ingredientRefs": [
+            "i4"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Add {i6} to the food processor and blend until the mixture is thick and creamy, stopping to scrape down any tahini stuck to the sides and bottom of the processor as necessary.",
+          "ingredientRefs": [
+            "i6"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "While running the food processor, drizzle in 2 tablespoons ice water. Scrape down the food processor, and blend until the mixture is ultra smooth, pale and creamy. (If your {i6} was extra-thick to begin with, you might need to add 1 to 2 tablespoons more ice water.)",
+          "ingredientRefs": [
+            "i6"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Add {i8} and the drained, over-{i1} to the food processor. While blending, drizzle in {i9}. Blend until the mixture is super smooth, scraping down the sides of the processor as necessary, about 2 minutes. Add more ice water by the tablespoon if necessary to achieve a super creamy texture.",
+          "ingredientRefs": [
+            "i1",
+            "i8",
+            "i9"
+          ]
+        },
+        {
+          "id": "s6",
+          "text": "Taste, and adjust as necessary—I almost always add another 1/4 teaspoon salt for more overall flavor and another tablespoon of lemon juice for extra zing.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Scrape the hummus into a serving bowl or platter, and use a spoon to create nice swooshes on top. Top with garnishes of your choice, and serve. Leftover hummus keeps well in the refrigerator, covered, for up to 1 week.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 151,
+    "protein": 4.9,
+    "carbs": 11.1,
+    "fat": 10.6,
+    "fiber": 3.4
+  },
+  "sourceUrl": "https://cookieandkate.com/best-hummus-recipe/",
+  "importMethod": "structured-data"
+}

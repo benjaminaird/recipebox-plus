@@ -1,0 +1,294 @@
+{
+  "title": "Oyakodon (Chicken and Egg Rice Bowl)",
+  "description": "Oyakodon is a classic comfort food of Japanese home cooking. Tender pieces of chicken, onion, and eggs are simmered in an umami-rich, dashi-based sauce and then poured over a bowl of fluffy steamed rice. Simple, delicious, and utterly comforting, this is the kind of one-bowl meal you can cook in less than 30 minutes!",
+  "servings": 2,
+  "prepTime": "15 min",
+  "cookTime": "10 min",
+  "totalTime": "25 min",
+  "heroImage": "https://www.justonecookbook.com/wp-content/uploads/2022/10/Oyakodon-0613-I.jpg",
+  "notes": "",
+  "tags": [
+    "Main Dish",
+    "Japanese",
+    "donburi",
+    "over rice"
+  ],
+  "sections": [
+    {
+      "name": "Before You Start...",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1/2",
+          "unit": "",
+          "name": "onion",
+          "raw": "1/2 onion ((4 oz, 113 g; peeled))",
+          "weightAmount": "113",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i2",
+          "amount": "10",
+          "unit": "oz",
+          "name": "boneless, skinless chicken thighs",
+          "raw": "10 oz boneless, skinless chicken thighs"
+        },
+        {
+          "id": "i3",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "sake ((for marinating the chicken; substitute with Chinese rice wine or dry sherry, or omit))",
+          "raw": "1 Tbsp sake ((for marinating the chicken; substitute with Chinese rice wine or dry sherry, or omit))"
+        },
+        {
+          "id": "i4",
+          "amount": "3-4",
+          "unit": "",
+          "name": "large eggs",
+          "raw": "3-4 large eggs (50 g each w/o shell)",
+          "weightAmount": "50",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i5",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "dashi (Japanese soup stock)",
+          "raw": "1/2 cup dashi (Japanese soup stock)"
+        },
+        {
+          "id": "i6",
+          "amount": "2",
+          "unit": "Tbsp",
+          "name": "soy sauce",
+          "raw": "2 Tbsp soy sauce"
+        },
+        {
+          "id": "i7",
+          "amount": "2",
+          "unit": "Tbsp",
+          "name": "mirin",
+          "raw": "2 Tbsp mirin"
+        },
+        {
+          "id": "i8",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "sugar",
+          "raw": "2 tsp sugar"
+        },
+        {
+          "id": "i9",
+          "amount": "2",
+          "unit": "",
+          "name": "servings cooked Japanese short-grain rice ((typically 1 2/3 cups per donburi serving))",
+          "raw": "2 servings cooked Japanese short-grain rice ((typically 12/3 cups (250 g) per donburi serving))",
+          "weightAmount": "250",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i10",
+          "amount": "4",
+          "unit": "sprigs",
+          "name": "mitsuba (Japanese parsley) ((or green onion/scallion))",
+          "raw": "4 sprigs mitsuba (Japanese parsley) ((or green onion/scallion))"
+        },
+        {
+          "id": "i11",
+          "amount": "",
+          "unit": "",
+          "name": "shichimi togarashi (Japanese seven spice) ((optional))",
+          "raw": "shichimi togarashi (Japanese seven spice) ((optional))"
+        },
+        {
+          "id": "i12",
+          "amount": "",
+          "unit": "",
+          "name": "Japanese sansho pepper ((optional))",
+          "raw": "Japanese sansho pepper ((optional))"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "For the steamed rice, please note that 1 1/2 cups (300 g, 2 rice cooker cups) of uncooked Japanese {i9} yield 4 1/3 cups (660 g) of cooked rice, enough for 2 donburi servings (3 1/3 cups, 500 g). See how to cook short-grain rice with a rice cooker, pot over the stove, Instant Pot, or donabe.",
+          "ingredientRefs": [
+            "i9"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "This recipe includes both cooking methods—using a medium frying pan (about 10 inches/25 cm) and an oyakodon pan or small frying pan (8 inches/20 cm). Typically, oyakodon is made individually for each serving using an oyakodon pan, which lets you slide the cooked ingredients onto {i9} bowl easily. See the separate cooking instructions below.",
+          "ingredientRefs": [
+            "i9"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Gather all the ingredients. Do not make more than two servings in a medium frying pan. I explained a bit more in the blog post (under Oyakodon Cooking Tips). If you are making four servings, use two medium frying pans.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Prepare the Seasonings",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s4",
+          "text": "Combine 1/2 cup dashi (Japanese soup stock), 2 Tbsp soy sauce, 2 Tbsp mirin, and 2 tsp sugar in a bowl or a liquid measuring cup and mix all together until the sugar is dissolved.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Prepare the Ingredients",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s5",
+          "text": "Slice 1/2 onion lengthwise, about 1/4 inch (6 mm) wide.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Chop 4 sprigs mitsuba (Japanese parsley) 1/2 inch (1.3 cm) wide.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Trim the extra bits of fat and connective tissue from 10 oz boneless, skinless chicken thighs with the knife.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s8",
+          "text": "Cut the chicken thigh along the grain into strips 3/4–1 inch (2–2.5 cm) wide. Next, angle your knife back and diagonally (nearly parallel to the cutting board), and then slice the chicken strips against the grain into pieces about 3/4–1 inch (2–2.5 cm) square. Nami's Tip: This sogigiri cutting technique creates pieces of equal thickness with more surface area for fast cooking and better absorption of the flavors.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s9",
+          "text": "Transfer the chicken to a bowl or tray and sprinkle with 1 Tbsp sake. Set aside for 5 minutes.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s10",
+          "text": "Crack 3-4 large eggs (50 g each w/o shell) into a bowl. Using a pair of chopsticks, lift the egg whites to “cut“ them 5–6 times into a few smaller clumps. This will prevent the egg whites from falling into the frying pan all at once. Do not whisk or beat the eggs together. Nami's Tip: Aim for high color contrast between the white and yellow parts of the eggs in your finished dish.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s11",
+          "text": "While “cutting“ the egg whites, you may have accidentally broken some of the egg yolks. That‘s okay. If the yolks haven‘t broken yet, you can poke them to gently break them, but do not blend the egg whites and yolks. The eggs should resemble a marble pattern.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Cook in a Medium Frying Pan",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s12",
+          "text": "With the stove off, add the sliced onions to a medium frying pan (I use a well-seasoned 11” carbon steel pan) in a single layer. Then, add the seasonings mixture. It should just cover the onions. If not, your frying pan is too big and you need to either increase the seasoning or use a smaller pan.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s13",
+          "text": "Turn on the heat to medium and bring it to a simmer. Once simmering, add the chicken on top of the onions.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s14",
+          "text": "Make sure the onions and chicken are evenly distributed. Once simmering again, lower the heat to medium low. Cook, uncovered, for 5 minutes or until the chicken is no longer pink and the onions are tender. Halfway through, flip the chicken. Nami's Tip: Evaporation reduces the sauce and intensifies the flavor.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s15",
+          "text": "We will add the eggs in two stages: Two-thirds of the eggs first, then the remaining one-third later. Now, increase the heat to medium. With the cooking liquid simmering (small bubbles around the edges), drizzle two-thirds of the eggs in a circular pattern over the chicken and onions, avoiding the edges of the pan where the eggs can easily overcook. Nami's Tip: Only drizzle the eggs if the cooking liquid is simmering, as with Egg Drop Soup. Also, try to add more egg whites at this stage, as the whites take longer to cook than the yolks. Ideally, we want to keep the yolks soft and runny for the final presentation.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s16",
+          "text": "If the heat is too strong, lower the heat. If the egg is moving toward the edges of the pan, gently gather it toward the center where the heat is not as strong. Optionally, you can cover the pan if the egg whites are taking a long time to set.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s17",
+          "text": "When the eggs are still runny but just set, add the rest of the eggs to the center and around the edges of the pan. Add the mitsuba (or green onion) on top and cook on medium low until the egg is done to your liking. Usually, oyakodon in Japan is served while the egg is almost set but still runny (raw eggs are safe to consume in Japan). Nami's Tip: For the remaining one-third of the egg, try to distribute more egg yolks so the oyakodon will have a bright yellow color on top. For a good presentation, you can add an extra beaten yolk at the end.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s18",
+          "text": "Serve steamed rice in individual serving bowls. Spoon the cooked chicken and egg mixture onto the steamed rice and drizzle the desired amount of pan sauce on top.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Cook in an Oyakodon Pan or a Small Frying Pan",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s19",
+          "text": "Cook the chicken and egg in two batches, one serving at a time. Make sure to divide the ingredients in half. With the stove off, add half of the sliced onions to the pan in a single layer. Add half of the seasonings mixture (it should just cover the onions).",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s20",
+          "text": "Turn on the heat to medium and bring it to a simmer. Once simmering, add half of the chicken on top of the onions.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s21",
+          "text": "Make sure the onions and chicken are evenly distributed. Once simmering, lower the heat to medium low. Cook, uncovered, for 4 minutes or until the chicken is no longer pink and the onions are tender. Halfway through, flip the chicken. Nami's Tip: Evaporation helps to reduce the sauce and intensify the flavor.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s22",
+          "text": "We will add the eggs in two stages: Two-thirds of the eggs first, then the remaining one-third later. Now, increase the heat to medium. With the cooking liquid simmering (small bubbles around the edges), drizzle two-thirds of the eggs in a circular pattern over the chicken and onions, avoiding the edges of the pan where the eggs can easily overcook. Nami's Tip: Only add the eggs if the cooking liquid is simmering, as with Egg Drop Soup. Also, try to add more egg whites at this stage, as the whites take longer to cook than the yolks. Ideally, we want to keep the yolks soft and runny for the final presentation.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s23",
+          "text": "When the eggs are still runny but just set, add the rest of the eggs to the center and around the edges of the pan. Add the mitsuba (or green onion) on top and cook on medium low until the egg is done to your liking. Usually, oyakodon in Japan is served while the egg is almost set but still runny (raw eggs are safe to consume in Japan). Nami's Tip: For the remaining one-third of the egg, try to distribute the egg yolk so the oyakodon will have a bright yellow color on top. For a good presentation, you can add a beaten extra yolk at the end.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s24",
+          "text": "Portion 2 servings cooked Japanese short-grain rice into individual donburi or other serving bowls. Slide the cooked chicken and egg mixture onto the steamed rice and drizzle the desired amount of pan sauce on top. Repeat Steps 1 to 6 with the remaining ingredients.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Serve",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s25",
+          "text": "Serve the Oyakodon with optional shichimi togarashi (Japanese seven spice) for a spicy kick and Japanese sansho pepper for a peppery fragrance on the side.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Store",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s26",
+          "text": "You can keep the leftovers in an airtight container and store in the refrigerator for up to 2–3 days.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 537,
+    "protein": 42,
+    "carbs": 50,
+    "fat": 13,
+    "fiber": 1
+  },
+  "sourceUrl": "https://www.justonecookbook.com/oyakodon/",
+  "importMethod": "structured-data"
+}

@@ -108,16 +108,37 @@
   function splitParentheticalMetric(ing) {
     if (!ing || typeof ing !== "object") return ing;
     var metricRe = /\(\s*([\d.,]+(?:\s+\d+\/\d+)?|\d+\/\d+)\s*(g|gram|grams|kg|kilogram|kilograms|ml|milliliter|milliliters|l|liter|liters|litre|litres)\s*\)/i;
+    var metricInsideParenRe = /\([^()]*?([\d.,]+(?:\s+\d+\/\d+)?|\d+\/\d+)\s*(g|gram|grams|kg|kilogram|kilograms|ml|milliliter|milliliters|l|liter|liters|litre|litres)[^()]*?\)/i;
     var fields = ["name", "amount", "unit"];
     for (var i = 0; i < fields.length; i++) {
       var key = fields[i], value = String(ing[key] == null ? "" : ing[key]);
-      var m = value.match(metricRe);
-      if (!m) continue;
-      if (!ing.weightAmount) ing.weightAmount = normalizeFractions(m[1]).replace(/,/g, "").trim();
-      if (!ing.weightUnit) ing.weightUnit = m[2];
-      ing[key] = normalizeText(value.replace(metricRe, " ").replace(/\s+/g, " ").trim());
+      for (var pass = 0; pass < 8; pass++) {
+        var m = value.match(metricRe) || value.match(metricInsideParenRe);
+        if (!m) break;
+        if (!ing.weightAmount) ing.weightAmount = normalizeFractions(m[1]).replace(/,/g, "").trim();
+        if (!ing.weightUnit) ing.weightUnit = m[2];
+        value = value.replace(m[0], " ");
+      }
+      ing[key] = cleanEmptyParens(normalizeText(value.replace(/\s+/g, " ").trim()));
     }
     return ing;
+  }
+
+  function cleanEmptyParens(value) {
+    var s = String(value == null ? "" : value);
+    for (var i = 0; i < 3; i++) {
+      s = s
+        .replace(/\(\s*[,;:-]?\s*\)/g, " ")
+        .replace(/\(\s*[,;:-]\s*/g, "(")
+        .replace(/\s*[,;:-]\s*\)/g, ")")
+        .replace(/\(\s*([^()]*)\s*\)/g, function (m, inner) {
+          return inner && inner.trim() ? "(" + inner.trim() + ")" : " ";
+        })
+        .replace(/\s+([,.;:!?])/g, "$1")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+    return s;
   }
 
   // Normalize a whole recipe (returns a NEW object; input is not mutated). Only
@@ -447,9 +468,21 @@
   function ingredientAliasesShallow(ing) {
     var full = cleanIngredientName(ing && ing.name);
     if (!full) return [];
+    var rawName = String((ing && ing.name) || "").toLowerCase();
+    var commaAliases = [];
+    if (rawName.indexOf(",") !== -1) {
+      var pieces = rawName.split(",").map(cleanIngredientName).filter(Boolean);
+      if (pieces[0]) {
+        commaAliases.push(pieces[0]);
+        var baseWords = pieces[0].split(/\s+/).filter(Boolean);
+        if (baseWords.length > 1) commaAliases.push(baseWords.slice(-2).join(" "));
+        if (baseWords.length) commaAliases.push(baseWords[baseWords.length - 1]);
+      }
+      if (pieces.length >= 2) commaAliases.push(pieces.slice(1).join(" ") + " " + pieces[0]);
+    }
     var stripped = full.replace(ALIAS_DROP, " ").replace(/\s+/g, " ").trim();
     var words = stripped.split(/\s+/).filter(Boolean);
-    return [full, stripped, words.slice(-2).join(" "), words[words.length - 1]].filter(Boolean);
+    return [full].concat(commaAliases, [stripped, words.slice(-2).join(" "), words[words.length - 1]]).filter(Boolean);
   }
   function quantityAwareDirections(recipe) {
     if (!recipe || !Array.isArray(recipe.sections)) return recipe;

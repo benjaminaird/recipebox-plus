@@ -1,0 +1,17 @@
+{
+  "id": "nr-090",
+  "url": "https://cooking.nytimes.com/recipes/11376-no-knead-bread",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://cooking.nytimes.com/recipes/11376-no-knead-bread",
+  "sourceTitle": "No-Knead Bread Recipe",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 14386,
+  "jsonLdNodes": 4,
+  "sourceIngredientCount": 4,
+  "sourceStepCount": 4,
+  "warnings": [],
+  "error": ""
+}

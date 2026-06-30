@@ -1,0 +1,17 @@
+{
+  "id": "nr-008",
+  "url": "https://www.allrecipes.com/recipe/220943/chef-johns-buttermilk-biscuits/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.allrecipes.com/recipe/220943/chef-johns-buttermilk-biscuits/",
+  "sourceTitle": "Chef John's Buttermilk Biscuits Recipe",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 14802,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 7,
+  "sourceStepCount": 7,
+  "warnings": [],
+  "error": ""
+}

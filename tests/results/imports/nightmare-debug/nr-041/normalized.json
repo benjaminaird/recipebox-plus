@@ -1,0 +1,109 @@
+{
+  "title": "Best Yorkshire puddings",
+  "description": "The secret to getting gloriously puffed-up Yorkshire puddings is to have the fat sizzling hot and don't open the oven door!",
+  "servings": 8,
+  "prepTime": "5 min",
+  "cookTime": "20 min",
+  "totalTime": "25 min",
+  "heroImage": "https://images.immediate.co.uk/production/volatile/sites/30/2020/08/recipe-image-legacy-id-901451_9-687c42b.jpg?resize=440,400",
+  "notes": "",
+  "tags": [
+    "Dinner",
+    "Lunch",
+    "Side dish",
+    "British",
+    "Barney Desmazery",
+    "Pancake batter",
+    "Roast dinner",
+    "Toad in the hole",
+    "Yorkies",
+    "Yorkshire puddings",
+    "Yorkshire puds",
+    "Yorkshires"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "",
+          "unit": "",
+          "name": "140g plain flour",
+          "raw": "140g plain flour (this is about 200ml/7fl oz)",
+          "weightAmount": "200",
+          "weightUnit": "ml"
+        },
+        {
+          "id": "i2",
+          "amount": "4",
+          "unit": "",
+          "name": "eggs",
+          "raw": "4 eggs (200ml/7fl oz)",
+          "weightAmount": "200",
+          "weightUnit": "ml"
+        },
+        {
+          "id": "i3",
+          "amount": "",
+          "unit": "",
+          "name": "200ml milk",
+          "raw": "200ml milk"
+        },
+        {
+          "id": "i4",
+          "amount": "",
+          "unit": "",
+          "name": "sunflower oil for cooking",
+          "raw": "sunflower oil for cooking"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Heat oven to 230C/fan 210C/gas 8.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Drizzle a little sunflower oil evenly into two 4-hole Yorkshire pudding tins or two 12-hole non-stick muffin tins and place in the oven to heat through.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "To make the batter, tip 140g plain flour into a bowl and beat in 4 eggs until smooth.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Gradually add 200ml milk and carry on beating until the mix is completely lump-free. Season with salt and pepper.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Pour the batter into a jug, then remove the hot tins from the oven. Carefully and evenly pour the batter into the holes.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Place the tins back in the oven and leave undisturbed for 20-25 mins until the puddings have puffed up and browned.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Serve immediately. You can now cool them and freeze for up to 1 month.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 176,
+    "protein": 6,
+    "carbs": 15,
+    "fat": 10.09,
+    "fiber": 0.7
+  },
+  "sourceUrl": "https://www.bbcgoodfood.com/recipes/best-yorkshire-puddings",
+  "importMethod": "structured-data"
+}

@@ -1,0 +1,108 @@
+{
+  "title": "Easy pancakes",
+  "description": "Learn how to make the perfect pancakes every time with our foolproof easy crêpe recipe – elaborate flip optional",
+  "servings": 12,
+  "prepTime": "10 min",
+  "cookTime": "20 min",
+  "totalTime": "30 min",
+  "heroImage": "https://images.immediate.co.uk/production/volatile/sites/30/2020/08/recipe-image-legacy-id-1273477_8-ad36e3b.jpg?resize=440,400",
+  "notes": "",
+  "tags": [
+    "Breakfast",
+    "Brunch",
+    "Main course",
+    "British",
+    "Cassie Best",
+    "Cook school",
+    "Crepe",
+    "Crêpes",
+    "easy pancakes",
+    "Flip",
+    "Flipping",
+    "Good for you"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "",
+          "unit": "",
+          "name": "100g plain flour",
+          "raw": "100g plain flour"
+        },
+        {
+          "id": "i2",
+          "amount": "2",
+          "unit": "",
+          "name": "large eggs",
+          "raw": "2 large eggs"
+        },
+        {
+          "id": "i3",
+          "amount": "",
+          "unit": "",
+          "name": "300ml milk",
+          "raw": "300ml milk"
+        },
+        {
+          "id": "i4",
+          "amount": "1",
+          "unit": "tbsp",
+          "name": "sunflower or vegetable oil plus a little extra for frying",
+          "raw": "1 tbsp sunflower or vegetable oil plus a little extra for frying"
+        },
+        {
+          "id": "i5",
+          "amount": "",
+          "unit": "",
+          "name": "lemon wedges to serve (optional)",
+          "raw": "lemon wedges to serve (optional)"
+        },
+        {
+          "id": "i6",
+          "amount": "",
+          "unit": "",
+          "name": "caster sugar to serve (optional)",
+          "raw": "caster sugar to serve (optional)"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Put 100g plain flour, 2 large eggs, 300ml milk, 1 tbsp sunflower or vegetable oil and a pinch of salt into a bowl or large jug, then whisk to a smooth batter. This should be similar in consistency to single cream.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Set aside for 30 mins to rest if you have time, or start cooking straight away.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "Set a medium frying pan or crêpe pan over a medium heat and carefully wipe it with some oiled kitchen paper.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "When hot, cook your pancakes for 1 min on each side until golden, using around half a ladleful of batter per pancake. Keep them warm in a low oven as you make the rest.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Serve with lemon wedges and caster sugar, or your favourite filling. Once cold, you can layer the pancakes between baking parchment, then wrap in cling film and freeze for up to two months.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 61,
+    "protein": 3,
+    "carbs": 7,
+    "fat": 2
+  },
+  "sourceUrl": "https://www.bbcgoodfood.com/recipes/easy-pancakes",
+  "importMethod": "structured-data"
+}

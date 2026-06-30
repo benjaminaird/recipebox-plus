@@ -1,0 +1,17 @@
+{
+  "id": "nr-015",
+  "url": "https://www.kingarthurbaking.com/recipes/classic-birthday-cake-recipe",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.kingarthurbaking.com/recipes/classic-birthday-cake-recipe",
+  "sourceTitle": "Classic Birthday Cake Recipe | King Arthur Baking",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 16512,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 16,
+  "sourceStepCount": 17,
+  "warnings": [],
+  "error": ""
+}

@@ -1,0 +1,158 @@
+{
+  "title": "Quick and Easy Chocolate Chip Cookies | BraveTart",
+  "description": "Chewy chocolate chip cookies with just-crisp edges, loaded with melted chopped bar chocolate for better flavor than commercial chips.",
+  "servings": 32,
+  "prepTime": "20 min",
+  "cookTime": "25 min",
+  "totalTime": "45 min",
+  "heroImage": "https://www.seriouseats.com/thmb/F6jtcbm2pCoXZIVfj-5zv_FUwrc=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/__opt__aboutcom__coeus__resources__content_migration__serious_eats__seriouseats.com__images__2017__08__20170727-bravetart-chocolate-chip-cookies-vicky-wasik-1-2-a14e4447c1db4ae1bb1b8d04320404dc.jpg",
+  "notes": "",
+  "tags": [
+    "Chocolate Chip Cookies",
+    "Cookies",
+    "American",
+    "Bake",
+    "BraveTart",
+    "chip",
+    "chocolate",
+    "chocolate chip",
+    "cookie",
+    "dessert",
+    "easy",
+    "essential"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "14",
+          "unit": "oz",
+          "name": "assorted dark, milk, or white chocolate (not commercial chips), roughly chopped",
+          "raw": "14 ounces assorted dark, milk, or white chocolate (not commercial chips), roughly chopped (2 1/2 cups; 395g)",
+          "weightAmount": "395",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i2",
+          "amount": "12 1/2",
+          "unit": "oz",
+          "name": "all-purpose flour, such as Gold Medal",
+          "raw": "12 1/2 ounces all-purpose flour (2 3/4 cups, spooned; 355g), such as Gold Medal",
+          "weightAmount": "355",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i3",
+          "amount": "8",
+          "unit": "oz",
+          "name": "unsalted butter, soft but cool, about 65°F (18°C)",
+          "raw": "8 ounces unsalted butter (2 sticks; 225g), soft but cool, about 65°F (18°C)",
+          "weightAmount": "225",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i4",
+          "amount": "7 1/4",
+          "unit": "oz",
+          "name": "white sugar",
+          "raw": "7 1/4 ounces white sugar (1 cup; 205g)",
+          "weightAmount": "205",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i5",
+          "amount": "8",
+          "unit": "oz",
+          "name": "light brown sugar",
+          "raw": "8 ounces light brown sugar (1 cup, gently packed; 225g)",
+          "weightAmount": "",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i6",
+          "amount": "1/2",
+          "unit": "oz",
+          "name": "vanilla extract",
+          "raw": "1/2 ounce vanilla extract (1 tablespoon; 15g)",
+          "weightAmount": "15",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i7",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "Diamond Crystal kosher salt, plus more for sprinkling; for table salt, use about half as much by volume or the same weight",
+          "raw": "2 teaspoons (8g) Diamond Crystal kosher salt, plus more for sprinkling; for table salt, use about half as much by volume or the same weight",
+          "weightAmount": "8",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i8",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "baking soda",
+          "raw": "1 teaspoon baking soda"
+        },
+        {
+          "id": "i9",
+          "amount": "1/2",
+          "unit": "tsp",
+          "name": "baking powder",
+          "raw": "1/2 teaspoon baking powder"
+        },
+        {
+          "id": "i10",
+          "amount": "1/8",
+          "unit": "tsp",
+          "name": "grated nutmeg",
+          "raw": "1/8 teaspoon grated nutmeg"
+        },
+        {
+          "id": "i11",
+          "amount": "1",
+          "unit": "",
+          "name": "large egg, straight from the fridge",
+          "raw": "1 large egg (about 1 3/4 ounces; 50g), straight from the fridge",
+          "weightAmount": "50",
+          "weightUnit": "g"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Make the Dough: Adjust oven rack to middle position and preheat to 350°F (180°C). Set aside a handful of chopped chocolate (about 2 ounces; 55g) and place the remainder in a medium bowl. Sift flour on top and toss together. Combine butter, {i4}, {i5}, vanilla, salt, {i8}, {i9}, and {i10} in the bowl of a stand mixer fitted with a paddle attachment. Mix on low to moisten, then increase to medium and beat until light and fluffy, about 5 minutes. With mixer running, add egg and continue beating only until smooth. Reduce speed to low, add flour/chocolate all at once, and mix to form a stiff dough.",
+          "ingredientRefs": [
+            "i4",
+            "i5",
+            "i8",
+            "i9",
+            "i10"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "Portion the Dough: Divide in 2-tablespoon portions (about 1 1/2 ounces or 40g each) and round each one into a smooth ball. (If you like, portioned dough can be refrigerated in a heavy-duty zipper-lock bag up to 1 week, or frozen 6 months. Stand at room temperature until quite soft, about 70°F or 21°C, and proceed as directed.)",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "To Bake: Arrange portions on a parchment-lined half sheet pan, leaving 2 inches between cookies to account for spread. Garnish each with reserved {i1} and a pinch of kosher salt. Bake until puffed and pale gold around the edges but steamy in the middle, about 15 minutes. For crunchy cookies, continue baking until golden, 3 to 5 minutes more. Cool directly on baking sheet until crumb is set, about 5 minutes. Enjoy warm or store in an airtight container up to 2 days at room temperature.",
+          "ingredientRefs": [
+            "i1"
+          ]
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 214,
+    "protein": 2,
+    "carbs": 30,
+    "fat": 10,
+    "fiber": 1
+  },
+  "sourceUrl": "https://www.seriouseats.com/bravetart-chocolate-chip-cookies-recipe",
+  "importMethod": "structured-data"
+}

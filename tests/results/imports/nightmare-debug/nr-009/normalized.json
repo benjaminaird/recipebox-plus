@@ -1,0 +1,195 @@
+{
+  "title": "Good Eats Roast Turkey",
+  "description": "This holiday season, serve Alton Brown's most-popular recipe: a brined and roasted turkey from Good Eats on Food Network.",
+  "servings": 12,
+  "prepTime": "",
+  "cookTime": "",
+  "totalTime": "",
+  "heroImage": "https://food.fnr.sndimg.com/content/dam/images/food/fullset/2010/10/4/0/FNM_110110-Cover-008-no-dial_s4x3.jpg.rend.hgtvcom.1280.1280.suffix/1382539588774.webp",
+  "notes": "",
+  "tags": [
+    "main-dish",
+    "Turkey Recipes",
+    "Thanksgiving",
+    "Thanksgiving Turkey",
+    "Roasted Turkey",
+    "Roasting",
+    "Roast Recipes",
+    "Main Dish",
+    "Recipes for a Crowd",
+    "Easy Main Dish",
+    "Brined Turkey"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1",
+          "unit": "",
+          "name": "(14 to 16 pound) frozen young turkey",
+          "raw": "1 (14 to 16 pound) frozen young turkey"
+        },
+        {
+          "id": "i2",
+          "amount": "1",
+          "unit": "cup",
+          "name": "kosher salt",
+          "raw": "1 cup kosher salt"
+        },
+        {
+          "id": "i3",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "light brown sugar",
+          "raw": "1/2 cup light brown sugar"
+        },
+        {
+          "id": "i4",
+          "amount": "1",
+          "unit": "gal",
+          "name": "vegetable stock",
+          "raw": "1 gallon vegetable stock"
+        },
+        {
+          "id": "i5",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "black peppercorns",
+          "raw": "1 tablespoon black peppercorns"
+        },
+        {
+          "id": "i6",
+          "amount": "1 1/2",
+          "unit": "tsp",
+          "name": "allspice berries",
+          "raw": "1 1/2 teaspoons allspice berries"
+        },
+        {
+          "id": "i7",
+          "amount": "1 1/2",
+          "unit": "tsp",
+          "name": "chopped candied ginger",
+          "raw": "1 1/2 teaspoons chopped candied ginger"
+        },
+        {
+          "id": "i8",
+          "amount": "1",
+          "unit": "gal",
+          "name": "heavily iced water",
+          "raw": "1 gallon heavily iced water"
+        },
+        {
+          "id": "i9",
+          "amount": "1",
+          "unit": "",
+          "name": "red apple, sliced",
+          "raw": "1 red apple, sliced"
+        },
+        {
+          "id": "i10",
+          "amount": "1/2",
+          "unit": "",
+          "name": "onion, sliced",
+          "raw": "1/2 onion, sliced"
+        },
+        {
+          "id": "i11",
+          "amount": "1",
+          "unit": "",
+          "name": "cinnamon stick",
+          "raw": "1 cinnamon stick"
+        },
+        {
+          "id": "i12",
+          "amount": "1",
+          "unit": "cup",
+          "name": "water",
+          "raw": "1 cup water"
+        },
+        {
+          "id": "i13",
+          "amount": "4",
+          "unit": "sprigs",
+          "name": "rosemary",
+          "raw": "4 sprigs rosemary"
+        },
+        {
+          "id": "i14",
+          "amount": "6",
+          "unit": "",
+          "name": "leaves sage",
+          "raw": "6 leaves sage"
+        },
+        {
+          "id": "i15",
+          "amount": "",
+          "unit": "",
+          "name": "Canola oil",
+          "raw": "Canola oil"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Two to three days before roasting: Begin thawing {i1} in the refrigerator or in a cooler kept at 38 degrees F.",
+          "ingredientRefs": [
+            "i1"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "Combine {i4}, {i2}, {i3}, {i5}, {i6}, and {i7} in a large stockpot over medium-high heat. Stir occasionally to dissolve solids and bring to a boil. Then remove the brine from the heat, cool to room temperature, and refrigerate.",
+          "ingredientRefs": [
+            "i2",
+            "i3",
+            "i4",
+            "i5",
+            "i6",
+            "i7"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "The night before or early on the day you'd like to eat: Combine the brine, {i12} and ice in the 5-gallon bucket. Place the thawed {i1} (with innards removed) breast side down in brine. If necessary, weigh down the bird to ensure it is fully immersed, cover, and refrigerate or set in cool area for 8 to 16 hours, turning the bird once half way through brining.",
+          "ingredientRefs": [
+            "i1",
+            "i12"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "Preheat the oven to 500 degrees F. Remove the bird from brine and rinse inside and out with cold {i12}. Discard the brine.",
+          "ingredientRefs": [
+            "i12"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Place the bird on roasting rack inside a half sheet pan and pat dry with paper towels.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Combine the apple, onion, {i11}, and 1 cup of water in a microwave safe dish and microwave on high for 5 minutes. Add steeped aromatics to {i1}'s cavity along with {i13} and {i14}. Tuck the wings underneath the bird and coat the skin liberally with canola oil.",
+          "ingredientRefs": [
+            "i1",
+            "i11",
+            "i13",
+            "i14"
+          ]
+        },
+        {
+          "id": "s7",
+          "text": "Roast {i1} on lowest level of the oven at 500 degrees F for 30 minutes. Insert a probe thermometer into thickest part of the breast and reduce the oven temperature to 350 degrees F. Set the thermometer alarm (if available) to 161 degrees F. A 14 to 16 pound bird should require a total of 2 to 2 1/2 hours of roasting. Let the turkey rest, loosely covered with foil or a large mixing bowl for 15 minutes before carving.",
+          "ingredientRefs": [
+            "i1"
+          ]
+        }
+      ]
+    }
+  ],
+  "sourceUrl": "https://www.foodnetwork.com/recipes/alton-brown/good-eats-roast-turkey-recipe-1950271",
+  "importMethod": "structured-data"
+}

@@ -1,0 +1,17 @@
+{
+  "id": "nr-070",
+  "url": "https://www.justonecookbook.com/okonomiyaki/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.justonecookbook.com/okonomiyaki/",
+  "sourceTitle": "Authentic Okonomiyaki Recipe お好み焼き • Just One Cookbook",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 14,
+  "sourceStepCount": 25,
+  "warnings": [],
+  "error": ""
+}

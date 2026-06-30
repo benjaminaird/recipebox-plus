@@ -1,0 +1,9 @@
+{
+  "transcriptAvailable": false,
+  "descriptionAvailable": false,
+  "sourceQuality": "low",
+  "warnings": [
+    "transcript unavailable",
+    "low confidence extraction"
+  ]
+}

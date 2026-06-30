@@ -1,0 +1,17 @@
+{
+  "id": "nr-024",
+  "url": "https://sallysbakingaddiction.com/best-banana-bread-recipe/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://sallysbakingaddiction.com/best-banana-bread-recipe/",
+  "sourceTitle": "My Favorite Banana Bread Recipe - Sally&#039;s Baking",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 11,
+  "sourceStepCount": 6,
+  "warnings": [],
+  "error": ""
+}

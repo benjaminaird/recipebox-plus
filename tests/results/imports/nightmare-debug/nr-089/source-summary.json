@@ -1,0 +1,17 @@
+{
+  "id": "nr-089",
+  "url": "https://cookieandkate.com/vegetarian-chili-recipe/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://cookieandkate.com/vegetarian-chili-recipe/",
+  "sourceTitle": "Homemade Vegetarian Chili - Cookie and Kate",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 13828,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 19,
+  "sourceStepCount": 5,
+  "warnings": [],
+  "error": ""
+}

@@ -1,0 +1,17 @@
+{
+  "id": "nr-046",
+  "url": "https://www.recipetineats.com/chocolate-cake/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.recipetineats.com/chocolate-cake/",
+  "sourceTitle": "Chocolate Cake - RecipeTin Eats",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": null,
+  "sourceStepCount": null,
+  "warnings": [],
+  "error": ""
+}

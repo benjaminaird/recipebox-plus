@@ -1,0 +1,17 @@
+{
+  "id": "nr-098",
+  "url": "https://www.davidlebovitz.com/salted-butter-c/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.davidlebovitz.com/salted-butter-c/",
+  "sourceTitle": "Salted Butter Caramel Ice Cream recipe",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 9,
+  "sourceStepCount": 11,
+  "warnings": [],
+  "error": ""
+}

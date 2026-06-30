@@ -1,0 +1,17 @@
+{
+  "id": "nr-021",
+  "url": "https://sallysbakingaddiction.com/triple-chocolate-layer-cake/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://sallysbakingaddiction.com/triple-chocolate-layer-cake/",
+  "sourceTitle": "Chocolate Layer Cake (Popular Recipe!) - Sally&#039;s Baking",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 19,
+  "sourceStepCount": 8,
+  "warnings": [],
+  "error": ""
+}

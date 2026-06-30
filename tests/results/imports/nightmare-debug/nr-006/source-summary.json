@@ -1,0 +1,17 @@
+{
+  "id": "nr-006",
+  "url": "https://www.allrecipes.com/recipe/84450/ukrainian-red-borscht-soup/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.allrecipes.com/recipe/84450/ukrainian-red-borscht-soup/",
+  "sourceTitle": "Ukrainian Red Borscht Soup Recipe",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 11290,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 15,
+  "sourceStepCount": 7,
+  "warnings": [],
+  "error": ""
+}

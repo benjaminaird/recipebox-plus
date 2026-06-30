@@ -1,0 +1,184 @@
+{
+  "title": "Char Siu (Chinese BBQ Pork)",
+  "description": "Char siu, or Chinese BBQ Pork, is a delicious Cantonese roast meat. Make authentic Chinatown char siu at home with our restaurant-quality recipe!",
+  "servings": 8,
+  "prepTime": "10 min",
+  "cookTime": "50 min",
+  "totalTime": "1 hr",
+  "heroImage": "https://thewoksoflife.com/wp-content/uploads/2019/04/char-siu-recipe-11.jpg",
+  "notes": "",
+  "tags": [
+    "Pork",
+    "Chinese",
+    "char siu",
+    "Chinese BBQ pork",
+    "Chinese cha siu",
+    "chinese roast pork"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "3",
+          "unit": "pounds",
+          "name": "boneless pork shoulder/pork butt ((select a piece with some good fat on it))",
+          "raw": "3 pounds boneless pork shoulder/pork butt ((select a piece with some good fat on it))"
+        },
+        {
+          "id": "i2",
+          "amount": "1/4",
+          "unit": "cup",
+          "name": "granulated white sugar",
+          "raw": "1/4 cup granulated white sugar"
+        },
+        {
+          "id": "i3",
+          "amount": "2",
+          "unit": "teaspoons",
+          "name": "salt",
+          "raw": "2 teaspoons salt"
+        },
+        {
+          "id": "i4",
+          "amount": "1/2",
+          "unit": "teaspoon",
+          "name": "five spice powder",
+          "raw": "1/2 teaspoon five spice powder"
+        },
+        {
+          "id": "i5",
+          "amount": "1/4",
+          "unit": "teaspoon",
+          "name": "white pepper",
+          "raw": "1/4 teaspoon white pepper"
+        },
+        {
+          "id": "i6",
+          "amount": "1/2",
+          "unit": "teaspoon",
+          "name": "sesame oil",
+          "raw": "1/2 teaspoon sesame oil"
+        },
+        {
+          "id": "i7",
+          "amount": "1",
+          "unit": "tablespoon",
+          "name": "Shaoxing rice wine",
+          "raw": "1 tablespoon Shaoxing rice wine"
+        },
+        {
+          "id": "i8",
+          "amount": "1",
+          "unit": "tablespoon",
+          "name": "soy sauce",
+          "raw": "1 tablespoon soy sauce"
+        },
+        {
+          "id": "i9",
+          "amount": "1",
+          "unit": "tablespoon",
+          "name": "hoisin sauce",
+          "raw": "1 tablespoon hoisin sauce"
+        },
+        {
+          "id": "i10",
+          "amount": "2",
+          "unit": "teaspoons",
+          "name": "molasses",
+          "raw": "2 teaspoons molasses"
+        },
+        {
+          "id": "i11",
+          "amount": "1/8",
+          "unit": "teaspoon",
+          "name": "red food coloring ((optional))",
+          "raw": "1/8 teaspoon red food coloring ((optional))"
+        },
+        {
+          "id": "i12",
+          "amount": "3",
+          "unit": "cloves",
+          "name": "finely minced garlic",
+          "raw": "3 cloves finely minced garlic"
+        },
+        {
+          "id": "i13",
+          "amount": "2",
+          "unit": "tablespoons",
+          "name": "maltose or honey",
+          "raw": "2 tablespoons maltose or honey"
+        },
+        {
+          "id": "i14",
+          "amount": "1",
+          "unit": "tablespoon",
+          "name": "hot water",
+          "raw": "1 tablespoon hot water"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Cut the pork into long strips or chunks about 2 to 3 inches thick. Don’t trim any excess fat, as it will render off and add flavor.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Combine the sugar, salt, five spice powder, white pepper, sesame oil, wine, soy sauce, hoisin sauce, molasses, food coloring (if using), and garlic in a bowl to make the marinade (i.e. the BBQ sauce).",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "Reserve about 2 tablespoons of marinade and set it aside. Rub the pork with the rest of the marinade in a large bowl or baking dish. Cover and refrigerate overnight, or at least 8 hours. Cover and store the reserved marinade in the fridge as well.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Preheat your oven to 'bake' at 475 F (246 C) with a rack positioned in the upper third of the oven. (If you only have a convection oven, keep in mind the oven not only heats more quickly, your char siu will roast faster than what we have described here). It's amazing how oven temperatures can vary—from model to model, in different spots in the oven, and in how ovens pre-heat and maintain heat. Using an oven thermometer to double-check the actual oven temperature is a great safeguard to monitor your food (I say double-check because even oven thermostat calibrations vary and can sometimes be incorrect). Regardless, be sure to check your char siu every 10 minutes, reducing or increasing the temperature as needed.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Line a sheet pan with foil and place a metal rack on top. Using the metal rack keeps the pork off of the pan and allows it to roast more evenly, like it does in commercial ovens described above. Place the pork on the rack, leaving as much space as possible between pieces. Pour 1 ½ cups water into the pan below the rack. This prevents any drippings from burning or smoking.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Transfer the pork to your preheated oven. Roast for 25 minutes, keeping the oven setting at 475 F for the first 10 minutes of roasting, and then reduce your oven temperature to 375 F (190 C). After 25 minutes, flip the pork. If the bottom of the pan is dry, add another cup of water. Turn the pan 180 degrees to ensure even roasting. Roast another 15 minutes. Throughout the roasting time, check your char siu often (every 10 minutes) and reduce the oven temperature if it looks like it is burning!",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Meanwhile, combine the reserved marinade with the maltose or honey (maltose is very viscous––you can heat it up in the microwave to make it easier to work with) and 1 tablespoon hot water. This will be the sauce you’ll use for basting the pork.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s8",
+          "text": "After 40 minutes of total roasting time, baste the pork, flip it, and baste the other side as well. Roast for a final 10 minutes.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s9",
+          "text": "By now, the pork has cooked for 50 minutes total. It should be cooked through and caramelized on top. If it’s not caramelized to your liking, you can turn the broiler on for a couple minutes to crisp the outside and add some color/flavor. Be sure not to walk away during this process, since the sweet char siu BBQ sauce can burn if left unattended. You can also use a meat thermometer to check if the internal temperature of the pork has reached 160 degrees F. (Update: USDA recommends that pork should be cooked to 145 degrees F with a 3 minute resting time)",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s10",
+          "text": "Remove from the oven and baste with the last bit of reserved BBQ sauce. Let the meat rest for 10 minutes before slicing, and enjoy!",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 274,
+    "protein": 39,
+    "carbs": 14,
+    "fat": 6,
+    "fiber": 1
+  },
+  "sourceUrl": "https://thewoksoflife.com/chinese-bbq-pork-cha-siu/",
+  "importMethod": "structured-data"
+}

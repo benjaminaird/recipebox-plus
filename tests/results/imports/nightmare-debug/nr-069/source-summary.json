@@ -1,0 +1,17 @@
+{
+  "id": "nr-069",
+  "url": "https://www.justonecookbook.com/homemade-miso-soup/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.justonecookbook.com/homemade-miso-soup/",
+  "sourceTitle": "Homemade Miso Soup (Authentic &amp; Easy) • Just One Cookbook",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 7,
+  "sourceStepCount": 19,
+  "warnings": [],
+  "error": ""
+}

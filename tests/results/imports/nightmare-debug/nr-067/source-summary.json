@@ -1,0 +1,17 @@
+{
+  "id": "nr-067",
+  "url": "https://www.justonecookbook.com/oyakodon/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.justonecookbook.com/oyakodon/",
+  "sourceTitle": "Oyakodon (Chicken and Egg Bowl) 親子丼 • Just One Cookbook",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 12,
+  "sourceStepCount": 26,
+  "warnings": [],
+  "error": ""
+}

@@ -1,0 +1,114 @@
+{
+  "title": "Perfect Pumpkin Pie",
+  "description": "This pumpkin pie recipe makes a smooth and creamy filling with canned pumpkin and sweetened condensed milk for the perfect Thanksgiving dessert.",
+  "servings": 8,
+  "prepTime": "10 min",
+  "cookTime": "50 min",
+  "totalTime": "1 hr",
+  "heroImage": "https://www.allrecipes.com/thmb/OWyyjD44TPdewgFtFKI1oIGUf1E=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/ALR-23439-perfect-pumpkin-pie-VAT-4x3-slice-cream-closeup-5683481b32ef4d34bf390aee13d7a960.jpg",
+  "notes": "",
+  "tags": [
+    "Dessert",
+    "American",
+    "publisher-tested"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1",
+          "unit": "",
+          "name": "(15 ounce) can pumpkin puree",
+          "raw": "1 (15 ounce) can pumpkin puree"
+        },
+        {
+          "id": "i2",
+          "amount": "1",
+          "unit": "",
+          "name": "(14 ounce) can EAGLE BRAND® Sweetened Condensed Milk",
+          "raw": "1 (14 ounce) can EAGLE BRAND® Sweetened Condensed Milk"
+        },
+        {
+          "id": "i3",
+          "amount": "2",
+          "unit": "",
+          "name": "large eggs",
+          "raw": "2 large eggs"
+        },
+        {
+          "id": "i4",
+          "amount": "1",
+          "unit": "teaspoon",
+          "name": "ground cinnamon",
+          "raw": "1 teaspoon ground cinnamon"
+        },
+        {
+          "id": "i5",
+          "amount": "0.5",
+          "unit": "teaspoon",
+          "name": "ground ginger",
+          "raw": "0.5 teaspoon ground ginger"
+        },
+        {
+          "id": "i6",
+          "amount": "0.5",
+          "unit": "teaspoon",
+          "name": "ground nutmeg",
+          "raw": "0.5 teaspoon ground nutmeg"
+        },
+        {
+          "id": "i7",
+          "amount": "0.5",
+          "unit": "teaspoon",
+          "name": "salt",
+          "raw": "0.5 teaspoon salt"
+        },
+        {
+          "id": "i8",
+          "amount": "1",
+          "unit": "",
+          "name": "(9 inch) unbaked pie crust",
+          "raw": "1 (9 inch) unbaked pie crust"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Gather all ingredients and preheat the oven to 425 degrees F (220 degrees C).",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Whisk pumpkin puree, condensed milk, eggs, cinnamon, ginger, nutmeg, and salt together in a medium bowl until smooth.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "Pour into crust. Bake in the preheated oven for 15 minutes.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Reduce oven temperature to 350 degrees F (175 degrees C) and continue baking until a knife inserted 1 inch from the crust comes out clean, 35 to 40 minutes. Let cool before serving.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Enjoy!",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 379,
+    "protein": 6,
+    "carbs": 31,
+    "fat": 14,
+    "fiber": 3
+  },
+  "sourceUrl": "https://www.allrecipes.com/recipe/23439/perfect-pumpkin-pie/",
+  "importMethod": "structured-data"
+}

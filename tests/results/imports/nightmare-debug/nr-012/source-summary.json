@@ -1,0 +1,17 @@
+{
+  "id": "nr-012",
+  "url": "https://www.foodnetwork.com/recipes/ina-garten/beattys-chocolate-cake-recipe-1947521",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.foodnetwork.com/recipes/ina-garten/beattys-chocolate-cake-recipe-1947521",
+  "sourceTitle": "Beatty&#039;s Chocolate Cake Recipe | Ina Garten | Food Network",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 9795,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 18,
+  "sourceStepCount": 5,
+  "warnings": [],
+  "error": ""
+}

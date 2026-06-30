@@ -1,0 +1,17 @@
+{
+  "id": "nr-075",
+  "url": "https://preppykitchen.com/french-macarons/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://preppykitchen.com/french-macarons/",
+  "sourceTitle": "How To Make Perfect Macarons - Preppy Kitchen",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 13,
+  "sourceStepCount": 14,
+  "warnings": [],
+  "error": ""
+}

@@ -1,0 +1,17 @@
+{
+  "id": "nr-062",
+  "url": "https://thewoksoflife.com/ma-po-tofu-real-deal/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://thewoksoflife.com/ma-po-tofu-real-deal/",
+  "sourceTitle": "Mapo Tofu Recipe: The Real Deal - The Woks of Life",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 16662,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 15,
+  "sourceStepCount": 6,
+  "warnings": [],
+  "error": ""
+}

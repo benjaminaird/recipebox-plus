@@ -1,0 +1,17 @@
+{
+  "id": "nr-079",
+  "url": "https://www.youtube.com/watch?v=rEdl2Uetpvo",
+  "fetchVia": "server:/api/transcript",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.youtube.com/watch?v=rEdl2Uetpvo",
+  "sourceTitle": "How To Make Perfect Chocolate Chip Cookies",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 0,
+  "jsonLdNodes": null,
+  "sourceIngredientCount": null,
+  "sourceStepCount": null,
+  "warnings": [],
+  "error": ""
+}

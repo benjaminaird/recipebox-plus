@@ -1,0 +1,17 @@
+{
+  "id": "nr-048",
+  "url": "https://www.loveandlemons.com/guacamole-recipe/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.loveandlemons.com/guacamole-recipe/",
+  "sourceTitle": "Best Guacamole Recipe - Love and Lemons",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 11980,
+  "jsonLdNodes": 0,
+  "sourceIngredientCount": null,
+  "sourceStepCount": null,
+  "warnings": [],
+  "error": ""
+}

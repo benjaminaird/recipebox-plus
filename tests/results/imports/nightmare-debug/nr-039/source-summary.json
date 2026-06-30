@@ -1,0 +1,17 @@
+{
+  "id": "nr-039",
+  "url": "https://www.bbcgoodfood.com/recipes/easy-pancakes",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.bbcgoodfood.com/recipes/easy-pancakes",
+  "sourceTitle": "Easy pancakes recipe | Good Food",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 8129,
+  "jsonLdNodes": 4,
+  "sourceIngredientCount": 6,
+  "sourceStepCount": 5,
+  "warnings": [],
+  "error": ""
+}

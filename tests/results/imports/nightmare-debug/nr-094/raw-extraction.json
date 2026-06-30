@@ -1,0 +1,167 @@
+{
+  "title": "Cinnamon Rolls",
+  "description": "Ree Drummond's famous cinnamon rolls are the ultimate homemade food gift. They're stuffed with sugar and butter, and topped with maple and coffee frosting.",
+  "servings": 50,
+  "prepTime": "2 hr",
+  "cookTime": "30 min",
+  "totalTime": "2 hr 30 min",
+  "heroImage": "https://hips.hearstapps.com/hmg-prod/images/cinnamon-rolls-recipe-1671209847.jpeg?crop=0.671xw:1.00xh;0.130xw,0&resize=1200:*",
+  "notes": "",
+  "tags": [
+    "brunch",
+    "Christmas",
+    "Easter",
+    "food gift",
+    "Mother's Day",
+    "baking",
+    "breakfast",
+    "comfort food",
+    "dessert",
+    "main dish",
+    "American",
+    "content-type: Recipe"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1",
+          "unit": "qt",
+          "name": "whole milk",
+          "raw": "1 qt. whole milk"
+        },
+        {
+          "id": "i2",
+          "amount": "1",
+          "unit": "c",
+          "name": "vegetable oil",
+          "raw": "1 c. vegetable oil"
+        },
+        {
+          "id": "i3",
+          "amount": "1",
+          "unit": "c",
+          "name": "sugar",
+          "raw": "1 c. sugar"
+        },
+        {
+          "id": "i4",
+          "amount": "2",
+          "unit": "",
+          "name": "(0.25-oz.) packets active dry yeast",
+          "raw": "2 (0.25-oz.) packets active dry yeast"
+        },
+        {
+          "id": "i5",
+          "amount": "8",
+          "unit": "c",
+          "name": "all-purpose flour",
+          "raw": "8 c. all-purpose flour"
+        },
+        {
+          "id": "i6",
+          "amount": "1",
+          "unit": "c",
+          "name": "(additional) all-purpose flour",
+          "raw": "1 c. (additional) all-purpose flour"
+        },
+        {
+          "id": "i7",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "(heaping) baking powder",
+          "raw": "1 tsp. (heaping) baking powder"
+        },
+        {
+          "id": "i8",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "(scant) baking soda",
+          "raw": "1 tsp. (scant) baking soda"
+        },
+        {
+          "id": "i9",
+          "amount": "1",
+          "unit": "tbsp",
+          "name": "(heaping) iodized table salt",
+          "raw": "1 tbsp. (heaping) iodized table salt"
+        },
+        {
+          "id": "i10",
+          "amount": "1 1/2",
+          "unit": "c",
+          "name": "melted salted butter",
+          "raw": "1 1/2 c. melted salted butter"
+        },
+        {
+          "id": "i11",
+          "amount": "2",
+          "unit": "c",
+          "name": "sugar",
+          "raw": "2 c. sugar"
+        },
+        {
+          "id": "i12",
+          "amount": "3",
+          "unit": "tbsp",
+          "name": "ground cinnamon (plus more to taste)",
+          "raw": "3 tbsp. ground cinnamon (plus more to taste)"
+        },
+        {
+          "id": "i13",
+          "amount": "2",
+          "unit": "lb",
+          "name": "powdered sugar, sifted",
+          "raw": "2 lb. powdered sugar, sifted"
+        },
+        {
+          "id": "i14",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "maple flavoring, plus more to taste",
+          "raw": "2 tsp. maple flavoring, plus more to taste"
+        },
+        {
+          "id": "i15",
+          "amount": "1/2",
+          "unit": "c",
+          "name": "whole milk, plus more to taste",
+          "raw": "1/2 c. whole milk, plus more to taste"
+        },
+        {
+          "id": "i16",
+          "amount": "1/4",
+          "unit": "c",
+          "name": "melted salted butter",
+          "raw": "1/4 c. melted salted butter"
+        },
+        {
+          "id": "i17",
+          "amount": "1/4",
+          "unit": "c",
+          "name": "strongly brewed coffee or cold brew concentrate",
+          "raw": "1/4 c. strongly brewed coffee or cold brew concentrate"
+        },
+        {
+          "id": "i18",
+          "amount": "1/8",
+          "unit": "tsp",
+          "name": "salt, plus more to taste",
+          "raw": "1/8 tsp. salt, plus more to taste"
+        }
+      ],
+      "steps": []
+    }
+  ],
+  "macros": {
+    "calories": 389,
+    "protein": 4,
+    "carbs": 60,
+    "fat": 15,
+    "fiber": 1
+  },
+  "sourceUrl": "https://www.thepioneerwoman.com/food-cooking/recipes/a11914/cinammon-rolls/",
+  "importMethod": "partial-structured-data"
+}

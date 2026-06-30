@@ -1,0 +1,173 @@
+{
+  "title": "Salted Butter Caramel Ice Cream",
+  "description": "Be sure to use good salt. I use fleur de sel, but if you don’t have it, a mild-tasting sea salt will do in a pinch, such as Maldon, fine gray salt, or kosher salt. Don’t use ordinary fine table salt; it’s far too harsh. In step 6, all of the caramel may not dissolve. Stirring it over very low heat should melt any stubborn bits. If not, don’t worry; they’ll be strained out later. Because of the caramel in this ice cream, once churned and frozen, it’ll remain nice & creamy. As noted, this is an update from a previous recipe which had 1 1/2 cups (300g) for sugar in the caramel custard, which some readers reported made the finished ice cream quite soft. I reduced it by 1/4 cup (50g). But if you like the caramel flavor stronger, you’re welcome to use 1 1/2 cups of sugar in step #5.",
+  "prepTime": "",
+  "cookTime": "",
+  "totalTime": "",
+  "heroImage": "https://www.davidlebovitz.com/wp-content/uploads/2007/04/Salted-butter-caramel-ice-cream-recipe-5.jpg",
+  "notes": "",
+  "tags": [],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "sugar",
+          "raw": "1/2 cup (100g) sugar",
+          "weightAmount": "100",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i2",
+          "amount": "3/4",
+          "unit": "tsp",
+          "name": "sea salt",
+          "raw": "3/4 teaspoon sea salt"
+        },
+        {
+          "id": "i3",
+          "amount": "2",
+          "unit": "cup",
+          "name": "whole milk (divided)",
+          "raw": "2 cups (500ml) whole milk (divided)",
+          "weightAmount": "500",
+          "weightUnit": "ml"
+        },
+        {
+          "id": "i4",
+          "amount": "1",
+          "unit": "cup",
+          "name": "heavy cream (warmed)",
+          "raw": "1 cup (240ml) heavy cream (warmed)",
+          "weightAmount": "240",
+          "weightUnit": "ml"
+        },
+        {
+          "id": "i5",
+          "amount": "1 1/4",
+          "unit": "cup",
+          "name": "sugar",
+          "raw": "1 1/4 cups (250g) sugar",
+          "weightAmount": "250",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i6",
+          "amount": "4",
+          "unit": "Tbsp",
+          "name": "salted butter (cubed)",
+          "raw": "4 tablespoons (60g) salted butter (cubed)",
+          "weightAmount": "60",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i7",
+          "amount": "",
+          "unit": "",
+          "name": "scant 1/2 teaspoon sea salt",
+          "raw": "scant 1/2 teaspoon sea salt"
+        },
+        {
+          "id": "i8",
+          "amount": "5",
+          "unit": "",
+          "name": "large egg yolks",
+          "raw": "5 large egg yolks"
+        },
+        {
+          "id": "i9",
+          "amount": "3/4",
+          "unit": "tsp",
+          "name": "vanilla extract",
+          "raw": "3/4 teaspoon vanilla extract"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "To make the caramel praline, spread the 1/2 cup (100g) of {i1} in an even layer in a medium-sized, unlined heavy duty saucepan: I use a 6 quart/liter pan. Line a baking sheet with a silicone baking mat or brush it sparingly with unflavored oil.",
+          "ingredientRefs": [
+            "i1"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "Heat {i1} over moderate heat until the edges begin to melt. Use a heatproof utensil to gently stir the liquefied {i5} from the bottom and edges towards the center, stirring, until all the sugar is dissolved. (Or most of it—there may be some lumps, which will melt later.) Continue to cook stirring infrequently until the caramel starts smoking and begins to smell like it’s just about to burn. It won’t take long.",
+          "ingredientRefs": [
+            "i1",
+            "i5"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Without hesitation, sprinkle in the 3/4 teaspoon salt without stirring, then pour the caramel onto the prepared baking sheet and lift up the baking sheet immediately, tilting and swirling it almost vertically to encourage the caramel to form as thin a layer as possible. Set aside to harden and cool.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "To make the ice {i4}, make an ice bath by filling a large bowl about a third full with ice cubes and adding a cup or so of water so they’re floating. Nest a smaller metal bowl (at least 2 quarts/liters) over the ice, pour 1 cup (250ml) of {i3} into the inner bowl, and rest a mesh strainer on top of it.Warm the cream in a small saucepan or microwave oven and set aside.",
+          "ingredientRefs": [
+            "i3",
+            "i4"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Spread the 1 1/4 cup (250g) {i1} in a large saucepan, with a capacity of at least 4qts/4l, in an even layer. Cook over moderate heat, until caramelized, using the same method described in Step #2.",
+          "ingredientRefs": [
+            "i1"
+          ]
+        },
+        {
+          "id": "s6",
+          "text": "Once caramelized, remove from heat and stir in {i6} and salt, until butter is melted, then gradually whisk in the warm {i4}, about 1/4 cup at a time, stirring as you go. The caramel may harden and seize, but stirring it over low heat should encourage those bits to melt. (A few bits may be stubborn, which will dissolve or can be strained out later.) Stir in the remaining 1 cup (250ml) of {i3}.",
+          "ingredientRefs": [
+            "i3",
+            "i4",
+            "i6"
+          ]
+        },
+        {
+          "id": "s7",
+          "text": "Whisk {i8} in a small bowl and gradually pour some of the warm caramel mixture over the yolks, stirring constantly. Scrape the warmed yolks back into the saucepan and cook the custard using a heatproof utensil, stirring constantly and scraping the bottom as you stir, until the mixture thickens. If using an instant-read thermometer, it should read 160-170ºF (71-77ºC).",
+          "ingredientRefs": [
+            "i8"
+          ]
+        },
+        {
+          "id": "s8",
+          "text": "Pour the custard through the strainer into {i3} set over the ice bath, add the vanilla, then stir frequently until the mixture is cooled down. Refrigerate at least 8 hours or until thoroughly chilled.",
+          "ingredientRefs": [
+            "i3"
+          ]
+        },
+        {
+          "id": "s9",
+          "text": "Freeze the mixture in your ice {i4} maker according to the manufacturer’s instructions.",
+          "ingredientRefs": [
+            "i4"
+          ]
+        },
+        {
+          "id": "s10",
+          "text": "While the ice {i4} is churning, crumble the hardened caramel praline into very little bits, about the size of very large confetti (about 1/2-inch, 1 cm). You can use a mortar and pestle or place it the caramel shards in a sturdy freezer bag and crush them with a rolling pan. If you used a silicone baking mat, you fold the mat repeatedly to crumble the caramel into bits.",
+          "ingredientRefs": [
+            "i4"
+          ]
+        },
+        {
+          "id": "s11",
+          "text": "Once your caramel ice {i4} is churned, quickly stir in the crushed caramel, then chill in the freezer until firm.",
+          "ingredientRefs": [
+            "i4"
+          ]
+        }
+      ]
+    }
+  ],
+  "sourceUrl": "https://www.davidlebovitz.com/salted-butter-c/",
+  "importMethod": "structured-data"
+}

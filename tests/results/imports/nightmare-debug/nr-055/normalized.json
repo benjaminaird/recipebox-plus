@@ -1,0 +1,176 @@
+{
+  "title": "1-Bowl Vegan Gluten-Free Banana Bread",
+  "description": "Amazing vegan, gluten-free banana bread made in 1 bowl! Wholesome ingredients, naturally sweetened, and so delicious!",
+  "servings": 9,
+  "prepTime": "15 min",
+  "cookTime": "1 hr",
+  "totalTime": "1 hr 15 min",
+  "heroImage": "https://minimalistbaker.com/wp-content/uploads/2018/12/Vegan-GF-Banana-Bread-SQUARE.jpg",
+  "notes": "",
+  "tags": [
+    "Breakfast",
+    "Snack",
+    "Gluten-Free",
+    "Vegan",
+    "banana bread"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1",
+          "unit": "",
+          "name": "batch flax egg*",
+          "raw": "1 batch flax egg* ((1 flax egg = 1 Tbsp / 7g flaxseed meal + 2.5 Tbsp /37 ml water))",
+          "weightAmount": "7",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i2",
+          "amount": "3",
+          "unit": "",
+          "name": "medium ripe bananas",
+          "raw": "3 medium ripe bananas ((3 bananas yield ~1.5 cups or 425 g))",
+          "weightAmount": "425",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i3",
+          "amount": "1/4",
+          "unit": "",
+          "name": "heaping cup unsalted almond butter ((or sub other nut or seed butter))",
+          "raw": "1/4 heaping cup unsalted almond butter ((or sub other nut or seed butter))"
+        },
+        {
+          "id": "i4",
+          "amount": "3",
+          "unit": "Tbsp",
+          "name": "avocado oil ((or melted coconut oil))",
+          "raw": "3 Tbsp avocado oil ((or melted coconut oil))"
+        },
+        {
+          "id": "i5",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "coconut sugar ((or sub organic brown sugar))",
+          "raw": "1/2 cup coconut sugar ((or sub organic brown sugar))"
+        },
+        {
+          "id": "i6",
+          "amount": "2-3",
+          "unit": "Tbsp",
+          "name": "maple syrup ((or sub agave nectar or coconut nectar))",
+          "raw": "2-3 Tbsp maple syrup ((or sub agave nectar or coconut nectar))"
+        },
+        {
+          "id": "i7",
+          "amount": "1/2",
+          "unit": "tsp",
+          "name": "sea salt",
+          "raw": "1/2 tsp sea salt"
+        },
+        {
+          "id": "i8",
+          "amount": "3/4",
+          "unit": "cup",
+          "name": "unsweetened almond milk ((or other dairy-free milk, such as rice or hemp))",
+          "raw": "3/4 cup unsweetened almond milk ((or other dairy-free milk, such as rice or hemp))"
+        },
+        {
+          "id": "i9",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "baking powder",
+          "raw": "1 Tbsp baking powder"
+        },
+        {
+          "id": "i10",
+          "amount": "1 3/4",
+          "unit": "cup",
+          "name": "almond meal ((ground from raw almonds))",
+          "raw": "1 3/4 cup almond meal ((ground from raw almonds))"
+        },
+        {
+          "id": "i11",
+          "amount": "1 1/4",
+          "unit": "cup",
+          "name": "gluten-free flour blend*",
+          "raw": "1 1/4 cup gluten-free flour blend*"
+        },
+        {
+          "id": "i12",
+          "amount": "1 1/3",
+          "unit": "cup",
+          "name": "gluten-free oats",
+          "raw": "1 1/3 cup gluten-free oats"
+        },
+        {
+          "id": "i13",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "chopped raw walnuts",
+          "raw": "1/2 cup chopped raw walnuts"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Preheat oven to 350 degrees F (176 C) and line a loaf pan with parchment paper or lightly grease.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Prepare {i1} in a large mixing bowl and let rest for 5 minutes. Then add ripe, peeled banana and mash well with a fork. You want it pretty smooth.",
+          "ingredientRefs": [
+            "i1"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Add {i3}, {i4}, {i5}, {i6}, {i7}, and {i8} and whisk to combine. Add {i9}, {i10}, {i11}, and {i12} and stir well to combine. Lastly, add half of {i13} and stir to combine.",
+          "ingredientRefs": [
+            "i3",
+            "i4",
+            "i5",
+            "i6",
+            "i7",
+            "i8",
+            "i9",
+            "i10",
+            "i11",
+            "i12",
+            "i13"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "Pour into the pan and smooth with a spoon. Top with remaining {i13}. Bake for 1 hour to 1 hour 15 minutes. When done, the loaf should feel firm and be crackly and golden brown on top (see photo). A toothpick or knife should come out clean (or with very few crumbs).",
+          "ingredientRefs": [
+            "i13"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Let rest in the pan for 10 minutes, then carefully loosen sides with a knife or pull up on the parchment paper to transfer to a cooling rack. Let cool completely before cutting or it will be tender and tend to crumble. It’s even better the next day!",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Store leftovers covered at room temperature for up to 4-5 days. Slice and freeze for up to 1 month. Reheat in the microwave or toaster oven until tender and warmed through.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 458,
+    "protein": 10.3,
+    "carbs": 54.8,
+    "fat": 24.5,
+    "fiber": 6.7
+  },
+  "sourceUrl": "https://minimalistbaker.com/1-bowl-vegan-gluten-free-banana-bread/",
+  "importMethod": "structured-data"
+}

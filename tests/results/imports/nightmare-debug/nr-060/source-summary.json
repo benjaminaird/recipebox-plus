@@ -1,0 +1,17 @@
+{
+  "id": "nr-060",
+  "url": "https://minimalistbaker.com/the-best-vegan-gluten-free-waffles/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://minimalistbaker.com/the-best-vegan-gluten-free-waffles/",
+  "sourceTitle": "The Best Vegan Gluten-Free Waffles | Minimalist Baker Recipes",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 11,
+  "sourceStepCount": 9,
+  "warnings": [],
+  "error": ""
+}

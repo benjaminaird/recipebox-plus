@@ -1,0 +1,17 @@
+{
+  "id": "nr-091",
+  "url": "https://smittenkitchen.com/2010/08/perfect-blueberry-muffins/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://smittenkitchen.com/2010/08/perfect-blueberry-muffins/",
+  "sourceTitle": "perfect blueberry muffins &#8211; smitten kitchen",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 0,
+  "sourceIngredientCount": null,
+  "sourceStepCount": null,
+  "warnings": [],
+  "error": ""
+}

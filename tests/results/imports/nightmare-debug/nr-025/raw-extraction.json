@@ -1,0 +1,194 @@
+{
+  "title": "Red Velvet Cake with Cream Cheese Frosting",
+  "description": "Red velvet cake is much more than vanilla cake tinted red. This recipe produces the best red velvet cake with superior buttery, vanilla, and cocoa flavors, as well as a delicious tang from buttermilk. My trick is to whip the egg whites, which guarantees a smooth velvet crumb.",
+  "servings": 12,
+  "prepTime": "30 min",
+  "cookTime": "30 min",
+  "totalTime": "3 hr",
+  "heroImage": "https://sallysbakingaddiction.com/wp-content/uploads/2019/02/red-velvet-cake-slice-2-225x225.jpg",
+  "notes": "",
+  "tags": [
+    "Dessert",
+    "American"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "3",
+          "unit": "cups",
+          "name": "(360g) cake flour (spooned & leveled)",
+          "raw": "3 cups (360g) cake flour (spooned & leveled)"
+        },
+        {
+          "id": "i2",
+          "amount": "1",
+          "unit": "teaspoon",
+          "name": "baking soda",
+          "raw": "1 teaspoon baking soda"
+        },
+        {
+          "id": "i3",
+          "amount": "2",
+          "unit": "tablespoons",
+          "name": "(10g) unsweetened natural cocoa powder",
+          "raw": "2 Tablespoons (10g) unsweetened natural cocoa powder"
+        },
+        {
+          "id": "i4",
+          "amount": "1/2",
+          "unit": "teaspoon",
+          "name": "salt",
+          "raw": "1/2 teaspoon salt"
+        },
+        {
+          "id": "i5",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "(8 Tbsp; 113g) unsalted butter, softened to room temperature",
+          "raw": "1/2 cup (8 Tbsp; 113g) unsalted butter, softened to room temperature"
+        },
+        {
+          "id": "i6",
+          "amount": "2",
+          "unit": "cups",
+          "name": "(400g) granulated sugar",
+          "raw": "2 cups (400g) granulated sugar"
+        },
+        {
+          "id": "i7",
+          "amount": "1",
+          "unit": "cup",
+          "name": "(240ml) canola or vegetable oil",
+          "raw": "1 cup (240ml) canola or vegetable oil"
+        },
+        {
+          "id": "i8",
+          "amount": "4",
+          "unit": "",
+          "name": "large eggs, room temperature and separated",
+          "raw": "4 large eggs, room temperature and separated"
+        },
+        {
+          "id": "i9",
+          "amount": "1",
+          "unit": "tablespoon",
+          "name": "pure vanilla extract",
+          "raw": "1 Tablespoon pure vanilla extract"
+        },
+        {
+          "id": "i10",
+          "amount": "1",
+          "unit": "teaspoon",
+          "name": "distilled white vinegar",
+          "raw": "1 teaspoon distilled white vinegar"
+        },
+        {
+          "id": "i11",
+          "amount": "",
+          "unit": "",
+          "name": "liquid or gel red food coloring",
+          "raw": "liquid or gel red food coloring"
+        },
+        {
+          "id": "i12",
+          "amount": "1",
+          "unit": "cup",
+          "name": "(240ml) buttermilk, at room temperature",
+          "raw": "1 cup (240ml) buttermilk, at room temperature"
+        },
+        {
+          "id": "i13",
+          "amount": "16",
+          "unit": "ounces",
+          "name": "(452g) full-fat brick cream cheese, softened to room temperature",
+          "raw": "16 ounces (452g) full-fat brick cream cheese, softened to room temperature"
+        },
+        {
+          "id": "i14",
+          "amount": "3/4",
+          "unit": "cup",
+          "name": "(12 Tbsp; 170g) unsalted butter, softened to room temperature",
+          "raw": "3/4 cup (12 Tbsp; 170g) unsalted butter, softened to room temperature"
+        },
+        {
+          "id": "i15",
+          "amount": "5",
+          "unit": "cups",
+          "name": "(600g) confectioners’ sugar",
+          "raw": "5 cups (600g) confectioners’ sugar"
+        },
+        {
+          "id": "i16",
+          "amount": "1 1/2",
+          "unit": "teaspoons",
+          "name": "pure vanilla extract",
+          "raw": "1 1/2 teaspoons pure vanilla extract"
+        },
+        {
+          "id": "i17",
+          "amount": "",
+          "unit": "",
+          "name": "pinch of salt, to taste",
+          "raw": "pinch of salt, to taste"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Preheat oven to 350°F (177°C). Grease two 9-inch cake pans, line with parchment paper rounds, then grease the parchment paper. Parchment paper helps the cakes seamlessly release from the pans. (If it’s helpful, see this parchment paper rounds for cakes video & post.)",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Whisk the flour, baking soda, cocoa powder, and salt together in a large bowl. Set aside.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "Using a handheld or stand mixer fitted with a paddle attachment, beat the butter and sugar together on medium-high speed until combined, about 1 minute. Scrape down the sides and up the bottom of the bowl with a rubber spatula as needed. Add the oil, egg yolks, vanilla extract, and vinegar and beat on high for 2 minutes. (Set the egg whites aside.) Scrape down the sides and up the bottom of the bowl with a silicone spatula as needed.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "With the mixer on low speed, add the dry ingredients in 2-3 additions alternating with the buttermilk. Beat in your desired amount of food coloring just until combined. I use 1-2 teaspoons gel food coloring.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "In a separate medium bowl, vigorously whisk or beat the 4 egg whites on high speed until fluffy peaks form as pictured above, about 3 minutes. Gently fold into cake batter. The batter will be silky and slightly thick.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Divide batter between cake pans. Bake for 30-32 minutes or until the tops of the cakes spring back when gently touched and a toothpick inserted in the center comes out clean. If the cakes need a little longer as determined by wet crumbs on the toothpick, bake for longer. However, careful not to overbake as the cakes may dry out. Remove cakes from the oven and cool completely in the pans set on a wire rack. The cakes must be completely cool before frosting and assembling.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "In a large bowl using a handheld or stand mixer fitted with a whisk or paddle attachment, beat the cream cheese and butter together on medium-high speed until smooth, about 2 minutes. Add the confectioners’ sugar, vanilla extract, and a pinch of salt. Beat on low speed for 30 seconds, then increase to high speed and beat for 3 minutes until completely combined and creamy. Add more confectioners’ sugar if frosting is too thin or an extra pinch of salt if frosting is too sweet. Frosting should be soft, but not runny.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s8",
+          "text": "Using a large serrated knife, slice a thin layer off the tops of the cakes to create a flat surface. Discard or crumble over finished cake. Place 1 cake layer on your cake stand or serving plate. Evenly cover the top with frosting. Top with 2nd layer and spread remaining frosting all over the top and sides. I always use an icing spatula and bench scraper for the frosting. I used Wilton piping tip #12 for decoration around the top.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s9",
+          "text": "Refrigerate cake for at least 30-60 minutes before slicing. This helps the cake hold its shape when cutting.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s10",
+          "text": "Cover leftover cake tightly and store in the refrigerator for 5 days. Frosted cake or unfrosted cake layers can be frozen up to 2-3 months. Thaw overnight in the refrigerator and bring to room temperature before decorating/serving.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "sourceUrl": "https://sallysbakingaddiction.com/red-velvet-layer-cake-with-cream-cheese-frosting/",
+  "importMethod": "structured-data"
+}

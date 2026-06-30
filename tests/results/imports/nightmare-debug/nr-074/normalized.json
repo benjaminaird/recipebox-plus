@@ -1,0 +1,259 @@
+{
+  "title": "Tiramisu Blondies Recipe",
+  "description": "Tiramisu Blondies are chewy and chocolatey and topped with a velvety mascarpone frosting.",
+  "servings": 24,
+  "prepTime": "10 min",
+  "cookTime": "30 min",
+  "totalTime": "1 hr 10 min",
+  "heroImage": "https://preppykitchen.com/wp-content/uploads/2025/02/Tiramisu-Blondies-Recipe.jpg",
+  "notes": "",
+  "tags": [
+    "Dessert",
+    "American",
+    "how to make tiramisu blondies",
+    "tiramisu blondies",
+    "tiramisu blondies recipe"
+  ],
+  "sections": [
+    {
+      "name": "For the Blondies:",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "3 1/4",
+          "unit": "cup",
+          "name": "all-purpose flour",
+          "raw": "31/4 cups all-purpose flour ((390g))",
+          "weightAmount": "390",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i2",
+          "amount": "2",
+          "unit": "Tbsp",
+          "name": "instant espresso powder",
+          "raw": "2 tablespoons instant espresso powder"
+        },
+        {
+          "id": "i3",
+          "amount": "4",
+          "unit": "tsp",
+          "name": "cornstarch",
+          "raw": "4 teaspoons cornstarch"
+        },
+        {
+          "id": "i4",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "baking soda",
+          "raw": "1 teaspoon baking soda"
+        },
+        {
+          "id": "i5",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "salt",
+          "raw": "1 teaspoon salt"
+        },
+        {
+          "id": "i6",
+          "amount": "1 1/4",
+          "unit": "cup",
+          "name": "packed light brown sugar",
+          "raw": "11/4 cups packed light brown sugar ((275g))",
+          "weightAmount": "275",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i7",
+          "amount": "3/4",
+          "unit": "cup",
+          "name": "granulated sugar",
+          "raw": "3/4 cup granulated sugar ((150g))",
+          "weightAmount": "150",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i8",
+          "amount": "1",
+          "unit": "cup",
+          "name": "unsalted butter (melted and cooled slightly)",
+          "raw": "1 cup unsalted butter (melted and cooled slightly (226g))",
+          "weightAmount": "226",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i9",
+          "amount": "2",
+          "unit": "",
+          "name": "large eggs (room temperature)",
+          "raw": "2 large eggs (room temperature)"
+        },
+        {
+          "id": "i10",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "spiced rum",
+          "raw": "1 tablespoon spiced rum"
+        },
+        {
+          "id": "i11",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "vanilla extract",
+          "raw": "1 teaspoon vanilla extract"
+        },
+        {
+          "id": "i12",
+          "amount": "1",
+          "unit": "cup",
+          "name": "dark chocolate chips",
+          "raw": "1 cup dark chocolate chips ((160g))",
+          "weightAmount": "160",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i13",
+          "amount": "3/4",
+          "unit": "cup",
+          "name": "mascarpone cheese",
+          "raw": "3/4 cup mascarpone cheese ((170g))",
+          "weightAmount": "170",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i14",
+          "amount": "1/4",
+          "unit": "cup",
+          "name": "unsalted butter (softened)",
+          "raw": "1/4 cup unsalted butter (softened (56g))",
+          "weightAmount": "56",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i15",
+          "amount": "1/4",
+          "unit": "tsp",
+          "name": "salt",
+          "raw": "1/4 teaspoon salt"
+        },
+        {
+          "id": "i16",
+          "amount": "1 1/2",
+          "unit": "cup",
+          "name": "confectioners’ sugar",
+          "raw": "11/2 cups confectioners’ sugar ((180g))",
+          "weightAmount": "180",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i17",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "spiced rum",
+          "raw": "1 tablespoon spiced rum"
+        },
+        {
+          "id": "i18",
+          "amount": "1/2",
+          "unit": "tsp",
+          "name": "vanilla extract",
+          "raw": "1/2 teaspoon vanilla extract"
+        },
+        {
+          "id": "i19",
+          "amount": "",
+          "unit": "",
+          "name": "Cocoa powder (for sprinkling)",
+          "raw": "Cocoa powder (for sprinkling)"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Preheat the oven to 350°F. Butter or spray a 9×13-inch baking pan with baking spray, then line it with parchment paper.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "In a medium bowl, whisk together {i1}, {i2}, {i3}, {i4}, and {i5}.",
+          "ingredientRefs": [
+            "i1",
+            "i2",
+            "i3",
+            "i4",
+            "i5"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "In a large mixing bowl, combine {i6}, {i7}, melted butter, {i9}, {i10}, and vanilla. Whisk together until the mixture is thick and well combined.",
+          "ingredientRefs": [
+            "i6",
+            "i7",
+            "i9",
+            "i10"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "Add {i1} mixture to the butter mixture and stir with a silicone spatula until almost combined. Add {i12} and stir until they are well distributed.",
+          "ingredientRefs": [
+            "i1",
+            "i12"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Transfer the dough to the prepared baking pan and spread it into an even layer.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Bake for 30 to 32 minutes or until the edges are set and golden brown and a toothpick inserted into the center comes out with a few moist crumbs. Let the cookie bars cool completely in the pan.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "For the Mascarpone Frosting:",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s7",
+          "text": "Meanwhile, in the bowl of a stand mixer fitted with a paddle attachment (or a large bowl, using a handheld mixer), cream the mascarpone, butter and salt together on medium speed for about 1 minute or until creamy.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s8",
+          "text": "Add the spiced rum, and vanilla and sift in the confectioners’ sugar. Beat on low speed for about 30 seconds, just until combined.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s9",
+          "text": "Increase the speed to medium and beat for about 2 to 3 minutes, until the frosting is light and fluffy.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s10",
+          "text": "Spread the frosting in a thin, even layer over top of the cooled blondies. Refrigerate for at least 30 minutes (up to 2 days) to help the frosting set.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s11",
+          "text": "One hour before serving, dust the blondies all over with cocoa powder. Slice and serve.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 329,
+    "protein": 4,
+    "carbs": 43,
+    "fat": 16,
+    "fiber": 1
+  },
+  "sourceUrl": "https://preppykitchen.com/tiramisu-blondies/",
+  "importMethod": "structured-data"
+}

@@ -1,0 +1,17 @@
+{
+  "id": "nr-097",
+  "url": "https://www.davidlebovitz.com/chocolate-ice-cream-recipe/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.davidlebovitz.com/chocolate-ice-cream-recipe/",
+  "sourceTitle": "Chocolate Ice Cream - David Lebovitz",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 10,
+  "sourceStepCount": 6,
+  "warnings": [],
+  "error": ""
+}

@@ -1,0 +1,146 @@
+{
+  "title": "Pizza Crust",
+  "description": "What a treat — hot homemade pizza, with exactly the toppings you like. And this crust adapts to YOUR schedule: make the dough now, and serve fresh pizza up to 2 days later. Please read this recipe all the way through before starting. It gives you a lot of baking options, and you want to choose the one that best fits your schedule.",
+  "servings": 12,
+  "prepTime": "20 min",
+  "cookTime": "30 min",
+  "totalTime": "3 hr 8 min",
+  "heroImage": "https://www.kingarthurbaking.com/sites/default/files/2026-05/Pizza-Crust-Recipe.jpg",
+  "notes": "",
+  "tags": [
+    "Pizza;;Dairy-free;;Vegan"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "2",
+          "unit": "teaspoons",
+          "name": "active dry yeast or instant yeast",
+          "raw": "2 teaspoons active dry yeast or instant yeast"
+        },
+        {
+          "id": "i2",
+          "amount": "7/8 to 1 1/8",
+          "unit": "cups",
+          "name": "(198g to 255g) lukewarm water*",
+          "raw": "7/8 to 1 1/8 cups (198g to 255g) lukewarm water*"
+        },
+        {
+          "id": "i3",
+          "amount": "2",
+          "unit": "tablespoons",
+          "name": "(25g) olive oil",
+          "raw": "2 tablespoons (25g) olive oil"
+        },
+        {
+          "id": "i4",
+          "amount": "3",
+          "unit": "cups",
+          "name": "(360g) King Arthur Unbleached All-Purpose Flour",
+          "raw": "3 cups (360g) King Arthur Unbleached All-Purpose Flour"
+        },
+        {
+          "id": "i5",
+          "amount": "1 1/4",
+          "unit": "teaspoons",
+          "name": "(8g) table salt",
+          "raw": "1 1/4 teaspoons (8g) table salt"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "If you're using active dry yeast, dissolve it, with a pinch of sugar, in 2 tablespoons of the lukewarm water. Let the yeast and water sit at room temperature for 15 minutes, until the mixture has bubbled and expanded. If you're using instant yeast, you can skip this step.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Weigh your flour; or measure it by gently spooning it into a cup, then sweeping off any excess. Combine the dissolved yeast (or the instant yeast) with the remainder of the ingredients. Mix and knead everything together —by hand, mixer or bread machine set on the dough cycle — till you've made a soft, smooth dough. If you're kneading in a stand mixer, it should take 4 to 5 minutes at second speed, and the dough should barely clean the sides of the bowl, perhaps sticking a bit at the bottom. Don't over-knead the dough; it should hold together, but can still look fairly rough on the surface.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "To make pizza up to 24 hours later, skip to step 5.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "To make pizza now: Place the dough in a lightly greased bowl, cover the bowl, and allow it to rise till it's very puffy. This will take about an hour using instant yeast, or 90 minutes using active dry. If it takes longer, that's OK; just give it some extra time.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "To make pizza later: Allow the dough to rise, covered, for 45 minutes at room temperature. Refrigerate the dough for 4 hours (or for up to 24 hours); it will rise slowly as it chills. This step allows you more schedule flexibility; it also develops the crust's flavor. About 2 to 3 hours before you want to serve pizza, remove the dough from the refrigerator.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Decide what size, shape, and thickness of pizza you want to make. This recipe will make one of the following choices:Two 1/2\"-thick 14\" round pizzas (pictured);Two 3/4\"-thick 12\" round pizzas;One 3/4\" to 1\"-thick 13\" x 18\" rectangular (Sicilian-style) pizza (pictured);One 1 1/2\"-thick 9\" x 13\" rectangular pizza;One 1\"-thick 14\" round pizza.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Divide the dough in half, for two pizzas; or leave it whole for one pizza.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s8",
+          "text": "If you're making a rectangular pizza, shape the dough into a rough oval. For a round pizza, shape it into a rough circle. In either case, don't pat it flat; just stretch it briefly into shape. Allow the dough to rest, covered with an overturned bowl or lightly greased plastic wrap, for 15 minutes.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s9",
+          "text": "Use vegetable oil pan spray to lightly grease the pan(s) of your choice. Drizzle olive oil into the bottom of the pan(s). The pan spray keeps the pizza from sticking; the olive oil gives the crust great flavor and crunch.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s10",
+          "text": "Place the dough in the prepared pan(s). Press it over the bottom of the pan, stretching it towards the edges. You'll probably get about two-thirds of the way there before the dough starts shrinking back; walk away for 15 minutes. Cover the dough while you're away, so it doesn't dry out.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s11",
+          "text": "When you come back, you should be able to pat the dough closer to the corners of the pan. Repeat the rest and dough-stretch one more time, if necessary; your goal is to get the dough to fill the pan as fully as possible.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s12",
+          "text": "Allow the dough to rise, covered, till it's noticeably puffy, about 90 minutes (if it hasn't been refrigerated); or 2 to 2 1/2 hours (if it's been refrigerated). Towards the end of the rising time, preheat the oven to 450°F.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s13",
+          "text": "Bake the pizza on the lower oven rack till it looks and feels set on top, and is just beginning to brown around the edge of the crust, but is still pale on top. This will take about 8 minutes for thinner crust pizza; about 10 to 12 minutes for medium thickness; and 12 to 14 minutes for thick-crust pizza. If you're baking two pizzas, reverse them in the oven (top to bottom, bottom to top) midway through the baking period.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s14",
+          "text": "To serve pizza immediately: Remove it from the oven, and arrange your toppings of choice on top. Return to the oven, and bake on the upper oven rack for an additional 10 to 15 minutes, until the crust is nicely browned, both top and bottom, and the cheese is melted. Check it midway through, and move it to the bottom rack if the top is browning too much, or the bottom not enough.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s15",
+          "text": "To serve pizza up to 2 days later: Remove the untopped, partially baked crust from the oven, cool completely on a rack, wrap in plastic, and store at room temperature. When ready to serve, top and bake in a preheated 450°F oven, adding a couple of minutes to the baking times noted above. Your goal is a pizza whose crust is browned, and whose toppings are hot/melted.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s16",
+          "text": "Remove the pizza from the oven, and transfer it from the pan to a rack to cool slightly before serving. For easiest serving, cut with a pair of scissors.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 130,
+    "protein": 4,
+    "carbs": 22,
+    "fat": 2.5,
+    "fiber": 1
+  },
+  "sourceUrl": "https://www.kingarthurbaking.com/recipes/pizza-crust-recipe",
+  "importMethod": "structured-data"
+}

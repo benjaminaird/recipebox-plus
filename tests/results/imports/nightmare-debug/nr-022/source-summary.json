@@ -1,0 +1,17 @@
+{
+  "id": "nr-022",
+  "url": "https://sallysbakingaddiction.com/easy-cinnamon-rolls-from-scratch/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://sallysbakingaddiction.com/easy-cinnamon-rolls-from-scratch/",
+  "sourceTitle": "Easy Cinnamon Rolls (Only 1 Rise) - Sally&#039;s Baking",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 14,
+  "sourceStepCount": 8,
+  "warnings": [],
+  "error": ""
+}

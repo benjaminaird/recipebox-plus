@@ -1,0 +1,17 @@
+{
+  "id": "nr-010",
+  "url": "https://www.foodnetwork.com/recipes/ina-garten/lemon-bars-recipe-1941483",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.foodnetwork.com/recipes/ina-garten/lemon-bars-recipe-1941483",
+  "sourceTitle": "Lemon Bars Recipe | Ina Garten | Food Network",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 8343,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 10,
+  "sourceStepCount": 5,
+  "warnings": [],
+  "error": ""
+}

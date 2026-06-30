@@ -1,0 +1,17 @@
+{
+  "id": "nr-042",
+  "url": "https://www.recipetineats.com/chicken-sharwama-middle-eastern/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.recipetineats.com/chicken-sharwama-middle-eastern/",
+  "sourceTitle": "Chicken Shawarma (Middle Eastern) - RecipeTin Eats",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 2,
+  "sourceIngredientCount": 18,
+  "sourceStepCount": 7,
+  "warnings": [],
+  "error": ""
+}

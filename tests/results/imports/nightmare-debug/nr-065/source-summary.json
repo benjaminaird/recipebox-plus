@@ -1,0 +1,17 @@
+{
+  "id": "nr-065",
+  "url": "https://thewoksoflife.com/shanghai-scallion-pancakes/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://thewoksoflife.com/shanghai-scallion-pancakes/",
+  "sourceTitle": "Shanghai Scallion Pancakes - The Woks of Life",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 15375,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 9,
+  "sourceStepCount": 11,
+  "warnings": [],
+  "error": ""
+}

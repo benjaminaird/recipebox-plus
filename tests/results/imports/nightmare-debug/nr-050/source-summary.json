@@ -1,0 +1,17 @@
+{
+  "id": "nr-050",
+  "url": "https://www.loveandlemons.com/butternut-squash-soup/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.loveandlemons.com/butternut-squash-soup/",
+  "sourceTitle": "Butternut Squash Soup Recipe - Love and Lemons",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 12332,
+  "jsonLdNodes": 0,
+  "sourceIngredientCount": null,
+  "sourceStepCount": null,
+  "warnings": [],
+  "error": ""
+}

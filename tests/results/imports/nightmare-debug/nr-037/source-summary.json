@@ -1,0 +1,17 @@
+{
+  "id": "nr-037",
+  "url": "https://www.bbcgoodfood.com/recipes/best-ever-chocolate-brownies-recipe",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.bbcgoodfood.com/recipes/best-ever-chocolate-brownies-recipe",
+  "sourceTitle": "Best ever chocolate brownies recipe | Good Food",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 10730,
+  "jsonLdNodes": 4,
+  "sourceIngredientCount": 8,
+  "sourceStepCount": 15,
+  "warnings": [],
+  "error": ""
+}

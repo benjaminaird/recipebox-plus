@@ -1,0 +1,120 @@
+{
+  "title": "Chef John's Buttermilk Biscuits",
+  "description": "These homemade buttermilk biscuits are buttery and tender. Ice-cold butter and some extra dough folding are key to having lots of flaky layers in each golden brown biscuit.",
+  "servings": 12,
+  "prepTime": "20 min",
+  "cookTime": "15 min",
+  "totalTime": "35 min",
+  "heroImage": "https://www.allrecipes.com/thmb/wB1vLEB6i5GWn_OTC4IQBXOkk6E=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/220943-chef-johns-buttermilk-biscuits-DDMFS-4x3-e1847cefd7d34c6d928bbd132999be3b.jpg",
+  "notes": "",
+  "tags": [
+    "Breakfast",
+    "Side Dish",
+    "Appetizer",
+    "Bread",
+    "American",
+    "publisher-tested"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "2",
+          "unit": "cups",
+          "name": "all-purpose flour",
+          "raw": "2 cups all-purpose flour"
+        },
+        {
+          "id": "i2",
+          "amount": "2",
+          "unit": "teaspoons",
+          "name": "baking powder",
+          "raw": "2 teaspoons baking powder"
+        },
+        {
+          "id": "i3",
+          "amount": "0.25",
+          "unit": "teaspoon",
+          "name": "baking soda",
+          "raw": "0.25 teaspoon baking soda"
+        },
+        {
+          "id": "i4",
+          "amount": "1",
+          "unit": "teaspoon",
+          "name": "salt",
+          "raw": "1 teaspoon salt"
+        },
+        {
+          "id": "i5",
+          "amount": "7",
+          "unit": "tablespoons",
+          "name": "unsalted butter, chilled in freezer and cut into thin slices",
+          "raw": "7 tablespoons unsalted butter, chilled in freezer and cut into thin slices"
+        },
+        {
+          "id": "i6",
+          "amount": "0.75",
+          "unit": "cup",
+          "name": "cold buttermilk",
+          "raw": "0.75 cup cold buttermilk"
+        },
+        {
+          "id": "i7",
+          "amount": "2",
+          "unit": "tablespoons",
+          "name": "buttermilk for brushing",
+          "raw": "2 tablespoons buttermilk for brushing"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Gather the ingredients. Preheat oven to 425 degrees F (220 degrees C). Line a baking sheet with a silicone baking mat or parchment paper.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Whisk flour, baking powder, baking soda, and salt together in a large bowl. Add cold butter slices and cut into the flour with a pastry blender until the mixture resembles coarse crumbs.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "Make a well in the center of the mixture. Pour cold buttermilk into the well and stir gently until just combined. Turn dough onto a floured work surface and pat it together into a rectangle.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Fold the rectangle in thirds. Turn dough a half turn, gather any crumbs, and flatten back into a rectangle. Repeat twice more, folding and pressing the dough a total of three times.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Roll dough on a floured surface to about 1/2 inch thick. Use a 2 1/2-inch round biscuit cutter to cut biscuits. Reroll any scraps to cut more biscuits; you should get 12 total.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Transfer biscuits to the prepared baking sheet. Press an indent into the top of each biscuit with your thumb. Brush buttermilk over the tops.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Bake in the preheated oven until biscuits are flaky and golden brown, about 15 minutes. Enjoy!",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 143,
+    "protein": 3,
+    "carbs": 17,
+    "fat": 7,
+    "fiber": 1
+  },
+  "sourceUrl": "https://www.allrecipes.com/recipe/220943/chef-johns-buttermilk-biscuits/",
+  "importMethod": "structured-data"
+}

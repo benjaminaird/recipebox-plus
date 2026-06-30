@@ -1,0 +1,17 @@
+{
+  "id": "nr-094",
+  "url": "https://www.thepioneerwoman.com/food-cooking/recipes/a11914/cinammon-rolls/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.thepioneerwoman.com/food-cooking/recipes/a11914/cinammon-rolls/",
+  "sourceTitle": "Best Cinnamon Rolls Recipe",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 13968,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 18,
+  "sourceStepCount": 0,
+  "warnings": [],
+  "error": ""
+}

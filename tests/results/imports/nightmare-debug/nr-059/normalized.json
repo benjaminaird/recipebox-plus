@@ -1,0 +1,215 @@
+{
+  "title": "Easy Vegan Ramen",
+  "description": "Amazing, 10-ingredient vegan ramen made with 1-pot mushroom broth, crispy tofu, and miso-roasted vegetables. A hearty, satisfying, and delicious plant-based meal.",
+  "servings": 4,
+  "prepTime": "30 min",
+  "cookTime": "2 hr 30 min",
+  "totalTime": "3 hr",
+  "heroImage": "https://minimalistbaker.com/wp-content/uploads/2015/08/Vegan-Ramen-Square.jpg",
+  "notes": "",
+  "tags": [
+    "Entrée",
+    "Soup",
+    "Chinese-Inspired",
+    "Gluten-Free",
+    "Japanese-Inspired",
+    "Vegan",
+    "vegan ramen"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "grape seed or avocado oil",
+          "raw": "1 Tbsp grape seed or avocado oil"
+        },
+        {
+          "id": "i2",
+          "amount": "5",
+          "unit": "cloves",
+          "name": "garlic, roughly chopped",
+          "raw": "5 cloves garlic, roughly chopped ((5 cloves yield ~2 1/2 Tbsp or 18 g))",
+          "weightAmount": "18",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i3",
+          "amount": "1",
+          "unit": "",
+          "name": "3-inch piece ginger ((peeled and diced))",
+          "raw": "1 3-inch piece ginger ((peeled and diced))"
+        },
+        {
+          "id": "i4",
+          "amount": "1",
+          "unit": "",
+          "name": "medium yellow onion ((coarsely chopped))",
+          "raw": "1 medium yellow onion ((coarsely chopped))"
+        },
+        {
+          "id": "i5",
+          "amount": "6",
+          "unit": "cup",
+          "name": "vegetable stock (DIY or store-bought)",
+          "raw": "6 cups vegetable stock (DIY or store-bought)"
+        },
+        {
+          "id": "i6",
+          "amount": "2",
+          "unit": "Tbsp",
+          "name": "tamari or soy sauce ((plus more to taste))",
+          "raw": "2 Tbsp tamari or soy sauce ((plus more to taste))"
+        },
+        {
+          "id": "i7",
+          "amount": "0.5",
+          "unit": "oz",
+          "name": "dehydrated shiitake mushrooms",
+          "raw": "0.5 ounces dehydrated shiitake mushrooms"
+        },
+        {
+          "id": "i8",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "white or yellow miso paste",
+          "raw": "1 Tbsp white or yellow miso paste"
+        },
+        {
+          "id": "i9",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "toasted sesame oil ((for flavor // plus more to taste))",
+          "raw": "1 tsp toasted sesame oil ((for flavor // plus more to taste))"
+        },
+        {
+          "id": "i10",
+          "amount": "8",
+          "unit": "oz",
+          "name": "ramen noodles*",
+          "raw": "8 ounces ramen noodles*"
+        },
+        {
+          "id": "i11",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "chopped green onion ((for garnish))",
+          "raw": "1/2 cup chopped green onion ((for garnish))"
+        },
+        {
+          "id": "i12",
+          "amount": "10",
+          "unit": "oz",
+          "name": "extra-firm tofu ((flash “fried”*))",
+          "raw": "10 ounces extra-firm tofu ((flash “fried”*))"
+        },
+        {
+          "id": "i13",
+          "amount": "",
+          "unit": "",
+          "name": "Miso-glazed carrots*",
+          "raw": "Miso-glazed carrots*"
+        },
+        {
+          "id": "i14",
+          "amount": "",
+          "unit": "",
+          "name": "Miso-glazed baby bok choy*",
+          "raw": "Miso-glazed baby bok choy*"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Heat a large pot over medium-high heat.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Once hot, add oil, {i2}, {i3}, and onion. Sauté, stirring occasionally for 5-8 minutes or until the onion has developed a slight sear (browned edges).",
+          "ingredientRefs": [
+            "i2",
+            "i3"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Add 1 cup (240 ml // amount as original recipe is written // adjust if altering batch size) of the vegetable broth to deglaze the bottom of the pan. Use a whisk (or wooden spoon) to scrape up any bits that may have stuck to the bottom to enhance the flavor of the broth.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Add remaining 5 cups (1200 ml // amount as original recipe is written // adjust if altering batch size) vegetable broth, {i6}, and dehydrated {i7} - stir.",
+          "ingredientRefs": [
+            "i6",
+            "i7"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Bring to a simmer over medium heat, then reduce heat to low and cover. Simmer on low for at least 1 hour, up to 2-3, stirring occasionally. The longer it cooks, the more the flavor will deepen and develop.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Taste broth and adjust seasonings as needed, adding more {i6} or {i9} if desired. Add {i8} at this time.",
+          "ingredientRefs": [
+            "i6",
+            "i8",
+            "i9"
+          ]
+        },
+        {
+          "id": "s7",
+          "text": "When you’re 30 minutes from serving, prepare any desired toppings (see notes for miso-glazed carrots, baby bok choy, and quick-seared {i12}).",
+          "ingredientRefs": [
+            "i12"
+          ]
+        },
+        {
+          "id": "s8",
+          "text": "NOODLES: Fill a large saucepan or pot with water and bring to a boil. Once boiling, add {i10} (depending on size of pan you may need to do this in two batches // use fewer or more batches if altering batch size) and cook according to package instructions - about 4-5 minutes. Drain and set aside.",
+          "ingredientRefs": [
+            "i10"
+          ]
+        },
+        {
+          "id": "s9",
+          "text": "Strain broth and reserve {i7} for serving. (Save onions and {i3} for serving as well, if desired, though I discarded them).",
+          "ingredientRefs": [
+            "i3",
+            "i7"
+          ]
+        },
+        {
+          "id": "s10",
+          "text": "To serve, divide {i10} between four (amount as original recipe is written // adjust if altering batch size) serving bowls. Top with strained broth and desired toppings, such as carrots, bok choy, {i11}, or seared {i12}. Serve with chili {i2} {i6} (found here) for added heat.",
+          "ingredientRefs": [
+            "i2",
+            "i6",
+            "i10",
+            "i11",
+            "i12"
+          ]
+        },
+        {
+          "id": "s11",
+          "text": "Best when fresh, though the broth can be stored (separately) in the refrigerator for up to 5 days and in the freezer for up to 1 month.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 340,
+    "protein": 9.3,
+    "carbs": 41.6,
+    "fat": 14.2,
+    "fiber": 3.6
+  },
+  "sourceUrl": "https://minimalistbaker.com/easy-vegan-ramen/",
+  "importMethod": "structured-data"
+}

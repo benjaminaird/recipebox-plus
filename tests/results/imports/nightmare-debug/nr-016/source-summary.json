@@ -1,0 +1,17 @@
+{
+  "id": "nr-016",
+  "url": "https://www.kingarthurbaking.com/recipes/beautiful-burger-buns-recipe",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.kingarthurbaking.com/recipes/beautiful-burger-buns-recipe",
+  "sourceTitle": "Beautiful Burger Buns Recipe | King Arthur Baking",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 12489,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 10,
+  "sourceStepCount": 10,
+  "warnings": [],
+  "error": ""
+}

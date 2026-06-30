@@ -1,0 +1,17 @@
+{
+  "id": "nr-011",
+  "url": "https://www.foodnetwork.com/recipes/ree-drummond/perfect-pot-roast-recipe-2118771",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.foodnetwork.com/recipes/ree-drummond/perfect-pot-roast-recipe-2118771",
+  "sourceTitle": "Perfect Pot Roast Recipe | Ree Drummond | Food Network",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 12814,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 9,
+  "sourceStepCount": 8,
+  "warnings": [],
+  "error": ""
+}

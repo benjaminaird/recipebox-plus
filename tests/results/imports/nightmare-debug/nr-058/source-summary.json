@@ -1,0 +1,17 @@
+{
+  "id": "nr-058",
+  "url": "https://minimalistbaker.com/vegan-roasted-red-pepper-pasta-gf/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://minimalistbaker.com/vegan-roasted-red-pepper-pasta-gf/",
+  "sourceTitle": "Vegan Roasted Red Pepper Pasta | Minimalist Baker Recipes",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 12,
+  "sourceStepCount": 8,
+  "warnings": [],
+  "error": ""
+}

@@ -1,0 +1,17 @@
+{
+  "id": "nr-002",
+  "url": "https://www.allrecipes.com/recipe/10813/best-chocolate-chip-cookies/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.allrecipes.com/recipe/10813/best-chocolate-chip-cookies/",
+  "sourceTitle": "Best Chocolate Chip Cookies Recipe (with Video)",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 15769,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 11,
+  "sourceStepCount": 9,
+  "warnings": [],
+  "error": ""
+}

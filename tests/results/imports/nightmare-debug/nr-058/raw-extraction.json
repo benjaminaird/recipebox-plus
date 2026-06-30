@@ -1,0 +1,159 @@
+{
+  "title": "Vegan Roasted Red Pepper Pasta (GF)",
+  "description": "10-ingredient roasted red pepper pasta with a creamy, savory-sweet red pepper sauce and fresh parsley. Light, healthy, and simple, yet incredibly satisfying.",
+  "servings": 4,
+  "prepTime": "15 min",
+  "cookTime": "45 min",
+  "totalTime": "1 hr",
+  "heroImage": "https://minimalistbaker.com/wp-content/uploads/2014/07/Red-Pepper-Pasta-SQUARE.jpg",
+  "notes": "",
+  "tags": [
+    "Entrée",
+    "Gluten-Free",
+    "Italian-Inspired",
+    "Vegan",
+    "roasted pepper pasta"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "2",
+          "unit": "",
+          "name": "(~119 g each) red bell peppers",
+          "raw": "2 (~119 g each) red bell peppers"
+        },
+        {
+          "id": "i2",
+          "amount": "2-3",
+          "unit": "tbsp",
+          "name": "olive oil",
+          "raw": "2-3 Tbsp olive oil"
+        },
+        {
+          "id": "i3",
+          "amount": "2",
+          "unit": "",
+          "name": "medium shallots* ((finely chopped))",
+          "raw": "2 medium shallots* ((finely chopped))"
+        },
+        {
+          "id": "i4",
+          "amount": "4",
+          "unit": "cloves",
+          "name": "garlic* ((finely chopped))",
+          "raw": "4 cloves garlic* ((finely chopped))"
+        },
+        {
+          "id": "i5",
+          "amount": "",
+          "unit": "",
+          "name": "Sea salt and ground black pepper ((to taste))",
+          "raw": "Sea salt and ground black pepper ((to taste))"
+        },
+        {
+          "id": "i6",
+          "amount": "1 1/2",
+          "unit": "cups",
+          "name": "Unsweetened Original Almond Breeze Almond Milk",
+          "raw": "1 1/2 cups Unsweetened Original Almond Breeze Almond Milk"
+        },
+        {
+          "id": "i7",
+          "amount": "2",
+          "unit": "tbsp",
+          "name": "nutritional yeast",
+          "raw": "2 Tbsp nutritional yeast"
+        },
+        {
+          "id": "i8",
+          "amount": "1 1/2",
+          "unit": "tbsp",
+          "name": "cornstarch or arrowroot powder ((or other thickener of choice))",
+          "raw": "1 1/2 Tbsp cornstarch or arrowroot powder ((or other thickener of choice))"
+        },
+        {
+          "id": "i9",
+          "amount": "1",
+          "unit": "pinch",
+          "name": "red pepper flake ((optional // for heat))",
+          "raw": "1 pinch red pepper flake ((optional // for heat))"
+        },
+        {
+          "id": "i10",
+          "amount": "12",
+          "unit": "ounces",
+          "name": "gluten-free linguini or spaghetti noodles ((or other noodle of choice))",
+          "raw": "12 ounces gluten-free linguini or spaghetti noodles ((or other noodle of choice))"
+        },
+        {
+          "id": "i11",
+          "amount": "",
+          "unit": "",
+          "name": "Vegan parmesan cheese",
+          "raw": "Vegan parmesan cheese"
+        },
+        {
+          "id": "i12",
+          "amount": "",
+          "unit": "",
+          "name": "Finely chopped fresh parsley or basil",
+          "raw": "Finely chopped fresh parsley or basil"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Heat oven to 500 degrees F (260 C) and roast red peppers on a baking sheet until charred - about 25-30 minutes. Cover in foil for 10 minutes to steam, then remove (peel away) charred skin, seeds and stems. Set aside.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Cook pasta according to package instructions; drain, toss in a touch of olive oil, cover with a towel and set aside.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "While the red peppers are roasting, bring a large skillet over medium heat and sauté shallot and garlic in olive oil until golden brown and soft - about 4-5 minutes. Season with a generous pinch of salt and pepper and stir. Remove from heat and set aside.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Transfer sautéed shallot and garlic to blender with roasted peppers, almond milk, red pepper flake, nutritional yeast and cornstarch. Season with desired amount of salt, pepper, and red pepper flake.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Blend until creamy and smooth, taste and adjust seasonings as needed, adding more salt and pepper or nutritional yeast for flavor. You want the flavor to be pretty robust and strong since the noodles don't have much flavor - so be generous with your seasonings.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Once blended, place sauce back in the skillet over medium heat to thicken. Once it reaches a simmer, reduce heat to low and continue simmering.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Once sauce is thickened to desired consistency (see photo), add noodles. However, before tossing add a touch more olive oil, salt and pepper to the un-tossed noodles for added flavor. Then, toss to coat.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s8",
+          "text": "Serve with (generous amounts of) vegan parmesan, red pepper flake, and fresh chopped parsley or basil.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 487,
+    "protein": 14,
+    "carbs": 75,
+    "fat": 14,
+    "fiber": 10
+  },
+  "sourceUrl": "https://minimalistbaker.com/vegan-roasted-red-pepper-pasta-gf/",
+  "importMethod": "structured-data"
+}

@@ -1,0 +1,17 @@
+{
+  "id": "nr-018",
+  "url": "https://www.kingarthurbaking.com/recipes/gluten-free-pizza-crust-recipe",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.kingarthurbaking.com/recipes/gluten-free-pizza-crust-recipe",
+  "sourceTitle": "Gluten-Free Pizza Crust Recipe | King Arthur Baking",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 12390,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 9,
+  "sourceStepCount": 11,
+  "warnings": [],
+  "error": ""
+}

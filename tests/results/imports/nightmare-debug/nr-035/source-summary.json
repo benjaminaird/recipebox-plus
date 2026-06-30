@@ -1,0 +1,17 @@
+{
+  "id": "nr-035",
+  "url": "https://www.budgetbytes.com/creamy-tomato-spinach-pasta/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.budgetbytes.com/creamy-tomato-spinach-pasta/",
+  "sourceTitle": "Creamy Tomato and Spinach Pasta - Budget Bytes",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 14978,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 15,
+  "sourceStepCount": 6,
+  "warnings": [],
+  "error": ""
+}

@@ -1,0 +1,17 @@
+{
+  "id": "nr-096",
+  "url": "https://www.maangchi.com/recipe/japchae",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.maangchi.com/recipe/japchae",
+  "sourceTitle": "Attention Required! | Cloudflare",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 764,
+  "jsonLdNodes": 0,
+  "sourceIngredientCount": null,
+  "sourceStepCount": null,
+  "warnings": [],
+  "error": ""
+}

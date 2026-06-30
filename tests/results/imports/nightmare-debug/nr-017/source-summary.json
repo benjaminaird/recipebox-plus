@@ -1,0 +1,17 @@
+{
+  "id": "nr-017",
+  "url": "https://www.kingarthurbaking.com/recipes/pizza-crust-recipe",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.kingarthurbaking.com/recipes/pizza-crust-recipe",
+  "sourceTitle": "Pizza Crust Recipe | King Arthur Baking",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 15337,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 5,
+  "sourceStepCount": 16,
+  "warnings": [],
+  "error": ""
+}

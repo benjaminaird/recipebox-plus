@@ -1,0 +1,17 @@
+{
+  "id": "nr-088",
+  "url": "https://cookieandkate.com/best-hummus-recipe/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://cookieandkate.com/best-hummus-recipe/",
+  "sourceTitle": "Best Hummus Recipe (Plus Tips &amp; Variations) - Cookie and Kate",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 10,
+  "sourceStepCount": 7,
+  "warnings": [],
+  "error": ""
+}

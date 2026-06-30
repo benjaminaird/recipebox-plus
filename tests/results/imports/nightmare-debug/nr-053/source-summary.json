@@ -1,0 +1,17 @@
+{
+  "id": "nr-053",
+  "url": "https://www.loveandlemons.com/falafel/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.loveandlemons.com/falafel/",
+  "sourceTitle": "Falafel Recipe - Love and Lemons",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 15167,
+  "jsonLdNodes": 0,
+  "sourceIngredientCount": null,
+  "sourceStepCount": null,
+  "warnings": [],
+  "error": ""
+}

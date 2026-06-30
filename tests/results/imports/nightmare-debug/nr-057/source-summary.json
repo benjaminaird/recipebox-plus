@@ -1,0 +1,17 @@
+{
+  "id": "nr-057",
+  "url": "https://minimalistbaker.com/easy-1-pot-massaman-curry/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://minimalistbaker.com/easy-1-pot-massaman-curry/",
+  "sourceTitle": "Easy 1-Pot Massaman Curry - Minimalist Baker Recipes",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 23,
+  "sourceStepCount": 8,
+  "warnings": [],
+  "error": ""
+}

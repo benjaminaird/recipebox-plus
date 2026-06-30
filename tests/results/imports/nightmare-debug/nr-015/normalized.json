@@ -1,0 +1,261 @@
+{
+  "title": "Classic Birthday Cake",
+  "description": "Birthdays: A time for singing, balloons, and (of course) cake. Some of us have a dedicated favorite, but perhaps no cake is more universally topped with candles than the classic yellow cake with chocolate frosting.Despite its ubiquity in bakeries nationwide (and in mix form on grocery store shelves), great homemade versions of this chocolate-on-vanilla duo are somewhat elusive. But after months of testing, we think we've nailed it. Join us in celebrating this classic American cake and the birthdays it commemorates; crowned our 2019 Recipe of the Year.",
+  "servings": 16,
+  "prepTime": "1 hr",
+  "cookTime": "42 min",
+  "totalTime": "3 hr",
+  "heroImage": "https://www.kingarthurbaking.com/sites/default/files/recipe_legacy/9918-3-large.jpg",
+  "notes": "",
+  "tags": [],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "2",
+          "unit": "cup",
+          "name": "King Arthur Unbleached All-Purpose Flour",
+          "raw": "2 cups (240g) King Arthur Unbleached All-Purpose Flour",
+          "weightAmount": "240",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i2",
+          "amount": "1 1/4",
+          "unit": "tsp",
+          "name": "table salt",
+          "raw": "1 1/4 teaspoons table salt"
+        },
+        {
+          "id": "i3",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "baking powder",
+          "raw": "2 teaspoons baking powder"
+        },
+        {
+          "id": "i4",
+          "amount": "4",
+          "unit": "",
+          "name": "large eggs, at room temperature",
+          "raw": "4 large eggs, at room temperature"
+        },
+        {
+          "id": "i5",
+          "amount": "2",
+          "unit": "cup",
+          "name": "granulated sugar",
+          "raw": "2 cups (397g) granulated sugar",
+          "weightAmount": "397",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i6",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "King Arthur Pure Vanilla Extract",
+          "raw": "1 tablespoon (14g) King Arthur Pure Vanilla Extract",
+          "weightAmount": "14",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i7",
+          "amount": "1/8",
+          "unit": "tsp",
+          "name": "almond extract, optional, for enhanced flavor",
+          "raw": "1/8 teaspoon almond extract, optional, for enhanced flavor"
+        },
+        {
+          "id": "i8",
+          "amount": "1",
+          "unit": "cup",
+          "name": "milk, (whole milk preferred)",
+          "raw": "1 cup (227g) milk, (whole milk preferred)",
+          "weightAmount": "227",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i9",
+          "amount": "4",
+          "unit": "Tbsp",
+          "name": "butter, cut into pats",
+          "raw": "4 tablespoons (57g) butter, cut into pats",
+          "weightAmount": "57",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i10",
+          "amount": "1/3",
+          "unit": "cup",
+          "name": "vegetable oil",
+          "raw": "1/3 cup (67g) vegetable oil",
+          "weightAmount": "67",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i11",
+          "amount": "1 1/4",
+          "unit": "cup",
+          "name": "natural cocoa powder*",
+          "raw": "1 1/4 cups (106g) natural cocoa powder*",
+          "weightAmount": "106",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i12",
+          "amount": "4",
+          "unit": "cup",
+          "name": "confectioners' sugar, divided",
+          "raw": "4 cups (454g) confectioners' sugar, divided",
+          "weightAmount": "454",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i13",
+          "amount": "1/4",
+          "unit": "tsp",
+          "name": "table salt",
+          "raw": "1/4 teaspoon table salt"
+        },
+        {
+          "id": "i14",
+          "amount": "1/3",
+          "unit": "cup",
+          "name": "water, hot",
+          "raw": "1/3 cup (74g) water, hot",
+          "weightAmount": "74",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i15",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "King Arthur Pure Vanilla Extract",
+          "raw": "1 tablespoon (14g) King Arthur Pure Vanilla Extract",
+          "weightAmount": "14",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i16",
+          "amount": "20",
+          "unit": "Tbsp",
+          "name": "butter, softened",
+          "raw": "20 tablespoons (284g) butter, softened",
+          "weightAmount": "284",
+          "weightUnit": "g"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "To make the cake: Preheat the oven to 325°F with a rack in the center. Lightly grease two 8” x 2” or 9” x 2” round cake pans; for extra protection against sticking, line the bottom of the pans with parchment rounds (you can cut these yourself or use precut 8” or 9” rounds), and grease the parchment. If your 8” pans aren’t at least 2” deep, use 9” pans.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Weigh your {i1}; or measure it by gently spooning it into a cup, then sweeping off any excess. To see a full visual walkthrough of this recipe, see our video on how to make Classic Birthday Cake.",
+          "ingredientRefs": [
+            "i1"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "In a small bowl, combine {i1}, salt, and {i3}. Set aside.",
+          "ingredientRefs": [
+            "i1",
+            "i3"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "In a large mixing bowl, either using an electric hand mixer or a stand mixer with whisk attachment, beat the eggs, sugar, vanilla, and almond extract, until thickened and light gold in color, about 2 minutes at medium-high speed. If your stand mixer doesn’t have a whisk attachment, beat for 5 minutes using the paddle attachment. The batter should fall in thick ribbons from the beaters, whisk, or paddle.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Add the dry ingredients to the mixture in the bowl and mix — by hand or on low speed of a mixer — just enough to combine. Scrape the bottom and sides of the bowl, then mix again briefly, to fully incorporate any residual {i1} or sticky bits.",
+          "ingredientRefs": [
+            "i1"
+          ]
+        },
+        {
+          "id": "s6",
+          "text": "In a saucepan set over medium heat or in the microwave, bring {i8} just to a simmer. Remove the pan from the heat and add the butter and oil, stirring by hand until the butter has melted.",
+          "ingredientRefs": [
+            "i8"
+          ]
+        },
+        {
+          "id": "s7",
+          "text": "Slowly mix the hot {i8}-butter-oil mixture into the batter, stirring on low speed of a mixer until everything is well combined. Scrape the bowl and mix briefly, just until smooth.",
+          "ingredientRefs": [
+            "i8"
+          ]
+        },
+        {
+          "id": "s8",
+          "text": "Divide the batter evenly between the two pans. You’ll use about 2 3/4 cups (about 580g) in each.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s9",
+          "text": "Bake the cakes until the edges are pulling away from the sides of the pan, a toothpick inserted into the center comes out clean, and the top feels set. This should take 26 to 30 minutes for two 9” pans, or 38 to 42 minutes for two 8” pans; a digital thermometer inserted into the center of the cakes should read 205°F. Remove the cakes from the oven, carefully loosen the edges, and allow them to cool for 15 minutes in the pans. Then turn them out of the pans and transfer them to a rack, right-side up, to cool to room temperature.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s10",
+          "text": "To make the frosting: In a large mixing bowl or the bowl of your stand mixer, stir together — by hand or mixer — {i11}, 1 cup (113g) of the confectioners’ sugar, and the salt. Stir in the water and vanilla, scraping the bowl if necessary.",
+          "ingredientRefs": [
+            "i11"
+          ]
+        },
+        {
+          "id": "s11",
+          "text": "Add the butter and remaining confectioners’ sugar, stirring to combine. Using an electric hand mixer or a stand mixer with paddle attachment, beat the frosting at medium-high speed for 1 to 2 minutes, until lightened in color and fluffy, stopping halfway through to scrape the bottom and sides of the bowl. When the frosting is ready, scoop out a bit on your spatula; does it seem nicely spreadable? If it's too stiff, beat in water (1 teaspoon at a time) until it's the consistency you want.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s12",
+          "text": "To assemble the cake: Place one of the cake layers on a serving plate; tuck pieces of waxed or parchment paper underneath the edge of the cake to keep the plate clean. Spread the bottom layer with about 1 cup of frosting, enough to make a 1/4” to 1/2”-thick layer. Center the second layer bottom-side up (for a flat top) over the frosted layer and press gently to set it in place.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s13",
+          "text": "If your schedule permits, place the cake in the refrigerator or freezer, uncovered, for at least 30 minutes (or up to 2 hours) to firm it up. This will make the layers less likely to slide around as you work, and the cake won’t shed crumbs as you frost. If you’re pressed for time, you can skip this step.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s14",
+          "text": "To finish the cake: For the best-looking cake, do the frosting in two steps. First, spread a very thin layer of frosting around the sides and across the top; this is called a crumb coat. You should be able to see the cake through the frosting in spots, it’s that thin. Refrigerate the cake for 20 minutes to let this layer set. Again, skip this step if time is a factor.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s15",
+          "text": "Once the cake is chilled, use the remaining frosting to coat it thoroughly and evenly; our cake styling guide offers six pro-style options for \"styling\" your cake. If you have any leftover frosting, you can use it to pipe decorations on the top and/or around the base.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s16",
+          "text": "Store the cake, covered, at room temperature, or in the refrigerator if your kitchen is hot. Let it come to room temperature before serving. For tips on slicing, see The best way to cut cake.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s17",
+          "text": "Storage information: The cake will keep at room temperature, covered with a cake cover, for up to three days; in the refrigerator, covered, for up to one week, or in the freezer, well wrapped, for up to one month.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 480,
+    "protein": 5,
+    "carbs": 69,
+    "fat": 22,
+    "fiber": 2
+  },
+  "sourceUrl": "https://www.kingarthurbaking.com/recipes/classic-birthday-cake-recipe",
+  "importMethod": "structured-data"
+}

@@ -1,0 +1,17 @@
+{
+  "id": "nr-086",
+  "url": "https://www.onceuponachef.com/recipes/chicken-piccata.html",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.onceuponachef.com/recipes/chicken-piccata.html",
+  "sourceTitle": "Chicken Piccata - Once Upon a Chef",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 13603,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 12,
+  "sourceStepCount": 5,
+  "warnings": [],
+  "error": ""
+}

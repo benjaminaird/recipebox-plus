@@ -1,0 +1,17 @@
+{
+  "id": "nr-032",
+  "url": "https://www.budgetbytes.com/one-pot-creamy-cajun-chicken-pasta/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.budgetbytes.com/one-pot-creamy-cajun-chicken-pasta/",
+  "sourceTitle": "Creamy Cajun Chicken Pasta (with Video) - Budget Bytes",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 17277,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 17,
+  "sourceStepCount": 6,
+  "warnings": [],
+  "error": ""
+}

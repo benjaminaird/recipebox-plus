@@ -1,0 +1,17 @@
+{
+  "id": "nr-061",
+  "url": "https://thewoksoflife.com/beef-chow-fun-noodles/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://thewoksoflife.com/beef-chow-fun-noodles/",
+  "sourceTitle": "Beef Chow Fun: The Traditional Cantonese Way! - The Woks of Life",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 13637,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 18,
+  "sourceStepCount": 6,
+  "warnings": [],
+  "error": ""
+}

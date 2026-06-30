@@ -1,0 +1,17 @@
+{
+  "id": "nr-049",
+  "url": "https://www.loveandlemons.com/homemade-pizza/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.loveandlemons.com/homemade-pizza/",
+  "sourceTitle": "Homemade Pizza Recipe - Love and Lemons",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 12675,
+  "jsonLdNodes": 0,
+  "sourceIngredientCount": null,
+  "sourceStepCount": null,
+  "warnings": [],
+  "error": ""
+}

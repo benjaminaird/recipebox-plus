@@ -1,0 +1,17 @@
+{
+  "id": "nr-063",
+  "url": "https://thewoksoflife.com/chinese-bbq-pork-cha-siu/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://thewoksoflife.com/chinese-bbq-pork-cha-siu/",
+  "sourceTitle": "Char Siu (Chinese BBQ Pork), Restaurant-Style - The Woks of Life",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 15886,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 14,
+  "sourceStepCount": 10,
+  "warnings": [],
+  "error": ""
+}

@@ -1,0 +1,17 @@
+{
+  "id": "nr-068",
+  "url": "https://www.justonecookbook.com/tonkatsu/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.justonecookbook.com/tonkatsu/",
+  "sourceTitle": "Crispy Tonkatsu (Japanese Pork Cutlet) とんかつ • Just One Cookbook",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 14,
+  "sourceStepCount": 31,
+  "warnings": [],
+  "error": ""
+}

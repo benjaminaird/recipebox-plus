@@ -182,7 +182,7 @@
   };
   var QTY = "(?:\\d+\\s+\\d+\\/\\d+|\\d+\\/\\d+|\\d+(?:\\.\\d+)?)";
   function parseIngredientLine(line) {
-    var raw = clean(line);
+    var raw = clean(line).replace(/\b(\d+)\s+and\s+(\d+\/\d+)\b/i, "$1 $2");
     if (!raw) return { amount: "", unit: "", name: "", raw: "" };
     // amount may be a range ("1 to 2", "1-2") — keep it as written in `amount`.
     var m = raw.match(new RegExp("^(" + QTY + "(?:\\s*(?:-|–|to)\\s*" + QTY + ")?)\\s+(.*)$"));

@@ -1,0 +1,17 @@
+{
+  "id": "nr-033",
+  "url": "https://www.budgetbytes.com/spicy-noodles/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.budgetbytes.com/spicy-noodles/",
+  "sourceTitle": "*VIRAL* 15-Minute Spicy Sriracha Noodles - Budget Bytes",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 12704,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 9,
+  "sourceStepCount": 6,
+  "warnings": [],
+  "error": ""
+}

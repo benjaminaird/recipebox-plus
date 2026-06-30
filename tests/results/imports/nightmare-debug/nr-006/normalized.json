@@ -1,0 +1,182 @@
+{
+  "title": "Ukrainian Red Borscht Soup",
+  "description": "Borscht is a hearty beet soup with cabbage, potatoes, and garlic that's popular in Eastern Europe. This Ukrainian recipe includes pork for a delicious, comforting meal.",
+  "servings": 10,
+  "prepTime": "25 min",
+  "cookTime": "40 min",
+  "totalTime": "1 hr 5 min",
+  "heroImage": "https://www.allrecipes.com/thmb/LTMiS5Tk0Uf63rMvtkzwB96Boec=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/84450-ukranian-red-borscht-soup-ddmfs-0266-3x4-hero-890c67fee10b4b0e828f152d22888a56.jpg",
+  "notes": "",
+  "tags": [
+    "Soup",
+    "Ukrainian",
+    "Eastern European"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1",
+          "unit": "",
+          "name": "(16 ounce) package pork sausage",
+          "raw": "1 (16 ounce) package pork sausage"
+        },
+        {
+          "id": "i2",
+          "amount": "3",
+          "unit": "",
+          "name": "medium beets, peeled and shredded",
+          "raw": "3 medium beets, peeled and shredded"
+        },
+        {
+          "id": "i3",
+          "amount": "3",
+          "unit": "",
+          "name": "carrots, peeled and shredded",
+          "raw": "3 carrots, peeled and shredded"
+        },
+        {
+          "id": "i4",
+          "amount": "3",
+          "unit": "",
+          "name": "medium baking potatoes, peeled and cubed",
+          "raw": "3 medium baking potatoes, peeled and cubed"
+        },
+        {
+          "id": "i5",
+          "amount": "0.5",
+          "unit": "",
+          "name": "medium head cabbage, cored and shredded",
+          "raw": "0.5 medium head cabbage, cored and shredded"
+        },
+        {
+          "id": "i6",
+          "amount": "1",
+          "unit": "cup",
+          "name": "diced tomatoes, drained",
+          "raw": "1 cup diced tomatoes, drained"
+        },
+        {
+          "id": "i7",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "vegetable oil",
+          "raw": "1 tablespoon vegetable oil"
+        },
+        {
+          "id": "i8",
+          "amount": "1",
+          "unit": "",
+          "name": "medium onion, chopped",
+          "raw": "1 medium onion, chopped"
+        },
+        {
+          "id": "i9",
+          "amount": "1",
+          "unit": "",
+          "name": "(6 ounce) can tomato paste",
+          "raw": "1 (6 ounce) can tomato paste"
+        },
+        {
+          "id": "i10",
+          "amount": "8.75",
+          "unit": "cup",
+          "name": "water, divided, or as needed",
+          "raw": "8.75 cups water, divided, or as needed"
+        },
+        {
+          "id": "i11",
+          "amount": "3",
+          "unit": "cloves",
+          "name": "garlic, minced",
+          "raw": "3 cloves garlic, minced"
+        },
+        {
+          "id": "i12",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "white sugar, or to taste",
+          "raw": "1 teaspoon white sugar, or to taste"
+        },
+        {
+          "id": "i13",
+          "amount": "",
+          "unit": "",
+          "name": "salt and pepper to taste",
+          "raw": "salt and pepper to taste"
+        },
+        {
+          "id": "i14",
+          "amount": "0.5",
+          "unit": "cup",
+          "name": "sour cream, for topping",
+          "raw": "0.5 cup sour cream, for topping"
+        },
+        {
+          "id": "i15",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "chopped fresh parsley for garnish",
+          "raw": "1 tablespoon chopped fresh parsley for garnish"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Gather all ingredients.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Crumble {i1} into a skillet set over medium-high heat. Cook and stir until no longer pink. Remove from the heat and set aside.",
+          "ingredientRefs": [
+            "i1"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Fill a large pot halfway with water (about 8 cups) and bring to a boil.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Add {i1} to pot, cover pot, and return to a boil. Add beets and simmer for 10 minutes. Add carrots and potatoes and continue to cook until potatoes are tender, about 10 minutes more. Stir in cabbage and tomatoes.",
+          "ingredientRefs": [
+            "i1"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Heat oil in a skillet over medium heat. Add {i8} and cook until tender. Stir in {i9} and remaining 3/4 cup water until well blended; transfer to the pot.",
+          "ingredientRefs": [
+            "i8",
+            "i9"
+          ]
+        },
+        {
+          "id": "s6",
+          "text": "Add garlic to the soup, cover, and turn off the heat. Let stand 5 minutes. Stir in sugar and season with salt and pepper.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Ladle into serving bowls. {i15} with sour cream and dill. Enjoy!",
+          "ingredientRefs": [
+            "i15"
+          ]
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 257,
+    "protein": 10,
+    "carbs": 24,
+    "fat": 14,
+    "fiber": 5
+  },
+  "sourceUrl": "https://www.allrecipes.com/recipe/84450/ukrainian-red-borscht-soup/",
+  "importMethod": "structured-data"
+}

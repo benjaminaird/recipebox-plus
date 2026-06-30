@@ -1,0 +1,156 @@
+{
+  "title": "Shakshuka Recipe (Easy & Traditional)",
+  "description": "Shakshuka is a North African and Middle Eastern meal of poached eggs in a simmering tomato sauce with spices. It's easy, healthy and takes less than 30 minutes to make. Watch the video below to see how I make it in my kitchen!",
+  "servings": 6,
+  "prepTime": "10 min",
+  "cookTime": "20 min",
+  "totalTime": "30 min",
+  "heroImage": "https://i2.wp.com/www.downshiftology.com/wp-content/uploads/2023/12/Shakshuka-main-1.jpg",
+  "notes": "",
+  "tags": [
+    "Breakfast",
+    "Main Meal",
+    "Mediterranean",
+    "Middle Eastern",
+    "shakshuka",
+    "Shakshuka recipe"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "2",
+          "unit": "Tbsp",
+          "name": "olive oil",
+          "raw": "2 tablespoons olive oil"
+        },
+        {
+          "id": "i2",
+          "amount": "1",
+          "unit": "",
+          "name": "medium onion (diced)",
+          "raw": "1 medium onion (diced)"
+        },
+        {
+          "id": "i3",
+          "amount": "1",
+          "unit": "",
+          "name": "red bell pepper (seeded and diced)",
+          "raw": "1 red bell pepper (seeded and diced)"
+        },
+        {
+          "id": "i4",
+          "amount": "4",
+          "unit": "",
+          "name": "garlic cloves (finely chopped)",
+          "raw": "4 garlic cloves (finely chopped)"
+        },
+        {
+          "id": "i5",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "paprika",
+          "raw": "2 teaspoon paprika"
+        },
+        {
+          "id": "i6",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "cumin",
+          "raw": "1 teaspoon cumin"
+        },
+        {
+          "id": "i7",
+          "amount": "1/4",
+          "unit": "tsp",
+          "name": "chili powder",
+          "raw": "1/4 teaspoon chili powder"
+        },
+        {
+          "id": "i8",
+          "amount": "1",
+          "unit": "",
+          "name": "(28-ounce can) whole peeled tomatoes",
+          "raw": "1 (28-ounce can) whole peeled tomatoes"
+        },
+        {
+          "id": "i9",
+          "amount": "6",
+          "unit": "",
+          "name": "large eggs",
+          "raw": "6 large eggs"
+        },
+        {
+          "id": "i10",
+          "amount": "",
+          "unit": "",
+          "name": "salt and pepper (to taste)",
+          "raw": "salt and pepper (to taste)"
+        },
+        {
+          "id": "i11",
+          "amount": "1",
+          "unit": "",
+          "name": "small bunch fresh cilantro (chopped)",
+          "raw": "1 small bunch fresh cilantro (chopped)"
+        },
+        {
+          "id": "i12",
+          "amount": "1",
+          "unit": "",
+          "name": "small bunch fresh parsley (chopped)",
+          "raw": "1 small bunch fresh parsley (chopped)"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Heat {i1} in a large sauté pan on medium heat. Add the chopped {i3} and {i2} and cook for 5 minutes or until the onion becomes translucent.",
+          "ingredientRefs": [
+            "i1",
+            "i2",
+            "i3"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "Add garlic and spices and cook an additional minute.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "Pour the can of {i8} and juice into the pan and break down the tomatoes using a large spoon. Season with salt and pepper and bring the sauce to a simmer.",
+          "ingredientRefs": [
+            "i8"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "Use your large spoon to make small wells in the sauce and crack {i9} into each well. Cook the eggs for 5 to 8 minutes, or until the eggs are done to your liking. You can also cover the pan with a lid to expedite the eggs cooking.",
+          "ingredientRefs": [
+            "i9"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Garnish with chopped {i11} and {i12} before serving.",
+          "ingredientRefs": [
+            "i11",
+            "i12"
+          ]
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 146,
+    "protein": 7,
+    "carbs": 10,
+    "fat": 9,
+    "fiber": 2
+  },
+  "sourceUrl": "https://downshiftology.com/recipes/shakshuka/",
+  "importMethod": "structured-data"
+}

@@ -1,0 +1,17 @@
+{
+  "id": "nr-041",
+  "url": "https://www.bbcgoodfood.com/recipes/best-yorkshire-puddings",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.bbcgoodfood.com/recipes/best-yorkshire-puddings",
+  "sourceTitle": "Best Yorkshire puddings recipe | Good Food",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 7348,
+  "jsonLdNodes": 4,
+  "sourceIngredientCount": 4,
+  "sourceStepCount": 7,
+  "warnings": [],
+  "error": ""
+}

@@ -1,0 +1,17 @@
+{
+  "id": "nr-051",
+  "url": "https://www.loveandlemons.com/vegan-mac-and-cheese/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.loveandlemons.com/vegan-mac-and-cheese/",
+  "sourceTitle": "Vegan Mac and Cheese Recipe - Love and Lemons",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 10614,
+  "jsonLdNodes": 0,
+  "sourceIngredientCount": null,
+  "sourceStepCount": null,
+  "warnings": [],
+  "error": ""
+}

@@ -1,0 +1,17 @@
+{
+  "id": "nr-055",
+  "url": "https://minimalistbaker.com/1-bowl-vegan-gluten-free-banana-bread/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://minimalistbaker.com/1-bowl-vegan-gluten-free-banana-bread/",
+  "sourceTitle": "1-Bowl Vegan Gluten-Free Banana Bread | Minimalist Baker Recipes",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 12482,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 13,
+  "sourceStepCount": 6,
+  "warnings": [],
+  "error": ""
+}

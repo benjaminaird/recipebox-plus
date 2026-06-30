@@ -1,0 +1,17 @@
+{
+  "id": "nr-054",
+  "url": "https://www.loveandlemons.com/brownies-recipe/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.loveandlemons.com/brownies-recipe/",
+  "sourceTitle": "Best Homemade Brownies Recipe - Love and Lemons",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 11583,
+  "jsonLdNodes": 0,
+  "sourceIngredientCount": null,
+  "sourceStepCount": null,
+  "warnings": [],
+  "error": ""
+}

@@ -1,0 +1,232 @@
+{
+  "title": "Deliciously Moist Chocolate Layer Cake",
+  "description": "This is my favorite homemade chocolate cake recipe. With a super moist crumb and fudgy, yet light texture, this chocolate cake recipe will be your favorite too. Top with chocolate buttercream and chocolate chips for 3x the chocolate flavor. You can also prepare this chocolate layer cake as a sheet cake. See recipe Note.",
+  "servings": 12,
+  "prepTime": "30 min",
+  "cookTime": "25 min",
+  "totalTime": "4 hr",
+  "heroImage": "https://sallysbakingaddiction.com/wp-content/uploads/2013/04/triple-chocolate-cake-4-225x225.jpg",
+  "notes": "",
+  "tags": [
+    "Dessert",
+    "American",
+    "cake",
+    "chocolate cake"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1 3/4",
+          "unit": "cup",
+          "name": "all-purpose flour (spooned & leveled)",
+          "raw": "1 3/4 cups (219g) all-purpose flour (spooned & leveled)",
+          "weightAmount": "219",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i2",
+          "amount": "3/4",
+          "unit": "cup",
+          "name": "unsweetened natural cocoa powder",
+          "raw": "3/4 cup (64g) unsweetened natural cocoa powder",
+          "weightAmount": "64",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i3",
+          "amount": "1 3/4",
+          "unit": "cup",
+          "name": "granulated sugar",
+          "raw": "1 3/4 cups (350g) granulated sugar",
+          "weightAmount": "350",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i4",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "baking soda",
+          "raw": "2 teaspoons baking soda"
+        },
+        {
+          "id": "i5",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "baking powder",
+          "raw": "1 teaspoon baking powder"
+        },
+        {
+          "id": "i6",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "salt",
+          "raw": "1 teaspoon salt"
+        },
+        {
+          "id": "i7",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "espresso powder (optional)",
+          "raw": "2 teaspoons espresso powder (optional)"
+        },
+        {
+          "id": "i8",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "vegetable oil (or canola oil or melted coconut oil)",
+          "raw": "1/2 cup (113g/120ml) vegetable oil (or canola oil or melted coconut oil)",
+          "weightAmount": "113",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i9",
+          "amount": "2",
+          "unit": "",
+          "name": "large eggs, at room temperature",
+          "raw": "2 large eggs, at room temperature"
+        },
+        {
+          "id": "i10",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "pure vanilla extract",
+          "raw": "2 teaspoons pure vanilla extract"
+        },
+        {
+          "id": "i11",
+          "amount": "1",
+          "unit": "cup",
+          "name": "buttermilk, at room temperature",
+          "raw": "1 cup (240g/ml) buttermilk, at room temperature",
+          "weightAmount": "240",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i12",
+          "amount": "1",
+          "unit": "cup",
+          "name": "freshly brewed strong hot coffee or hot water",
+          "raw": "1 cup (240g/ml) freshly brewed strong hot coffee or hot water",
+          "weightAmount": "240",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i13",
+          "amount": "1 1/4",
+          "unit": "cup",
+          "name": "unsalted butter, softened to room temperature",
+          "raw": "1 1/4 cups (282g) unsalted butter, softened to room temperature",
+          "weightAmount": "282",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i14",
+          "amount": "3 1/2",
+          "unit": "cup",
+          "name": "confectioners’ sugar",
+          "raw": "3 1/2 cups (420g) confectioners’ sugar",
+          "weightAmount": "420",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i15",
+          "amount": "3/4",
+          "unit": "cup",
+          "name": "unsweetened cocoa powder (natural or Dutch-process)",
+          "raw": "3/4 cup (64g) unsweetened cocoa powder (natural or Dutch-process)",
+          "weightAmount": "64",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i16",
+          "amount": "3–5",
+          "unit": "Tbsp",
+          "name": "heavy cream (or half-and-half or milk), at room temperature",
+          "raw": "3–5 Tablespoons (45–75g/ml) heavy cream (or half-and-half or milk), at room temperature",
+          "weightAmount": "75",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i17",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "pure vanilla extract",
+          "raw": "1 teaspoon pure vanilla extract"
+        },
+        {
+          "id": "i18",
+          "amount": "1/4",
+          "unit": "tsp",
+          "name": "salt",
+          "raw": "1/4 teaspoon salt"
+        },
+        {
+          "id": "i19",
+          "amount": "",
+          "unit": "",
+          "name": "optional for decoration: semi-sweet chocolate chips",
+          "raw": "optional for decoration: semi-sweet chocolate chips"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Preheat the oven to 350°F (177°C). Grease two 9-inch cake pans, line with parchment paper rounds, then grease the parchment paper. Parchment paper helps the cakes seamlessly release from the pans. (If it’s helpful, see this parchment paper rounds for cakes video & post.)",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Whisk {i1}, cocoa powder, sugar, {i4}, {i5}, {i6}, and {i7} (if using) together in a large bowl. Set aside. Using a handheld or stand mixer fitted with a whisk attachment (or you can use a whisk) mix the oil, eggs, and vanilla together on medium-high speed until combined. Add the buttermilk and mix until combined. Pour the dry ingredients into the wet ingredients, add the hot coffee/{i12}, and whisk or beat on low speed until the batter is completely combined. Batter is thin.",
+          "ingredientRefs": [
+            "i1",
+            "i4",
+            "i5",
+            "i6",
+            "i7",
+            "i12"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Divide the batter evenly between the prepared pans. Bake for 23–26 minutes or until a toothpick inserted in the center comes out clean. (Note: Even if they’re completely done, the cooled cakes may *slightly* sink in the center. Cocoa powder is simply not as structurally strong as {i1} and can’t hold up to all the moisture necessary to make a moist-tasting chocolate cake. It’s normal!)",
+          "ingredientRefs": [
+            "i1"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "Cool the cakes in the pans set on a cooling rack for 1 hour. Run a knife around the edges to help loosen the sides, remove the cakes from the pans, peel off the parchment, and place on the cooling rack to finish cooling.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "With a handheld or stand mixer fitted with a paddle attachment, beat the butter on medium speed until creamy—about 2 minutes. Add confectioners’ sugar, cocoa powder, 3 Tablespoons heavy cream, vanilla extract, and {i6}. Beat on low speed for 30 seconds, then increase to high speed and beat for 1 full minute. Do not over-whip. Add 1/4 cup more confectioners’ sugar or cocoa powder if frosting is too thin or 1–2 more Tablespoons of cream if frosting is too thick. Taste. Add another pinch of {i18} if desired.",
+          "ingredientRefs": [
+            "i6",
+            "i18"
+          ]
+        },
+        {
+          "id": "s6",
+          "text": "If cooled cakes are domed on top, use a large serrated knife to slice a thin layer off the tops to create a flat surface. This is called “leveling” the cakes. Discard or crumble over finished cake. Place 1 cake layer on your cake stand or serving plate. Evenly cover the top with frosting. Top with 2nd layer and spread remaining frosting all over the top and sides. I use an icing spatula and bench scraper for the frosting. Garnish with chocolate chips, if desired.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Refrigerate uncovered cake for at least 30–60 minutes before slicing to help set the shape. After that, you can serve the cake or continue refrigerating for up to 4–6 hours before serving. Cake can be served at room temperature or chilled.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s8",
+          "text": "Cover leftover cake tightly and store in the refrigerator for up to 5 days. I like using a cake carrier for storing and transporting.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "sourceUrl": "https://sallysbakingaddiction.com/triple-chocolate-layer-cake/",
+  "importMethod": "structured-data"
+}

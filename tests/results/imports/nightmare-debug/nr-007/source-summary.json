@@ -1,0 +1,17 @@
+{
+  "id": "nr-007",
+  "url": "https://www.allrecipes.com/recipe/83557/juicy-roasted-chicken/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.allrecipes.com/recipe/83557/juicy-roasted-chicken/",
+  "sourceTitle": "Juicy Roasted Chicken Recipe",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 13388,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 5,
+  "sourceStepCount": 5,
+  "warnings": [],
+  "error": ""
+}

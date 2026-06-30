@@ -1,0 +1,153 @@
+{
+  "title": "Chocolate Ice Cream",
+  "description": "Adapted from Jeni's Splendid Ice Creams at Home by Jenni Britton Bauer (Artisan)Jeni Bauer calls this “The milkiest chocolate ice cream” because she likes milk chocolate and unlike dark chocolate ice cream, this ice cream does indeed taste like “a bar of fine milk chocolate.” It has a pleasant sweetness and a consistency as smooth as Swiss chocolate.You’ll notice this recipe doesn’t call for eggs, which makes it suitable for people who are avoiding eggs for various dietary reasons. For best results, sift the cocoa powder to remove any lumps and use good chocolate, one in the range of 55 to 70% cocoa solids.There a note at the end of the recipe, which includes a variation I chanced upon that you might want to consider.",
+  "prepTime": "",
+  "cookTime": "",
+  "totalTime": "",
+  "heroImage": "https://www.davidlebovitz.com/wp-content/uploads/2011/09/chocolate-ice-cream-scoop1.jpg",
+  "notes": "",
+  "tags": [
+    "Dessert"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1",
+          "unit": "cup",
+          "name": "whole milk",
+          "raw": "1 cup (250ml) whole milk",
+          "weightAmount": "250",
+          "weightUnit": "ml"
+        },
+        {
+          "id": "i2",
+          "amount": "4",
+          "unit": "tsp",
+          "name": "corn starch",
+          "raw": "4 teaspoons corn starch"
+        },
+        {
+          "id": "i3",
+          "amount": "1",
+          "unit": "cup",
+          "name": "heavy cream",
+          "raw": "1 cup (250ml) heavy cream",
+          "weightAmount": "250",
+          "weightUnit": "ml"
+        },
+        {
+          "id": "i4",
+          "amount": "1",
+          "unit": "cup",
+          "name": "evaporated milk (unsweetened condensed milk)",
+          "raw": "1 cup (250ml) evaporated milk (unsweetened condensed milk)",
+          "weightAmount": "250",
+          "weightUnit": "ml"
+        },
+        {
+          "id": "i5",
+          "amount": "2/3",
+          "unit": "cup",
+          "name": "sugar",
+          "raw": "2/3 cup (130g) sugar",
+          "weightAmount": "130",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i6",
+          "amount": "2",
+          "unit": "Tbsp",
+          "name": "light corn syrup",
+          "raw": "2 tablespoons (60g) light corn syrup",
+          "weightAmount": "60",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i7",
+          "amount": "1/3",
+          "unit": "cup",
+          "name": "unsweetened cocoa powder (natural or Dutch-process)",
+          "raw": "1/3 cup (35g) unsweetened cocoa powder (natural or Dutch-process)",
+          "weightAmount": "35",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i8",
+          "amount": "3",
+          "unit": "oz",
+          "name": "bittersweet or semisweet chocolate (chopped)",
+          "raw": "3 ounces (85g) bittersweet or semisweet chocolate (chopped)",
+          "weightAmount": "85",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i9",
+          "amount": "1/4",
+          "unit": "tsp",
+          "name": "sea salt",
+          "raw": "1/4 teaspoon sea salt"
+        },
+        {
+          "id": "i10",
+          "amount": "1/2",
+          "unit": "tsp",
+          "name": "vanilla extract (or 1 teaspoon chocolate extract)",
+          "raw": "1/2 teaspoon vanilla extract (or 1 teaspoon chocolate extract)"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Making a slurry by mixing a few tablespoons of the milk with {i2} in a small bowl, until smooth.",
+          "ingredientRefs": [
+            "i2"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "In a 4-quart (4l) saucepan, heat the rest of the milk, {i3}, {i4}, {i5}, and {i6}. When the mixture comes to a moderate boil, whisk in {i7}, then let it cook at a modest boil for 4 minutes.",
+          "ingredientRefs": [
+            "i3",
+            "i4",
+            "i5",
+            "i6",
+            "i7"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "After four minutes, whisk in {i2} slurry then continue to cook for one minute, stirring constantly with a spatula, until slightly thickened.",
+          "ingredientRefs": [
+            "i2"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "Remove from heat and add the chopped {i8} and {i9}, stirring until the chocolate is completely melted and the mixture is smooth. Stir in the vanilla or chocolate {i10}.",
+          "ingredientRefs": [
+            "i8",
+            "i9",
+            "i10"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Transfer the ice {i3} mixture into a zip-top plastic bag then submerge the bag into a bowl filled with ice, and let sit until cool, about 30 minutes. (If necessary, add more ice during the cooling period.)",
+          "ingredientRefs": [
+            "i3"
+          ]
+        },
+        {
+          "id": "s6",
+          "text": "Remove the bag from the ice bath and wipe off any excess water. Pour the mixture into the canister of an ice cream maker, then freeze according to the manufacturer’s instructions.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "sourceUrl": "https://www.davidlebovitz.com/chocolate-ice-cream-recipe/",
+  "importMethod": "structured-data"
+}

@@ -1,0 +1,172 @@
+{
+  "title": "Creamy Tomato and Spinach Pasta",
+  "description": "Easier than a box meal, this creamy tomato and spinach pasta is also more flavorful and delicious. 100% real ingredients. Perfect for busy weeknights!",
+  "servings": 4,
+  "prepTime": "5 min",
+  "cookTime": "20 min",
+  "totalTime": "25 min",
+  "heroImage": "https://www.budgetbytes.com/wp-content/uploads/2020/05/CreamyTomatoSpinachPasta_OverheadPlated.jpg",
+  "notes": "",
+  "tags": [
+    "Dinner",
+    "Main Course",
+    "American",
+    "Creamy Pasta",
+    "Easy Dinner",
+    "Easy Pasta Recipe",
+    "Quick Pasta Recipe"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1/2",
+          "unit": "lb",
+          "name": "penne pasta ($0.49)",
+          "raw": "1/2 lb penne pasta ($0.49)"
+        },
+        {
+          "id": "i2",
+          "amount": "1",
+          "unit": "",
+          "name": "yellow onion (small dice, 340g, 1.5 cups, $0.78)",
+          "raw": "1 yellow onion (small dice, 340g, 1.5 cups, $0.78)"
+        },
+        {
+          "id": "i3",
+          "amount": "2",
+          "unit": "cloves",
+          "name": "garlic (minced, 1 Tbsp, $0.12)",
+          "raw": "2 cloves garlic (minced, 1 Tbsp, $0.12)"
+        },
+        {
+          "id": "i4",
+          "amount": "1",
+          "unit": "tbsp",
+          "name": "olive oil ($0.18)",
+          "raw": "1 Tbsp olive oil ($0.18)"
+        },
+        {
+          "id": "i5",
+          "amount": "14.5",
+          "unit": "oz",
+          "name": "diced tomatoes (1 can, $0.96)",
+          "raw": "14.5 oz. diced tomatoes (1 can, $0.96)"
+        },
+        {
+          "id": "i6",
+          "amount": "1/2",
+          "unit": "tsp",
+          "name": "dried oregano ($0.12)",
+          "raw": "1/2 tsp dried oregano ($0.12)"
+        },
+        {
+          "id": "i7",
+          "amount": "1/2",
+          "unit": "tsp",
+          "name": "dried basil ($0.13)",
+          "raw": "1/2 tsp dried basil ($0.13)"
+        },
+        {
+          "id": "i8",
+          "amount": "1/8",
+          "unit": "tsp",
+          "name": "crushed red pepper ($0.02)",
+          "raw": "1/8 tsp crushed red pepper ($0.02)"
+        },
+        {
+          "id": "i9",
+          "amount": "1/2",
+          "unit": "tsp",
+          "name": "salt ($0.02)",
+          "raw": "1/2 tsp salt ($0.02)"
+        },
+        {
+          "id": "i10",
+          "amount": "1/2",
+          "unit": "tsp",
+          "name": "freshly cracked black pepper ($0.08)",
+          "raw": "1/2 tsp freshly cracked black pepper ($0.08)"
+        },
+        {
+          "id": "i11",
+          "amount": "2",
+          "unit": "tbsp",
+          "name": "tomato paste ($0.14)",
+          "raw": "2 Tbsp tomato paste ($0.14)"
+        },
+        {
+          "id": "i12",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "water ($0.00)",
+          "raw": "1/2 cup water ($0.00)"
+        },
+        {
+          "id": "i13",
+          "amount": "2",
+          "unit": "oz",
+          "name": "cream cheese ($0.46)",
+          "raw": "2 oz cream cheese ($0.46)"
+        },
+        {
+          "id": "i14",
+          "amount": "1/4",
+          "unit": "cup",
+          "name": "grated Parmesan (30g, $0.51)",
+          "raw": "1/4 cup grated Parmesan (30g, $0.51)"
+        },
+        {
+          "id": "i15",
+          "amount": "4",
+          "unit": "oz",
+          "name": "fresh spinach ($0.79)",
+          "raw": "4 oz fresh spinach ($0.79)"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Gather and prepare all ingredients.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Bring a large pot of water to a boil over high heat. Add the pasta and continue to boil until tender (7-10 minutes). Drain the pasta in a colander.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "While the pasta is cooking, prepare the creamy tomato sauce. Dice the onion and mince the garlic. Add the onion, garlic, and olive oil to a large skillet and sauté over medium heat until the onions are soft and translucent (3-5 minutes).",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Add the diced tomatoes (with juices), oregano, basil, crushed red pepper, salt, and some freshly cracked pepper to the skillet. Stir to combine. Add the tomato paste and a 1/2 cup (125ml) of water to the skillet and stir until the tomato paste has mixed into the sauce.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Turn the heat down to low. Cut the cream cheese into a few pieces and then add them to the skillet with the tomato sauce. Use a whisk to stir the sauce until the cream cheese has fully melted and the sauce is creamy. Add the Parmesan to the skillet and stir until it is melted into the sauce.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Add the fresh spinach to the skillet and gently stir it into the sauce until it has wilted (2-3 minutes). Add the pasta and stir until it is well coated in the creamy tomato sauce. Taste and adjust the salt and pepper as needed. Serve warm.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 363,
+    "protein": 13,
+    "carbs": 54,
+    "fat": 11,
+    "fiber": 5
+  },
+  "sourceUrl": "https://www.budgetbytes.com/creamy-tomato-spinach-pasta/",
+  "importMethod": "structured-data"
+}

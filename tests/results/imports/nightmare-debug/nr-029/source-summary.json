@@ -1,0 +1,17 @@
+{
+  "id": "nr-029",
+  "url": "https://www.seriouseats.com/5-minute-tonkotsu-trick-11896465",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.seriouseats.com/5-minute-tonkotsu-trick-11896465",
+  "sourceTitle": "My 5-Minute Trick Turns Instant Ramen Into Rich, Creamy Tonkotsu",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 9477,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": null,
+  "sourceStepCount": null,
+  "warnings": [],
+  "error": ""
+}

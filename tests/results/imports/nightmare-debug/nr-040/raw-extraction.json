@@ -1,0 +1,151 @@
+{
+  "title": "Chicken tikka masala",
+  "description": "This takeaway favourite is freezer-friendly and quick to reheat, giving you the chance to get ahead and save money.",
+  "servings": 10,
+  "prepTime": "15 min",
+  "cookTime": "50 min",
+  "totalTime": "1 hr 5 min",
+  "heroImage": "https://images.immediate.co.uk/production/volatile/sites/30/2020/08/recipe-image-legacy-id-202451_12-50a0c95.jpg?resize=440,400",
+  "notes": "",
+  "tags": [
+    "Dinner",
+    "Main course",
+    "Indian",
+    "Butter",
+    "Cheap",
+    "Cheap recipes",
+    "Chicken curry",
+    "Chicken recipes",
+    "Chicken tika massala",
+    "Coriander",
+    "Curry recipes",
+    "Double cream"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "4",
+          "unit": "tbsp",
+          "name": "vegetable oil",
+          "raw": "4 tbsp vegetable oil"
+        },
+        {
+          "id": "i2",
+          "amount": "",
+          "unit": "",
+          "name": "25g butter",
+          "raw": "25g butter"
+        },
+        {
+          "id": "i3",
+          "amount": "4",
+          "unit": "",
+          "name": "onions roughly chopped",
+          "raw": "4 onions roughly chopped"
+        },
+        {
+          "id": "i4",
+          "amount": "6",
+          "unit": "tbsp",
+          "name": "chicken tikka masala paste (use shop-bought or make your own – see recipe, below)",
+          "raw": "6 tbsp chicken tikka masala paste (use shop-bought or make your own – see recipe, below)"
+        },
+        {
+          "id": "i5",
+          "amount": "2",
+          "unit": "",
+          "name": "red peppers deseeded and cut into chunks",
+          "raw": "2 red peppers deseeded and cut into chunks"
+        },
+        {
+          "id": "i6",
+          "amount": "8",
+          "unit": "",
+          "name": "boneless, skinless chicken breasts cut into 2.5cm cubes",
+          "raw": "8 boneless, skinless chicken breasts cut into 2.5cm cubes"
+        },
+        {
+          "id": "i7",
+          "amount": "2",
+          "unit": "",
+          "name": "x 400g cans chopped tomatoes",
+          "raw": "2 x 400g cans chopped tomatoes"
+        },
+        {
+          "id": "i8",
+          "amount": "4",
+          "unit": "tbsp",
+          "name": "tomato purée",
+          "raw": "4 tbsp tomato purée"
+        },
+        {
+          "id": "i9",
+          "amount": "2-3",
+          "unit": "tbsp",
+          "name": "mango chutney",
+          "raw": "2-3 tbsp mango chutney"
+        },
+        {
+          "id": "i10",
+          "amount": "",
+          "unit": "",
+          "name": "150ml double cream",
+          "raw": "150ml double cream"
+        },
+        {
+          "id": "i11",
+          "amount": "",
+          "unit": "",
+          "name": "150ml natural yogurt",
+          "raw": "150ml natural yogurt"
+        },
+        {
+          "id": "i12",
+          "amount": "",
+          "unit": "",
+          "name": "chopped coriander leaves, to serve",
+          "raw": "chopped coriander leaves, to serve"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Heat the vegetable oil and butter in a large, lidded casserole on the hob, then add the onions and a pinch of salt. Cook for 15-20 mins until soft and golden.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Add the tikka masala paste and peppers, then cook for 5 mins more to cook out the rawness of the spices.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "Add the chicken breasts and stir well to coat in the paste. Cook for 2 mins, then tip in the chopped tomatoes, tomato purée and 200ml water. Cover with a lid and gently simmer for 15 mins, stirring occasionally, until the chicken is cooked through.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Remove the lid, stir through the mango chutney, double cream and natural yogurt, then gently warm through. Season, then set aside whatever you want to freeze. Will keep, in an airtight container, in the freezer for up to three months.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Scatter the rest with coriander leaves and serve with basmati rice and naan bread.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 345,
+    "protein": 31,
+    "carbs": 13,
+    "fat": 19,
+    "fiber": 3
+  },
+  "sourceUrl": "https://www.bbcgoodfood.com/recipes/chicken-tikka-masala",
+  "importMethod": "structured-data"
+}

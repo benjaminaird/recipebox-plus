@@ -1,0 +1,182 @@
+{
+  "title": "Chicken Fajitas - Easy & Flavorful!",
+  "description": "Enjoy these easy chicken fajitas with chicken and vibrant veggies tossed in the best fajita seasoning. Wrap them in tortillas for a deliciously easy taco night! Watch the video below to see how I make them in my kitchen!",
+  "servings": 6,
+  "prepTime": "10 min",
+  "cookTime": "20 min",
+  "totalTime": "30 min",
+  "heroImage": "https://i2.wp.com/www.downshiftology.com/wp-content/uploads/2020/02/Chicken-Fajitas-main.jpg",
+  "notes": "",
+  "tags": [
+    "Main Course",
+    "Mexican",
+    "Chicken Fajita recipe",
+    "Chicken Fajitas",
+    "How To Make Chicken Fajitas"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "3",
+          "unit": "",
+          "name": "boneless skinless chicken breasts",
+          "raw": "3 boneless skinless chicken breasts"
+        },
+        {
+          "id": "i2",
+          "amount": "1",
+          "unit": "",
+          "name": "onion (thinly sliced)",
+          "raw": "1 onion (thinly sliced)"
+        },
+        {
+          "id": "i3",
+          "amount": "3",
+          "unit": "",
+          "name": "bell peppers (thinly sliced )",
+          "raw": "3 bell peppers (thinly sliced )"
+        },
+        {
+          "id": "i4",
+          "amount": "2",
+          "unit": "tablespoons",
+          "name": "olive oil",
+          "raw": "2 tablespoons olive oil"
+        },
+        {
+          "id": "i5",
+          "amount": "1/2",
+          "unit": "",
+          "name": "lime",
+          "raw": "1/2 lime"
+        },
+        {
+          "id": "i6",
+          "amount": "1/2",
+          "unit": "tablespoon",
+          "name": "chili powder",
+          "raw": "1/2 tablespoon chili powder"
+        },
+        {
+          "id": "i7",
+          "amount": "1/2",
+          "unit": "tablespoon",
+          "name": "ground cumin",
+          "raw": "1/2 tablespoon ground cumin"
+        },
+        {
+          "id": "i8",
+          "amount": "1",
+          "unit": "teaspoon",
+          "name": "garlic powder",
+          "raw": "1 teaspoon garlic powder"
+        },
+        {
+          "id": "i9",
+          "amount": "1/2",
+          "unit": "teaspoon",
+          "name": "paprika",
+          "raw": "1/2 teaspoon paprika"
+        },
+        {
+          "id": "i10",
+          "amount": "1/2",
+          "unit": "teaspoon",
+          "name": "oregano",
+          "raw": "1/2 teaspoon oregano"
+        },
+        {
+          "id": "i11",
+          "amount": "1/2",
+          "unit": "teaspoon",
+          "name": "kosher salt",
+          "raw": "1/2 teaspoon kosher salt"
+        },
+        {
+          "id": "i12",
+          "amount": "1/4",
+          "unit": "teaspoon",
+          "name": "ground black pepper",
+          "raw": "1/4 teaspoon ground black pepper"
+        },
+        {
+          "id": "i13",
+          "amount": "",
+          "unit": "",
+          "name": "tortillas",
+          "raw": "tortillas"
+        },
+        {
+          "id": "i14",
+          "amount": "",
+          "unit": "",
+          "name": "sour cream",
+          "raw": "sour cream"
+        },
+        {
+          "id": "i15",
+          "amount": "",
+          "unit": "",
+          "name": "pico de gallo",
+          "raw": "pico de gallo"
+        },
+        {
+          "id": "i16",
+          "amount": "",
+          "unit": "",
+          "name": "avocado",
+          "raw": "avocado"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Make fajita seasoning. Add the fajita seasoning ingredients to a small mixing bowl and stir together.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Season the chicken. Generously sprinkle the fajita seasoning on both sides of the chicken and use your fingers to press it into the chicken.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "Cook the chicken. Heat the oil in a large skillet over medium heat. Sear the chicken breasts for about 7 to 8 minutes on each side.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Slice the veggies. While your chicken is cooking, cut the bell peppers and onion into thin slices.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Cook the veggies. Once the chicken has finished cooking, remove it to a plate and let it rest for a couple of minutes. Add the bell peppers and onion to the same skillet over medium heat and saute for 4 to 5 minutes, stirring frequently.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Slice the chicken. When the bell peppers are just about done sauteing, slice the chicken breasts into strips. You can slice those pieces in half again for thinner strips of chicken.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Mix and serve. Add the chicken back into the skillet, add a squeeze of fresh lime juice and stir everything together. Serve immediately with tortillas and extra toppings such as sour cream, pico de gallo and guacamole.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 137,
+    "protein": 13,
+    "carbs": 7,
+    "fat": 7,
+    "fiber": 2
+  },
+  "sourceUrl": "https://downshiftology.com/recipes/chicken-fajitas/",
+  "importMethod": "structured-data"
+}

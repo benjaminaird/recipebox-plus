@@ -1,0 +1,191 @@
+{
+  "title": "Homemade Vegetarian Chili",
+  "description": "The smoky, complex flavor of this simple vegetarian chili comes from basic pantry ingredients, vegetables and spices! It makes great leftovers, too. Recipe yields 4 large or 6 moderate servings of chili.",
+  "servings": 6,
+  "prepTime": "20 min",
+  "cookTime": "40 min",
+  "totalTime": "1 hr",
+  "heroImage": "https://cookieandkate.com/images/2015/11/best-vegetarian-chili-1-1-225x225.jpg",
+  "notes": "",
+  "tags": [
+    "Chili",
+    "American",
+    "vegetarian chili"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "2",
+          "unit": "tablespoons",
+          "name": "extra-virgin olive oil",
+          "raw": "2 tablespoons extra-virgin olive oil"
+        },
+        {
+          "id": "i2",
+          "amount": "1",
+          "unit": "",
+          "name": "medium red onion, chopped",
+          "raw": "1 medium red onion, chopped"
+        },
+        {
+          "id": "i3",
+          "amount": "1",
+          "unit": "",
+          "name": "large red bell pepper, chopped",
+          "raw": "1 large red bell pepper, chopped"
+        },
+        {
+          "id": "i4",
+          "amount": "2",
+          "unit": "",
+          "name": "medium carrots, chopped",
+          "raw": "2 medium carrots, chopped"
+        },
+        {
+          "id": "i5",
+          "amount": "2",
+          "unit": "",
+          "name": "ribs celery, chopped",
+          "raw": "2 ribs celery, chopped"
+        },
+        {
+          "id": "i6",
+          "amount": "1/2",
+          "unit": "teaspoon",
+          "name": "salt, divided",
+          "raw": "1/2 teaspoon salt, divided"
+        },
+        {
+          "id": "i7",
+          "amount": "4",
+          "unit": "cloves",
+          "name": "garlic, pressed or minced",
+          "raw": "4 cloves garlic, pressed or minced"
+        },
+        {
+          "id": "i8",
+          "amount": "2",
+          "unit": "tablespoons",
+          "name": "chili powder*",
+          "raw": "2 tablespoons chili powder*"
+        },
+        {
+          "id": "i9",
+          "amount": "2",
+          "unit": "teaspoons",
+          "name": "ground cumin",
+          "raw": "2 teaspoons ground cumin"
+        },
+        {
+          "id": "i10",
+          "amount": "1 1/2",
+          "unit": "teaspoons",
+          "name": "smoked paprika*",
+          "raw": "1 1/2 teaspoons smoked paprika*"
+        },
+        {
+          "id": "i11",
+          "amount": "1",
+          "unit": "teaspoon",
+          "name": "dried oregano",
+          "raw": "1 teaspoon dried oregano"
+        },
+        {
+          "id": "i12",
+          "amount": "1",
+          "unit": "",
+          "name": "large can (28 ounces) or 2 small cans (15 ounces each) diced tomatoes**, with their juices",
+          "raw": "1 large can (28 ounces) or 2 small cans (15 ounces each) diced tomatoes**, with their juices"
+        },
+        {
+          "id": "i13",
+          "amount": "2",
+          "unit": "cans",
+          "name": "(15 ounces each) black beans, rinsed and drained",
+          "raw": "2 cans (15 ounces each) black beans, rinsed and drained"
+        },
+        {
+          "id": "i14",
+          "amount": "1",
+          "unit": "can",
+          "name": "(15 ounces) pinto beans, rinsed and drained",
+          "raw": "1 can (15 ounces) pinto beans, rinsed and drained"
+        },
+        {
+          "id": "i15",
+          "amount": "2",
+          "unit": "cups",
+          "name": "vegetable broth or water",
+          "raw": "2 cups vegetable broth or water"
+        },
+        {
+          "id": "i16",
+          "amount": "1",
+          "unit": "",
+          "name": "bay leaf",
+          "raw": "1 bay leaf"
+        },
+        {
+          "id": "i17",
+          "amount": "2",
+          "unit": "tablespoons",
+          "name": "chopped fresh cilantro, plus more for garnishing",
+          "raw": "2 tablespoons chopped fresh cilantro, plus more for garnishing"
+        },
+        {
+          "id": "i18",
+          "amount": "1 to 2",
+          "unit": "teaspoons",
+          "name": "sherry vinegar or red wine vinegar or lime juice, to taste",
+          "raw": "1 to 2 teaspoons sherry vinegar or red wine vinegar or lime juice, to taste"
+        },
+        {
+          "id": "i19",
+          "amount": "",
+          "unit": "",
+          "name": "Garnishes: chopped cilantro, sliced avocado, tortilla chips, sour cream or crème fraîche, grated cheddar cheese, etc.",
+          "raw": "Garnishes: chopped cilantro, sliced avocado, tortilla chips, sour cream or crème fraîche, grated cheddar cheese, etc."
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "In a large Dutch oven or heavy-bottomed pot over medium heat, warm the olive oil until shimmering. Add the chopped onion, bell pepper, carrot, celery and 1/4 teaspoon of the salt. Stir to combine and cook, stirring occasionally, until the vegetables are tender and the onion is translucent, about 7 to 10 minutes.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Add the garlic, chili powder, cumin, smoked paprika and oregano. Cook until fragrant while stirring constantly, about 1 minute.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "Add the diced tomatoes and their juices, the drained black beans and pinto beans, vegetable broth and bay leaf. Stir to combine and let the mixture come to a simmer. Continue cooking, stirring occasionally and reducing heat as necessary to maintain a gentle simmer, for 30 minutes.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Remove the chili from the heat and discard the bay leaf. For the best texture and flavor, transfer 1 1/2 cups of the chili to a blender, making sure to get some of the liquid portion. Securely fasten the lid and blend until smooth (watch out for hot steam), then pour the blended mixture back into the pot. (Or, you can blend the chili briefly with an immersion blender, or mash the chili with a potato masher until it reaches a thicker, more chili-like consistency.)",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Add the chopped cilantro, stir to combine, and then mix in the vinegar, to taste. Add salt to taste, too—I added 1/4 teaspoon more at this point. Divide the mixture into individual bowls and serve with garnishes of your choice. This chili will keep well in the refrigerator for about 4 days or you can freeze it for longer-term storage.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 236,
+    "protein": 10.9,
+    "carbs": 37.6,
+    "fat": 6.4,
+    "fiber": 10.3
+  },
+  "sourceUrl": "https://cookieandkate.com/vegetarian-chili-recipe/",
+  "importMethod": "structured-data"
+}

@@ -1,0 +1,347 @@
+{
+  "title": "Tonkatsu (Japanese Pork Cutlet)",
+  "description": "Crispy on the outside and juicy inside, my homemade Tonkatsu (Japanese Pork Cutlet) is a family favorite! Learn my secret for a light, airy, and supercrisp crust. Serve it with my irresistible sesame tonkatsu sauce for an extra savory punch!",
+  "servings": 2,
+  "prepTime": "15 min",
+  "cookTime": "15 min",
+  "totalTime": "30 min",
+  "heroImage": "https://www.justonecookbook.com/wp-content/uploads/2024/09/Tonkatsu-Japanese-Pork-Cutlet-0013-I-1.jpg",
+  "notes": "",
+  "tags": [
+    "Main Dish",
+    "Japanese",
+    "panko",
+    "pork"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1/4",
+          "unit": "",
+          "name": "head green cabbage",
+          "raw": "1/4 head green cabbage"
+        },
+        {
+          "id": "i2",
+          "amount": "1",
+          "unit": "",
+          "name": "Japanese or Persian cucumber",
+          "raw": "1 Japanese or Persian cucumber"
+        },
+        {
+          "id": "i3",
+          "amount": "4",
+          "unit": "tbsp",
+          "name": "Japanese sesame dressing",
+          "raw": "4 Tbsp Japanese sesame dressing"
+        },
+        {
+          "id": "i4",
+          "amount": "1",
+          "unit": "tbsp",
+          "name": "toasted white sesame seeds",
+          "raw": "1 Tbsp toasted white sesame seeds"
+        },
+        {
+          "id": "i5",
+          "amount": "1",
+          "unit": "tbsp",
+          "name": "toasted black sesame seeds",
+          "raw": "1 Tbsp toasted black sesame seeds"
+        },
+        {
+          "id": "i6",
+          "amount": "4",
+          "unit": "tbsp",
+          "name": "tonkatsu sauce",
+          "raw": "4 Tbsp tonkatsu sauce"
+        },
+        {
+          "id": "i7",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "panko (Japanese breadcrumbs)",
+          "raw": "1/2 cup panko (Japanese breadcrumbs)"
+        },
+        {
+          "id": "i8",
+          "amount": "1",
+          "unit": "",
+          "name": "large egg (50 g each w/o shell)",
+          "raw": "1 large egg (50 g each w/o shell)"
+        },
+        {
+          "id": "i9",
+          "amount": "1/2",
+          "unit": "tbsp",
+          "name": "neutral oil ((for the egg))",
+          "raw": "1/2 Tbsp neutral oil ((for the egg))"
+        },
+        {
+          "id": "i10",
+          "amount": "2",
+          "unit": "tbsp",
+          "name": "all-purpose flour (plain flour)",
+          "raw": "2 Tbsp all-purpose flour (plain flour)"
+        },
+        {
+          "id": "i11",
+          "amount": "2",
+          "unit": "",
+          "name": "boneless pork loin chops (1/2 inch thick) ((100 g, 3.5 oz per piece; 1/2 inch, 1–1.3 cm thick))",
+          "raw": "2 boneless pork loin chops (1/2 inch thick) ((100 g, 3.5 oz per piece; 1/2 inch, 1–1.3 cm thick))"
+        },
+        {
+          "id": "i12",
+          "amount": "1/2",
+          "unit": "tsp",
+          "name": "Diamond Crystal kosher salt",
+          "raw": "1/2 tsp Diamond Crystal kosher salt"
+        },
+        {
+          "id": "i13",
+          "amount": "1/8",
+          "unit": "tsp",
+          "name": "freshly ground black pepper",
+          "raw": "1/8 tsp freshly ground black pepper"
+        },
+        {
+          "id": "i14",
+          "amount": "3",
+          "unit": "cups",
+          "name": "neutral oil ((or enough for 13/4–2 inches (5 cm) of oil in the pot, for deep-frying))",
+          "raw": "3 cups neutral oil ((or enough for 13/4–2 inches (5 cm) of oil in the pot, for deep-frying))"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "If you prefer not to deep-fry, see my recipe for Baked Tonkatsu.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Gather all the ingredients. I highly recommend using fresh panko (called nama panko) from a Japanese grocery store, if available. If you can’t get it, follow my instructions below to make fresh panko using dried panko. Make sure to use a Japanese brand of panko from Japan. Western “panko breadcrumbs” are a bit different from authentic Japanese panko.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Prepare the Shredded Cabbage (optional)",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s3",
+          "text": "In Japan, we serve tonkatsu with a side of fresh shredded cabbage. To prepare it, shred ¼ head green cabbage very finely with a sharp knife or slicer. I love to use a cabbage slicer (you can get one from Amazon or JOC Goods) because it saves time and energy! I also thinly slice 1 Japanese or Persian cucumber diagonally, then cut them into thin strips. Toss the cabbage and cucumber together and set aside. Prepare 4 Tbsp Japanese sesame dressing (store bought or make homemade Japanese Sesame Dressing) and keep refrigerated until ready to serve.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Make the Dipping Sauce",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s4",
+          "text": "Grind 1 Tbsp toasted white sesame seeds and 1 Tbsp toasted black sesame seeds with a Japanese mortar and pestle. Leave some seeds unground for texture.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Divide the ground sesame seeds among individual dipping plates or bowls. Then divide 4 Tbsp tonkatsu sauce (store bought or homemade) among them. Set aside until ready to serve. Each person can mix it together when ready to eat. Note: In Japan, we often drizzle straight tonkatsu sauce on our cutlets without adding sesame seeds. Feel free to serve this dish with straight tonkatsu sauce instead, if you prefer.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Prepare the Fresh Panko and Breading",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s6",
+          "text": "If you are using dry panko from the store, place ½ cup panko (Japanese breadcrumbs) in a deep dish and spray with water until the panko is moist (I use a mister). Set aside for 15 minutes, or until the panko becomes soft and tender. Optionally, you can make fresh panko by pulsing some Shokupan (Japanese Pullman bread) in a food processor.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Meanwhile, prepare the other breading ingredients. Crack 1 large egg (50 g each w/o shell) into a deep dish or my favorite prep trays. Add ½ Tbsp neutral oil and whisk together until well combined. Then, prepare another dish or tray with 2 Tbsp all-purpose flour (plain flour). Tip: By adding oil, the breading won’t detach from the meat while deep-frying and this will help seal in the meat's juices and flavor.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Prepare the Pork",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s8",
+          "text": "Use a sharp knife to remove the extra fat from 2 boneless pork loin chops (½ inch thick). Then, make several small slits on the connective tissue (the white area) between the meat and fat. Tip: Red meat and fat have different elasticities, and they shrink and expand at different rates while cooking. These slits will allow the tonkatsu to stay flat during cooking instead of curling up.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s9",
+          "text": "Flip the meat and make several slits on the other side of the connective tissue.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s10",
+          "text": "Pound both sides of the meat with the back of a knife or a meat tenderizer/mallet.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s11",
+          "text": "Mold the cutlet back into its original shape with your hands.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s12",
+          "text": "Season both sides with ½ tsp Diamond Crystal kosher salt and ⅛ tsp freshly ground black pepper.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Bread the Pork",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s13",
+          "text": "First, dredge the pork in the flour and dust off any excess. Next, dip the pork into the egg mixture and coat well. Tip: Excess flour will prevent the egg mixture from adhering to the pork.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s14",
+          "text": "Lastly, dredge the pork in the fresh panko and gently press it to adhere to the cutlet. Gently shake off any excess, then place the breaded cutlets onto a tray or plate. Set them aside for 5–10 minutes to set the breading. Tip: The panko will “puff up” while deep-frying, so it doesn't have to be fluffy at this stage.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Cook: The First Fry",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s15",
+          "text": "Add 3 cups neutral oil to a pot. Make sure your oil is 1¾–2 inches (5 cm) deep. I use the tip of a chopstick to measure. Preheat on medium heat and bring the oil to 340ºF (170ºC). Tip: If you don’t have a thermometer, stick a chopstick in the oil; if you see tiny bubbles appear around the tip, it is hot enough. Alternatively, you can drop in a piece of panko; if it sinks down and immediately pops up to the surface, then the oil is ready.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s16",
+          "text": "Gently put one pork cutlet into the oil and let it cook for 1 minute. Don‘t flip it or touch it for 30 seconds. Tip: Why one piece at a time? Too much food at once will drastically reduce the oil temperature, and the tonkatsu will absorb too much oil. You should see big oil bubbles when you add the pork. Also, monitor the oil temperature so it doesn't rise above 340ºF (170ºC). If it does, the breading will get dark before the pork is cooked and you meat will be undercooked.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s17",
+          "text": "After a minute, flip the pork and cook the other side for 1 minute.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s18",
+          "text": "Remove the pork and let the excess oil drip off by holding the cutlet vertically over the pot for a few seconds. Place it on a wire rack or paper towel and prop it on its side, if possible, to drain excess oil. Let it sit for 4 minutes. The residual heat will continue to cook the meat as it rests.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s19",
+          "text": "Turn off the heat temporarily. Scoop up and discard any fried crumbs in the oil with a fine-mesh strainer. Keep the oil clean of fried crumbs, which can burn and make the oil dark and dirty. Then, turn on the heat again to medium and bring the oil back to 340ºF (170ºC).",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s20",
+          "text": "While the first cutlet is resting on the wire rack, deep-fry the second cutlet for 1 minute without flipping. Do not touch it for 30 seconds.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s21",
+          "text": "Flip and cook the other side for 1 minute.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s22",
+          "text": "Take out the pork and drain the excess oil as before. Place it on the wire rack and let it rest for 4 minutes. Clean the oil of fried crumbs.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "The Second Fry",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s23",
+          "text": "Raise the oil temperature to 355ºF (180ºC). After 4 minutes, the first piece of pork is ready for its second frying. Fry the cutlet again for 30 seconds on one side, then 30 seconds on the other side. Remove from the oil, let the oil drip off, and drain on the wire rack for 2 minutes. This prevents the breading from getting soggy on one side.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s24",
+          "text": "Clean the fried crumbs in the oil, then fry the second cutlet again. Remove from the pot and drain the excess oil as before.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Serve",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s25",
+          "text": "Cut the tonkatsu crosswise into slices about ¾ inch (2 cm) wide.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s26",
+          "text": "Transfer to a plate and serve it with the shredded cabbage and cucumber, the sesame dressing in small individual cups, and the sesame tonkatsu dipping sauce on the side.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Store",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s27",
+          "text": "You can store leftovers in an airtight container and freeze for up to a month. To reheat, put the defrosted or frozen tonkatsu on a baking sheet lined with aluminum foil or parchment paper. Bake at 350ºF (180ºC) for 15–20 minutes if defrosted or 30–40 minutes if frozen. Check if the inside is warm before serving.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Dispose of Used Cooking Oil",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s28",
+          "text": "Please follow your local guidelines for disposing of cooking oil. In my neighborhood, we can take it to the recycling center and dump it into a designated container, so it’s very easy.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s29",
+          "text": "If you are using a Japanese oil solidifier, add the powder into the hot oil right after deep-frying and mix well.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s30",
+          "text": "Set it aside and let the oil completely solidify as it cools, which may take overnight.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s31",
+          "text": "Cut into small pieces and discard them in the trash.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 523,
+    "protein": 27,
+    "carbs": 15,
+    "fat": 37,
+    "fiber": 1
+  },
+  "sourceUrl": "https://www.justonecookbook.com/tonkatsu/",
+  "importMethod": "structured-data"
+}

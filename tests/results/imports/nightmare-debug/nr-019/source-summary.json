@@ -1,0 +1,17 @@
+{
+  "id": "nr-019",
+  "url": "https://sallysbakingaddiction.com/chewy-chocolate-chip-cookies/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://sallysbakingaddiction.com/chewy-chocolate-chip-cookies/",
+  "sourceTitle": "Best Chocolate Chip Cookies (Popular Recipe!) - Sally&#039;s Baking",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 17319,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 10,
+  "sourceStepCount": 7,
+  "warnings": [],
+  "error": ""
+}

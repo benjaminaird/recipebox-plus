@@ -1,0 +1,17 @@
+{
+  "id": "nr-077",
+  "url": "https://downshiftology.com/recipes/shakshuka/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://downshiftology.com/recipes/shakshuka/",
+  "sourceTitle": "Best Shakshuka Recipe (Easy &amp; Traditional) | Downshiftology",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 12,
+  "sourceStepCount": 5,
+  "warnings": [],
+  "error": ""
+}

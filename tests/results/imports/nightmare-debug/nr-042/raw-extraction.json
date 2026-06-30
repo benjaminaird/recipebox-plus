@@ -1,0 +1,202 @@
+{
+  "title": "Chicken Shawarma (Middle Eastern)",
+  "description": "Recipe video above. The smell when this is cooking is outrageous! The marinade is very quick to prepare and the chicken can be frozen in the marinade, then defrosted prior to cooking. Best cooked on the outdoor grill / BBQ, but I usually make it on the stove. Serve with Yogurt Sauce or the Tahini sauce in this recipe. Add a simple salad and flatbread laid out on a large platter, then let everyone make their own wraps!",
+  "servings": 4,
+  "prepTime": "10 min",
+  "cookTime": "10 min",
+  "totalTime": "20 min",
+  "heroImage": "https://www.recipetineats.com/tachyon/2022/02/Chicken-Shawarma-Wrap_2-SQ.jpg",
+  "notes": "",
+  "tags": [
+    "Chicken",
+    "Arabic",
+    "Middle Eastern",
+    "Moroccan",
+    "Chicken Shawarma",
+    "shawarma"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1",
+          "unit": "kg",
+          "name": "/ 2 lb chicken thigh fillets (, skinless and boneless (Note 3))",
+          "raw": "1 kg / 2 lb chicken thigh fillets (, skinless and boneless (Note 3))"
+        },
+        {
+          "id": "i2",
+          "amount": "1",
+          "unit": "",
+          "name": "large garlic clove (, minced (or 2 small cloves))",
+          "raw": "1 large garlic clove (, minced (or 2 small cloves))"
+        },
+        {
+          "id": "i3",
+          "amount": "1",
+          "unit": "tbsp",
+          "name": "ground coriander",
+          "raw": "1 tbsp ground coriander"
+        },
+        {
+          "id": "i4",
+          "amount": "1",
+          "unit": "tbsp",
+          "name": "ground cumin",
+          "raw": "1 tbsp ground cumin"
+        },
+        {
+          "id": "i5",
+          "amount": "1",
+          "unit": "tbsp",
+          "name": "ground cardamon",
+          "raw": "1 tbsp ground cardamon"
+        },
+        {
+          "id": "i6",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "ground cayenne pepper ((reduce to 1/2 tsp to make it not spicy))",
+          "raw": "1 tsp ground cayenne pepper ((reduce to 1/2 tsp to make it not spicy))"
+        },
+        {
+          "id": "i7",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "smoked paprika",
+          "raw": "2 tsp smoked paprika"
+        },
+        {
+          "id": "i8",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "salt",
+          "raw": "2 tsp salt"
+        },
+        {
+          "id": "i9",
+          "amount": "",
+          "unit": "",
+          "name": "Black pepper",
+          "raw": "Black pepper"
+        },
+        {
+          "id": "i10",
+          "amount": "2",
+          "unit": "tbsp",
+          "name": "lemon juice",
+          "raw": "2 tbsp lemon juice"
+        },
+        {
+          "id": "i11",
+          "amount": "3",
+          "unit": "tbsp",
+          "name": "olive oil",
+          "raw": "3 tbsp olive oil"
+        },
+        {
+          "id": "i12",
+          "amount": "1",
+          "unit": "",
+          "name": "batch Lemon yogurt sauce",
+          "raw": "1 batch Lemon yogurt sauce"
+        },
+        {
+          "id": "i13",
+          "amount": "4 - 5",
+          "unit": "",
+          "name": "flatbreads ((Lebanese or pita bread orhomemade soft flatbreads))",
+          "raw": "4 - 5 flatbreads ((Lebanese or pita bread orhomemade soft flatbreads))"
+        },
+        {
+          "id": "i14",
+          "amount": "",
+          "unit": "",
+          "name": "Sliced lettuce ((cos or iceberg))",
+          "raw": "Sliced lettuce ((cos or iceberg))"
+        },
+        {
+          "id": "i15",
+          "amount": "",
+          "unit": "",
+          "name": "Tomato slices",
+          "raw": "Tomato slices"
+        },
+        {
+          "id": "i16",
+          "amount": "",
+          "unit": "",
+          "name": "Red onion (, finely sliced)",
+          "raw": "Red onion (, finely sliced)"
+        },
+        {
+          "id": "i17",
+          "amount": "",
+          "unit": "",
+          "name": "Cheese (, shredded (optional))",
+          "raw": "Cheese (, shredded (optional))"
+        },
+        {
+          "id": "i18",
+          "amount": "",
+          "unit": "",
+          "name": "Hot sauce of choice ((optional))",
+          "raw": "Hot sauce of choice ((optional))"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Marinade chicken - Combine the marinade ingredients in a large ziplock bag. Add the chicken, seal, the massage from the outside with your hands to make sure each piece is coated. Marinate 24 hours (minimum 3 hours).",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Yogurt Sauce - Combine the Yogurt Sauce ingredients in a bowl and mix. Cover and put in the fridge until required (it will last for 3 days in the fridge).",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "Preheat stove or BBQ - Heat a large non-stick skillet with 1 tablespoon over medium high heat, or lightly brush a BBQ hotplate/grills with oil and heat to medium high. (See notes for baking)",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Cook chicken - Place chicken in the skillet or on the grill and cook the first side for 4 to 5 minutes until nicely charred. Turn and cook the other side for 3 to 4 minutes (the 2nd side takes less time).",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Rest - Remove chicken from the grill and cover loosely with foil. Set aside to rest for 5 minutes.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "To Serve",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s6",
+          "text": "Slice chicken and pile onto platter alongside flatbreads, Salad and the Yoghurt Sauce (or dairy free Tahini sauce from this recipe).",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "To make a wrap, get a piece of flatbread and smear with Yoghurt Sauce. Top with a bit of lettuce and tomato and Chicken Shawarma. Roll up and enjoy!",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 275,
+    "protein": 32.9,
+    "carbs": 1.1,
+    "fat": 16.2
+  },
+  "sourceUrl": "https://www.recipetineats.com/chicken-sharwama-middle-eastern/",
+  "importMethod": "structured-data"
+}

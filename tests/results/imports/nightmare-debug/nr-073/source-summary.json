@@ -1,0 +1,17 @@
+{
+  "id": "nr-073",
+  "url": "https://www.justonecookbook.com/shoyu-ramen/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.justonecookbook.com/shoyu-ramen/",
+  "sourceTitle": "Shoyu Ramen - Recipe from Bizentei, Tokyo 醤油ラーメン &#8226; Just One Cookbook %",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 17,
+  "sourceStepCount": 40,
+  "warnings": [],
+  "error": ""
+}

@@ -1,0 +1,156 @@
+{
+  "title": "The Best Vegan Gluten-Free Waffles",
+  "description": "THE BEST Vegan Gluten-Free Waffles made with 10 ingredients in 30 minutes. Fluffy on the inside, crispy on the outside, perfectly sweet and delicious! Top with maple syrup and fruit for the ultimate cozy breakfast.",
+  "servings": 4,
+  "prepTime": "15 min",
+  "cookTime": "15 min",
+  "totalTime": "30 min",
+  "heroImage": "https://minimalistbaker.com/wp-content/uploads/2016/12/V-GF-Waffles-SQUARE.jpg",
+  "notes": "",
+  "tags": [
+    "Breakfast",
+    "Gluten-Free",
+    "Vegan",
+    "gluten free waffles"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1 1/2",
+          "unit": "cups",
+          "name": "gluten-free flour*",
+          "raw": "1 1/2 cups gluten-free flour*"
+        },
+        {
+          "id": "i2",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "oat flour*",
+          "raw": "1/2 cup oat flour*"
+        },
+        {
+          "id": "i3",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "almond flour*",
+          "raw": "1/2 cup almond flour*"
+        },
+        {
+          "id": "i4",
+          "amount": "1",
+          "unit": "tbsp",
+          "name": "cornstarch*",
+          "raw": "1 Tbsp cornstarch*"
+        },
+        {
+          "id": "i5",
+          "amount": "1/2",
+          "unit": "tsp",
+          "name": "sea salt",
+          "raw": "1/2 tsp sea salt"
+        },
+        {
+          "id": "i6",
+          "amount": "1",
+          "unit": "tbsp",
+          "name": "baking powder",
+          "raw": "1 Tbsp baking powder"
+        },
+        {
+          "id": "i7",
+          "amount": "3",
+          "unit": "tbsp",
+          "name": "organic cane sugar* ((or sub stevia to taste))",
+          "raw": "3 Tbsp organic cane sugar* ((or sub stevia to taste))"
+        },
+        {
+          "id": "i8",
+          "amount": "1 1/2",
+          "unit": "cups",
+          "name": "light coconut milk* ((from a can // well shaken))",
+          "raw": "1 1/2 cups light coconut milk* ((from a can // well shaken))"
+        },
+        {
+          "id": "i9",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "vanilla extract ((optional))",
+          "raw": "1 tsp vanilla extract ((optional))"
+        },
+        {
+          "id": "i10",
+          "amount": "1/4",
+          "unit": "cup",
+          "name": "vegan butter* ((melted))",
+          "raw": "1/4 cup vegan butter* ((melted))"
+        },
+        {
+          "id": "i11",
+          "amount": "1/3",
+          "unit": "cup",
+          "name": "aquafaba ((the liquid/brine in a can of cooked chickpeas))",
+          "raw": "1/3 cup aquafaba ((the liquid/brine in a can of cooked chickpeas))"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "To a large mixing bowl, add gluten-free flour, oat flour, almond flour, cornstarch, salt, baking powder, and organic cane sugar. Whisk to combine. Set aside.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "To a medium mixing bowl, add coconut milk, vanilla (optional), and melted vegan butter and whisk thoroughly to combine. Set aside.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "To a small mixing bowl, add aquafaba and whisk vigorously or beat on high until soft peaks form. (It's OK if they don't quite form peaks - just get it as light and foamy as possible.)",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Add wet ingredients (excluding aquafaba) to the dry ingredients and whisk until just combined. Then add whipped aquafaba and fold into the batter with a mixing spoon until just combined (see photos for guidance).",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Let the batter rest while your iron preheats - about 5 minutes.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Once preheated, add roughly 1 cup batter (or until the surface is almost completely covered) to the waffle iron and close. My new waffle iron (which I love so far) makes Belgium-style waffles, so it flips the waffle over to spread the batter evenly, which helped these puff up and crisp up really well. Depending on your model, cook for 5-7 minutes or until golden brown and crispy.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Remove cooked waffle from the iron, place on a baking sheet, and keep warm in a 200 degree F (93 C) oven while continuing to cook waffles until batter is used up. The recipes yields about 3 large or 5 small waffles depending on the size of your waffle iron (amounts as original recipe is written // adjust if altering batch size).",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s8",
+          "text": "Serve immediately with desired toppings. These are delicious plain or with a little vegan butter and maple syrup. However, my favorite combination is peanut butter and banana plus maple syrup.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s9",
+          "text": "Store leftovers in the refrigerator for 3 days or the freezer for 1 month. Reheats extremely well in oven on low-medium broil or toaster until hot and crispy.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 533,
+    "protein": 9.4,
+    "carbs": 71.3,
+    "fat": 25.1,
+    "fiber": 5.3
+  },
+  "sourceUrl": "https://minimalistbaker.com/the-best-vegan-gluten-free-waffles/",
+  "importMethod": "structured-data"
+}

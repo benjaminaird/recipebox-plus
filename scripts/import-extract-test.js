@@ -17,6 +17,11 @@ const FIX_DIR = path.join(__dirname, "import-test", "fixtures");
 const MIN_ING_RECALL = 0.95;
 const MIN_ING_PRECISION = 0.95;
 
+const andFraction = Extract.parseIngredientLine("1 and 1/2 cups (345g) mashed bananas");
+assert.strictEqual(andFraction.amount, "1 1/2", "\"1 and 1/2\" parses as a mixed fraction amount");
+assert.strictEqual(andFraction.unit, "cups");
+assert.strictEqual(andFraction.name, "(345g) mashed bananas");
+
 function normName(s) {
   return String(s == null ? "" : s).toLowerCase().replace(/[^a-z0-9, ]/g, " ").replace(/\s+/g, " ").trim();
 }

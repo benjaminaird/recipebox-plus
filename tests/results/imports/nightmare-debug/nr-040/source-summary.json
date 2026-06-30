@@ -1,0 +1,17 @@
+{
+  "id": "nr-040",
+  "url": "https://www.bbcgoodfood.com/recipes/chicken-tikka-masala",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.bbcgoodfood.com/recipes/chicken-tikka-masala",
+  "sourceTitle": "Chicken tikka masala recipe | Good Food",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 7506,
+  "jsonLdNodes": 4,
+  "sourceIngredientCount": 12,
+  "sourceStepCount": 5,
+  "warnings": [],
+  "error": ""
+}

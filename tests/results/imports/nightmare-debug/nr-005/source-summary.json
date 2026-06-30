@@ -1,0 +1,17 @@
+{
+  "id": "nr-005",
+  "url": "https://www.allrecipes.com/recipe/23439/perfect-pumpkin-pie/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.allrecipes.com/recipe/23439/perfect-pumpkin-pie/",
+  "sourceTitle": "Perfect Pumpkin Pie Recipe",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 14577,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 8,
+  "sourceStepCount": 5,
+  "warnings": [],
+  "error": ""
+}

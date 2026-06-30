@@ -1,0 +1,215 @@
+{
+  "title": "Pork Chive Dumplings",
+  "description": "Pork and Chive Dumplings are one of the most common you'll find in China. We think this recipe is the ULTIMATE pork and chive dumpling!",
+  "servings": 8,
+  "prepTime": "1 hr 35 min",
+  "cookTime": "25 min",
+  "totalTime": "2 hr",
+  "heroImage": "https://thewoksoflife.com/wp-content/uploads/2023/07/pork-chive-dumplings-18.jpg",
+  "notes": "",
+  "tags": [
+    "Appetizers",
+    "Dumplings",
+    "Chinese",
+    "pork chive dumplings"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1/4",
+          "unit": "cup",
+          "name": "neutral oil ((such as vegetable, canola, or avocado oil))",
+          "raw": "1/4 cup neutral oil ((such as vegetable, canola, or avocado oil))"
+        },
+        {
+          "id": "i2",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "Sichuan peppercorns",
+          "raw": "1 tablespoon Sichuan peppercorns"
+        },
+        {
+          "id": "i3",
+          "amount": "1",
+          "unit": "",
+          "name": "star anise",
+          "raw": "1 star anise"
+        },
+        {
+          "id": "i4",
+          "amount": "5",
+          "unit": "cloves",
+          "name": "garlic",
+          "raw": "5 cloves garlic"
+        },
+        {
+          "id": "i5",
+          "amount": "3/4",
+          "unit": "cup",
+          "name": "water",
+          "raw": "3/4 cup water"
+        },
+        {
+          "id": "i6",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "fresh ginger ((chopped))",
+          "raw": "1 tablespoon fresh ginger ((chopped))"
+        },
+        {
+          "id": "i7",
+          "amount": "1/3",
+          "unit": "cup",
+          "name": "scallion ((roughly chopped))",
+          "raw": "1/3 cup scallion ((roughly chopped))"
+        },
+        {
+          "id": "i8",
+          "amount": "1",
+          "unit": "lb",
+          "name": "ground pork (80/20 meat to fat ratio)",
+          "raw": "1 pound ground pork (80/20 meat to fat ratio)"
+        },
+        {
+          "id": "i9",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "oyster sauce",
+          "raw": "1 tablespoon oyster sauce"
+        },
+        {
+          "id": "i10",
+          "amount": "1",
+          "unit": "Tbsp",
+          "name": "light soy sauce",
+          "raw": "1 tablespoon light soy sauce"
+        },
+        {
+          "id": "i11",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "dark soy sauce",
+          "raw": "2 teaspoons dark soy sauce"
+        },
+        {
+          "id": "i12",
+          "amount": "1 1/2",
+          "unit": "tsp",
+          "name": "sesame oil",
+          "raw": "11/2 teaspoons sesame oil"
+        },
+        {
+          "id": "i13",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "sugar",
+          "raw": "1 teaspoon sugar"
+        },
+        {
+          "id": "i14",
+          "amount": "1/2",
+          "unit": "tsp",
+          "name": "white pepper",
+          "raw": "1/2 teaspoon white pepper"
+        },
+        {
+          "id": "i15",
+          "amount": "1/2",
+          "unit": "tsp",
+          "name": "five spice powder",
+          "raw": "1/2 teaspoon five spice powder"
+        },
+        {
+          "id": "i16",
+          "amount": "1/4 - 1/2",
+          "unit": "tsp",
+          "name": "salt ((we used 1/2 teaspoon))",
+          "raw": "1/4 - 1/2 teaspoon salt ((we used 1/2 teaspoon))"
+        },
+        {
+          "id": "i17",
+          "amount": "2",
+          "unit": "cup",
+          "name": "Chinese garlic chives ((finely chopped))",
+          "raw": "2 cups Chinese garlic chives ((finely chopped))"
+        },
+        {
+          "id": "i18",
+          "amount": "1-2",
+          "unit": "",
+          "name": "packs store-bought dumpling wrappers",
+          "raw": "1-2 packs store-bought dumpling wrappers"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "To a small saucepan over medium heat, add the oil, {i2}, {i3}, and {i4} cloves. Heat the oil and allow the spices to infuse it for about 5 minutes, until the garlic cloves are lightly browned. Remove from the heat and let it cool.",
+          "ingredientRefs": [
+            "i2",
+            "i3",
+            "i4"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "Add {i5}, {i6}, and scallions to a food processor. Puree until smooth.",
+          "ingredientRefs": [
+            "i5",
+            "i6"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Add {i8} to a mixing bowl. Add {i6} {i7} puree to the pork in three batches, whipping in one direction until the pork completely absorbs the liquid puree each time before adding the next batch.",
+          "ingredientRefs": [
+            "i6",
+            "i7",
+            "i8"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "Next, add {i9}, {i10}, {i11}, {i12}, {i13}, {i14}, {i15}, and {i16}. Mix well, whipping the filling in one direction until the mixture resembles a paste.",
+          "ingredientRefs": [
+            "i9",
+            "i10",
+            "i11",
+            "i12",
+            "i13",
+            "i14",
+            "i15",
+            "i16"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "In a separate bowl, mix together the finely chopped {i4} {i17} (you must finely chop them, or the filling may not bind together as well) and the infused oil (pour it in through a strainer). Combine the chives with the meat mixture, and whip until well-combined. Now you are ready to wrap the dumplings!",
+          "ingredientRefs": [
+            "i4",
+            "i17"
+          ]
+        },
+        {
+          "id": "s6",
+          "text": "Set up a sheet pan lined with parchment paper, a small bowl of water, and keep your {i18} under a damp paper towel to prevent them from drying out. To assemble a dumpling, dip your finger into the water, and wet the outer edges of the round wrapper. Add about 1 tablespoon of filling to the center of the wrapper, and pleat closed, making sure that the dumpling is tightly sealed. (Learn how to pleat dumplings here.) Place on the parchment-lined sheet pan so the dumplings are spaced slightly apart, and repeat until you’ve run out of filling/wrappers.",
+          "ingredientRefs": [
+            "i18"
+          ]
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 421,
+    "protein": 17,
+    "carbs": 40,
+    "fat": 21,
+    "fiber": 2
+  },
+  "sourceUrl": "https://thewoksoflife.com/pork-chive-dumplings/",
+  "importMethod": "structured-data"
+}

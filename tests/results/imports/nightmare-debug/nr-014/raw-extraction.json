@@ -1,0 +1,173 @@
+{
+  "title": "Japanese Milk Bread",
+  "description": "This recipe is our take on Japan's Hokkaido milk bread, a loaf so light it's often described as feathery. The technique to make it involves pre-cooking some of the flour and milk into a soft paste called tangzhong. (See \"tips,\" below to learn more about its origins.) This simple step yields a loaf that’s tender, moist, and stays fresh longer than loaves prepared the standard way. Bread made with tangzhong is far and away superior to the pre-sliced, plastic-wrapped loaves that you'll find on grocery store shelves. Trust us: Once you bake and familiarize yourself with this loaf, you’ll never want to buy sandwich bread again!",
+  "servings": 16,
+  "prepTime": "30 min",
+  "cookTime": "35 min",
+  "totalTime": "3 hr 25 min",
+  "heroImage": "https://www.kingarthurbaking.com/sites/default/files/2020-02/pillowy-white-bread.jpg",
+  "notes": "",
+  "tags": [
+    "Sandwich bread;;Tangzhong"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "3",
+          "unit": "tablespoons",
+          "name": "(43g) water",
+          "raw": "3 tablespoons (43g) water"
+        },
+        {
+          "id": "i2",
+          "amount": "3",
+          "unit": "tablespoons",
+          "name": "(43g) milk, whole preferred",
+          "raw": "3 tablespoons (43g) milk, whole preferred"
+        },
+        {
+          "id": "i3",
+          "amount": "2",
+          "unit": "tablespoons",
+          "name": "(14g) King Arthur Unbleached Bread Flour",
+          "raw": "2 tablespoons (14g) King Arthur Unbleached Bread Flour"
+        },
+        {
+          "id": "i4",
+          "amount": "2 1/2",
+          "unit": "cups",
+          "name": "(300g) King Arthur Unbleached Bread Flour",
+          "raw": "2 1/2 cups (300g) King Arthur Unbleached Bread Flour"
+        },
+        {
+          "id": "i5",
+          "amount": "2",
+          "unit": "tablespoons",
+          "name": "(14g) King Arthur Baker's Special Dry Milk or nonfat dry milk",
+          "raw": "2 tablespoons (14g) King Arthur Baker's Special Dry Milk or nonfat dry milk"
+        },
+        {
+          "id": "i6",
+          "amount": "1/4",
+          "unit": "cup",
+          "name": "(50g) granulated sugar",
+          "raw": "1/4 cup (50g) granulated sugar"
+        },
+        {
+          "id": "i7",
+          "amount": "1",
+          "unit": "teaspoon",
+          "name": "(6g) table salt",
+          "raw": "1 teaspoon (6g) table salt"
+        },
+        {
+          "id": "i8",
+          "amount": "1",
+          "unit": "tablespoon",
+          "name": "instant yeast",
+          "raw": "1 tablespoon instant yeast"
+        },
+        {
+          "id": "i9",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "(113g) milk, whole preferred",
+          "raw": "1/2 cup (113g) milk, whole preferred"
+        },
+        {
+          "id": "i10",
+          "amount": "1",
+          "unit": "",
+          "name": "large egg",
+          "raw": "1 large egg"
+        },
+        {
+          "id": "i11",
+          "amount": "4",
+          "unit": "tablespoons",
+          "name": "(57g) unsalted butter, melted",
+          "raw": "4 tablespoons (57g) unsalted butter, melted"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "To make the tangzhong: Combine all of the ingredients in a small saucepan, and whisk until no lumps remain.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Place the saucepan over low heat and cook the mixture, whisking constantly, until thick and the whisk leaves lines on the bottom of the pan, about 3 to 5 minutes.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "Transfer the tangzhong to a small mixing bowl or measuring cup and let it cool to lukewarm.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "To make the dough: Weigh your flour; or measure it by gently spooning it into a cup, then sweeping off any excess. Combine the tangzhong with the remaining dough ingredients, then mix and knead — by mixer or bread machine — until a smooth, elastic dough forms; this could take almost 15 minutes in a stand mixer.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Shape the dough into a ball, and let it rest in a lightly greased bowl, covered, for 1 to 1 1/2 hours, until puffy but not necessarily doubled in bulk.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Gently deflate the dough and divide it into four equal pieces; if you have a scale each piece will weigh between 170g and 175g.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Flatten each piece of dough into a 5\" x 8\" rectangle, then fold the short ends in towards one another like a letter. Flatten the folded pieces into rectangles again (this time about 3\" x 6\") and, starting with a short end, roll them each into a 4\" log.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s8",
+          "text": "Place the logs in a row of four — seam side down and side by side — in a lightly greased 9\" x 5\" loaf pan.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s9",
+          "text": "Cover the loaf and allow it to rest/rise for 40 to 50 minutes, until puffy.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s10",
+          "text": "Toward the end of the rising time, preheat the oven to 350°F.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s11",
+          "text": "To bake the bread: Brush the loaf with milk and bake it for 30 to 35 minutes, until it's golden brown on top and a digital thermometer inserted into the center reads at least 190°F.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s12",
+          "text": "Remove the loaf from the oven and cool it in the pan until you can transfer it safely to a rack to cool completely.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s13",
+          "text": "Storage information: Store leftover bread, well wrapped, at cool room temperature for 5 to 7 days; freeze for longer storage.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 130,
+    "protein": 4,
+    "carbs": 19,
+    "fat": 4,
+    "fiber": 1
+  },
+  "sourceUrl": "https://www.kingarthurbaking.com/recipes/japanese-milk-bread-recipe",
+  "importMethod": "structured-data"
+}

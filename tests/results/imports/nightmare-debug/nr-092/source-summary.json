@@ -1,0 +1,17 @@
+{
+  "id": "nr-092",
+  "url": "https://smittenkitchen.com/2012/10/apple-cider-caramels/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://smittenkitchen.com/2012/10/apple-cider-caramels/",
+  "sourceTitle": "apple cider caramels &#8211; smitten kitchen",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 0,
+  "sourceIngredientCount": null,
+  "sourceStepCount": null,
+  "warnings": [],
+  "error": ""
+}

@@ -1,0 +1,172 @@
+{
+  "title": "Best Chocolate Chip Cookies",
+  "description": "This classic chocolate chip cookie recipe makes deliciously buttery cookies with crisp edges, chewy middles, and gooey chocolate chips in every bite.",
+  "servings": 48,
+  "prepTime": "20 min",
+  "cookTime": "10 min",
+  "totalTime": "30 min",
+  "heroImage": "https://www.allrecipes.com/thmb/8xwaWAHtl_QLij6D-G0Z4B1HDVA=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/10813-best-chocolate-chip-cookies-mfs-146-4x3-b108aceffa6043a1ac81c3c5a9b034c8.jpg",
+  "notes": "",
+  "tags": [
+    "Dessert",
+    "American",
+    "publisher-tested"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1",
+          "unit": "cup",
+          "name": "butter, softened",
+          "raw": "1 cup butter, softened"
+        },
+        {
+          "id": "i2",
+          "amount": "1",
+          "unit": "cup",
+          "name": "white sugar",
+          "raw": "1 cup white sugar"
+        },
+        {
+          "id": "i3",
+          "amount": "1",
+          "unit": "cup",
+          "name": "packed brown sugar",
+          "raw": "1 cup packed brown sugar"
+        },
+        {
+          "id": "i4",
+          "amount": "2",
+          "unit": "",
+          "name": "eggs",
+          "raw": "2 eggs"
+        },
+        {
+          "id": "i5",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "vanilla extract",
+          "raw": "2 teaspoons vanilla extract"
+        },
+        {
+          "id": "i6",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "baking soda",
+          "raw": "1 teaspoon baking soda"
+        },
+        {
+          "id": "i7",
+          "amount": "2",
+          "unit": "tsp",
+          "name": "hot water",
+          "raw": "2 teaspoons hot water"
+        },
+        {
+          "id": "i8",
+          "amount": "0.5",
+          "unit": "tsp",
+          "name": "salt",
+          "raw": "0.5 teaspoon salt"
+        },
+        {
+          "id": "i9",
+          "amount": "3",
+          "unit": "cup",
+          "name": "all-purpose flour",
+          "raw": "3 cups all-purpose flour"
+        },
+        {
+          "id": "i10",
+          "amount": "2",
+          "unit": "cup",
+          "name": "semisweet chocolate chips",
+          "raw": "2 cups semisweet chocolate chips"
+        },
+        {
+          "id": "i11",
+          "amount": "1",
+          "unit": "cup",
+          "name": "chopped walnuts",
+          "raw": "1 cup chopped walnuts"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Gather your ingredients, making sure your {i1} is softened, and your {i4} are room temperature.",
+          "ingredientRefs": [
+            "i1",
+            "i4"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "Preheat the oven to 350 degrees F (175 degrees C). Beat {i1}, {i2}, and {i3} together in a large bowl with an electric mixer until smooth and creamy.",
+          "ingredientRefs": [
+            "i1",
+            "i2",
+            "i3"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Beat in {i4}, one at a time, then stir in vanilla.",
+          "ingredientRefs": [
+            "i4"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "Dissolve {i6} in {i7}; add to batter along with {i8} and mix until combined.",
+          "ingredientRefs": [
+            "i6",
+            "i7",
+            "i8"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Stir in {i9}, {i10}, and {i11} until a soft dough forms.",
+          "ingredientRefs": [
+            "i9",
+            "i10",
+            "i11"
+          ]
+        },
+        {
+          "id": "s6",
+          "text": "Drop rounded spoonfuls of cookie dough 2 inches apart onto ungreased baking sheets.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "Bake in the preheated oven until edges are lightly browned, about 10 minutes.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s8",
+          "text": "Cool on the baking sheets briefly before transferring to a wire rack to cool completely.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s9",
+          "text": "Store in an airtight container or serve immediately and enjoy!",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 146,
+    "protein": 2,
+    "carbs": 19,
+    "fat": 8,
+    "fiber": 1
+  },
+  "sourceUrl": "https://www.allrecipes.com/recipe/10813/best-chocolate-chip-cookies/",
+  "importMethod": "structured-data"
+}

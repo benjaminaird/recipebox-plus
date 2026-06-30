@@ -1,0 +1,17 @@
+{
+  "id": "nr-093",
+  "url": "https://smittenkitchen.com/2009/07/best-birthday-cake/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://smittenkitchen.com/2009/07/best-birthday-cake/",
+  "sourceTitle": "best birthday cake &#8211; smitten kitchen",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 0,
+  "sourceIngredientCount": null,
+  "sourceStepCount": null,
+  "warnings": [],
+  "error": ""
+}

@@ -1,0 +1,149 @@
+{
+  "title": "Beautiful Burger Buns",
+  "description": "The following recipe created quite a stir when \"Moomie\" first posted it on our original online community. Baker after baker tried these buns and declared them THE BEST. Soft, vaguely sweet, and golden-yellow from the butter and egg, these simple buns are perfect for burgers (whether beef or plant-based), or any of your favorite sandwich fillings.",
+  "servings": 8,
+  "prepTime": "25 min",
+  "cookTime": "15 min",
+  "totalTime": "2 hr 40 min",
+  "heroImage": "https://www.kingarthurbaking.com/sites/default/files/2021-08/beautiful-burger-buns.jpg",
+  "notes": "",
+  "tags": [],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "3 1/2",
+          "unit": "cups",
+          "name": "(420g) King Arthur Unbleached All-Purpose Flour",
+          "raw": "3 1/2 cups (420g) King Arthur Unbleached All-Purpose Flour"
+        },
+        {
+          "id": "i2",
+          "amount": "3/4",
+          "unit": "cup",
+          "name": "plus 2 tablespoons (198g) water, lukewarm",
+          "raw": "3/4 cup plus 2 tablespoons (198g) water, lukewarm"
+        },
+        {
+          "id": "i3",
+          "amount": "2",
+          "unit": "tablespoons",
+          "name": "(28g) butter, at room temperature",
+          "raw": "2 tablespoons (28g) butter, at room temperature"
+        },
+        {
+          "id": "i4",
+          "amount": "1",
+          "unit": "",
+          "name": "large egg",
+          "raw": "1 large egg"
+        },
+        {
+          "id": "i5",
+          "amount": "1/4",
+          "unit": "cup",
+          "name": "(50g) granulated sugar",
+          "raw": "1/4 cup (50g) granulated sugar"
+        },
+        {
+          "id": "i6",
+          "amount": "1 1/4",
+          "unit": "teaspoons",
+          "name": "table salt",
+          "raw": "1 1/4 teaspoons table salt"
+        },
+        {
+          "id": "i7",
+          "amount": "1",
+          "unit": "tablespoon",
+          "name": "(9g) instant yeast",
+          "raw": "1 tablespoon (9g) instant yeast"
+        },
+        {
+          "id": "i8",
+          "amount": "3",
+          "unit": "tablespoons",
+          "name": "(43g) butter, melted; divided",
+          "raw": "3 tablespoons (43g) butter, melted; divided"
+        },
+        {
+          "id": "i9",
+          "amount": "1",
+          "unit": "",
+          "name": "large egg white, whisked with 2 tablespoons cold water*",
+          "raw": "1 large egg white, whisked with 2 tablespoons cold water*"
+        },
+        {
+          "id": "i10",
+          "amount": "",
+          "unit": "",
+          "name": "sesame seeds, or the seeds of your choice",
+          "raw": "sesame seeds, or the seeds of your choice"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Weigh your flour; or measure it by gently spooning it into a cup, then sweeping off any excess.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "To make the dough: Mix and knead all of the dough ingredients — by hand, mixer, or bread machine — to make a soft, smooth dough.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "Cover the dough and let it rise until it's nearly doubled in bulk, about 1 to 2 hours.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "To shape the buns: Gently deflate the dough and divide it into eight pieces (about 100g each); to make smaller or larger buns see \"tips,\" below. Shape each piece into a ball.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Flatten each dough ball with the palm of your hand until it's about 3\" in diameter.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s6",
+          "text": "Place the buns on a lightly greased or parchment-lined baking sheet. Cover and let rise until noticeably puffy, about an hour. Toward the end of the rising time, preheat the oven to 375°F.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "To add the butter glaze: Brush the buns with about half of the melted butter. To make seeded buns, brush the egg white/water mixture right over the melted butter; it'll make the seeds adhere. Sprinkle buns with the seeds of your choice.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s8",
+          "text": "To bake the buns: Bake the buns for 15 to 18 minutes, until golden. Remove them from the oven and brush with the remaining melted butter; this will give the buns a satiny, buttery crust. If you've made seeded buns, apply the melted butter carefully, to avoid brushing the seeds off the buns.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s9",
+          "text": "Cool the buns on a rack before slicing in half, horizontally. Use as a base for burgers (beef or plant-based) or any favorite sandwich filling.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s10",
+          "text": "Storage information: Store leftover buns, well-wrapped, at room temperature for several days; freeze for longer storage.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 250,
+    "protein": 8,
+    "carbs": 45,
+    "fat": 4,
+    "fiber": 2
+  },
+  "sourceUrl": "https://www.kingarthurbaking.com/recipes/beautiful-burger-buns-recipe",
+  "importMethod": "structured-data"
+}

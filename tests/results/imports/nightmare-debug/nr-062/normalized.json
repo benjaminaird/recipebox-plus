@@ -1,0 +1,191 @@
+{
+  "title": "Mapo Tofu",
+  "description": "This mapo tofu recipe is the true blue, authentic real deal—the spicy, tongue-numbing, rice-is-absolutely-not-optional mapo tofu that you get in the restaurants!",
+  "servings": 6,
+  "prepTime": "10 min",
+  "cookTime": "25 min",
+  "totalTime": "35 min",
+  "heroImage": "https://thewoksoflife.com/wp-content/uploads/2019/06/mapo-tofu-10.jpg",
+  "notes": "",
+  "tags": [
+    "Tofu",
+    "Chinese",
+    "mapo tofu"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "oil ((divided))",
+          "raw": "1/2 cup oil ((divided))"
+        },
+        {
+          "id": "i2",
+          "amount": "1-2",
+          "unit": "",
+          "name": "fresh Thai bird chili peppers ((thinly sliced))",
+          "raw": "1-2 fresh Thai bird chili peppers ((thinly sliced))"
+        },
+        {
+          "id": "i3",
+          "amount": "6-8",
+          "unit": "",
+          "name": "dried red chilies ((roughly chopped))",
+          "raw": "6-8 dried red chilies ((roughly chopped))"
+        },
+        {
+          "id": "i4",
+          "amount": "1/2- 1 1/2",
+          "unit": "Tbsp",
+          "name": "Sichuan peppercorns",
+          "raw": "1/2- 1 1/2 tablespoons Sichuan peppercorns"
+        },
+        {
+          "id": "i5",
+          "amount": "3",
+          "unit": "Tbsp",
+          "name": "ginger ((finely minced))",
+          "raw": "3 tablespoons ginger ((finely minced))"
+        },
+        {
+          "id": "i6",
+          "amount": "3",
+          "unit": "Tbsp",
+          "name": "garlic ((finely minced))",
+          "raw": "3 tablespoons garlic ((finely minced))"
+        },
+        {
+          "id": "i7",
+          "amount": "8",
+          "unit": "oz",
+          "name": "ground pork",
+          "raw": "8 ounces ground pork"
+        },
+        {
+          "id": "i8",
+          "amount": "1-2",
+          "unit": "Tbsp",
+          "name": "spicy bean sauce ((depending on your desired salt/spice levels))",
+          "raw": "1-2 tablespoons spicy bean sauce ((depending on your desired salt/spice levels))"
+        },
+        {
+          "id": "i9",
+          "amount": "2/3",
+          "unit": "cup",
+          "name": "low sodium chicken broth ((or water))",
+          "raw": "2/3 cup low sodium chicken broth ((or water))"
+        },
+        {
+          "id": "i10",
+          "amount": "1",
+          "unit": "lb",
+          "name": "silken tofu ((cut into 1 inch/2.5cm cubes))",
+          "raw": "1 pound silken tofu ((cut into 1 inch/2.5cm cubes))"
+        },
+        {
+          "id": "i11",
+          "amount": "1/4",
+          "unit": "cup",
+          "name": "water",
+          "raw": "1/4 cup water"
+        },
+        {
+          "id": "i12",
+          "amount": "1 1/2",
+          "unit": "tsp",
+          "name": "cornstarch",
+          "raw": "1 1/2 teaspoons cornstarch"
+        },
+        {
+          "id": "i13",
+          "amount": "1/4",
+          "unit": "tsp",
+          "name": "sesame oil ((optional))",
+          "raw": "1/4 teaspoon sesame oil ((optional))"
+        },
+        {
+          "id": "i14",
+          "amount": "1/4",
+          "unit": "tsp",
+          "name": "sugar ((optional))",
+          "raw": "1/4 teaspoon sugar ((optional))"
+        },
+        {
+          "id": "i15",
+          "amount": "1",
+          "unit": "",
+          "name": "scallion ((finely chopped))",
+          "raw": "1 scallion ((finely chopped))"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "First, we toast {i3}. If you have homemade toasted chili oil, you can skip this step. Heat your wok or a small saucepan over low heat. Add half of the oil and throw in the fresh and dried {i2}. Stir occasionally and heat until fragrant, about 5 minutes, ensuring that the peppers don’t burn. Remove from heat and set aside.",
+          "ingredientRefs": [
+            "i2",
+            "i3"
+          ]
+        },
+        {
+          "id": "s2",
+          "text": "Heat the remaining half of the oil in your wok over medium heat. Add {i5}. After 1 minute, add {i6}. Fry for another minute, and then turn up the heat to high and add {i7}. Break up the meat and fry it until it’s cooked through. Add your ground {i4} and stir for about 15-30 seconds, taking care to not let it burn, as it will turn bitter if it does.",
+          "ingredientRefs": [
+            "i4",
+            "i5",
+            "i6",
+            "i7"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "Add {i8} to the mixture and stir it in well. Add {i9} to the wok and stir. Let this simmer for a minute or so. While that's happening, ready your {i10} and combine {i11} and {i12} in a small bowl.",
+          "ingredientRefs": [
+            "i8",
+            "i9",
+            "i10",
+            "i11",
+            "i12"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "Add {i12} mixture to your {i8} and stir. Let it bubble away until the sauce starts to thicken. (If it gets too thick, splash in a little more water or chicken stock.)",
+          "ingredientRefs": [
+            "i8",
+            "i12"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Then add your chili oil from before—{i2} and all! If you are using homemade chili oil, ONLY use the standing oil, as it's likely that you have salted it and you only want the oil, not additional salt. Stir the oil into {i8}, and add {i10}. Use your spatula to gently toss the tofu in the sauce. Let everything cook for 3-5 minutes. Add {i13} and {i14} (if using) along with the scallions and stir until the scallions are just wilted.",
+          "ingredientRefs": [
+            "i2",
+            "i8",
+            "i10",
+            "i13",
+            "i14"
+          ]
+        },
+        {
+          "id": "s6",
+          "text": "Serve with a last sprinkle of Sichuan peppercorn powder as a garnish if desired.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 335,
+    "protein": 11,
+    "carbs": 8,
+    "fat": 29,
+    "fiber": 1
+  },
+  "sourceUrl": "https://thewoksoflife.com/ma-po-tofu-real-deal/",
+  "importMethod": "structured-data"
+}

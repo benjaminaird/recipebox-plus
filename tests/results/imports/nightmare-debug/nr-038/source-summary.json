@@ -1,0 +1,17 @@
+{
+  "id": "nr-038",
+  "url": "https://www.bbcgoodfood.com/recipes/ultimate-spaghetti-carbonara-recipe",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.bbcgoodfood.com/recipes/ultimate-spaghetti-carbonara-recipe",
+  "sourceTitle": "Ultimate spaghetti carbonara recipe | Good Food",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 8848,
+  "jsonLdNodes": 4,
+  "sourceIngredientCount": 8,
+  "sourceStepCount": 12,
+  "warnings": [],
+  "error": ""
+}

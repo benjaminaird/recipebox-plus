@@ -1,0 +1,17 @@
+{
+  "id": "nr-031",
+  "url": "https://www.seriouseats.com/bravetart-chocolate-chip-cookies-recipe",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.seriouseats.com/bravetart-chocolate-chip-cookies-recipe",
+  "sourceTitle": "Quick and Easy Chocolate Chip Cookies Recipe | BraveTart",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 14115,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 11,
+  "sourceStepCount": 3,
+  "warnings": [],
+  "error": ""
+}

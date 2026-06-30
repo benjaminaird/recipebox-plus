@@ -1,0 +1,17 @@
+{
+  "id": "nr-087",
+  "url": "https://www.kingarthurbaking.com/recipes/chocolate-cake-recipe",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.kingarthurbaking.com/recipes/chocolate-cake-recipe",
+  "sourceTitle": "Chocolate Cake Recipe | King Arthur Baking",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 12784,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 13,
+  "sourceStepCount": 13,
+  "warnings": [],
+  "error": ""
+}

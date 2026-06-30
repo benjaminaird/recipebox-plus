@@ -164,6 +164,26 @@ assert.strictEqual(metricAlt.sections[0].ingredients[0].raw, "1 cup (222g) salte
 assert.strictEqual(metricAlt.sections[0].ingredients[1].weightAmount, "456", "source metric beats calculated conversion");
 assert.strictEqual(metricAlt.sections[0].ingredients[1].weightUnit, "g");
 
+const doubleParenMetric = N.normalizeRecipe({
+  sections: [{ ingredients: [
+    { id: "i1", amount: "1", unit: "cup", name: "powdered sugar ((120g))" },
+    { id: "i2", amount: "3", unit: "", name: "large egg whites ((100g), room temperature)" },
+    { id: "i3", amount: "1", unit: "cup", name: "unsalted butter (softened (226g))" },
+    { id: "i4", amount: "1/2", unit: "cup", name: "(8 Tbsp; 113g) unsalted butter, softened" },
+    { id: "i5", amount: "", unit: "", name: "optional: 3/4 cup (90g) nuts, or 1 cup (180g) chocolate chips" },
+  ], steps: [] }],
+});
+assert.strictEqual(doubleParenMetric.sections[0].ingredients[0].name, "powdered sugar", "double metric parens leave no empty parens");
+assert.strictEqual(doubleParenMetric.sections[0].ingredients[0].weightAmount, "120");
+assert.strictEqual(doubleParenMetric.sections[0].ingredients[1].name, "large egg whites (room temperature)", "metric inside descriptive parens is removed cleanly");
+assert.strictEqual(doubleParenMetric.sections[0].ingredients[1].weightAmount, "100");
+assert.strictEqual(doubleParenMetric.sections[0].ingredients[2].name, "unsalted butter (softened)", "nested metric parens preserve non-metric prep note");
+assert.strictEqual(doubleParenMetric.sections[0].ingredients[2].weightAmount, "226");
+assert.strictEqual(doubleParenMetric.sections[0].ingredients[3].name, "unsalted butter, softened", "compound US/metric parenthetical is removed from ingredient name");
+assert.strictEqual(doubleParenMetric.sections[0].ingredients[3].weightAmount, "113");
+assert.strictEqual(doubleParenMetric.sections[0].ingredients[4].name, "optional: 3/4 cup nuts, or 1 cup chocolate chips", "all metric parentheticals are removed from compound optional names");
+assert.strictEqual(doubleParenMetric.sections[0].ingredients[4].weightAmount, "90", "first source metric is preserved when one ingredient row contains multiple alternates");
+
 // ── Quantity-aware directions: deterministic refs, section-scoped repeated ingredients ──
 const oreoCake = N.quantityAwareDirections(N.normalizeRecipe({
   title: "Oreo Cake",
@@ -201,6 +221,32 @@ assert.deepStrictEqual(oreoCake.sections[0].steps[0].ingredientRefs, ["i1", "i2"
 assert.strictEqual(oreoCake.sections[0].steps[1].text, "Mix in {i3} and {i4}.", "vanilla + Oreos become quantity-aware refs");
 assert.strictEqual(oreoCake.sections[1].steps[0].text, "Beat {i5}, {i6}, and {i7} until fluffy.", "frosting repeats use frosting ids");
 assert.strictEqual(oreoCake.sections[1].steps[1].text, "Fold in {i8}.", "frosting Oreos use frosting id");
+
+const milkBread = N.quantityAwareDirections(N.normalizeRecipe({
+  title: "Japanese Milk Bread",
+  sections: [{
+    name: "Main",
+    ingredients: [
+      { id: "i1", amount: "3", unit: "tablespoons", name: "(43g) milk, whole preferred" },
+      { id: "i2", amount: "2", unit: "tablespoons", name: "(14g) King Arthur Baker's Special Dry Milk or nonfat dry milk" },
+      { id: "i3", amount: "1/2", unit: "cup", name: "(113g) milk, whole preferred" },
+    ],
+    steps: [{ id: "s1", text: "Brush the loaf with milk and bake until golden." }],
+  }],
+}));
+assert.strictEqual(
+  milkBread.sections[0].steps[0].text,
+  "Brush the loaf with milk and bake until golden.",
+  "ambiguous milk mention is not bound to dry milk or the wrong repeated milk row"
+);
+
+const macaronEggWhites = N.quantityAwareDirections(N.normalizeRecipe({
+  sections: [{
+    ingredients: [{ id: "i1", amount: "3", unit: "", name: "large egg whites ((100g), room temperature)" }],
+    steps: [{ id: "s1", text: "Add the egg whites and mix until foamy." }],
+  }],
+}));
+assert.strictEqual(macaronEggWhites.sections[0].steps[0].text, "Add {i1} and mix until foamy.", "cleaned egg-whites alias replaces the whole phrase");
 
 // ── Quality score: bands + useful (not noisy) ──
 const cleanQ = N.qualityScore({ title: "Clean", sections: [{ ingredients: [{ amount: "1", unit: "cup", name: "flour" }], steps: [{ text: "Mix and bake." }] }] }, { system: "us" });

@@ -1,0 +1,17 @@
+{
+  "id": "nr-047",
+  "url": "https://www.recipetineats.com/egg-fried-rice/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.recipetineats.com/egg-fried-rice/",
+  "sourceTitle": "Fried Rice - RecipeTin Eats",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 18000,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": null,
+  "sourceStepCount": null,
+  "warnings": [],
+  "error": ""
+}

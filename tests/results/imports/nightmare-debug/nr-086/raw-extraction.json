@@ -1,0 +1,143 @@
+{
+  "title": "Chicken Piccata",
+  "description": "Whip up classic chicken piccata—crispy chicken cutlets drenched in a zesty lemon-butter and caper sauce. It's the quick, easy supper guaranteed to bring smiles all around the table.",
+  "servings": 4,
+  "prepTime": "15 min",
+  "cookTime": "15 min",
+  "totalTime": "30 min",
+  "heroImage": "https://www.onceuponachef.com/images/2018/02/Chicken-Piccata-17.jpg",
+  "notes": "",
+  "tags": [
+    "Chicken",
+    "Main Course",
+    "Italian",
+    "Chicken piccata"
+  ],
+  "sections": [
+    {
+      "name": "Main",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "11/2",
+          "unit": "lbs",
+          "name": "boneless skinless chicken breasts",
+          "raw": "11/2 lbs boneless skinless chicken breasts"
+        },
+        {
+          "id": "i2",
+          "amount": "3",
+          "unit": "tablespoons",
+          "name": "all-purpose flour",
+          "raw": "3 tablespoons all-purpose flour"
+        },
+        {
+          "id": "i3",
+          "amount": "",
+          "unit": "",
+          "name": "Salt and freshly ground black pepper",
+          "raw": "Salt and freshly ground black pepper"
+        },
+        {
+          "id": "i4",
+          "amount": "2",
+          "unit": "",
+          "name": "eggs",
+          "raw": "2 eggs"
+        },
+        {
+          "id": "i5",
+          "amount": "1",
+          "unit": "cup",
+          "name": "seasoned Italian bread crumbs",
+          "raw": "1 cup seasoned Italian bread crumbs"
+        },
+        {
+          "id": "i6",
+          "amount": "1/4",
+          "unit": "cup",
+          "name": "extra-virgin olive oil",
+          "raw": "1/4 cup extra-virgin olive oil"
+        },
+        {
+          "id": "i7",
+          "amount": "1",
+          "unit": "cup",
+          "name": "chicken stock",
+          "raw": "1 cup chicken stock"
+        },
+        {
+          "id": "i8",
+          "amount": "2",
+          "unit": "tablespoons",
+          "name": "fresh lemon juice, (from 1 lemon)",
+          "raw": "2 tablespoons fresh lemon juice, (from 1 lemon)"
+        },
+        {
+          "id": "i9",
+          "amount": "3",
+          "unit": "tablespoons",
+          "name": "brined capers, (drained and rinsed)",
+          "raw": "3 tablespoons brined capers, (drained and rinsed)"
+        },
+        {
+          "id": "i10",
+          "amount": "3",
+          "unit": "tablespoons",
+          "name": "unsalted butter",
+          "raw": "3 tablespoons unsalted butter"
+        },
+        {
+          "id": "i11",
+          "amount": "",
+          "unit": "",
+          "name": "Salt and pepper",
+          "raw": "Salt and pepper"
+        },
+        {
+          "id": "i12",
+          "amount": "1/4",
+          "unit": "cup",
+          "name": "chopped fresh Italian parsley",
+          "raw": "1/4 cup chopped fresh Italian parsley"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Preheat the oven to 350°F (175°C). Line a baking sheet with aluminum foil.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "Using a very sharp knife, slice each chicken breast in half horizontally. One at a time, place the chicken breasts in a large sealable plastic bag and, using a meat mallet or rolling pin, pound them to an even ¼-in (6-mm) thickness. (If your chicken breasts are very small, you can skip the step of cutting them in half horizontally. I use two ¾-lb/340-g breasts to make 4 portions.) Save the bag.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s3",
+          "text": "To the bag, add the flour, ¾ teaspoon salt, and ¼ teaspoon pepper; seal and shake to combine. Add the chicken to the bag; seal and shake to coat the chicken evenly. Beat the eggs in a large, shallow bowl. In another large, shallow bowl, mix the bread crumbs with ¼ teaspoon salt. Using tongs (or your hands), dip each chicken breast first in the egg mixture, turning to coat evenly and letting any excess egg drip off, and then into the bread crumbs, turning to coat evenly.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s4",
+          "text": "Heat the oil in a large sauté pan over medium-high heat. When the oil is hot and shimmering, add the chicken to the pan and cook for until the first side is golden brown, 2 to 3 minutes. Flip the chicken and cook until the second side is golden, about 2 minutes more. Transfer the chicken to the prepared baking sheet and place in the oven while you make the sauce. (Note: the chicken should be almost fully cooked at this point. Don't leave it in the oven for more than 5 minutes or it will overcook.)",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s5",
+          "text": "Discard any excess oil from the pan. Add the stock, lemon juice, and capers and bring to a boil, scraping up any brown bits from the pan. Gently boil for about two minutes, until slightly reduced. Off the heat, swirl in the butter, followed by the parsley. Taste and adjust seasoning with salt and pepper, if necessary. Remove the chicken from the oven and transfer to plates. Spoon the sauce over top.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 585,
+    "protein": 47,
+    "carbs": 27,
+    "fat": 31,
+    "fiber": 2
+  },
+  "sourceUrl": "https://www.onceuponachef.com/recipes/chicken-piccata.html",
+  "importMethod": "structured-data"
+}

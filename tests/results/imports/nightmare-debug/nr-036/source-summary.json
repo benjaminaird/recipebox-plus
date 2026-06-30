@@ -1,0 +1,17 @@
+{
+  "id": "nr-036",
+  "url": "https://www.bbcgoodfood.com/recipes/classic-victoria-sandwich-recipe",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.bbcgoodfood.com/recipes/classic-victoria-sandwich-recipe",
+  "sourceTitle": "Classic Victoria sandwich recipe | Good Food",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 8494,
+  "jsonLdNodes": 4,
+  "sourceIngredientCount": 11,
+  "sourceStepCount": 8,
+  "warnings": [],
+  "error": ""
+}

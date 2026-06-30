@@ -1,0 +1,17 @@
+{
+  "id": "nr-100",
+  "url": "https://www.budgetbytes.com/baked-mac-and-cheese/",
+  "fetchVia": "server:/api/fetch-url",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.budgetbytes.com/baked-mac-and-cheese/",
+  "sourceTitle": "Baked Mac and Cheese - Budget Bytes",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 15685,
+  "jsonLdNodes": 1,
+  "sourceIngredientCount": 19,
+  "sourceStepCount": 9,
+  "warnings": [],
+  "error": ""
+}

@@ -1,0 +1,226 @@
+{
+  "title": "Macaron Recipe",
+  "description": "My homemade macaron recipe makes delicate, crisp macaron cookies filled with a luscious French buttercream. My well-tested recipe will help you make these delicate French cookies just for fun or special occasions!",
+  "servings": 36,
+  "prepTime": "50 min",
+  "cookTime": "20 min",
+  "totalTime": "1 hr 50 min",
+  "heroImage": "https://preppykitchen.com/wp-content/uploads/2026/03/macaron-recipe-recipe-card-1.jpg",
+  "notes": "",
+  "tags": [
+    "Dessert",
+    "American",
+    "French",
+    "French Macarons",
+    "how to make macarons",
+    "macaron recipe"
+  ],
+  "sections": [
+    {
+      "name": "For the Cookie:",
+      "ingredients": [
+        {
+          "id": "i1",
+          "amount": "1 1/2",
+          "unit": "cup",
+          "name": "blanched almond flour",
+          "raw": "11/2 cups blanched almond flour ((168g))",
+          "weightAmount": "168",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i2",
+          "amount": "1",
+          "unit": "cup",
+          "name": "powdered sugar",
+          "raw": "1 cup powdered sugar ((120g))",
+          "weightAmount": "120",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i3",
+          "amount": "3",
+          "unit": "",
+          "name": "large egg whites (room temperature)",
+          "raw": "3 large egg whites ((100g), room temperature)",
+          "weightAmount": "100",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i4",
+          "amount": "1/4",
+          "unit": "tsp",
+          "name": "cream of tartar",
+          "raw": "1/4 teaspoon cream of tartar"
+        },
+        {
+          "id": "i5",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "granulated sugar",
+          "raw": "1/2 cup granulated sugar ((100g))",
+          "weightAmount": "100",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i6",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "vanilla extract",
+          "raw": "1 teaspoon vanilla extract"
+        },
+        {
+          "id": "i7",
+          "amount": "1",
+          "unit": "",
+          "name": "drop food coloring ((optional))",
+          "raw": "1 drop food coloring ((optional))"
+        },
+        {
+          "id": "i8",
+          "amount": "1",
+          "unit": "cup",
+          "name": "unsalted butter (softened)",
+          "raw": "1 cup unsalted butter (softened (226g))",
+          "weightAmount": "226",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i9",
+          "amount": "5",
+          "unit": "",
+          "name": "large egg yolks (room temperature)",
+          "raw": "5 large egg yolks (room temperature)"
+        },
+        {
+          "id": "i10",
+          "amount": "1/2",
+          "unit": "cup",
+          "name": "granulated sugar",
+          "raw": "1/2 cup granulated sugar ((100g))",
+          "weightAmount": "100",
+          "weightUnit": "g"
+        },
+        {
+          "id": "i11",
+          "amount": "1",
+          "unit": "tsp",
+          "name": "vanilla extract",
+          "raw": "1 teaspoon vanilla extract"
+        },
+        {
+          "id": "i12",
+          "amount": "3",
+          "unit": "Tbsp",
+          "name": "water",
+          "raw": "3 tablespoons water"
+        },
+        {
+          "id": "i13",
+          "amount": "",
+          "unit": "",
+          "name": "Pinch of salt",
+          "raw": "Pinch of salt"
+        }
+      ],
+      "steps": [
+        {
+          "id": "s1",
+          "text": "Line two baking sheets with parchment paper or silicone baking mats, and set aside.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s2",
+          "text": "In a medium bowl, sift in {i2} and {i1} (be sure not to press the mixture through the sieve just let it fall through). Transfer to the workbowl of a food processor and pulse for 20 seconds. Stop, scrape down the sides, and pulse for another 10 seconds. Sift the almond flour mixture again into the same medium bowl, and set aside.",
+          "ingredientRefs": [
+            "i1",
+            "i2"
+          ]
+        },
+        {
+          "id": "s3",
+          "text": "To a large clean bowl or the bowl of your stand mixer fitted with a whisk attachment add the egg {i3}. Mix on medium speed for 30 seconds until they begin to foam. Add in {i4} and continue mixing on medium speed.",
+          "ingredientRefs": [
+            "i3",
+            "i4"
+          ]
+        },
+        {
+          "id": "s4",
+          "text": "While mixing, gradually add in {i5} 1 tablespoon at a time, occasionally scraping down the sides to remove any sugar build up around the bowl. Add in the vanilla and {i7}, if desired. Continue to mix until stiff peaks form, about 6 minutes.",
+          "ingredientRefs": [
+            "i5",
+            "i7"
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Using a spatula, gently fold in {i1} mixture in 3 batches. Once fully incorporated, gently press the mixture with your spatula against the side of the bowl to remove any large air bubbles (this stage is called macronage).",
+          "ingredientRefs": [
+            "i1"
+          ]
+        },
+        {
+          "id": "s6",
+          "text": "The mixture is ready when it is able to fall off the spatula keeping its shape in a figure eight. Transfer to a piping bag fitted with a medium round tip (I used Wilton 1A).",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s7",
+          "text": "To all corners of your baking sheet add a drop of the mixture, this will act as glue to keep your parchment paper down. Pipe one inch dollops onto the baking sheet, spacing them about 2 inches apart.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s8",
+          "text": "Gently tap the pan on the counter to release any air bubbles. (You can also pop any remaining large air bubbles with a toothpick). Allow the pan to rest for 40 minutes before baking. They will be dry to the touch and appear less glossy.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s9",
+          "text": "Towards the end of your rest time preheat the oven to 270ºF. Bake for 18-20 minutes, rotating the pan 180º after 8 minutes. Allow to cool completely on the baking sheet before removing.",
+          "ingredientRefs": []
+        }
+      ]
+    },
+    {
+      "name": "For the Filling:",
+      "ingredients": [],
+      "steps": [
+        {
+          "id": "s10",
+          "text": "In a medium saucepan combine the sugar and water. Heat on low while stirring until the sugar is dissolved. Once dissolved, increase the heat to medium high and bring to a boil.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s11",
+          "text": "While the sugar syrup cooks, in the bowl of your stand mixer fitted with a whisk attachment, add the egg yolks, beat until thickened and foamy.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s12",
+          "text": "Continue cooking the sugar syrup until it reaches 240ºF. Immediately remove from heat, with the mixer running slowly drizzle the syrup into the yolks. Continue mixing until the bowl is no longer warm to the touch, about 5 minutes.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s13",
+          "text": "While mixing on medium low speed add the butter in one tablespoon at a time making sure it is completely incorporated before adding the next. Add the vanilla and salt and continue mixing until it is smooth and creamy for about 5-6 minutes. If desired add in a few drops of food coloring and mix until well combined.",
+          "ingredientRefs": []
+        },
+        {
+          "id": "s14",
+          "text": "Place your filling into a piping bag fitted with a small round tip (I used Ateco #10). Pipe onto the bottom side of half the cookies. Place an unfrosted cookie on top creating a sandwich. Keep in the refrigerator for 1-3 days to age them. This allows the filling to soften the inside of the shells.",
+          "ingredientRefs": []
+        }
+      ]
+    }
+  ],
+  "macros": {
+    "calories": 116,
+    "protein": 2,
+    "carbs": 10,
+    "fat": 8,
+    "fiber": 0.5
+  },
+  "sourceUrl": "https://preppykitchen.com/french-macarons/",
+  "importMethod": "structured-data"
+}

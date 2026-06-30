@@ -1,0 +1,20 @@
+{
+  "id": "nr-078",
+  "url": "https://www.youtube.com/watch?v=4H2iLM946vY",
+  "fetchVia": "server:/api/transcript",
+  "fetchStatus": 200,
+  "finalUrl": "https://www.youtube.com/watch?v=4H2iLM946vY",
+  "sourceTitle": "- YouTube",
+  "extractSource": "",
+  "extractComplete": false,
+  "blocked": false,
+  "textLength": 0,
+  "jsonLdNodes": null,
+  "sourceIngredientCount": null,
+  "sourceStepCount": null,
+  "warnings": [
+    "transcript unavailable",
+    "low confidence extraction"
+  ],
+  "error": ""
+}
