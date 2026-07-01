@@ -13,7 +13,7 @@
     const BRAND_HEADER = C.green;
     const SERIF = "'DM Serif Display', serif";
     const SANS = "'DM Sans', sans-serif";
-    const APP_VERSION = "1.1.2";
+    const APP_VERSION = "1.1.3";
     const DEFAULT_AI_MODEL = "claude-sonnet-5";
     const API_BASE = String((window.RECIPEBOX_CONFIG && window.RECIPEBOX_CONFIG.apiBase) || window.RECIPEBOX_API_BASE || "").replace(/\/$/, "");
     function apiUrl(url) {
@@ -26,6 +26,7 @@
     const NAV_CLEARANCE = "calc(104px + env(safe-area-inset-bottom))";
     const PANTRY_NAV_OFFSET = "calc(100dvh - 82px - env(safe-area-inset-bottom))";
     const safePad = (top, right, bottom, left = right) => `calc(env(safe-area-inset-top) + ${top}px) ${right}px ${bottom}px ${left}px`;
+    const NO_TOUCH_SELECT = { WebkitTouchCallout:"none", WebkitUserSelect:"none", userSelect:"none", WebkitTapHighlightColor:"transparent", touchAction:"manipulation" };
     const S = {
       page: { minHeight:"100vh", width:"100%", maxWidth:"100%", overflowX:"hidden", background:`linear-gradient(180deg, ${C.cream} 0%, ${C.cream2} 100%)` },
       brandHeader: { background:BRAND_HEADER, boxShadow:"0 10px 28px rgba(32,20,14,0.14)" },
@@ -1379,15 +1380,20 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const color = cardColor(recipe.title);
       const cardImage = recipe.heroImage || "";
       const hasImage = cardImage && cardImage.length > 0;
-      const pressRef = useRef({ timer:null, startX:0, startY:0, pointerId:null, opened:false });
+      const pressRef = useRef({ timer:null, startX:0, startY:0, pointerId:null, opened:false, moved:false, source:null, manualTap:false, suppressClick:false });
       function clearLongPress() {
         if (pressRef.current.timer) clearTimeout(pressRef.current.timer);
         pressRef.current.timer = null;
+      }
+      function preventPressDefault(e) {
+        try { if (e && e.cancelable) e.preventDefault(); } catch {}
+        try { e && e.stopPropagation && e.stopPropagation(); } catch {}
       }
       function openActionAt(point) {
         if (!onAction) return;
         clearLongPress();
         pressRef.current.opened = true;
+        pressRef.current.suppressClick = true;
         onAction(recipe, { x:point.x || 24, y:point.y || 120 });
         try { if (navigator.vibrate) navigator.vibrate(12); } catch {}
       }
@@ -1397,72 +1403,112 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         e.stopPropagation();
         openActionAt({ x:e.clientX || 24, y:e.clientY || 120 });
       }
+      function startPress(point, source, e) {
+        if (!onAction) return;
+        clearLongPress();
+        pressRef.current = { timer:null, startX:point.x, startY:point.y, pointerId:e?.pointerId ?? null, opened:false, moved:false, source, manualTap:source !== "mouse", suppressClick:source !== "mouse" };
+        if (source !== "mouse") preventPressDefault(e);
+        pressRef.current.timer = setTimeout(() => openActionAt(point), 560);
+      }
       function startLongPress(e) {
         if (!onAction) return;
         if (e.button != null && e.button !== 0) return;
         if (e.isPrimary === false) return;
-        clearLongPress();
+        const source = e.pointerType || "mouse";
         const x = e.clientX || 24, y = e.clientY || 120;
-        pressRef.current = { timer:null, startX:x, startY:y, pointerId:e.pointerId, opened:false };
         try { e.currentTarget.setPointerCapture && e.currentTarget.setPointerCapture(e.pointerId); } catch {}
-        pressRef.current.timer = setTimeout(() => openActionAt({ x, y }), 520);
+        startPress({ x, y }, source, e);
       }
-      function moveLongPress(e) {
+      function movePressPoint(x, y) {
         const p = pressRef.current;
         if (!p || !p.timer) return;
-        const dx = Math.abs((e.clientX || 0) - p.startX);
-        const dy = Math.abs((e.clientY || 0) - p.startY);
-        if (dx > 10 || dy > 10) clearLongPress();
+        const dx = Math.abs((x || 0) - p.startX);
+        const dy = Math.abs((y || 0) - p.startY);
+        if (dx > 10 || dy > 10) { p.moved = true; clearLongPress(); }
+      }
+      function moveLongPress(e) {
+        movePressPoint(e.clientX, e.clientY);
       }
       function endLongPress(e) {
-        const opened = !!pressRef.current.opened;
-        if (opened) {
-          e.preventDefault();
-          e.stopPropagation();
+        const p = pressRef.current;
+        const shouldOpen = p.manualTap && p.timer && !p.opened && !p.moved;
+        if (p.opened || shouldOpen || p.suppressClick) preventPressDefault(e);
+        clearLongPress();
+        try { e.currentTarget.releasePointerCapture && e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+        if (shouldOpen && onClick) {
+          p.suppressClick = true;
+          onClick(e);
         }
+      }
+      function cancelLongPress(e) {
         clearLongPress();
         try { e.currentTarget.releasePointerCapture && e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
       }
+      function startTouchLongPress(e) {
+        if (!onAction || pressRef.current.timer) return;
+        const touch = e.touches && e.touches[0];
+        if (!touch) return;
+        startPress({ x:touch.clientX || 24, y:touch.clientY || 120 }, "touch", e);
+      }
+      function moveTouchLongPress(e) {
+        const touch = e.touches && e.touches[0];
+        if (!touch) return;
+        movePressPoint(touch.clientX, touch.clientY);
+      }
+      function endTouchLongPress(e) {
+        const p = pressRef.current;
+        const shouldOpen = p.manualTap && p.timer && !p.opened && !p.moved;
+        if (p.opened || shouldOpen || p.suppressClick) preventPressDefault(e);
+        clearLongPress();
+        if (shouldOpen && onClick) {
+          p.suppressClick = true;
+          onClick(e);
+        }
+      }
       return (
         <div
-          onClick={(e) => { if (pressRef.current.opened) { e.preventDefault(); e.stopPropagation(); pressRef.current.opened = false; return; } onClick && onClick(e); }}
+          onClick={(e) => { if (pressRef.current.opened || pressRef.current.suppressClick) { e.preventDefault(); e.stopPropagation(); pressRef.current.opened = false; pressRef.current.suppressClick = false; return; } onClick && onClick(e); }}
           onPointerDown={startLongPress}
           onPointerMove={moveLongPress}
           onPointerUp={endLongPress}
-          onPointerCancel={endLongPress}
+          onPointerCancel={cancelLongPress}
           onPointerLeave={clearLongPress}
+          onTouchStart={startTouchLongPress}
+          onTouchMove={moveTouchLongPress}
+          onTouchEnd={endTouchLongPress}
+          onTouchCancel={cancelLongPress}
           onContextMenu={openActions}
           className="card"
           role="button"
           tabIndex={0}
           onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && onClick) { e.preventDefault(); onClick(e); } }}
           aria-label={(recipe.title || "Recipe") + ". Open recipe. Long press for actions."}
-          style={{...S.card,overflow:"hidden",WebkitTouchCallout:"none",userSelect:"none",WebkitUserSelect:"none",touchAction:"manipulation"}}>
-          <div style={{height:104,position:"relative",overflow:"hidden",background:hasImage?"#000":`linear-gradient(135deg, ${color}, ${C.brown})`}}>
+          style={{...S.card,...NO_TOUCH_SELECT,overflow:"hidden"}}>
+          <div style={{...NO_TOUCH_SELECT,height:104,position:"relative",overflow:"hidden",background:hasImage?"#000":`linear-gradient(135deg, ${color}, ${C.brown})`}}>
             {hasImage ? (
               <img src={cardImage} alt={recipe.title} draggable={false}
-                style={{width:"100%",height:"100%",objectFit:"cover",opacity:recipe.heroImage?0.85:0.72}}
+                style={{...NO_TOUCH_SELECT,width:"100%",height:"100%",objectFit:"cover",opacity:recipe.heroImage?0.85:0.72,pointerEvents:"none"}}
                 onError={(e) => { e.target.style.display="none"; e.target.parentNode.style.background=`linear-gradient(135deg, ${color}, ${color}BB)`; }} />
             ) : (
-              <span style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",userSelect:"none"}}><DishGlyph size={42} /></span>
+              <span style={{...NO_TOUCH_SELECT,position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",pointerEvents:"none"}}><DishGlyph size={42} /></span>
             )}
             {recipe.householdShared
-              ? <span style={{position:"absolute",top:8,left:8,background:"rgba(32,20,14,0.55)",color:C.white,borderRadius:12,padding:"3px 9px",fontSize:"0.64em",fontWeight:700,display:"inline-flex",alignItems:"center",gap:4,zIndex:2}}><Icon name="sync" size={11} /> {recipe.ownerName || "Shared"}</span>
+              ? <span style={{...NO_TOUCH_SELECT,position:"absolute",top:8,left:8,background:"rgba(32,20,14,0.55)",color:C.white,borderRadius:12,padding:"3px 9px",fontSize:"0.64em",fontWeight:700,display:"inline-flex",alignItems:"center",gap:4,zIndex:2,pointerEvents:"none"}}><Icon name="sync" size={11} /> {recipe.ownerName || "Shared"}</span>
                 : <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(); }}
-                  style={{position:"absolute",top:8,right:8,background:"rgba(32,20,14,0.44)",border:"1px solid rgba(255,255,255,0.18)",borderRadius:"50%",width:32,height:32,cursor:"pointer",fontSize:"0.95em",color:recipe.favorite?C.goldLight:"rgba(255,255,255,0.78)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2}}>
+                  style={{...NO_TOUCH_SELECT,position:"absolute",top:8,right:8,background:"rgba(32,20,14,0.44)",border:"1px solid rgba(255,255,255,0.18)",borderRadius:"50%",width:32,height:32,cursor:"pointer",fontSize:"0.95em",color:recipe.favorite?C.goldLight:"rgba(255,255,255,0.78)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2}}>
                   <Icon name="favorite" size={17} strokeWidth={recipe.favorite ? 2.5 : 2} />
                 </button>}
-            <div style={{position:"absolute",bottom:0,left:0,right:0,display:"flex",justifyContent:"space-between",padding:"0 8px 6px",zIndex:2}}>
-              {recipe.cookTime && <span style={{background:"rgba(32,20,14,0.55)",color:C.white,borderRadius:12,padding:"2px 8px",fontSize:"0.69em",fontWeight:700,display:"inline-flex",alignItems:"center",gap:4}}><Icon name="timer" size={12} /> {recipe.cookTime}</span>}
-              {recipe.macros?.calories > 0 && <span style={{background:"rgba(32,20,14,0.55)",color:C.white,borderRadius:12,padding:"2px 8px",fontSize:"0.69em",fontWeight:700}}>{recipe.macros.calories} cal</span>}
+            <div style={{...NO_TOUCH_SELECT,position:"absolute",bottom:0,left:0,right:0,display:"flex",justifyContent:"space-between",padding:"0 8px 6px",zIndex:2,pointerEvents:"none"}}>
+              {recipe.cookTime && <span style={{...NO_TOUCH_SELECT,background:"rgba(32,20,14,0.55)",color:C.white,borderRadius:12,padding:"2px 8px",fontSize:"0.69em",fontWeight:700,display:"inline-flex",alignItems:"center",gap:4}}><Icon name="timer" size={12} /> {recipe.cookTime}</span>}
+              {recipe.macros?.calories > 0 && <span style={{...NO_TOUCH_SELECT,background:"rgba(32,20,14,0.55)",color:C.white,borderRadius:12,padding:"2px 8px",fontSize:"0.69em",fontWeight:700}}>{recipe.macros.calories} cal</span>}
             </div>
           </div>
-          <div style={{padding:"11px 13px 13px"}}>
-            <div style={{fontFamily:SERIF,fontSize:"1.02em",color:C.dark,lineHeight:1.25,marginBottom:4}}>{recipe.title}</div>
+          <div style={{...NO_TOUCH_SELECT,padding:"11px 13px 13px"}}>
+            <div style={{...NO_TOUCH_SELECT,fontFamily:SERIF,fontSize:"1.02em",color:C.dark,lineHeight:1.25,marginBottom:4}}>{recipe.title}</div>
             {recipe.rating > 0 && <Stars value={recipe.rating} size={11} />}
-            {recipe.description && <div style={{color:C.light,fontSize:"0.76em",lineHeight:1.5,marginTop:4,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{recipe.description}</div>}
+            {recipe.description && <div style={{...NO_TOUCH_SELECT,color:C.light,fontSize:"0.76em",lineHeight:1.5,marginTop:4,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{recipe.description}</div>}
             {recipe.tags?.length > 0 && (
-              <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:7}}>
+              <div style={{...NO_TOUCH_SELECT,display:"flex",flexWrap:"wrap",gap:4,marginTop:7}}>
                 {recipe.tags.slice(0,3).map((t) => <Tag key={t} label={t} onClick={onTagClick} compact />)}
               </div>
             )}
@@ -1688,7 +1734,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                       {recentRecipes.map((r) => {
                         const img = r.heroImage || "";
                         return (
-                          <button key={r.id} onClick={(e) => { if (e.currentTarget._recipeLongPressed) { e.preventDefault(); e.stopPropagation(); e.currentTarget._recipeLongPressed = false; return; } onOpen(r); }} onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); openActionMenu(r, { x:e.clientX, y:e.clientY }); }}
+                          <button key={r.id} onClick={(e) => { if (e.currentTarget._recipeLongPressed || e.currentTarget._recipeSuppressClick) { e.preventDefault(); e.stopPropagation(); e.currentTarget._recipeLongPressed = false; e.currentTarget._recipeSuppressClick = false; return; } onOpen(r); }} onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); openActionMenu(r, { x:e.clientX, y:e.clientY }); }}
+                            type="button"
                             onPointerDown={(e) => {
                               if (e.button != null && e.button !== 0) return;
                               if (e.isPrimary === false) return;
@@ -1696,23 +1743,31 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                               const target = e.currentTarget;
                               if (target._recipeLongPress) clearTimeout(target._recipeLongPress);
                               target._recipePointerStart = { x, y };
+                              target._recipeLongMoved = false;
+                              target._recipeSuppressClick = e.pointerType !== "mouse";
+                              if (e.pointerType !== "mouse" && e.cancelable) e.preventDefault();
+                              e.stopPropagation();
                               try { target.setPointerCapture && target.setPointerCapture(e.pointerId); } catch {}
-                              target._recipeLongPress = setTimeout(() => { target._recipeLongPressed = true; openActionMenu(r, { x, y }); }, 520);
+                              target._recipeLongPress = setTimeout(() => { target._recipeLongPressed = true; target._recipeSuppressClick = true; openActionMenu(r, { x, y }); }, 560);
                             }}
                             onPointerMove={(e) => {
                               const start = e.currentTarget._recipePointerStart;
                               if (!start || !e.currentTarget._recipeLongPress) return;
                               if (Math.abs((e.clientX || 0) - start.x) > 10 || Math.abs((e.clientY || 0) - start.y) > 10) {
+                                e.currentTarget._recipeLongMoved = true;
                                 clearTimeout(e.currentTarget._recipeLongPress);
                                 e.currentTarget._recipeLongPress = null;
                               }
                             }}
                             onPointerUp={(e) => {
+                              const target = e.currentTarget;
+                              const shouldOpen = target._recipeSuppressClick && target._recipeLongPress && !target._recipeLongPressed && !target._recipeLongMoved;
                               if (e.currentTarget._recipeLongPress) clearTimeout(e.currentTarget._recipeLongPress);
                               e.currentTarget._recipeLongPress = null;
                               e.currentTarget._recipePointerStart = null;
                               try { e.currentTarget.releasePointerCapture && e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
-                              if (e.currentTarget._recipeLongPressed) { e.preventDefault(); e.stopPropagation(); }
+                              if (e.currentTarget._recipeLongPressed || shouldOpen || target._recipeSuppressClick) { e.preventDefault(); e.stopPropagation(); }
+                              if (shouldOpen) onOpen(r);
                             }}
                             onPointerCancel={(e) => {
                               if (e.currentTarget._recipeLongPress) clearTimeout(e.currentTarget._recipeLongPress);
@@ -1720,14 +1775,51 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                               e.currentTarget._recipePointerStart = null;
                               try { e.currentTarget.releasePointerCapture && e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
                             }}
-                            style={{flexShrink:0,width:150,textAlign:"left",border:"1px solid "+C.border,background:C.paper,borderRadius:14,overflow:"hidden",cursor:"pointer",fontFamily:SANS,padding:0,boxShadow:"0 6px 16px rgba(90,56,39,0.08)",WebkitTapHighlightColor:"transparent",touchAction:"manipulation",WebkitTouchCallout:"none",userSelect:"none",WebkitUserSelect:"none"}}>
-                            <div style={{height:92,position:"relative",overflow:"hidden",background:img?"#000":`linear-gradient(135deg, ${cardColor(r.title)}, ${C.brown})`}}>
+                            onTouchStart={(e) => {
+                              if (e.currentTarget._recipeLongPress) return;
+                              const touch = e.touches && e.touches[0];
+                              if (!touch) return;
+                              const target = e.currentTarget;
+                              const x = touch.clientX || 24, y = touch.clientY || 120;
+                              target._recipePointerStart = { x, y };
+                              target._recipeLongMoved = false;
+                              target._recipeSuppressClick = true;
+                              if (e.cancelable) e.preventDefault();
+                              e.stopPropagation();
+                              target._recipeLongPress = setTimeout(() => { target._recipeLongPressed = true; target._recipeSuppressClick = true; openActionMenu(r, { x, y }); }, 560);
+                            }}
+                            onTouchMove={(e) => {
+                              const start = e.currentTarget._recipePointerStart;
+                              const touch = e.touches && e.touches[0];
+                              if (!start || !touch || !e.currentTarget._recipeLongPress) return;
+                              if (Math.abs((touch.clientX || 0) - start.x) > 10 || Math.abs((touch.clientY || 0) - start.y) > 10) {
+                                e.currentTarget._recipeLongMoved = true;
+                                clearTimeout(e.currentTarget._recipeLongPress);
+                                e.currentTarget._recipeLongPress = null;
+                              }
+                            }}
+                            onTouchEnd={(e) => {
+                              const target = e.currentTarget;
+                              const shouldOpen = target._recipeSuppressClick && target._recipeLongPress && !target._recipeLongPressed && !target._recipeLongMoved;
+                              if (target._recipeLongPress) clearTimeout(target._recipeLongPress);
+                              target._recipeLongPress = null;
+                              target._recipePointerStart = null;
+                              if (target._recipeLongPressed || shouldOpen || target._recipeSuppressClick) { e.preventDefault(); e.stopPropagation(); }
+                              if (shouldOpen) onOpen(r);
+                            }}
+                            onTouchCancel={(e) => {
+                              if (e.currentTarget._recipeLongPress) clearTimeout(e.currentTarget._recipeLongPress);
+                              e.currentTarget._recipeLongPress = null;
+                              e.currentTarget._recipePointerStart = null;
+                            }}
+                            style={{...NO_TOUCH_SELECT,flexShrink:0,width:150,textAlign:"left",border:"1px solid "+C.border,background:C.paper,borderRadius:14,overflow:"hidden",cursor:"pointer",fontFamily:SANS,padding:0,boxShadow:"0 6px 16px rgba(90,56,39,0.08)"}}>
+                            <div style={{...NO_TOUCH_SELECT,height:92,position:"relative",overflow:"hidden",background:img?"#000":`linear-gradient(135deg, ${cardColor(r.title)}, ${C.brown})`}}>
                               {img
-                                ? <img src={img} alt="" style={{width:"100%",height:"100%",objectFit:"cover",opacity:0.85}} onError={(e)=>{e.target.style.display="none";}} />
-                                : <span style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)"}}><DishGlyph size={36} /></span>}
-                              {r.cookTime && <span style={{position:"absolute",left:7,bottom:7,background:"rgba(32,20,14,0.55)",color:C.white,borderRadius:10,padding:"2px 7px",fontSize:"0.66em",fontWeight:700,display:"inline-flex",alignItems:"center",gap:3}}><Icon name="timer" size={10} /> {r.cookTime}</span>}
+                                ? <img src={img} alt="" draggable={false} style={{...NO_TOUCH_SELECT,width:"100%",height:"100%",objectFit:"cover",opacity:0.85,pointerEvents:"none"}} onError={(e)=>{e.target.style.display="none";}} />
+                                : <span style={{...NO_TOUCH_SELECT,position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",pointerEvents:"none"}}><DishGlyph size={36} /></span>}
+                              {r.cookTime && <span style={{...NO_TOUCH_SELECT,position:"absolute",left:7,bottom:7,background:"rgba(32,20,14,0.55)",color:C.white,borderRadius:10,padding:"2px 7px",fontSize:"0.66em",fontWeight:700,display:"inline-flex",alignItems:"center",gap:3,pointerEvents:"none"}}><Icon name="timer" size={10} /> {r.cookTime}</span>}
                             </div>
-                            <div style={{padding:"9px 11px 11px",fontFamily:SERIF,fontSize:"0.9em",color:C.dark,lineHeight:1.25,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",minHeight:"2.4em"}}>{r.title}</div>
+                            <div style={{...NO_TOUCH_SELECT,padding:"9px 11px 11px",fontFamily:SERIF,fontSize:"0.9em",color:C.dark,lineHeight:1.25,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",minHeight:"2.4em"}}>{r.title}</div>
                           </button>
                         );
                       })}
