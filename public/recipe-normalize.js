@@ -362,6 +362,39 @@
     return 0;
   }
 
+  function isWordChar(ch) { return !!ch && /[A-Za-z0-9]/.test(ch); }
+  function directionChipParts(text, phrases) {
+    var raw = String(text == null ? "" : text);
+    var list = (phrases || [])
+      .map(function (p) { return String(p || "").replace(/\s+/g, " ").trim(); })
+      .filter(Boolean)
+      .filter(function (p, i, arr) { return arr.findIndex(function (x) { return x.toLowerCase() === p.toLowerCase(); }) === i; })
+      .sort(function (a, b) { return b.length - a.length; });
+    if (!raw || !list.length) return raw ? [{ type: "text", value: raw }] : [];
+    var lower = raw.toLowerCase();
+    var out = [];
+    var i = 0, textStart = 0;
+    while (i < raw.length) {
+      var found = null;
+      for (var pi = 0; pi < list.length; pi++) {
+        var phrase = list[pi];
+        if (lower.slice(i, i + phrase.length) !== phrase.toLowerCase()) continue;
+        var before = i > 0 ? raw.charAt(i - 1) : "";
+        var after = raw.charAt(i + phrase.length) || "";
+        if (isWordChar(before) || isWordChar(after)) continue;
+        found = phrase;
+        break;
+      }
+      if (!found) { i++; continue; }
+      if (i > textStart) out.push({ type: "text", value: raw.slice(textStart, i) });
+      out.push({ type: "chip", value: raw.slice(i, i + found.length) });
+      i += found.length;
+      textStart = i;
+    }
+    if (textStart < raw.length) out.push({ type: "text", value: raw.slice(textStart) });
+    return out;
+  }
+
   // ---- Import quality audit (deterministic) ----
   // Flags issues for the review banner / to decide whether minimal AI cleanup is
   // warranted. Never changes the recipe.
@@ -621,6 +654,7 @@
     localizeText: localizeText,
     precedingMeasureMatches: precedingMeasureMatches,
     trailingMeasureLength: trailingMeasureLength,
+    directionChipParts: directionChipParts,
     auditRecipe: auditRecipe,
     duplicateIngredientRows: duplicateIngredientRows,
     qualityScore: qualityScore,

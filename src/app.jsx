@@ -13,7 +13,7 @@
     const BRAND_HEADER = C.green;
     const SERIF = "'DM Serif Display', serif";
     const SANS = "'DM Sans', sans-serif";
-    const APP_VERSION = "1.1.1";
+    const APP_VERSION = "1.1.2";
     const DEFAULT_AI_MODEL = "claude-sonnet-5";
     const API_BASE = String((window.RECIPEBOX_CONFIG && window.RECIPEBOX_CONFIG.apiBase) || window.RECIPEBOX_API_BASE || "").replace(/\/$/, "");
     function apiUrl(url) {
@@ -921,6 +921,36 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       if (consumeBefore || precedingMeasureMatches(textBefore, ing, scale, metric)) return { value:displayIngredientText(ing, scale, metric), chip:true, consumeBefore };
       return { value:displayIngredientText(ing, scale, metric), chip:true, consumeBefore:0 };
     }
+    function ingredientChipPhrases(ingredients, scale=1, metric=false) {
+      const dropWords = /\b(salted|unsalted|granulated|powdered|confectioners?|all[- ]purpose|plain|self[- ]rising|self[- ]raising|chopped|softened|melted|room temperature|large|small|fresh|finely|roughly|crushed|mini|packed|light|dark)\b/gi;
+      const phrases = [];
+      (ingredients || []).forEach((ing) => {
+        if (!ing || !String(ing.amount || "").trim() || !String(ing.name || "").trim()) return;
+        const measure = displayIngredientMeasureText(ing, scale, metric);
+        if (!measure) return;
+        const fullName = RecipeBoxNormalize.localizeIngredientName
+          ? RecipeBoxNormalize.localizeIngredientName(ing.name, metric ? "metric" : "us")
+          : ing.name;
+        const add = (value) => {
+          const v = String(value || "").replace(/\s+/g, " ").replace(/\s+([,.;:!?])/g, "$1").trim();
+          if (v && !phrases.some((p) => p.toLowerCase() === v.toLowerCase())) phrases.push(v);
+        };
+        add(measure + " " + fullName);
+        const base = String(fullName || "").split(",")[0].replace(/\([^)]*\)/g, " ").replace(dropWords, " ").replace(/\s+/g, " ").trim();
+        if (base && base.toLowerCase() !== String(fullName).toLowerCase()) add(measure + " " + base);
+        const words = base.split(/\s+/).filter(Boolean);
+        if (words.length > 1) add(measure + " " + words.slice(-2).join(" "));
+        if (words.length) add(measure + " " + words[words.length - 1]);
+      });
+      return phrases.sort((a, b) => b.length - a.length);
+    }
+    function addDirectionTextParts(parts, value, ingredients, scale=1, metric=false) {
+      if (!value) return;
+      const chipParts = RecipeBoxNormalize.directionChipParts
+        ? RecipeBoxNormalize.directionChipParts(value, ingredientChipPhrases(ingredients, scale, metric))
+        : [{ type:"text", value }];
+      chipParts.forEach((part) => parts.push(part));
+    }
     function plainStepText(text, ingredients, scale=1, metric=false) {
       const list = ingredients || [];
       // Same display-time localization as StepText (temps + weights/volumes +
@@ -1023,13 +1053,14 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       // (°F<->°C), weights/volumes (g->oz, ml->cup), and food terms.
       const t = RecipeBoxNormalize.localizeText(text, metric ? "metric" : "us");
       const parts = [];
+      const ingredientList = ingredients || [];
       const regex = /\{([^}]+)\}/g;
       let last = 0, match;
       const seenRefs = new Set();
       while ((match = regex.exec(t)) !== null) {
         const before = t.slice(last, match.index);
-        if (match.index > last) parts.push({ type:"text", value:before });
-        const ing = ingredients.find((i) => i.id === match[1]);
+        if (match.index > last) addDirectionTextParts(parts, before, ingredientList, scale, metric);
+        const ing = ingredientList.find((i) => i.id === match[1]);
         if (ing) {
           const renderedBefore = parts.map((p) => p.value || "").join("");
           const replacement = directionIngredientReplacement(renderedBefore, ing, seenRefs, scale, metric);
@@ -1047,7 +1078,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         }
         last = regex.lastIndex;
       }
-      if (last < t.length) parts.push({ type:"text", value:t.slice(last) });
+      if (last < t.length) addDirectionTextParts(parts, t.slice(last), ingredientList, scale, metric);
       return (
         <span>
           {parts.map((p, i) => p.type === "chip"
@@ -1348,20 +1379,17 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const color = cardColor(recipe.title);
       const cardImage = recipe.heroImage || "";
       const hasImage = cardImage && cardImage.length > 0;
-      const longPressRef = useRef(null);
-      const longPressedRef = useRef(false);
-      const touchStartRef = useRef(null);
+      const pressRef = useRef({ timer:null, startX:0, startY:0, pointerId:null, opened:false });
       function clearLongPress() {
-        if (longPressRef.current) clearTimeout(longPressRef.current);
-        longPressRef.current = null;
+        if (pressRef.current.timer) clearTimeout(pressRef.current.timer);
+        pressRef.current.timer = null;
       }
       function openActionAt(point) {
         if (!onAction) return;
         clearLongPress();
-        longPressedRef.current = true;
+        pressRef.current.opened = true;
         onAction(recipe, { x:point.x || 24, y:point.y || 120 });
         try { if (navigator.vibrate) navigator.vibrate(12); } catch {}
-        setTimeout(() => { longPressedRef.current = false; }, 450);
       }
       function openActions(e) {
         if (!onAction) return;
@@ -1370,54 +1398,46 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         openActionAt({ x:e.clientX || 24, y:e.clientY || 120 });
       }
       function startLongPress(e) {
-        if (!onAction || e.pointerType === "mouse" || e.pointerType === "touch") return;
+        if (!onAction) return;
+        if (e.button != null && e.button !== 0) return;
+        if (e.isPrimary === false) return;
         clearLongPress();
         const x = e.clientX || 24, y = e.clientY || 120;
-        longPressRef.current = setTimeout(() => openActionAt({ x, y }), 520);
+        pressRef.current = { timer:null, startX:x, startY:y, pointerId:e.pointerId, opened:false };
+        try { e.currentTarget.setPointerCapture && e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+        pressRef.current.timer = setTimeout(() => openActionAt({ x, y }), 520);
       }
-      function startTouchLongPress(e) {
-        if (!onAction) return;
-        const touch = e.touches && e.touches[0];
-        if (!touch) return;
-        clearLongPress();
-        const point = { x:touch.clientX || 24, y:touch.clientY || 120 };
-        touchStartRef.current = point;
-        longPressRef.current = setTimeout(() => openActionAt(point), 520);
-      }
-      function moveTouchLongPress(e) {
-        const start = touchStartRef.current;
-        const touch = e.touches && e.touches[0];
-        if (!start || !touch) return;
-        const dx = Math.abs((touch.clientX || 0) - start.x);
-        const dy = Math.abs((touch.clientY || 0) - start.y);
+      function moveLongPress(e) {
+        const p = pressRef.current;
+        if (!p || !p.timer) return;
+        const dx = Math.abs((e.clientX || 0) - p.startX);
+        const dy = Math.abs((e.clientY || 0) - p.startY);
         if (dx > 10 || dy > 10) clearLongPress();
       }
-      function endTouchLongPress(e) {
-        if (longPressedRef.current) {
+      function endLongPress(e) {
+        const opened = !!pressRef.current.opened;
+        if (opened) {
           e.preventDefault();
           e.stopPropagation();
         }
         clearLongPress();
-        touchStartRef.current = null;
+        try { e.currentTarget.releasePointerCapture && e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
       }
       return (
         <div
-          onClick={(e) => { if (longPressedRef.current) { e.preventDefault(); e.stopPropagation(); return; } onClick && onClick(e); }}
+          onClick={(e) => { if (pressRef.current.opened) { e.preventDefault(); e.stopPropagation(); pressRef.current.opened = false; return; } onClick && onClick(e); }}
           onPointerDown={startLongPress}
-          onPointerUp={clearLongPress}
-          onPointerCancel={clearLongPress}
+          onPointerMove={moveLongPress}
+          onPointerUp={endLongPress}
+          onPointerCancel={endLongPress}
           onPointerLeave={clearLongPress}
-          onTouchStart={startTouchLongPress}
-          onTouchMove={moveTouchLongPress}
-          onTouchEnd={endTouchLongPress}
-          onTouchCancel={endTouchLongPress}
           onContextMenu={openActions}
           className="card"
           role="button"
           tabIndex={0}
           onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && onClick) { e.preventDefault(); onClick(e); } }}
           aria-label={(recipe.title || "Recipe") + ". Open recipe. Long press for actions."}
-          style={{...S.card,overflow:"hidden",WebkitTouchCallout:"none",userSelect:"none",WebkitUserSelect:"none"}}>
+          style={{...S.card,overflow:"hidden",WebkitTouchCallout:"none",userSelect:"none",WebkitUserSelect:"none",touchAction:"manipulation"}}>
           <div style={{height:104,position:"relative",overflow:"hidden",background:hasImage?"#000":`linear-gradient(135deg, ${color}, ${C.brown})`}}>
             {hasImage ? (
               <img src={cardImage} alt={recipe.title} draggable={false}
@@ -1531,7 +1551,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       return (
         <div style={{...S.page,paddingBottom:NAV_CLEARANCE}}>
           {actionMenu && (
-            <div onClick={() => setActionMenu(null)} style={{position:"fixed",inset:0,zIndex:140,background:"rgba(32,20,14,0.16)"}}>
+            <div onClick={() => setActionMenu(null)} style={{position:"fixed",inset:0,zIndex:240,background:"rgba(32,20,14,0.16)"}}>
               <div onClick={(e) => e.stopPropagation()} role="menu" aria-label="Recipe actions"
                 style={{position:"fixed",left:Math.max(12, actionMenu.x),top:Math.max(12, actionMenu.y),width:214,background:C.paper,border:"1px solid "+C.border,borderRadius:14,boxShadow:"0 18px 46px rgba(32,20,14,0.24)",padding:7}}>
                 <div style={{padding:"8px 10px 9px",borderBottom:"1px solid "+C.border,marginBottom:4}}>
@@ -1668,17 +1688,39 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                       {recentRecipes.map((r) => {
                         const img = r.heroImage || "";
                         return (
-                          <button key={r.id} onClick={(e) => { if (e.currentTarget._recipeLongPressed) { e.preventDefault(); e.currentTarget._recipeLongPressed = false; return; } onOpen(r); }} onContextMenu={(e) => { e.preventDefault(); openActionMenu(r, { x:e.clientX, y:e.clientY }); }}
+                          <button key={r.id} onClick={(e) => { if (e.currentTarget._recipeLongPressed) { e.preventDefault(); e.stopPropagation(); e.currentTarget._recipeLongPressed = false; return; } onOpen(r); }} onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); openActionMenu(r, { x:e.clientX, y:e.clientY }); }}
                             onPointerDown={(e) => {
-                              if (e.pointerType === "mouse") return;
+                              if (e.button != null && e.button !== 0) return;
+                              if (e.isPrimary === false) return;
                               const x = e.clientX || 24, y = e.clientY || 120;
                               const target = e.currentTarget;
-                              const timer = setTimeout(() => { target._recipeLongPressed = true; openActionMenu(r, { x, y }); }, 520);
-                              e.currentTarget._recipeLongPress = timer;
+                              if (target._recipeLongPress) clearTimeout(target._recipeLongPress);
+                              target._recipePointerStart = { x, y };
+                              try { target.setPointerCapture && target.setPointerCapture(e.pointerId); } catch {}
+                              target._recipeLongPress = setTimeout(() => { target._recipeLongPressed = true; openActionMenu(r, { x, y }); }, 520);
                             }}
-                            onPointerUp={(e) => { if (e.currentTarget._recipeLongPress) clearTimeout(e.currentTarget._recipeLongPress); }}
-                            onPointerCancel={(e) => { if (e.currentTarget._recipeLongPress) clearTimeout(e.currentTarget._recipeLongPress); }}
-                            style={{flexShrink:0,width:150,textAlign:"left",border:"1px solid "+C.border,background:C.paper,borderRadius:14,overflow:"hidden",cursor:"pointer",fontFamily:SANS,padding:0,boxShadow:"0 6px 16px rgba(90,56,39,0.08)",WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>
+                            onPointerMove={(e) => {
+                              const start = e.currentTarget._recipePointerStart;
+                              if (!start || !e.currentTarget._recipeLongPress) return;
+                              if (Math.abs((e.clientX || 0) - start.x) > 10 || Math.abs((e.clientY || 0) - start.y) > 10) {
+                                clearTimeout(e.currentTarget._recipeLongPress);
+                                e.currentTarget._recipeLongPress = null;
+                              }
+                            }}
+                            onPointerUp={(e) => {
+                              if (e.currentTarget._recipeLongPress) clearTimeout(e.currentTarget._recipeLongPress);
+                              e.currentTarget._recipeLongPress = null;
+                              e.currentTarget._recipePointerStart = null;
+                              try { e.currentTarget.releasePointerCapture && e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+                              if (e.currentTarget._recipeLongPressed) { e.preventDefault(); e.stopPropagation(); }
+                            }}
+                            onPointerCancel={(e) => {
+                              if (e.currentTarget._recipeLongPress) clearTimeout(e.currentTarget._recipeLongPress);
+                              e.currentTarget._recipeLongPress = null;
+                              e.currentTarget._recipePointerStart = null;
+                              try { e.currentTarget.releasePointerCapture && e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+                            }}
+                            style={{flexShrink:0,width:150,textAlign:"left",border:"1px solid "+C.border,background:C.paper,borderRadius:14,overflow:"hidden",cursor:"pointer",fontFamily:SANS,padding:0,boxShadow:"0 6px 16px rgba(90,56,39,0.08)",WebkitTapHighlightColor:"transparent",touchAction:"manipulation",WebkitTouchCallout:"none",userSelect:"none",WebkitUserSelect:"none"}}>
                             <div style={{height:92,position:"relative",overflow:"hidden",background:img?"#000":`linear-gradient(135deg, ${cardColor(r.title)}, ${C.brown})`}}>
                               {img
                                 ? <img src={img} alt="" style={{width:"100%",height:"100%",objectFit:"cover",opacity:0.85}} onError={(e)=>{e.target.style.display="none";}} />

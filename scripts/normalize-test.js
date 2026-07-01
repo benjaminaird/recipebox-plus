@@ -141,6 +141,37 @@ const butterConsume = N.trailingMeasureLength(butterPrefix, "1 cup");
 assert.strictEqual(butterPrefix.slice(0, -butterConsume) + "[1 cup salted butter]", "Cream together [1 cup salted butter]", "visible quantity is absorbed into the full phrase chip");
 assert.strictEqual(N.trailingMeasureLength("Mix in ", "1 tsp"), 0, "no visible quantity means the full chip can be inserted normally");
 
+const genericChipParts = N.directionChipParts(
+  "Cream together the 1 cup butter and 1 cup sugar until light and fluffy.",
+  ["1 cup salted butter", "1 cup butter", "1 cup granulated sugar", "1 cup sugar"]
+);
+assert.deepStrictEqual(
+  genericChipParts.filter((p) => p.type === "chip").map((p) => p.value),
+  ["1 cup butter", "1 cup sugar"],
+  "existing generic quantity+ingredient phrases become chips"
+);
+assert.strictEqual(
+  genericChipParts.map((p) => p.type === "chip" ? "[" + p.value + "]" : p.value).join(""),
+  "Cream together the [1 cup butter] and [1 cup sugar] until light and fluffy.",
+  "generic direction chips wrap the full visible phrase"
+);
+const fullChipParts = N.directionChipParts(
+  "Cream together 1 cup salted butter and 1 cup granulated sugar until light and fluffy.",
+  ["1 cup salted butter", "1 cup granulated sugar"]
+);
+assert.deepStrictEqual(
+  fullChipParts.filter((p) => p.type === "chip").map((p) => p.value),
+  ["1 cup salted butter", "1 cup granulated sugar"],
+  "existing full quantity+ingredient phrases become chips"
+);
+const renderedFullChips = fullChipParts.map((p) => p.type === "chip" ? "[" + p.value + "]" : p.value).join("");
+assert.strictEqual(
+  renderedFullChips,
+  "Cream together [1 cup salted butter] and [1 cup granulated sugar] until light and fluffy.",
+  "full direction chips wrap the whole phrase"
+);
+assert.ok(!/1 cup\s+1 cup/i.test(renderedFullChips), "direction chip output never duplicates the visible quantity");
+
 // ── Duplicate detection: ROW vs ROW only, never vs directions ──
 const noDup = N.duplicateIngredientRows({
   sections: [{ ingredients: [{ amount: "400", unit: "g", name: "raspberries" }], steps: [{ text: "Add 400 g raspberries." }] }],
