@@ -136,6 +136,10 @@ assert.strictEqual(N.localizeText("Whisk the corn flour and water together.", "u
 assert.strictEqual(N.precedingMeasureMatches("Cream together 1 cup", "1 cup"), true, "visible quantity before an ingredient ref is detected");
 assert.strictEqual(N.precedingMeasureMatches("Cream together 1 cup", "1 cups"), true, "singular/plural cup wording matches");
 assert.strictEqual(N.precedingMeasureMatches("Cream together butter", "1 cup"), false, "bare ingredient mention should still render the full quantity chip");
+const butterPrefix = "Cream together 1 cup ";
+const butterConsume = N.trailingMeasureLength(butterPrefix, "1 cup");
+assert.strictEqual(butterPrefix.slice(0, -butterConsume) + "[1 cup salted butter]", "Cream together [1 cup salted butter]", "visible quantity is absorbed into the full phrase chip");
+assert.strictEqual(N.trailingMeasureLength("Mix in ", "1 tsp"), 0, "no visible quantity means the full chip can be inserted normally");
 
 // ── Duplicate detection: ROW vs ROW only, never vs directions ──
 const noDup = N.duplicateIngredientRows({

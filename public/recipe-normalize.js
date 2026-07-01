@@ -343,6 +343,25 @@
     return !!measure && before.endsWith(measure);
   }
 
+  function trailingMeasureLength(textBefore, measureText) {
+    var raw = String(textBefore || "");
+    var measure = String(measureText || "").trim();
+    if (!measure) return 0;
+    var variants = [measure];
+    variants.push(measure.replace(/\bcup\b/i, "cups"));
+    variants.push(measure.replace(/\bcups\b/i, "cup"));
+    variants.push(measure.replace(/\btablespoons?\b/i, "Tbsp"));
+    variants.push(measure.replace(/\bteaspoons?\b/i, "tsp"));
+    for (var i = 0; i < variants.length; i++) {
+      var variant = String(variants[i] || "").trim();
+      if (!variant) continue;
+      var re = new RegExp("(?:^|\\s)(" + escapeRe(variant).replace(/\s+/g, "\\s+") + ")\\s*$", "i");
+      var match = raw.match(re);
+      if (match) return match[1].length + (match[0].length - match[0].trimEnd().length);
+    }
+    return 0;
+  }
+
   // ---- Import quality audit (deterministic) ----
   // Flags issues for the review banner / to decide whether minimal AI cleanup is
   // warranted. Never changes the recipe.
@@ -601,6 +620,7 @@
     localizeIngredientName: localizeIngredientName,
     localizeText: localizeText,
     precedingMeasureMatches: precedingMeasureMatches,
+    trailingMeasureLength: trailingMeasureLength,
     auditRecipe: auditRecipe,
     duplicateIngredientRows: duplicateIngredientRows,
     qualityScore: qualityScore,

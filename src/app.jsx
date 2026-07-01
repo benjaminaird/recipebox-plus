@@ -13,7 +13,7 @@
     const BRAND_HEADER = C.green;
     const SERIF = "'DM Serif Display', serif";
     const SANS = "'DM Sans', sans-serif";
-    const APP_VERSION = "1.1.0";
+    const APP_VERSION = "1.1.1";
     const DEFAULT_AI_MODEL = "claude-sonnet-5";
     const API_BASE = String((window.RECIPEBOX_CONFIG && window.RECIPEBOX_CONFIG.apiBase) || window.RECIPEBOX_API_BASE || "").replace(/\/$/, "");
     function apiUrl(url) {
@@ -872,7 +872,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     }
     function displayIngredientText(ing, scale=1, metric=false) {
       const measure = displayIngredientMeasure(ing, scale, metric);
-      return ((measure.amount || "") + (measure.unit ? " " + measure.unit : "") + " " + (ing.name || "")).trim();
+      return ((displayAmount(measure.amount) || "") + (measure.unit ? " " + measure.unit : "") + " " + (ing.name || "")).trim();
     }
     function displayIngredientMeasureText(ing, scale=1, metric=false) {
       const measure = displayIngredientMeasure(ing, scale, metric);
@@ -896,12 +896,30 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       if (!m) return false;
       return before.endsWith(m);
     }
+    function trailingMeasureLength(textBefore, ing, scale=1, metric=false) {
+      const measure = displayIngredientMeasureText(ing, scale, metric);
+      if (!measure) return 0;
+      if (RecipeBoxNormalize.trailingMeasureLength) return RecipeBoxNormalize.trailingMeasureLength(textBefore, measure);
+      const variants = new Set([measure]);
+      variants.add(measure.replace(/\bcup\b/i, "cups"));
+      variants.add(measure.replace(/\bcups\b/i, "cup"));
+      variants.add(measure.replace(/\btablespoon\b/i, "Tbsp"));
+      variants.add(measure.replace(/\bteaspoon\b/i, "tsp"));
+      for (const variant of variants) {
+        if (!String(variant || "").trim()) continue;
+        const re = new RegExp("(?:^|\\s)(" + escapeRegExp(variant).replace(/\s+/g, "\\s+") + ")\\s*$", "i");
+        const match = String(textBefore || "").match(re);
+        if (match) return match[1].length + (match[0].length - match[0].trimEnd().length);
+      }
+      return 0;
+    }
     function directionIngredientReplacement(textBefore, ing, seenRefs, scale=1, metric=false) {
       const id = ing && ing.id;
-      if (id && seenRefs.has(id)) return { value:ing.name || "", chip:false };
+      if (id && seenRefs.has(id)) return { value:ing.name || "", chip:false, consumeBefore:0 };
       if (id) seenRefs.add(id);
-      if (precedingMeasureMatches(textBefore, ing, scale, metric)) return { value:ing.name || "", chip:true };
-      return { value:displayIngredientText(ing, scale, metric), chip:true };
+      const consumeBefore = trailingMeasureLength(textBefore, ing, scale, metric);
+      if (consumeBefore || precedingMeasureMatches(textBefore, ing, scale, metric)) return { value:displayIngredientText(ing, scale, metric), chip:true, consumeBefore };
+      return { value:displayIngredientText(ing, scale, metric), chip:true, consumeBefore:0 };
     }
     function plainStepText(text, ingredients, scale=1, metric=false) {
       const list = ingredients || [];
@@ -918,7 +936,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         out += before;
         const ing = list.find((item) => item.id === match[1]);
         if (ing) {
-          out += directionIngredientReplacement(out, ing, seenRefs, scale, metric).value;
+          const replacement = directionIngredientReplacement(out, ing, seenRefs, scale, metric);
+          if (replacement.consumeBefore) out = out.slice(0, Math.max(0, out.length - replacement.consumeBefore));
+          out += replacement.value;
           const duplicateLen = duplicateIngredientNameLength(String(text || "").slice(regex.lastIndex), ing.name);
           if (duplicateLen) regex.lastIndex += duplicateLen;
         } else {
@@ -1013,6 +1033,14 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         if (ing) {
           const renderedBefore = parts.map((p) => p.value || "").join("");
           const replacement = directionIngredientReplacement(renderedBefore, ing, seenRefs, scale, metric);
+          if (replacement.consumeBefore) {
+            let remaining = replacement.consumeBefore;
+            for (let i = parts.length - 1; i >= 0 && remaining > 0; i--) {
+              const take = Math.min(remaining, String(parts[i].value || "").length);
+              parts[i] = { ...parts[i], value:String(parts[i].value || "").slice(0, -take) };
+              remaining -= take;
+            }
+          }
           parts.push({ type:replacement.chip ? "chip" : "text", value:replacement.value });
           const duplicateLen = duplicateIngredientNameLength(t.slice(regex.lastIndex), ing.name);
           if (duplicateLen) regex.lastIndex += duplicateLen;
@@ -1322,27 +1350,55 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const hasImage = cardImage && cardImage.length > 0;
       const longPressRef = useRef(null);
       const longPressedRef = useRef(false);
+      const touchStartRef = useRef(null);
       function clearLongPress() {
         if (longPressRef.current) clearTimeout(longPressRef.current);
         longPressRef.current = null;
+      }
+      function openActionAt(point) {
+        if (!onAction) return;
+        clearLongPress();
+        longPressedRef.current = true;
+        onAction(recipe, { x:point.x || 24, y:point.y || 120 });
+        try { if (navigator.vibrate) navigator.vibrate(12); } catch {}
+        setTimeout(() => { longPressedRef.current = false; }, 450);
       }
       function openActions(e) {
         if (!onAction) return;
         e.preventDefault();
         e.stopPropagation();
-        clearLongPress();
-        longPressedRef.current = true;
-        onAction(recipe, { x:e.clientX || 24, y:e.clientY || 120 });
-        setTimeout(() => { longPressedRef.current = false; }, 350);
+        openActionAt({ x:e.clientX || 24, y:e.clientY || 120 });
       }
       function startLongPress(e) {
-        if (!onAction || e.pointerType === "mouse") return;
+        if (!onAction || e.pointerType === "mouse" || e.pointerType === "touch") return;
         clearLongPress();
         const x = e.clientX || 24, y = e.clientY || 120;
-        longPressRef.current = setTimeout(() => {
-          longPressedRef.current = true;
-          onAction(recipe, { x, y });
-        }, 520);
+        longPressRef.current = setTimeout(() => openActionAt({ x, y }), 520);
+      }
+      function startTouchLongPress(e) {
+        if (!onAction) return;
+        const touch = e.touches && e.touches[0];
+        if (!touch) return;
+        clearLongPress();
+        const point = { x:touch.clientX || 24, y:touch.clientY || 120 };
+        touchStartRef.current = point;
+        longPressRef.current = setTimeout(() => openActionAt(point), 520);
+      }
+      function moveTouchLongPress(e) {
+        const start = touchStartRef.current;
+        const touch = e.touches && e.touches[0];
+        if (!start || !touch) return;
+        const dx = Math.abs((touch.clientX || 0) - start.x);
+        const dy = Math.abs((touch.clientY || 0) - start.y);
+        if (dx > 10 || dy > 10) clearLongPress();
+      }
+      function endTouchLongPress(e) {
+        if (longPressedRef.current) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        clearLongPress();
+        touchStartRef.current = null;
       }
       return (
         <div
@@ -1351,16 +1407,20 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           onPointerUp={clearLongPress}
           onPointerCancel={clearLongPress}
           onPointerLeave={clearLongPress}
+          onTouchStart={startTouchLongPress}
+          onTouchMove={moveTouchLongPress}
+          onTouchEnd={endTouchLongPress}
+          onTouchCancel={endTouchLongPress}
           onContextMenu={openActions}
           className="card"
           role="button"
           tabIndex={0}
           onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && onClick) { e.preventDefault(); onClick(e); } }}
           aria-label={(recipe.title || "Recipe") + ". Open recipe. Long press for actions."}
-          style={{...S.card,overflow:"hidden"}}>
+          style={{...S.card,overflow:"hidden",WebkitTouchCallout:"none",userSelect:"none",WebkitUserSelect:"none"}}>
           <div style={{height:104,position:"relative",overflow:"hidden",background:hasImage?"#000":`linear-gradient(135deg, ${color}, ${C.brown})`}}>
             {hasImage ? (
-              <img src={cardImage} alt={recipe.title}
+              <img src={cardImage} alt={recipe.title} draggable={false}
                 style={{width:"100%",height:"100%",objectFit:"cover",opacity:recipe.heroImage?0.85:0.72}}
                 onError={(e) => { e.target.style.display="none"; e.target.parentNode.style.background=`linear-gradient(135deg, ${color}, ${color}BB)`; }} />
             ) : (
@@ -1471,7 +1531,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       return (
         <div style={{...S.page,paddingBottom:NAV_CLEARANCE}}>
           {actionMenu && (
-            <div onClick={() => setActionMenu(null)} style={{position:"fixed",inset:0,zIndex:90,background:"rgba(32,20,14,0.16)"}}>
+            <div onClick={() => setActionMenu(null)} style={{position:"fixed",inset:0,zIndex:140,background:"rgba(32,20,14,0.16)"}}>
               <div onClick={(e) => e.stopPropagation()} role="menu" aria-label="Recipe actions"
                 style={{position:"fixed",left:Math.max(12, actionMenu.x),top:Math.max(12, actionMenu.y),width:214,background:C.paper,border:"1px solid "+C.border,borderRadius:14,boxShadow:"0 18px 46px rgba(32,20,14,0.24)",padding:7}}>
                 <div style={{padding:"8px 10px 9px",borderBottom:"1px solid "+C.border,marginBottom:4}}>
