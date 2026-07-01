@@ -31,7 +31,7 @@ const ROOT = __dirname;
 // Model + pricing are overridable so we can A/B Haiku vs Sonnet vs Opus on the
 // SAME pipeline. Pricing is per-Mtok USD and only affects cost reporting / the
 // budget guard; actual spend is whatever Anthropic bills for the usage returned.
-const MODEL = (process.argv.find(a => a.startsWith('--model=')) || '').split('=')[1] || 'claude-sonnet-4-5-20250929';
+const MODEL = (process.argv.find(a => a.startsWith('--model=')) || '').split('=')[1] || 'claude-sonnet-5';
 const PRICE_IN = (Number((process.argv.find(a => a.startsWith('--price-in=')) || '').split('=')[1]) || 3) / 1e6;
 const PRICE_OUT = (Number((process.argv.find(a => a.startsWith('--price-out=')) || '').split('=')[1]) || 15) / 1e6;
 const OUT_TAG = (process.argv.find(a => a.startsWith('--out=')) || '').split('=')[1] || '';

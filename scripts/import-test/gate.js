@@ -49,7 +49,7 @@ if (process.argv.includes('--save')) {
       titleMatch: x.expectation ? !!x.expectation.titleMatch : null,
     };
   }
-  fs.writeFileSync(BASELINE, JSON.stringify({ generated: new Date().toISOString(), model: 'claude-sonnet-4-5-20250929', tolerance: 0.10, note: 'Per-test accuracy floor for the import pipeline. Regenerate with: node gate.js --save <tag>', tests }, null, 2));
+  fs.writeFileSync(BASELINE, JSON.stringify({ generated: new Date().toISOString(), model: 'claude-sonnet-5', tolerance: 0.10, note: 'Per-test accuracy floor for the import pipeline. Regenerate with: node gate.js --save <tag>', tests }, null, 2));
   console.log('baseline.json written from ' + tag + ' (' + Object.keys(tests).length + ' tests)');
   process.exit(0);
 }

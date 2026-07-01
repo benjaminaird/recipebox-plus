@@ -14,6 +14,7 @@
     const SERIF = "'DM Serif Display', serif";
     const SANS = "'DM Sans', sans-serif";
     const APP_VERSION = "1.1.0";
+    const DEFAULT_AI_MODEL = "claude-sonnet-5";
     const API_BASE = String((window.RECIPEBOX_CONFIG && window.RECIPEBOX_CONFIG.apiBase) || window.RECIPEBOX_API_BASE || "").replace(/\/$/, "");
     function apiUrl(url) {
       if (!url || !String(url).startsWith("/api/")) return url;
@@ -678,7 +679,7 @@ function downloadJson(filename, data) {
         throw new Error("You're offline. Reconnect to use RecipeBox AI — your saved recipes are still available.");
       }
       const requested = maxTokens || 2000;
-      const body = { model: "claude-sonnet-4-5-20250929", max_tokens: requested, messages };
+      const body = { model: DEFAULT_AI_MODEL, max_tokens: requested, messages };
       if (system) body.system = system;
       if (typeof temperature === "number") body.temperature = temperature;
       const res = await apiFetch("/api/ai", {
@@ -873,6 +874,35 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const measure = displayIngredientMeasure(ing, scale, metric);
       return ((measure.amount || "") + (measure.unit ? " " + measure.unit : "") + " " + (ing.name || "")).trim();
     }
+    function displayIngredientMeasureText(ing, scale=1, metric=false) {
+      const measure = displayIngredientMeasure(ing, scale, metric);
+      return ((displayAmount(measure.amount) || "") + (measure.unit ? " " + measure.unit : "")).trim();
+    }
+    function normalizeStepCompare(value) {
+      return String(value || "")
+        .toLowerCase()
+        .replace(/[¼]/g, "1/4").replace(/[½]/g, "1/2").replace(/[¾]/g, "3/4")
+        .replace(/tablespoons?/g, "tbsp").replace(/teaspoons?/g, "tsp")
+        .replace(/\bcups?\b/g, "cup")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+    function precedingMeasureMatches(textBefore, ing, scale=1, metric=false) {
+      const measure = displayIngredientMeasureText(ing, scale, metric);
+      if (!measure) return false;
+      if (RecipeBoxNormalize.precedingMeasureMatches) return RecipeBoxNormalize.precedingMeasureMatches(textBefore, measure);
+      const before = normalizeStepCompare(textBefore).replace(/[.,;:()]+$/g, "").trim();
+      const m = normalizeStepCompare(measure);
+      if (!m) return false;
+      return before.endsWith(m);
+    }
+    function directionIngredientReplacement(textBefore, ing, seenRefs, scale=1, metric=false) {
+      const id = ing && ing.id;
+      if (id && seenRefs.has(id)) return { value:ing.name || "", chip:false };
+      if (id) seenRefs.add(id);
+      if (precedingMeasureMatches(textBefore, ing, scale, metric)) return { value:ing.name || "", chip:true };
+      return { value:displayIngredientText(ing, scale, metric), chip:true };
+    }
     function plainStepText(text, ingredients, scale=1, metric=false) {
       const list = ingredients || [];
       // Same display-time localization as StepText (temps + weights/volumes +
@@ -882,11 +912,13 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       let out = "";
       let last = 0;
       let match;
+      const seenRefs = new Set();
       while ((match = regex.exec(String(text || ""))) !== null) {
-        out += String(text || "").slice(last, match.index);
+        const before = String(text || "").slice(last, match.index);
+        out += before;
         const ing = list.find((item) => item.id === match[1]);
         if (ing) {
-          out += displayIngredientText(ing, scale, metric);
+          out += directionIngredientReplacement(out, ing, seenRefs, scale, metric).value;
           const duplicateLen = duplicateIngredientNameLength(String(text || "").slice(regex.lastIndex), ing.name);
           if (duplicateLen) regex.lastIndex += duplicateLen;
         } else {
@@ -973,11 +1005,15 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const parts = [];
       const regex = /\{([^}]+)\}/g;
       let last = 0, match;
+      const seenRefs = new Set();
       while ((match = regex.exec(t)) !== null) {
-        if (match.index > last) parts.push({ type:"text", value:t.slice(last, match.index) });
+        const before = t.slice(last, match.index);
+        if (match.index > last) parts.push({ type:"text", value:before });
         const ing = ingredients.find((i) => i.id === match[1]);
         if (ing) {
-          parts.push({ type:"chip", value:displayIngredientText(ing, scale, metric) });
+          const renderedBefore = parts.map((p) => p.value || "").join("");
+          const replacement = directionIngredientReplacement(renderedBefore, ing, seenRefs, scale, metric);
+          parts.push({ type:replacement.chip ? "chip" : "text", value:replacement.value });
           const duplicateLen = duplicateIngredientNameLength(t.slice(regex.lastIndex), ing.name);
           if (duplicateLen) regex.lastIndex += duplicateLen;
         }
@@ -1013,6 +1049,139 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             : <span key={i}>{part.value}</span>)}
         </span>
       );
+    }
+
+    function recipeExportSections(recipe, metric=false) {
+      const sections = Array.isArray(recipe?.sections) ? recipe.sections : [];
+      const locName = (n) => RecipeBoxNormalize.localizeIngredientName(n || "", metric ? "metric" : "us");
+      return sections.map((sec) => ({
+        name: sec.name || sec.title || "Main",
+        ingredients: Array.isArray(sec.ingredients)
+          ? sec.ingredients.map((ing) => typeof ing === "object" ? { ...ing, name:locName(ing.name) } : { amount:"", unit:"", name:locName(String(ing)) })
+          : [],
+        steps: Array.isArray(sec.steps)
+          ? sec.steps.map((step) => typeof step === "object" && step.text ? step : { text:String(step) })
+          : []
+      }));
+    }
+    function recipeFileBaseName(recipe) {
+      return (String(recipe?.title || "recipe").replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-") || "recipe");
+    }
+    function buildRecipeShareTextForRecipe(recipe, opts = {}) {
+      const scale = opts.scale || 1;
+      const metric = !!opts.metric;
+      const sections = recipeExportSections(recipe, metric);
+      const lines = [];
+      lines.push(recipe.title || "Recipe");
+      const meta = [recipe.category, Math.round((Number(recipe.servings) || 4) * scale) + " servings", recipe.totalTime ? "Total " + recipe.totalTime : (recipe.cookTime ? "Cook " + recipe.cookTime : "")].filter(Boolean);
+      if (meta.length) lines.push(meta.join(" · "));
+      if (recipe.description) lines.push("", recipe.description);
+      sections.forEach((sec) => {
+        lines.push("");
+        if (sections.length > 1 && (sec.name || "").trim()) lines.push(sec.name.toUpperCase());
+        lines.push("INGREDIENTS");
+        RecipeBoxShopping.groupCompoundIngredients(sec.ingredients || []).forEach((grp) => lines.push("• " + compoundIngredientLine(grp, scale, metric)));
+        lines.push("", "DIRECTIONS");
+        (sec.steps || []).forEach((step, i) => lines.push((i + 1) + ". " + plainStepText(step.text, sec.ingredients, scale, metric)));
+      });
+      if (recipe.notes && String(recipe.notes).trim()) lines.push("", "NOTES", String(recipe.notes).trim());
+      lines.push("", "Shared from RecipeBox");
+      return lines.join("\n");
+    }
+    function buildRecipeDocForRecipe(recipe, opts = {}) {
+      if (!window.jspdf) { alert("PDF library loading. Try again."); return null; }
+      const scale = opts.scale || 1;
+      const metric = !!opts.metric;
+      const sections = recipeExportSections(recipe, metric);
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const margin = 16;
+      let y = 20;
+      const rgb = (hex) => {
+        const value = hex.replace("#", "");
+        return [parseInt(value.slice(0, 2), 16), parseInt(value.slice(2, 4), 16), parseInt(value.slice(4, 6), 16)];
+      };
+      const setText = (hex) => doc.setTextColor(...rgb(hex));
+      const ensure = (space = 14) => { if (y + space > pageH - 18) { doc.addPage(); y = 18; } };
+      const writeWrapped = (text, x, width, lineHeight = 5) => {
+        doc.splitTextToSize(String(text || ""), width).forEach((line) => {
+          ensure(lineHeight + 2);
+          doc.text(line, x, y);
+          y += lineHeight;
+        });
+      };
+      doc.setFillColor(...rgb(C.green)); doc.rect(0, 0, pageW, 34, "F");
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10); setText(C.goldLight); doc.text("RecipeBox", margin, 13);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(21); setText(C.white); writeWrapped(recipe.title || "Recipe", margin, pageW - margin * 2, 8);
+      y = Math.max(y + 4, 43);
+      const chips = [recipe.category, Math.round((recipe.servings || 4) * scale) + " servings", recipe.prepTime && "Prep " + recipe.prepTime, recipe.cookTime && "Cook " + recipe.cookTime, recipe.totalTime && "Total " + recipe.totalTime, recipe.rating > 0 && recipe.rating + "/5 stars"].filter(Boolean);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9); setText(C.brown);
+      let chipX = margin;
+      chips.forEach((chip) => {
+        const w = doc.getTextWidth(chip) + 8;
+        if (chipX + w > pageW - margin) { chipX = margin; y += 8; }
+        doc.setFillColor(...rgb(C.goldPale)); doc.roundedRect(chipX, y - 5, w, 7, 2, 2, "F");
+        doc.text(chip, chipX + 4, y);
+        chipX += w + 4;
+      });
+      y += chips.length ? 14 : 2;
+      if (recipe.description) { doc.setFont("helvetica", "normal"); doc.setFontSize(10); setText(C.mid); writeWrapped(recipe.description, margin, pageW - margin * 2, 5); y += 4; }
+      sections.forEach((sec) => {
+        ensure(18);
+        if (sections.length > 1) { doc.setFontSize(13); doc.setFont("helvetica", "bold"); setText(C.green); doc.text(sec.name || "Main", margin, y); y += 8; }
+        doc.setFontSize(13); doc.setFont("helvetica","bold"); setText(C.dark); doc.text("Ingredients", margin, y); y += 7;
+        RecipeBoxShopping.groupCompoundIngredients(sec.ingredients || []).forEach((grp) => {
+          doc.setFontSize(10); doc.setFont("helvetica","normal"); setText(C.mid);
+          writeWrapped("- " + compoundIngredientLine(grp, scale, metric), margin + 4, pageW - margin * 2 - 4, 5);
+        });
+        y += 4; doc.setFontSize(13); doc.setFont("helvetica","bold"); setText(C.dark); doc.text("Directions", margin, y); y += 7;
+        (sec.steps || []).forEach((step, idx) => {
+          doc.setFontSize(10); doc.setFont("helvetica","normal"); setText(C.mid);
+          writeWrapped((idx + 1) + ". " + plainStepText(step.text, sec.ingredients, scale, metric), margin, pageW - margin * 2, 5); y += 2;
+        });
+        y += 8;
+      });
+      if (recipe.notes && String(recipe.notes).trim()) {
+        ensure(18); doc.setFontSize(13); doc.setFont("helvetica", "bold"); setText(C.dark); doc.text("Notes", margin, y); y += 7;
+        doc.setFontSize(10); doc.setFont("helvetica", "normal"); setText(C.mid); writeWrapped(String(recipe.notes), margin, pageW - margin * 2, 5); y += 6;
+      }
+      const pages = doc.getNumberOfPages();
+      const attribution = recipe.sourceUrl ? ("Imported from " + String(recipe.sourceUrl).replace(/^https?:\/\//, "").slice(0, 70)) : "Saved with RecipeBox for personal use";
+      for (let p = 1; p <= pages; p++) {
+        doc.setPage(p); doc.setDrawColor(...rgb(C.border)); doc.setLineWidth(0.2); doc.line(margin, pageH - 14, pageW - margin, pageH - 14);
+        doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); setText(C.light);
+        doc.text(attribution + " · original recipe rights remain with their authors", margin, pageH - 9);
+        doc.text("Page " + p + " of " + pages, pageW - margin, pageH - 9, { align:"right" });
+      }
+      return doc;
+    }
+    function exportRecipePDF(recipe, opts = {}) {
+      const doc = buildRecipeDocForRecipe(recipe, opts);
+      if (doc) doc.save(recipeFileBaseName(recipe) + ".pdf");
+    }
+    async function shareRecipeObject(recipe, opts = {}) {
+      const text = buildRecipeShareTextForRecipe(recipe, opts);
+      try {
+        if (typeof navigator !== "undefined" && navigator.canShare) {
+          const doc = buildRecipeDocForRecipe(recipe, opts);
+          if (doc) {
+            const file = new File([doc.output("blob")], recipeFileBaseName(recipe) + ".pdf", { type:"application/pdf" });
+            if (navigator.canShare({ files:[file] })) {
+              await navigator.share({ title:recipe.title || "Recipe", text:(recipe.title || "Recipe") + " — shared from RecipeBox", files:[file] });
+              return;
+            }
+          }
+        }
+        if (typeof navigator !== "undefined" && navigator.share) { await navigator.share({ title:recipe.title || "Recipe", text }); return; }
+        if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(text); alert("Recipe copied to clipboard."); return; }
+        exportRecipePDF(recipe, opts);
+      } catch (e) {
+        if (e && e.name === "AbortError") return;
+        try { if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(text); alert("Recipe copied to clipboard."); return; } } catch (e2) {}
+        exportRecipePDF(recipe, opts);
+      }
     }
 
     async function parseRecipeJsonWithRepair(raw, contextLabel) {
@@ -1147,12 +1316,48 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     }
 
     // Recipe Card
-    function RecipeCard({ recipe, onClick, onFavorite, onTagClick }) {
+    function RecipeCard({ recipe, onClick, onFavorite, onTagClick, onAction }) {
       const color = cardColor(recipe.title);
       const cardImage = recipe.heroImage || "";
       const hasImage = cardImage && cardImage.length > 0;
+      const longPressRef = useRef(null);
+      const longPressedRef = useRef(false);
+      function clearLongPress() {
+        if (longPressRef.current) clearTimeout(longPressRef.current);
+        longPressRef.current = null;
+      }
+      function openActions(e) {
+        if (!onAction) return;
+        e.preventDefault();
+        e.stopPropagation();
+        clearLongPress();
+        longPressedRef.current = true;
+        onAction(recipe, { x:e.clientX || 24, y:e.clientY || 120 });
+        setTimeout(() => { longPressedRef.current = false; }, 350);
+      }
+      function startLongPress(e) {
+        if (!onAction || e.pointerType === "mouse") return;
+        clearLongPress();
+        const x = e.clientX || 24, y = e.clientY || 120;
+        longPressRef.current = setTimeout(() => {
+          longPressedRef.current = true;
+          onAction(recipe, { x, y });
+        }, 520);
+      }
       return (
-        <div onClick={onClick} className="card" style={{...S.card,overflow:"hidden"}}>
+        <div
+          onClick={(e) => { if (longPressedRef.current) { e.preventDefault(); e.stopPropagation(); return; } onClick && onClick(e); }}
+          onPointerDown={startLongPress}
+          onPointerUp={clearLongPress}
+          onPointerCancel={clearLongPress}
+          onPointerLeave={clearLongPress}
+          onContextMenu={openActions}
+          className="card"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && onClick) { e.preventDefault(); onClick(e); } }}
+          aria-label={(recipe.title || "Recipe") + ". Open recipe. Long press for actions."}
+          style={{...S.card,overflow:"hidden"}}>
           <div style={{height:104,position:"relative",overflow:"hidden",background:hasImage?"#000":`linear-gradient(135deg, ${color}, ${C.brown})`}}>
             {hasImage ? (
               <img src={cardImage} alt={recipe.title}
@@ -1163,7 +1368,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             )}
             {recipe.householdShared
               ? <span style={{position:"absolute",top:8,left:8,background:"rgba(32,20,14,0.55)",color:C.white,borderRadius:12,padding:"3px 9px",fontSize:"0.64em",fontWeight:700,display:"inline-flex",alignItems:"center",gap:4,zIndex:2}}><Icon name="sync" size={11} /> {recipe.ownerName || "Shared"}</span>
-              : <button onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(); }}
+                : <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(); }}
                   style={{position:"absolute",top:8,right:8,background:"rgba(32,20,14,0.44)",border:"1px solid rgba(255,255,255,0.18)",borderRadius:"50%",width:32,height:32,cursor:"pointer",fontSize:"0.95em",color:recipe.favorite?C.goldLight:"rgba(255,255,255,0.78)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2}}>
                   <Icon name="favorite" size={17} strokeWidth={recipe.favorite ? 2.5 : 2} />
                 </button>}
@@ -1187,15 +1392,28 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     }
 
     // Library
-    function Library({ recipes, mealPlan, onOpen, onAdd, onFavorite, setTab, tagFilter, onTagFilter, onCreateShoppingList }) {
+    function Library({ recipes, mealPlan, onOpen, onAdd, onFavorite, onShareRecipe, onExportRecipe, onEditRecipe, onDeleteRecipe, setTab, tagFilter, onTagFilter, onCreateShoppingList }) {
       const [search, setSearch] = useState("");
       const [cat, setCat] = useState("All");
       const [filter, setFilter] = useState("all");
       const [showAllCats, setShowAllCats] = useState(false);
       const [selectMode, setSelectMode] = useState(false);
       const [selected, setSelected] = useState([]);
+      const [actionMenu, setActionMenu] = useState(null);
       const toggleSelect = (id) => setSelected((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
       const exitSelect = () => { setSelectMode(false); setSelected([]); };
+      const openActionMenu = (recipe, point) => {
+        if (recipe?.householdShared) {
+          setActionMenu({ recipe, x:Math.min(point.x || 24, window.innerWidth - 230), y:Math.min(point.y || 120, window.innerHeight - 280) });
+          return;
+        }
+        setActionMenu({ recipe, x:Math.min(point.x || 24, window.innerWidth - 230), y:Math.min(point.y || 120, window.innerHeight - 330) });
+      };
+      const runMenuAction = (fn) => {
+        const recipe = actionMenu?.recipe;
+        setActionMenu(null);
+        if (recipe && fn) fn(recipe);
+      };
       const tagKey = (t) => RecipeBoxTags.normalizeTagKey(t);
       const activeTag = tagFilter || "";
       const activeTagKey = tagKey(activeTag);
@@ -1252,6 +1470,28 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
       return (
         <div style={{...S.page,paddingBottom:NAV_CLEARANCE}}>
+          {actionMenu && (
+            <div onClick={() => setActionMenu(null)} style={{position:"fixed",inset:0,zIndex:90,background:"rgba(32,20,14,0.16)"}}>
+              <div onClick={(e) => e.stopPropagation()} role="menu" aria-label="Recipe actions"
+                style={{position:"fixed",left:Math.max(12, actionMenu.x),top:Math.max(12, actionMenu.y),width:214,background:C.paper,border:"1px solid "+C.border,borderRadius:14,boxShadow:"0 18px 46px rgba(32,20,14,0.24)",padding:7}}>
+                <div style={{padding:"8px 10px 9px",borderBottom:"1px solid "+C.border,marginBottom:4}}>
+                  <div style={{fontWeight:900,color:C.dark,fontSize:"0.82em",lineHeight:1.25,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{actionMenu.recipe.title}</div>
+                </div>
+                {[
+                  { label:"Share", icon:"share", action:() => runMenuAction(onShareRecipe) },
+                  { label:"Export to PDF", icon:"pdf", action:() => runMenuAction(onExportRecipe) },
+                  { label:actionMenu.recipe.favorite ? "Unfavorite" : "Favorite", icon:"favorite", action:() => runMenuAction((r) => onFavorite && onFavorite(r.id)), hidden:actionMenu.recipe.householdShared },
+                  { label:"Edit Recipe", icon:"edit", action:() => runMenuAction(onEditRecipe), hidden:actionMenu.recipe.householdShared },
+                  { label:"Delete Recipe", icon:"trash", action:() => runMenuAction(onDeleteRecipe), danger:true, hidden:actionMenu.recipe.householdShared },
+                ].filter((item) => !item.hidden).map((item) => (
+                  <button key={item.label} role="menuitem" onClick={item.action}
+                    style={{width:"100%",display:"flex",alignItems:"center",gap:9,border:"none",background:"transparent",color:item.danger?C.red:C.dark,borderRadius:10,padding:"10px 11px",fontFamily:SANS,fontWeight:800,fontSize:"0.84em",cursor:"pointer",textAlign:"left",WebkitTapHighlightColor:"transparent"}}>
+                    <Icon name={item.icon} size={17} /> {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div style={{...S.brandHeader,padding:safePad(24,20,22)}}>
             <div style={{maxWidth:900,margin:"0 auto"}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:14,marginBottom:18}}>
@@ -1368,7 +1608,16 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                       {recentRecipes.map((r) => {
                         const img = r.heroImage || "";
                         return (
-                          <button key={r.id} onClick={() => onOpen(r)}
+                          <button key={r.id} onClick={(e) => { if (e.currentTarget._recipeLongPressed) { e.preventDefault(); e.currentTarget._recipeLongPressed = false; return; } onOpen(r); }} onContextMenu={(e) => { e.preventDefault(); openActionMenu(r, { x:e.clientX, y:e.clientY }); }}
+                            onPointerDown={(e) => {
+                              if (e.pointerType === "mouse") return;
+                              const x = e.clientX || 24, y = e.clientY || 120;
+                              const target = e.currentTarget;
+                              const timer = setTimeout(() => { target._recipeLongPressed = true; openActionMenu(r, { x, y }); }, 520);
+                              e.currentTarget._recipeLongPress = timer;
+                            }}
+                            onPointerUp={(e) => { if (e.currentTarget._recipeLongPress) clearTimeout(e.currentTarget._recipeLongPress); }}
+                            onPointerCancel={(e) => { if (e.currentTarget._recipeLongPress) clearTimeout(e.currentTarget._recipeLongPress); }}
                             style={{flexShrink:0,width:150,textAlign:"left",border:"1px solid "+C.border,background:C.paper,borderRadius:14,overflow:"hidden",cursor:"pointer",fontFamily:SANS,padding:0,boxShadow:"0 6px 16px rgba(90,56,39,0.08)",WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>
                             <div style={{height:92,position:"relative",overflow:"hidden",background:img?"#000":`linear-gradient(135deg, ${cardColor(r.title)}, ${C.brown})`}}>
                               {img
@@ -1442,7 +1691,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                           </span>
                         </button>
                       </div>
-                    ) : <RecipeCard key={r.id} recipe={r} onClick={() => onOpen(r)} onFavorite={() => onFavorite(r.id)} onTagClick={selectTag} />)}
+                    ) : <RecipeCard key={r.id} recipe={r} onClick={() => onOpen(r)} onFavorite={() => onFavorite(r.id)} onTagClick={selectTag} onAction={openActionMenu} />)}
                   </div>
                 </div>
               </div>
@@ -1460,7 +1709,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   <span style={{fontSize:"0.78em",color:C.light}}>{filtered.length} recipe{filtered.length!==1?"s":""}</span>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(195px, 1fr))",gap:14}}>
-                  {filtered.map((r) => <RecipeCard key={r.id} recipe={r} onClick={() => onOpen(r)} onFavorite={() => onFavorite(r.id)} onTagClick={selectTag} />)}
+                  {filtered.map((r) => <RecipeCard key={r.id} recipe={r} onClick={() => onOpen(r)} onFavorite={() => onFavorite(r.id)} onTagClick={selectTag} onAction={openActionMenu} />)}
                 </div>
               </div>
             )}
@@ -3304,6 +3553,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [showPhotoPrompt, setShowPhotoPrompt] = useState(false);
       const [showCategoryModal, setShowCategoryModal] = useState(false);
       const [pendingRecipe, setPendingRecipe] = useState(null);
+      const [reviewRecipe, setReviewRecipe] = useState(null);
+      const [reviewOptions, setReviewOptions] = useState({});
       const [multiRecipe, setMultiRecipe] = useState(null);
       const fileRef = useRef();
       const heroPromptRef = useRef();
@@ -3321,11 +3572,209 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         setImages(next.filter((item) => item.type === "image").map((item) => item.imageData).filter(Boolean));
       }
 
-      function readyRecipeForSave(recipe, options = {}) {
+      function continueRecipeSave(recipe, options = {}) {
         const enriched = RecipeBoxShopping.enrichRecipeIngredients(recipe);
         setPendingRecipe(enriched);
         if (enriched.heroImage || options.skipPhotoPrompt) setShowCategoryModal(true);
         else setShowPhotoPrompt(true);
+      }
+
+      function importQualityFromScore(score) {
+        const n = Number(score);
+        if (!isFinite(n)) return { key:"needs_review", label:"Needs Review", tone:"review", explanation:"This recipe came from a difficult source. Please review the highlighted fields." };
+        if (n >= 95) return { key:"excellent", label:"Excellent", tone:"verified", explanation:"Recipe imported successfully." };
+        if (n >= 85) return { key:"good", label:"Good", tone:"inferred", explanation:"We imported this recipe, but a few details could not be confidently verified." };
+        return { key:"needs_review", label:"Needs Review", tone:"review", explanation:"This recipe came from a difficult source. Please review the highlighted fields." };
+      }
+
+      function importSourceLabel(kind) {
+        return ({ url:"Web recipe", youtube:"YouTube", social:"Social post", text:"Pasted text", media:"Photo/PDF" })[kind] || "Import";
+      }
+
+      function sourceTextSnippet(sourceText, terms) {
+        const src = String(sourceText || "").replace(/\s+/g, " ").trim();
+        if (!src) return "";
+        const lower = src.toLowerCase();
+        const list = (Array.isArray(terms) ? terms : [terms]).map((t) => String(t || "").toLowerCase().trim()).filter((t) => t.length >= 3);
+        let idx = -1;
+        for (const term of list) {
+          idx = lower.indexOf(term);
+          if (idx >= 0) break;
+        }
+        if (idx < 0) idx = 0;
+        const start = Math.max(0, idx - 140);
+        const end = Math.min(src.length, idx + 260);
+        return (start > 0 ? "... " : "") + src.slice(start, end) + (end < src.length ? " ..." : "");
+      }
+
+      function statusMeta(status) {
+        if (status === "Verified") return { bg:C.greenPale, border:C.green+"33", color:C.green };
+        if (status === "Missing") return { bg:C.cream2, border:C.border, color:C.light };
+        if (status === "Needs Review") return { bg:C.goldPale, border:C.goldLight, color:C.brown };
+        return { bg:C.terraPale, border:C.terra+"55", color:C.terra };
+      }
+
+      function readReviewValue(recipe, field) {
+        if (!recipe || !field) return "";
+        if (field.kind === "recipe") return recipe[field.key] || "";
+        if (field.kind === "ingredient") {
+          const ing = (((recipe.sections || [])[field.sectionIndex] || {}).ingredients || [])[field.itemIndex] || {};
+          return ing[field.key] || "";
+        }
+        if (field.kind === "step") {
+          const st = (((recipe.sections || [])[field.sectionIndex] || {}).steps || [])[field.itemIndex] || {};
+          return typeof st === "string" ? st : (st.text || "");
+        }
+        if (field.kind === "section") {
+          const sec = (recipe.sections || [])[field.sectionIndex] || {};
+          return sec.name || "";
+        }
+        if (field.kind === "nutrition") return (((recipe.macros || {})[field.key]) || "");
+        return "";
+      }
+
+      function writeReviewValue(recipe, field, value) {
+        if (!recipe || !field) return recipe;
+        const next = { ...recipe };
+        if (field.kind === "recipe") {
+          next[field.key] = value;
+        } else if (field.kind === "ingredient") {
+          next.sections = (recipe.sections || []).map((sec, si) => {
+            if (si !== field.sectionIndex) return sec;
+            return { ...sec, ingredients:(sec.ingredients || []).map((ing, ii) => ii === field.itemIndex ? { ...ing, [field.key]: value } : ing) };
+          });
+        } else if (field.kind === "step") {
+          next.sections = (recipe.sections || []).map((sec, si) => {
+            if (si !== field.sectionIndex) return sec;
+            return { ...sec, steps:(sec.steps || []).map((st, ii) => {
+              if (ii !== field.itemIndex) return st;
+              return typeof st === "string" ? { text:value } : { ...st, text:value };
+            }) };
+          });
+        } else if (field.kind === "section") {
+          next.sections = (recipe.sections || []).map((sec, si) => si === field.sectionIndex ? { ...sec, name:value } : sec);
+        } else if (field.kind === "nutrition") {
+          next.macros = { ...(recipe.macros || {}), [field.key]: value };
+        }
+        next.importReview = {
+          ...(recipe.importReview || {}),
+          fields:(recipe.importReview?.fields || []).map((f) => f.id === field.id ? { ...f, value } : f)
+        };
+        return next;
+      }
+
+      function addReviewField(fields, field) {
+        if (!field || fields.some((f) => f.id === field.id)) return;
+        fields.push(field);
+      }
+
+      function buildImportReview(recipe, options = {}) {
+        const sourceText = options.sourceText || "";
+        const grounding = options.grounding || null;
+        const audit = options.audit || (typeof RecipeBoxNormalize !== "undefined" ? RecipeBoxNormalize.auditRecipe(recipe, "us") : null);
+        let score = Number(recipe.importQuality?.score ?? (recipe.importConfidence != null ? Math.round(recipe.importConfidence * 100) : 72));
+        if (recipe.importMethod !== "structured-data") {
+          if ((options.mode || mode) === "media" && !sourceText) score = Math.min(score, 84);
+          else if ((options.mode || mode) === "youtube" || (options.mode || mode) === "social") score = Math.min(score, options.sourceQuality === "high" ? 92 : 84);
+          else if ((options.mode || mode) === "text") score = Math.min(score, 92);
+        }
+        const quality = importQualityFromScore(score);
+        const fields = [];
+        const base = { sourceText: sourceTextSnippet(sourceText, recipe.title), sourceLabel: importSourceLabel(options.mode || mode) };
+        if (!recipe.title) addReviewField(fields, { id:"title", kind:"recipe", key:"title", label:"Recipe title", status:"Missing", message:"This recipe needs a title before saving.", value:"", ...base });
+        if (!recipe.servings) addReviewField(fields, { id:"servings", kind:"recipe", key:"servings", label:"Servings", status:"Inferred", message:"Servings were not clearly stated, so this may be an estimate.", value:recipe.servings || "", sourceText:sourceTextSnippet(sourceText, ["serves", "yield", "servings"]) });
+        if (recipe.importMethod !== "structured-data" && options.mode !== "url") {
+          addReviewField(fields, { id:"source", kind:"recipe", key:"sourceUrl", label:"Source attribution", status:(options.sourceQuality && options.sourceQuality !== "high") ? "Needs Review" : "Inferred", message:"This source is less structured than a normal recipe page, so a quick look is helpful.", value:recipe.sourceUrl || "", sourceText:sourceTextSnippet(sourceText, [recipe.title, "ingredients", "directions"]) });
+        }
+        (recipe.importWarnings || []).slice(0, 3).forEach((warning, i) => {
+          addReviewField(fields, { id:"warning-"+i, kind:"recipe", key:"notes", label:"Import note", status:"Needs Review", message:warning, value:recipe.notes || "", sourceText:sourceTextSnippet(sourceText, warning.replace(/[^a-zA-Z0-9 -]/g, " ").split(/\s+/).filter((w) => w.length > 4).slice(0, 4)) });
+        });
+        if (audit?.flags?.missingQuantities) {
+          addReviewField(fields, { id:"directions-amounts", kind:"step", sectionIndex:0, itemIndex:0, label:"Directions", status:"Needs Review", message:"Some directions may be missing amounts from the ingredient list.", value:readReviewValue(recipe, { kind:"step", sectionIndex:0, itemIndex:0 }), sourceText:sourceTextSnippet(sourceText, ["directions", "instructions", "method"]) });
+        }
+        if (audit?.flags?.duplicateRows) {
+          addReviewField(fields, { id:"ingredient-duplicates", kind:"ingredient", sectionIndex:0, itemIndex:0, key:"name", label:"Ingredient names", status:"Needs Review", message:"A possible duplicate ingredient line was detected.", value:readReviewValue(recipe, { kind:"ingredient", sectionIndex:0, itemIndex:0, key:"name" }), sourceText:sourceTextSnippet(sourceText, ["ingredients"]) });
+        }
+        if (quality.key !== "excellent" && (recipe.sections || []).length > 1) {
+          (recipe.sections || []).slice(0, 3).forEach((sec, si) => {
+            addReviewField(fields, { id:"section-"+si, kind:"section", sectionIndex:si, label:"Ingredient section", status:"Inferred", message:"This component label was kept from the import. Rename it if the source uses a better name.", value:sec.name || "", sourceText:sourceTextSnippet(sourceText, [sec.name, "ingredients"]) });
+          });
+        }
+        if (grounding?.ungrounded?.length) {
+          (recipe.sections || []).forEach((sec, si) => (sec.ingredients || []).forEach((ing, ii) => {
+            if (fields.length >= 10) return;
+            if (grounding.ungrounded.indexOf(ing.name) === -1) return;
+            addReviewField(fields, { id:"ingredient-name-"+si+"-"+ii, kind:"ingredient", sectionIndex:si, itemIndex:ii, key:"name", label:"Ingredient name", status:"Needs Review", message:"This ingredient was not confidently matched to the source text.", value:ing.name || "", sourceText:sourceTextSnippet(sourceText, ing.name) });
+          }));
+        }
+        (recipe.sections || []).forEach((sec, si) => (sec.ingredients || []).forEach((ing, ii) => {
+          if (fields.length >= 10) return;
+          const amount = String(ing.amount || "").trim();
+          const unit = String(ing.unit || "").trim();
+          const name = String(ing.name || "").trim();
+          if (!amount && name) addReviewField(fields, { id:"ingredient-amount-"+si+"-"+ii, kind:"ingredient", sectionIndex:si, itemIndex:ii, key:"amount", label:"Ingredient quantity", status:"Missing", message:"The source did not provide a clear quantity for this ingredient.", value:"", sourceText:sourceTextSnippet(sourceText, name) });
+          else if (/(?:\bto taste\b|\bsplash\b|\bpinch\b|\bdash\b|\bheaping\b|–|-| to )/i.test(amount)) addReviewField(fields, { id:"ingredient-amount-"+si+"-"+ii, kind:"ingredient", sectionIndex:si, itemIndex:ii, key:"amount", label:"Ingredient quantity", status:"Inferred", message:"This quantity is intentionally flexible in the source.", value:amount, sourceText:sourceTextSnippet(sourceText, [amount, name]) });
+          if (amount && !unit && !/^(?:\d+\s*)?(?:eggs?|cloves?|cans?|packages?|sticks?)$/i.test(name)) addReviewField(fields, { id:"ingredient-unit-"+si+"-"+ii, kind:"ingredient", sectionIndex:si, itemIndex:ii, key:"unit", label:"Ingredient unit", status:"Inferred", message:"The unit was not clearly separated from the ingredient text.", value:unit, sourceText:sourceTextSnippet(sourceText, [amount, name]) });
+        }));
+        (recipe.sections || []).forEach((sec, si) => (sec.steps || []).forEach((st, sti) => {
+          if (fields.length >= 10) return;
+          const stepText = typeof st === "string" ? st : (st.text || "");
+          if (!stepText.trim()) addReviewField(fields, { id:"step-"+si+"-"+sti, kind:"step", sectionIndex:si, itemIndex:sti, label:"Directions", status:"Missing", message:"A direction step is blank and needs a quick fix.", value:"", sourceText:sourceTextSnippet(sourceText, ["directions", "instructions"]) });
+          const temp = stepText.match(/\d{2,3}\s*(?:°|º|deg(?:rees)?\.?)?\s*[FC]\b/i);
+          if (quality.key !== "excellent" && temp) addReviewField(fields, { id:"temperature-"+si+"-"+sti, kind:"step", sectionIndex:si, itemIndex:sti, label:"Temperature", status:"Inferred", message:"Confirm this cooking temperature against the source.", value:stepText, sourceText:sourceTextSnippet(sourceText, temp[0]) });
+          const timer = stepText.match(/\b\d+\s*(?:-\s*\d+\s*)?(?:minutes?|mins?|hours?|hrs?)\b/i);
+          if (quality.key !== "excellent" && timer) addReviewField(fields, { id:"timer-"+si+"-"+sti, kind:"step", sectionIndex:si, itemIndex:sti, label:"Timer", status:"Inferred", message:"Confirm this cooking time against the source.", value:stepText, sourceText:sourceTextSnippet(sourceText, timer[0]) });
+        }));
+        if (!Object.keys(recipe.macros || {}).length || Object.values(recipe.macros || {}).every((v) => !Number(v))) {
+          addReviewField(fields, { id:"nutrition", kind:"nutrition", key:"calories", label:"Nutrition", status:"Inferred", message:"Nutrition was not clearly available in the source, so it may be estimated later.", value:(recipe.macros || {}).calories || "", sourceText:sourceTextSnippet(sourceText, ["nutrition", "calories"]) });
+        }
+        const visibleFields = fields.filter((f) => quality.key !== "excellent" || f.status !== "Verified").slice(0, 10);
+        return {
+          quality: quality.key,
+          label: quality.label,
+          score: isFinite(score) ? score : null,
+          explanation: visibleFields.length ? quality.explanation : "Recipe imported successfully.",
+          sourceType: options.mode || mode,
+          source: recipe.sourceUrl || options.sourceUrl || "",
+          aiUsed: recipe.importMethod !== "structured-data",
+          confidence: isFinite(score) ? score : null,
+          reviewCompleted: false,
+          fields: visibleFields,
+          createdAt: new Date().toISOString()
+        };
+      }
+
+      function withImportHistory(recipe, review, completed) {
+        const doneAt = completed ? new Date().toISOString() : "";
+        return {
+          ...recipe,
+          importReview: { ...(review || recipe.importReview || {}), reviewCompleted: !!completed, reviewedAt: doneAt || (review || recipe.importReview || {}).reviewedAt },
+          importHistory: {
+            quality:(review || recipe.importReview || {}).label || recipe.importQuality?.band || "",
+            source:recipe.sourceUrl || "",
+            aiUsed: !!((review || recipe.importReview || {}).aiUsed),
+            confidence:(review || recipe.importReview || {}).confidence ?? recipe.importQuality?.score ?? null,
+            reviewCompleted: !!completed,
+            importedAt:new Date().toISOString(),
+            sourceType:(review || recipe.importReview || {}).sourceType || mode,
+            sourceQuality:recipe.sourceQuality || ""
+          }
+        };
+      }
+
+      function readyRecipeForSave(recipe, options = {}) {
+        const enriched = RecipeBoxShopping.enrichRecipeIngredients(recipe);
+        const grounding = options.sourceText && enriched.importMethod !== "structured-data" && typeof RecipeBoxGrounding !== "undefined"
+          ? RecipeBoxGrounding.groundRecipe(enriched, options.sourceText) : null;
+        const audit = typeof RecipeBoxNormalize !== "undefined" ? RecipeBoxNormalize.auditRecipe(enriched, "us") : null;
+        const review = buildImportReview(enriched, { ...options, grounding, audit, sourceQuality:enriched.sourceQuality });
+        const prepared = withImportHistory({ ...enriched, importReview:review }, review, review.quality === "excellent" && review.fields.length === 0);
+        if (review.quality === "excellent" && review.fields.length === 0) {
+          continueRecipeSave(prepared, options);
+          return;
+        }
+        setReviewOptions(options);
+        setReviewRecipe(prepared);
       }
 
       // Re-runs extraction against the SAME captured source, but focused on a
@@ -3373,7 +3822,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             const recipe = prepImportedRecipe(parsed, ctx.heroFallback, ctx.originalSource);
             if (!recipe) throw new Error("Could not combine these recipes. Try importing one at a time.");
             setMultiRecipe(null);
-            readyRecipeForSave(recipe, { skipPhotoPrompt: mode === "media" });
+            readyRecipeForSave(recipe, { skipPhotoPrompt: mode === "media", sourceText: ctx.sourceText || "", mode });
           } else if (choice.type === "all") {
             const recipes = [];
             for (let i = 0; i < ctx.names.length; i++) {
@@ -3391,7 +3840,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             const recipe = await extractNamedRecipe(ctx, choice.name);
             if (!recipe) throw new Error("Could not extract \"" + choice.name + "\". Try another recipe from the list.");
             setMultiRecipe(null);
-            readyRecipeForSave(recipe, { skipPhotoPrompt: mode === "media" });
+            readyRecipeForSave(recipe, { skipPhotoPrompt: mode === "media", sourceText: ctx.sourceText || "", mode });
           }
         } catch (e) {
           setError(e.message || "Could not import the selected recipe.");
@@ -3432,7 +3881,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         }
         const requested = maxTokens || 2500;
         const body = {
-          model: "claude-sonnet-4-5-20250929",
+          model: DEFAULT_AI_MODEL,
           max_tokens: requested,
           messages,
           tools: RecipeBoxSchema.EXTRACTION_TOOLS,
@@ -3653,6 +4102,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           } else if (mode === "media" && pdfTexts.length > 0) {
             setLoadingMsg("Reading recipe from PDF...");
             const pdfContent = pdfTexts.join(" ");
+            importSourceText = pdfContent;
             if (pdfContent.trim()) {
               const pdfMessages = [{
                 role:"user",
@@ -3701,6 +4151,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               }
             }
           }
+
+          if (extractCtx) extractCtx.sourceText = importSourceText;
 
           if (parsed?.error === "multiple_recipes_detected") {
             const names = (Array.isArray(parsed.recipes) ? parsed.recipes : [])
@@ -3777,7 +4229,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             parsed.importQuality = { score: q.score, band: q.band };
           } catch {}
 
-          readyRecipeForSave(parsed, { skipPhotoPrompt: mode === "media" });
+          readyRecipeForSave(parsed, { skipPhotoPrompt: mode === "media", sourceText: importSourceText, sourceQuality: importSourceQuality, mode });
 
         } catch(e) {
           setError(e.message || "Could not extract recipe.");
@@ -3851,7 +4303,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           ]
         };
 
-        readyRecipeForSave(parsed);
+        readyRecipeForSave(parsed, { sourceText: raw, mode:"text" });
       }
 
       function handleCategorySelect(category) {
@@ -4000,6 +4452,95 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         setPdfImages([]);
       }
 
+      function saveReviewedRecipe() {
+        if (!reviewRecipe) return;
+        const reviewed = withImportHistory(reviewRecipe, reviewRecipe.importReview, true);
+        setReviewRecipe(null);
+        continueRecipeSave(reviewed, reviewOptions || {});
+      }
+
+      function updateReviewField(field, value) {
+        setReviewRecipe((recipe) => writeReviewValue(recipe, field, value));
+      }
+
+      function renderImportReview() {
+        if (!reviewRecipe) return null;
+        const review = reviewRecipe.importReview || {};
+        const fields = review.fields || [];
+        const qualityMeta = statusMeta(review.quality === "excellent" ? "Verified" : review.quality === "good" ? "Inferred" : "Needs Review");
+        return (
+          <div style={S.page}>
+            <div style={{...S.brandHeader,padding:safePad(20,20,20),display:"flex",alignItems:"center",gap:12}}>
+              <button onClick={() => setReviewRecipe(null)} style={{background:"rgba(255,255,255,0.12)",border:"none",borderRadius:8,padding:"7px 14px",color:"rgba(255,255,255,0.8)",cursor:"pointer",fontFamily:SANS,fontSize:"0.85em"}}>Back</button>
+              <div>
+                <div style={{fontFamily:SERIF,fontSize:"1.35em",color:C.white,lineHeight:1}}>Review import</div>
+                <div style={{fontSize:"0.76em",color:"rgba(255,249,238,0.72)",marginTop:3}}>Only the details that need a glance are shown.</div>
+              </div>
+            </div>
+            <div style={{maxWidth:680,margin:"0 auto",padding:"26px 20px 34px"}}>
+              <div style={{...S.card,padding:18,marginBottom:14}}>
+                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
+                  <div>
+                    <div style={{fontSize:"0.72em",fontWeight:900,letterSpacing:"0.08em",textTransform:"uppercase",color:C.light,marginBottom:6}}>Import Quality</div>
+                    <div style={{fontFamily:SERIF,fontSize:"1.55em",color:C.dark,lineHeight:1.05}}>{review.label || "Needs Review"}</div>
+                  </div>
+                  <div style={{background:qualityMeta.bg,border:"1px solid "+qualityMeta.border,color:qualityMeta.color,borderRadius:999,padding:"7px 12px",fontWeight:900,fontSize:"0.78em"}}>
+                    {review.label || "Needs Review"}
+                  </div>
+                </div>
+                <div style={{marginTop:10,color:C.brown,fontSize:"0.92em",lineHeight:1.5}}>{review.explanation || "We preserved everything we could from the source."}</div>
+                <div style={{marginTop:8,color:C.light,fontSize:"0.78em",lineHeight:1.45}}>We preserved everything we could from the source. Most recipes take less than 10 seconds to confirm.</div>
+              </div>
+
+              {!fields.length && (
+                <div style={{...S.cardSoft,padding:16,marginBottom:14,background:C.greenPale,border:"1px solid "+C.green+"33",color:C.green,fontWeight:800}}>
+                  Everything important looks verified.
+                </div>
+              )}
+
+              <div style={{display:"grid",gap:10,marginBottom:16}}>
+                {fields.map((field) => {
+                  const meta = statusMeta(field.status);
+                  const value = readReviewValue(reviewRecipe, field);
+                  const multiline = field.kind === "step" || field.key === "notes";
+                  return (
+                    <div key={field.id} style={{...S.cardSoft,padding:14,border:"1px solid "+meta.border,background:C.paper}}>
+                      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10,marginBottom:9}}>
+                        <div>
+                          <div style={{fontWeight:900,color:C.dark,fontSize:"0.92em"}}>{field.label}</div>
+                          <div style={{color:C.brown,fontSize:"0.78em",lineHeight:1.45,marginTop:2}}>{field.message}</div>
+                        </div>
+                        <span style={{background:meta.bg,border:"1px solid "+meta.border,color:meta.color,borderRadius:999,padding:"5px 9px",fontSize:"0.68em",fontWeight:900,whiteSpace:"nowrap"}}>{field.status}</span>
+                      </div>
+                      {multiline ? (
+                        <textarea value={value} onChange={(e) => updateReviewField(field, e.target.value)} rows={3}
+                          style={{...S.input,width:"100%",boxSizing:"border-box",padding:"10px 12px",fontSize:"0.86em",resize:"vertical",background:C.white}} />
+                      ) : (
+                        <input value={value} onChange={(e) => updateReviewField(field, e.target.value)}
+                          style={{...S.input,width:"100%",boxSizing:"border-box",padding:"10px 12px",fontSize:"0.86em",background:C.white}} />
+                      )}
+                      {field.sourceText && (
+                        <details style={{marginTop:9}}>
+                          <summary style={{cursor:"pointer",fontWeight:800,color:C.green,fontSize:"0.76em"}}>See original source text</summary>
+                          <div style={{marginTop:8,background:C.cream2,border:"1px solid "+C.border,borderRadius:8,padding:"9px 11px",color:C.brown,fontSize:"0.76em",lineHeight:1.55}}>
+                            {field.sourceText}
+                          </div>
+                        </details>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                <button onClick={saveReviewedRecipe} style={{...S.primaryBtn,flex:"1 1 180px",justifyContent:"center"}}>Save Recipe</button>
+                <button onClick={() => setReviewRecipe(null)} style={{...S.ghostBtn,flex:"1 1 140px",justifyContent:"center"}}>Keep editing import</button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
       const tabs = [
         { id:"url", label:"Web" },
         { id:"youtube", label:"YouTube" },
@@ -4015,6 +4556,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         (mode==="text" && text.trim()) ||
         (mode==="media" && (images.length > 0 || pdfTexts.length > 0))
       );
+
+      if (reviewRecipe) return renderImportReview();
 
       return (
         <div style={S.page}>
@@ -5550,6 +6093,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       function updateRecipe(r) { if (r && r.householdShared) { setCurrent(r); return; } const t = { ...r, tags: RecipeBoxTags.normalizeRecipeTags(r.tags) }; setRecipes((p) => p.map((x) => x.id===t.id?t:x)); setCurrent(t); }
       function deleteRecipe(id) { const rec = recipes.find((x) => x.id===id); if (rec && rec.householdShared) return; if (!window.confirm("Delete this recipe?")) return; setRecipes((p) => p.filter((r) => r.id!==id)); setScreen("library"); }
       function toggleFavorite(id) { setRecipes((p) => p.map((r) => r.id===id && !r.householdShared ? {...r,favorite:!r.favorite} : r)); }
+      function editRecipeFromLibrary(recipe) { setCurrent(recipe); setScreen("edit"); }
       function setMainTab(nextTab) {
         if (!MAIN_TABS.includes(nextTab)) return;
         setTab(nextTab);
@@ -5580,7 +6124,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         navName = "main"; showNav = true;
         body = (
           <div style={{width:"100%",maxWidth:"100%",overflowX:"hidden"}}>
-            {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>openRecipe(r,"library")} onAdd={openImport} onFavorite={toggleFavorite} setTab={setMainTab} tagFilter={libraryTag} onTagFilter={setLibraryTag} onCreateShoppingList={(ids,title)=>openShoppingFrom(ids,{replace:true,title})} />}
+            {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>openRecipe(r,"library")} onAdd={openImport} onFavorite={toggleFavorite} onShareRecipe={(r)=>shareRecipeObject(r)} onExportRecipe={(r)=>exportRecipePDF(r)} onEditRecipe={editRecipeFromLibrary} onDeleteRecipe={(r)=>deleteRecipe(r.id)} setTab={setMainTab} tagFilter={libraryTag} onTagFilter={setLibraryTag} onCreateShoppingList={(ids,title)=>openShoppingFrom(ids,{replace:true,title})} />}
             {tab==="plan" && <MealPlanner recipes={recipes} mealPlan={mealPlan} setMealPlan={updateMealPlan} onOpen={(r)=>openRecipe(r,"plan")} onGenerateShoppingList={(ids)=>openShoppingFrom(ids,{replace:true,title:"This Week's Shopping List"})} inHousehold={inHousehold} />}
             {tab==="shopping" && <ShoppingListScreen list={shoppingList} recipes={recipes} onChange={setShoppingList} setTab={setMainTab} onOpenRecipe={(r)=>openRecipe(r,"shopping")} pantry={pantry} onTogglePantry={togglePantry} inHousehold={inHousehold} />}
             {tab==="pantry" && <PantryChef recipes={recipes} onImport={(r)=>{addRecipe(r);setTab("library");}} onOpenRecipe={(r)=>openRecipe(r,"pantry")} />}

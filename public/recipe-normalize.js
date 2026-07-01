@@ -327,6 +327,22 @@
     return s;
   }
 
+  function normalizeDisplayCompare(value) {
+    return String(value || "")
+      .toLowerCase()
+      .replace(/¼/g, "1/4").replace(/½/g, "1/2").replace(/¾/g, "3/4")
+      .replace(/tablespoons?/g, "tbsp").replace(/teaspoons?/g, "tsp")
+      .replace(/\bcups?\b/g, "cup")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function precedingMeasureMatches(textBefore, measureText) {
+    var before = normalizeDisplayCompare(textBefore).replace(/[.,;:()]+$/g, "").trim();
+    var measure = normalizeDisplayCompare(measureText);
+    return !!measure && before.endsWith(measure);
+  }
+
   // ---- Import quality audit (deterministic) ----
   // Flags issues for the review banner / to decide whether minimal AI cleanup is
   // warranted. Never changes the recipe.
@@ -584,6 +600,7 @@
     localizeTerms: localizeTerms,
     localizeIngredientName: localizeIngredientName,
     localizeText: localizeText,
+    precedingMeasureMatches: precedingMeasureMatches,
     auditRecipe: auditRecipe,
     duplicateIngredientRows: duplicateIngredientRows,
     qualityScore: qualityScore,

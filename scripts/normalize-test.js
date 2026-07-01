@@ -132,6 +132,11 @@ assert.strictEqual(N.localizeIngredientName("aubergine", "us"), "eggplant");
 assert.strictEqual(N.localizeIngredientName("corn flour", "metric"), "corn flour", "metric mode leaves terms as written");
 assert.strictEqual(N.localizeText("Whisk the corn flour and water together.", "us"), "Whisk the cornstarch and water together.", "term localized in directions");
 
+// ── Direction chip display guard: don't duplicate a visible measure before a ref ──
+assert.strictEqual(N.precedingMeasureMatches("Cream together 1 cup", "1 cup"), true, "visible quantity before an ingredient ref is detected");
+assert.strictEqual(N.precedingMeasureMatches("Cream together 1 cup", "1 cups"), true, "singular/plural cup wording matches");
+assert.strictEqual(N.precedingMeasureMatches("Cream together butter", "1 cup"), false, "bare ingredient mention should still render the full quantity chip");
+
 // ── Duplicate detection: ROW vs ROW only, never vs directions ──
 const noDup = N.duplicateIngredientRows({
   sections: [{ ingredients: [{ amount: "400", unit: "g", name: "raspberries" }], steps: [{ text: "Add 400 g raspberries." }] }],

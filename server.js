@@ -308,10 +308,11 @@ ENTITLEMENT_CONFIG.actionCosts = AI_ACTION_COSTS;
 // output tokens. Coerce rather than reject so a future model rename can't break
 // the app. Cost is further bounded by the per-user/IP rate limits + cost cap.
 const ALLOWED_AI_MODELS = new Set([
+  'claude-sonnet-5',
   'claude-sonnet-4-5-20250929',
   'claude-haiku-4-5-20251001',
 ]);
-const DEFAULT_AI_MODEL = 'claude-sonnet-4-5-20250929';
+const DEFAULT_AI_MODEL = 'claude-sonnet-5';
 const MAX_AI_OUTPUT_TOKENS = 8000;
 function sanitizeAiBody(body) {
   const b = (body && typeof body === 'object') ? { ...body } : {};
