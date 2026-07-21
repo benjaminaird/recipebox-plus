@@ -4,7 +4,12 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "build:app": "npx --yes esbuild@0.20.2 src/app.jsx --jsx=transform --minify --target=es2020 --legal-comments=none --outfile=public/app.js",
+    "build:app": "npx --yes esbuild@0.20.2 src/app.jsx --bundle --platform=browser --jsx=transform --minify --target=es2020 --legal-comments=none --outfile=public/app.js",
+    "build:recipebox": "npm run build:app",
+    "build:everplate": "npm run build:app && node scripts/build-product.js everplate && npm --prefix native/everplate run build:bridge",
+    "native:everplate:sync": "npm run build:everplate && npm --prefix native/everplate run sync",
+    "native:everplate:ios": "npm run native:everplate:sync && npm --prefix native/everplate run open:ios",
+    "native:everplate:android": "npm run native:everplate:sync && npm --prefix native/everplate run open:android",
     "shopping-list-test": "node scripts/shopping-list-test.js",
     "notes-import-test": "node scripts/notes-import-test.js",
     "import-fidelity-test": "node scripts/import-fidelity-test.js",
@@ -36,7 +41,8 @@
     "recipe-schema-test": "node scripts/recipe-schema-test.js",
     "household-test": "node scripts/household-test.js",
     "normalize-test": "node scripts/normalize-test.js",
-    "recipe-save-test": "node scripts/recipe-save-test.js"
+    "recipe-save-test": "node scripts/recipe-save-test.js",
+    "everplate-native-test": "node scripts/everplate-native-test.js"
   },
   "dependencies": {
     "express": "^4.18.2",

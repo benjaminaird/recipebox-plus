@@ -1,19 +1,12 @@
+    import { PRODUCT, IS_EVERPLATE, productText, productFileName } from "./product-config.js";
+
     const { useState, useEffect, useRef, useCallback } = React;
 
-    const C = {
-      cream:"#F8F1E5", cream2:"#F1E6D4", cream3:"#E4D3BC", border:"#D8C7AE",
-      paper:"#FFF9EE", paper2:"#FCF2E1",
-      dark:"#20140E", mid:"#4A3527", light:"#967966", brown:"#5A3827", brownLight:"#C0A074",
-      green:"#234B32", greenMid:"#3E6F4B", greenPale:"#EDF5EA",
-      terra:"#B85D32", terraPale:"#FBEEE5",
-      gold:"#B88A2B", goldLight:"#D8B35F", goldPale:"#FBF3DC",
-      blue:"#2563EB", bluePale:"#EFF6FF",
-      red:"#C0392B", redPale:"#FDECEA", white:"#FFFFFF",
-    };
+    const C = PRODUCT.colors;
     const BRAND_HEADER = C.green;
-    const SERIF = "'DM Serif Display', serif";
-    const SANS = "'DM Sans', sans-serif";
-    const APP_VERSION = "1.1.3";
+    const SERIF = PRODUCT.fonts.serif;
+    const SANS = PRODUCT.fonts.sans;
+    const APP_VERSION = PRODUCT.version;
     const DEFAULT_AI_MODEL = "claude-sonnet-5";
     const API_BASE = String((window.RECIPEBOX_CONFIG && window.RECIPEBOX_CONFIG.apiBase) || window.RECIPEBOX_API_BASE || "").replace(/\/$/, "");
     function apiUrl(url) {
@@ -21,7 +14,33 @@
       return API_BASE + url;
     }
     function apiFetch(url, options = {}) {
-      return fetch(apiUrl(url), { credentials:"include", ...options });
+      const headers = new Headers(options.headers || {});
+      if (PRODUCT.native) {
+        headers.set("X-App-Client", PRODUCT.clientId);
+        headers.set("X-App-Version", APP_VERSION);
+      }
+      return fetch(apiUrl(url), { credentials:"include", ...options, headers });
+    }
+    const nativeBridge = () => PRODUCT.native && window.EverPlateNative ? window.EverPlateNative : null;
+    async function showAlert(message, title = PRODUCT.name) {
+      const bridge = nativeBridge();
+      if (bridge?.alert) return bridge.alert({ title, message:String(message || "") });
+      window.alert(String(message || ""));
+    }
+    async function confirmAction(message, title = PRODUCT.name) {
+      const bridge = nativeBridge();
+      if (bridge?.confirm) return !!(await bridge.confirm({ title, message:String(message || "") }));
+      return window.confirm(String(message || ""));
+    }
+    async function shareNativeText(title, text) {
+      const bridge = nativeBridge();
+      if (!bridge?.shareText) return false;
+      return (await bridge.shareText({ title, text })) !== false;
+    }
+    async function shareNativeBlob(title, text, filename, blob) {
+      const bridge = nativeBridge();
+      if (!bridge?.shareBlob) return false;
+      return (await bridge.shareBlob({ title, text, filename, blob })) !== false;
     }
     const NAV_CLEARANCE = "calc(104px + env(safe-area-inset-bottom))";
     const PANTRY_NAV_OFFSET = "calc(100dvh - 82px - env(safe-area-inset-bottom))";
@@ -29,16 +48,16 @@
     const NO_TOUCH_SELECT = { WebkitTouchCallout:"none", WebkitUserSelect:"none", userSelect:"none", WebkitTapHighlightColor:"transparent", touchAction:"manipulation" };
     const S = {
       page: { minHeight:"100vh", width:"100%", maxWidth:"100%", overflowX:"hidden", background:`linear-gradient(180deg, ${C.cream} 0%, ${C.cream2} 100%)` },
-      brandHeader: { background:BRAND_HEADER, boxShadow:"0 10px 28px rgba(32,20,14,0.14)" },
-      card: { background:"rgba(255,249,238,0.92)", border:"1px solid rgba(216,199,174,0.92)", borderRadius:15, boxShadow:"0 8px 22px rgba(90,56,39,0.065)" },
-      cardSoft: { background:"rgba(252,242,225,0.86)", border:"1px solid rgba(216,199,174,0.88)", borderRadius:13, boxShadow:"0 4px 14px rgba(90,56,39,0.045)" },
+      brandHeader: { background:BRAND_HEADER, boxShadow:IS_EVERPLATE?"0 10px 28px rgba(15,20,18,0.18)":"0 10px 28px rgba(32,20,14,0.14)" },
+      card: { background:IS_EVERPLATE?C.paper:"rgba(255,249,238,0.92)", border:"1px solid "+C.border, borderRadius:15, boxShadow:IS_EVERPLATE?"0 8px 22px rgba(15,20,18,0.09)":"0 8px 22px rgba(90,56,39,0.065)" },
+      cardSoft: { background:IS_EVERPLATE?C.paper2:"rgba(252,242,225,0.86)", border:"1px solid "+C.border, borderRadius:13, boxShadow:IS_EVERPLATE?"0 4px 14px rgba(15,20,18,0.08)":"0 4px 14px rgba(90,56,39,0.045)" },
       primaryBtn: { background:C.green, color:C.white, border:"none", borderRadius:11, fontWeight:800, cursor:"pointer", fontFamily:SANS },
       goldBtn: { background:C.gold, color:C.dark, border:"none", borderRadius:11, fontWeight:800, cursor:"pointer", fontFamily:SANS },
-      ghostBtn: { background:"rgba(255,249,238,0.72)", color:C.brown, border:"1px solid "+C.border, borderRadius:11, fontWeight:800, cursor:"pointer", fontFamily:SANS },
+      ghostBtn: { background:IS_EVERPLATE?C.paper:"rgba(255,249,238,0.72)", color:C.brown, border:"1px solid "+C.border, borderRadius:11, fontWeight:800, cursor:"pointer", fontFamily:SANS },
       input: { border:"1.5px solid "+C.border, borderRadius:10, background:C.paper, outline:"none", fontFamily:SANS },
       eyebrow: { fontSize:"0.68em", letterSpacing:2.4, textTransform:"uppercase", fontWeight:800, color:C.brownLight },
     };
-    const CARD_COLORS = ["#234B32","#B85D32","#B88A2B","#5A3827","#3E6F4B","#8B6252","#35676B"];
+    const CARD_COLORS = PRODUCT.cardColors;
     const CATEGORIES = ["Breakfast","Appetizers","Entrées","Sides","Condiments & Sauces","Beverages","Desserts","Baked Goods"];
     const APP_CONTROL_CATEGORIES = ["All","Methodology","AI Instruction","Import Rule","Recipe Normalization","Meal Planning","Pantry Logic","Image Handling","User Experience","Safety / Guardrail","Legal / Copyright","Product Strategy","WhatsNext Sync"];
     const APP_CONTROL_FEATURES = ["Import","Manual Recipe Entry","AI Adjust","AI Chat Editor","Pantry Chef","Meal Planner","Shopping List","Cook Mode","PDF Export","Recipe Detail","Library","Settings"];
@@ -411,7 +430,7 @@
         return new File([jpegBlob], (file.name || "recipe-photo").replace(/\.(heic|heif)$/i, "") + ".jpg", { type: "image/jpeg" });
       }
       if (!isSupportedImageFile(file)) {
-        throw new Error("RecipeBox supports JPG, PNG, GIF, WebP, HEIC, HEIF, and PDF uploads.");
+        throw new Error(productText("RecipeBox supports JPG, PNG, GIF, WebP, HEIC, HEIF, and PDF uploads."));
       }
       return new Promise((resolve) => {
         const img = new Image();
@@ -490,6 +509,7 @@
     const RECIPES_KEY = "recipebox-v5";
     const MEALPLAN_KEY = "recipebox-mealplan-v2";
     const TIMER_SOUND_KEY = "recipebox-timer-sound-v1";
+    const NATIVE_ACCOUNT_CACHE_KEY = "everplate-account-profile-v1";
     const TIMER_SOUND_OPTIONS = [
       { id:"classic", label:"Classic Beep" },
       { id:"soft", label:"Soft Chime" },
@@ -545,6 +565,7 @@
     }
     function pulseTimerHaptic() {
       try {
+        if (nativeBridge()?.haptic) { void nativeBridge().haptic({ style:"heavy" }); return; }
         if (navigator.vibrate) navigator.vibrate([180, 90, 180]);
       } catch {}
     }
@@ -591,7 +612,12 @@ async function fetchJson(url, fallback) {
   }
 }
     function loadAccountSession() {
-  return syncGetJson("/api/auth/session", { user:null });
+  const session = syncGetJson("/api/auth/session", { user:null });
+  if (session?.user || !PRODUCT.native) return session;
+  try {
+    const cached = JSON.parse(localStorage.getItem(NATIVE_ACCOUNT_CACHE_KEY) || "null");
+    return cached && cached.id ? { user:cached, offline:true } : session;
+  } catch { return session; }
 }
 function hasLocalRecipeData(recipes, mealPlan) {
   return (Array.isArray(recipes) && recipes.length > 0) || (mealPlan && typeof mealPlan === "object" && Object.keys(mealPlan).length > 0);
@@ -680,7 +706,7 @@ function downloadJson(filename, data) {
     // AI
     async function callAI(messages, system, maxTokens, temperature, _retried) {
       if (typeof navigator !== "undefined" && navigator.onLine === false) {
-        throw new Error("You're offline. Reconnect to use RecipeBox AI — your saved recipes are still available.");
+        throw new Error(productText("You're offline. Reconnect to use RecipeBox AI — your saved recipes are still available."));
       }
       const requested = maxTokens || 2000;
       const body = { model: DEFAULT_AI_MODEL, max_tokens: requested, messages };
@@ -1148,11 +1174,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         (sec.steps || []).forEach((step, i) => lines.push((i + 1) + ". " + plainStepText(step.text, sec.ingredients, scale, metric)));
       });
       if (recipe.notes && String(recipe.notes).trim()) lines.push("", "NOTES", String(recipe.notes).trim());
-      lines.push("", "Shared from RecipeBox");
+      lines.push("", "Shared from " + PRODUCT.name);
       return lines.join("\n");
     }
     function buildRecipeDocForRecipe(recipe, opts = {}) {
-      if (!window.jspdf) { alert("PDF library loading. Try again."); return null; }
+      if (!window.jspdf) { void showAlert("PDF library loading. Try again."); return null; }
       const scale = opts.scale || 1;
       const metric = !!opts.metric;
       const sections = recipeExportSections(recipe, metric);
@@ -1176,7 +1202,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         });
       };
       doc.setFillColor(...rgb(C.green)); doc.rect(0, 0, pageW, 34, "F");
-      doc.setFont("helvetica", "bold"); doc.setFontSize(10); setText(C.goldLight); doc.text("RecipeBox", margin, 13);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10); setText(C.goldLight); doc.text(PRODUCT.name, margin, 13);
       doc.setFont("helvetica", "bold"); doc.setFontSize(21); setText(C.white); writeWrapped(recipe.title || "Recipe", margin, pageW - margin * 2, 8);
       y = Math.max(y + 4, 43);
       const chips = [recipe.category, Math.round((recipe.servings || 4) * scale) + " servings", recipe.prepTime && "Prep " + recipe.prepTime, recipe.cookTime && "Cook " + recipe.cookTime, recipe.totalTime && "Total " + recipe.totalTime, recipe.rating > 0 && recipe.rating + "/5 stars"].filter(Boolean);
@@ -1211,7 +1237,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         doc.setFontSize(10); doc.setFont("helvetica", "normal"); setText(C.mid); writeWrapped(String(recipe.notes), margin, pageW - margin * 2, 5); y += 6;
       }
       const pages = doc.getNumberOfPages();
-      const attribution = recipe.sourceUrl ? ("Imported from " + String(recipe.sourceUrl).replace(/^https?:\/\//, "").slice(0, 70)) : "Saved with RecipeBox for personal use";
+      const attribution = recipe.sourceUrl ? ("Imported from " + String(recipe.sourceUrl).replace(/^https?:\/\//, "").slice(0, 70)) : "Saved with " + PRODUCT.name + " for personal use";
       for (let p = 1; p <= pages; p++) {
         doc.setPage(p); doc.setDrawColor(...rgb(C.border)); doc.setLineWidth(0.2); doc.line(margin, pageH - 14, pageW - margin, pageH - 14);
         doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); setText(C.light);
@@ -1227,22 +1253,27 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     async function shareRecipeObject(recipe, opts = {}) {
       const text = buildRecipeShareTextForRecipe(recipe, opts);
       try {
+        if (PRODUCT.native) {
+          const nativeDoc = buildRecipeDocForRecipe(recipe, opts);
+          if (nativeDoc && await shareNativeBlob(recipe.title || "Recipe", (recipe.title || "Recipe") + " — shared from " + PRODUCT.name, recipeFileBaseName(recipe) + ".pdf", nativeDoc.output("blob"))) return;
+          if (await shareNativeText(recipe.title || "Recipe", text)) return;
+        }
         if (typeof navigator !== "undefined" && navigator.canShare) {
           const doc = buildRecipeDocForRecipe(recipe, opts);
           if (doc) {
             const file = new File([doc.output("blob")], recipeFileBaseName(recipe) + ".pdf", { type:"application/pdf" });
             if (navigator.canShare({ files:[file] })) {
-              await navigator.share({ title:recipe.title || "Recipe", text:(recipe.title || "Recipe") + " — shared from RecipeBox", files:[file] });
+              await navigator.share({ title:recipe.title || "Recipe", text:(recipe.title || "Recipe") + " — shared from " + PRODUCT.name, files:[file] });
               return;
             }
           }
         }
         if (typeof navigator !== "undefined" && navigator.share) { await navigator.share({ title:recipe.title || "Recipe", text }); return; }
-        if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(text); alert("Recipe copied to clipboard."); return; }
+        if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(text); await showAlert("Recipe copied to clipboard."); return; }
         exportRecipePDF(recipe, opts);
       } catch (e) {
         if (e && e.name === "AbortError") return;
-        try { if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(text); alert("Recipe copied to clipboard."); return; } } catch (e2) {}
+        try { if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(text); await showAlert("Recipe copied to clipboard."); return; } } catch (e2) {}
         exportRecipePDF(recipe, opts);
       }
     }
@@ -1320,7 +1351,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         { id:"settings", icon:"settings", label:"Settings" },
       ];
       return (
-        <div style={{position:"fixed",bottom:0,left:0,right:0,background:"rgba(255,249,238,0.96)",borderTop:"1px solid rgba(216,199,174,0.9)",display:"flex",zIndex:30,boxShadow:"0 -8px 24px rgba(90,56,39,0.08)",paddingBottom:"calc(env(safe-area-inset-bottom) + 6px)",overflowX:"hidden",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)"}}>
+        <div style={{position:"fixed",bottom:0,left:0,right:0,background:IS_EVERPLATE?C.paper:"rgba(255,249,238,0.96)",borderTop:"1px solid "+C.border,display:"flex",zIndex:30,boxShadow:IS_EVERPLATE?"0 -8px 24px rgba(15,20,18,0.12)":"0 -8px 24px rgba(90,56,39,0.08)",paddingBottom:"calc(env(safe-area-inset-bottom) + 6px)",overflowX:"hidden",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)"}}>
           {items.map((item) => {
             const active = tab === item.id;
             const badge = badges && badges[item.id];
@@ -1625,7 +1656,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             <div style={{maxWidth:900,margin:"0 auto"}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:14,marginBottom:18}}>
                 <div>
-                  <div style={{fontFamily:SERIF,fontSize:"1.82em",color:C.white,lineHeight:1,letterSpacing:"0.005em"}}>Your RecipeBox</div>
+                  <div style={{fontFamily:SERIF,fontSize:"1.82em",color:C.white,lineHeight:1,letterSpacing:"0.005em"}}>{PRODUCT.libraryTitle}</div>
                   <div style={{color:"rgba(255,249,238,0.78)",fontSize:"0.79em",lineHeight:1.35,marginTop:5}}>{recipes.length ? recipes.length+" recipe"+(recipes.length!==1?"s":"")+" tucked away" : "A clean place for family favorites"}</div>
                 </div>
                 <button onClick={onAdd} style={{...S.goldBtn,borderRadius:13,padding:"10px 16px",fontSize:"0.84em",minHeight:46,flexShrink:0}}>
@@ -1656,7 +1687,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               <div style={{display:"flex",gap:8,marginTop:16,overflowX:"auto",paddingBottom:5}}>
                 {["all","favorites","recent"].map((f) => (
                   <button key={f} onClick={() => setFilter(f)}
-                    style={{border:"1.5px solid "+(filter===f?C.green:C.border),background:filter===f?C.green:"rgba(255,249,238,0.76)",color:filter===f?C.white:C.mid,borderRadius:999,padding:"7px 15px",fontSize:"0.78em",fontWeight:800,cursor:"pointer",whiteSpace:"nowrap",fontFamily:SANS,flexShrink:0,boxShadow:filter===f?"0 5px 12px rgba(35,75,50,0.14)":"none"}}>
+                    style={{border:"1.5px solid "+(filter===f?C.green:C.border),background:filter===f?C.green:(IS_EVERPLATE?C.paper:"rgba(255,249,238,0.76)"),color:filter===f?C.white:C.mid,borderRadius:999,padding:"7px 15px",fontSize:"0.78em",fontWeight:800,cursor:"pointer",whiteSpace:"nowrap",fontFamily:SANS,flexShrink:0,boxShadow:filter===f?"0 5px 12px rgba(35,75,50,0.14)":"none"}}>
                     {f==="all"?"All":f==="favorites"?<span style={{display:"inline-flex",alignItems:"center",gap:5}}><Icon name="favorite" size={13} /> Favorites</span>:"Recent"}
                   </button>
                 ))}
@@ -1688,7 +1719,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 {!isDashboard && (
                   <button onClick={() => { setCat("All"); setFilter("all"); setSearch(""); clearTag(); }}
                     style={{...S.ghostBtn,borderRadius:999,padding:"7px 13px",fontSize:"0.78em",marginBottom:24}}>
-                    ← Back to Your RecipeBox
+                  ← Back to {PRODUCT.libraryTitle}
                   </button>
                 )}
                 <div style={{textAlign:"center",padding:"36px 0",color:C.light}}>
@@ -1698,8 +1729,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             ) : isDashboard && recipes.length === 0 ? (
               <div className="fade-up" style={{marginTop:22}}>
                 <div style={{...S.card,padding:"24px 20px"}}>
-                  <div style={{fontFamily:SERIF,fontSize:"1.5em",color:C.dark,lineHeight:1.15,marginBottom:6}}>Welcome to your RecipeBox</div>
-                  <div style={{color:C.light,fontSize:"0.9em",lineHeight:1.5,marginBottom:18}}>Start your box with a recipe you love. Pick a way to add the first one — it only takes a few seconds. AI imports, edits, and planning use AI Assists, and you start with a welcome balance.</div>
+                  <div style={{fontFamily:SERIF,fontSize:"1.5em",color:C.dark,lineHeight:1.15,marginBottom:6}}>{IS_EVERPLATE ? "A lifelong home for your recipes" : "Welcome to your RecipeBox"}</div>
+                  <div style={{color:C.light,fontSize:"0.9em",lineHeight:1.5,marginBottom:18}}>{IS_EVERPLATE ? "Preserve the recipes, memories, and traditions that matter. Choose a way to add your first recipe." : "Start your box with a recipe you love. Pick a way to add the first one — it only takes a few seconds. AI imports, edits, and planning use AI Assists, and you start with a welcome balance."}</div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(150px, 1fr))",gap:12}}>
                     {[
                       { mode:"url", icon:"import", label:"Import from the web", hint:"Paste a recipe link" },
@@ -1896,7 +1927,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               <div style={{marginTop:24}}>
                 <button onClick={() => { setCat("All"); setFilter("all"); setSearch(""); clearTag(); }}
                   style={{...S.ghostBtn,borderRadius:999,padding:"7px 13px",fontSize:"0.78em",marginBottom:14}}>
-                  ← Back to Your RecipeBox
+                    ← Back to {PRODUCT.libraryTitle}
                 </button>
 
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:13}}>
@@ -1973,13 +2004,14 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       }
       async function copyShoppingList() {
         const text = shoppingItems.map((item) => (item.checked ? "[x] " : "[ ] ") + item.text).join("\n");
+        if (await shareNativeText("Shopping List", text)) return;
         try { await navigator.clipboard.writeText(text); }
-        catch { window.prompt("Copy shopping list:", text); }
+        catch { if (PRODUCT.native) await showAlert("The shopping list could not be shared or copied."); else window.prompt("Copy shopping list:", text); }
       }
 
       return (
         <div style={{...S.page,paddingBottom:NAV_CLEARANCE}}>
-          <PageHeader title={inHousehold ? "Household Meal Plan" : "Weekly Meal Plan"} subtitle={inHousehold ? "Shared with your household" : "Plan the week from your RecipeBox"} compact={compactHeader} />
+          <PageHeader title={inHousehold ? "Household Meal Plan" : "Weekly Meal Plan"} subtitle={inHousehold ? "Shared with your household" : productText("Plan the week from your RecipeBox")} compact={compactHeader} />
           <div style={{maxWidth:900,margin:"16px auto",padding:"0 15px"}}>
             <div style={{...S.cardSoft,padding:"11px 14px",marginBottom:13,display:"flex",alignItems:"center",gap:11}}>
               <div style={{width:38,height:38,borderRadius:11,background:C.greenPale,color:C.green,display:"inline-flex",alignItems:"center",justifyContent:"center",border:"1px solid "+C.green+"22",flexShrink:0}}><Icon name="mealPlan" size={20} /></div>
@@ -2030,10 +2062,10 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             ) : (
               <div style={{...S.card,padding:"17px",marginBottom:13,background:`linear-gradient(135deg, ${C.greenPale}, rgba(251,243,220,0.78))`,border:"1px solid "+C.goldLight}}>
                 <div style={{fontFamily:SERIF,fontSize:"1.16em",color:C.dark,marginBottom:5}}>Ready to plan your week?</div>
-                <div style={{fontSize:"0.84em",color:C.mid,lineHeight:1.5,marginBottom:recipes.length?14:0}}>{recipes.length ? "Start with a few favorites or quick recipes — RecipeBox builds the shopping list for you." : "Add a few recipes to your RecipeBox first, then plan your week here."}</div>
+                <div style={{fontSize:"0.84em",color:C.mid,lineHeight:1.5,marginBottom:recipes.length?14:0}}>{recipes.length ? productText("Start with a few favorites or quick recipes — RecipeBox builds the shopping list for you.") : productText("Add a few recipes to your RecipeBox first, then plan your week here.")}</div>
                 {recipes.length > 0 && (
                   <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                    <button onClick={() => openPicker(today, "all")} style={{background:C.green,color:C.white,border:"none",borderRadius:999,padding:"9px 15px",minHeight:38,fontWeight:800,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS,WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>Add from RecipeBox</button>
+                    <button onClick={() => openPicker(today, "all")} style={{background:C.green,color:C.white,border:"none",borderRadius:999,padding:"9px 15px",minHeight:38,fontWeight:800,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS,WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>Add from {PRODUCT.name}</button>
                     <button onClick={() => openPicker(today, "favorites")} style={{background:C.paper,color:C.dark,border:"1px solid "+C.goldLight,borderRadius:999,padding:"9px 15px",minHeight:38,fontWeight:700,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS,WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>Favorites</button>
                     <button onClick={() => openPicker(today, "quick")} style={{background:C.paper,color:C.dark,border:"1px solid "+C.goldLight,borderRadius:999,padding:"9px 15px",minHeight:38,fontWeight:700,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS,WebkitTapHighlightColor:"transparent",touchAction:"manipulation"}}>Quick</button>
                   </div>
@@ -2045,7 +2077,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               const isToday = day===today;
               const empty = meals.length===0;
               return (
-                <div key={day} style={{...S.card,padding:empty?"12px 14px":"14px 16px",marginBottom:11,...(isToday?{border:"1px solid "+C.green+"42",boxShadow:"inset 3px 0 0 "+C.green+", 0 8px 22px rgba(90,56,39,0.065)"}:{border:"1px solid rgba(216,199,174,0.92)"})}}>
+              <div key={day} style={{...S.card,padding:empty?"12px 14px":"14px 16px",marginBottom:11,...(isToday?{border:"1px solid "+C.green+"42",boxShadow:"inset 3px 0 0 "+C.green+", 0 8px 22px rgba(90,56,39,0.065)"}:{border:"1px solid "+C.border})}}>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:empty?0:10}}>
                     <div style={{fontWeight:700,color:C.dark,fontSize:"0.92em"}}>{day}</div>
                     {isToday && <Tag label="Today" bg={C.greenPale} color={C.green} />}
@@ -2088,7 +2120,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             })}
             {!hasMeals && (
               <div style={{...S.cardSoft,padding:"12px 15px",marginTop:2,display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-                <div style={{flex:1,minWidth:160,fontSize:"0.8em",color:C.light,lineHeight:1.45}}>Plan a few meals and RecipeBox will combine the ingredients for you.</div>
+                <div style={{flex:1,minWidth:160,fontSize:"0.8em",color:C.light,lineHeight:1.45}}>Plan a few meals and {PRODUCT.name} will combine the ingredients for you.</div>
                 <button disabled style={{background:C.cream3,color:C.light,border:"none",borderRadius:9,padding:"9px 12px",fontWeight:800,cursor:"not-allowed",fontSize:"0.76em",fontFamily:SANS}}>Generate after adding meals</button>
               </div>
             )}
@@ -2112,7 +2144,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",padding:"8px 12px",paddingBottom:"calc(env(safe-area-inset-bottom, 0px) + 14px)"}}>
                   {pickerRecipes.length === 0 ? (
                     <div style={{textAlign:"center",color:C.light,fontSize:"0.85em",padding:"34px 16px",lineHeight:1.5}}>
-                      {recipes.length === 0 ? "Your RecipeBox is empty — add a recipe first." : "No recipes match. Try a different filter or search."}
+                      {recipes.length === 0 ? PRODUCT.libraryTitle + " is empty — add a recipe first." : "No recipes match. Try a different filter or search."}
                     </div>
                   ) : pickerRecipes.map((r) => {
                     const img = r.heroImage || "";
@@ -2187,14 +2219,15 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         setAdding("");
       };
       const clearChecked = () => onChange((l) => ({ ...l, checked: {} }));
-      const startFresh = () => { if (window.confirm("Clear this whole shopping list?")) onChange(() => emptyShoppingList()); };
+      const startFresh = async () => { if (await confirmAction("Clear this whole shopping list?")) onChange(() => emptyShoppingList()); };
       const titleValue = list.title || (sourceRecipes.length ? "Shopping List from " + sourceRecipes.length + " Recipe" + (sourceRecipes.length === 1 ? "" : "s") : "Shopping List");
 
       async function copyList() {
         const lines = [];
         groups.forEach((g) => { lines.push(g.category.toUpperCase()); g.items.forEach((i) => lines.push((i.checked ? "[x] " : "[ ] ") + i.text)); lines.push(""); });
         const text = titleValue + "\n\n" + lines.join("\n");
-        try { await navigator.clipboard.writeText(text); } catch { window.prompt("Copy shopping list:", text); }
+        if (await shareNativeText(titleValue, text)) return;
+        try { await navigator.clipboard.writeText(text); } catch { if (PRODUCT.native) await showAlert("The shopping list could not be shared or copied."); else window.prompt("Copy shopping list:", text); }
       }
 
       const sourceTitles = sourceRecipes.map((r) => r.title);
@@ -2219,7 +2252,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             <div style={{display:"flex",gap:8,marginBottom:13}}>
               <input ref={addRef} value={adding} onChange={(e) => setAdding(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addManual(); }}
                 placeholder="Add an item (e.g. paper towels)…"
-                style={{flex:1,minWidth:0,padding:"11px 14px",borderRadius:12,border:"1px solid "+C.border,fontSize:"0.9em",background:"rgba(255,249,238,0.82)",color:C.dark,outline:"none",fontFamily:SANS}} />
+                style={{flex:1,minWidth:0,padding:"11px 14px",borderRadius:12,border:"1px solid "+C.border,fontSize:"0.9em",background:IS_EVERPLATE?C.paper:"rgba(255,249,238,0.82)",color:C.dark,outline:"none",fontFamily:SANS}} />
               <button onClick={addManual} style={{...S.goldBtn,borderRadius:12,padding:"11px 17px",fontSize:"0.84em",flexShrink:0}}>Add</button>
             </div>
 
@@ -2358,7 +2391,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       ];
       const promptCards = [
         { title:"Use what I have", text:"Tell me what's in your fridge or pantry.", prompt:"I want to use what I have in my fridge or pantry." },
-        { title:"Check my RecipeBox", text:"Find saved recipe cards that match.", prompt:"Check my RecipeBox for recipes that match what I have." },
+        { title:"Check " + PRODUCT.libraryTitle, text:"Find saved recipe cards that match.", prompt:productText("Check my RecipeBox for recipes that match what I have.") },
         { title:"Quick dinner idea", text:"Get something simple for tonight.", prompt:"Give me a quick, simple dinner idea for tonight." },
       ];
 
@@ -2379,7 +2412,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           recipeBoxSummary: pantryRecipeSummary(recipes),
         };
         const contextText =
-          "RecipeBox saved recipe context:\n" + JSON.stringify(savedContext) +
+          PRODUCT.name + " saved recipe context:\n" + JSON.stringify(savedContext) +
           "\n\nUser request:\n" + (promptText || "What can I make from this photo?");
         const userContent = image ? [
           { type:"image", source:{ type:"base64", media_type:image.type, data:image.data } },
@@ -2408,16 +2441,16 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
       return (
         <div style={{height:PANTRY_NAV_OFFSET,maxHeight:PANTRY_NAV_OFFSET,display:"flex",flexDirection:"column",background:`linear-gradient(180deg, ${C.cream} 0%, ${C.cream2} 100%)`,overflow:"hidden"}}>
-          <PageHeader title="Pantry Chef" subtitle="Ideas from your RecipeBox and what you have on hand" compact={compactHeader} top={16} right={16} bottom={14} />
+          <PageHeader title="Pantry Chef" subtitle={productText("Ideas from your RecipeBox and what you have on hand")} compact={compactHeader} top={16} right={16} bottom={14} />
           <div onScroll={(e) => setCompactHeader(e.currentTarget.scrollTop > 20)} style={{flex:1,minHeight:0,overflowY:"auto",padding:"12px 12px 10px"}}>
             <div style={{maxWidth:680,margin:"0 auto",display:"flex",flexDirection:"column",gap:11}}>
               {messages.map((m, i) => (
                 <div key={i} className="fade-up" style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
                   <div style={{maxWidth:"88%",display:"flex",flexDirection:"column",gap:8,alignItems:m.role==="user"?"flex-end":"stretch"}}>
-                    <div style={{background:m.role==="user"?C.green:"rgba(255,249,238,0.86)",color:m.role==="user"?C.white:C.dark,borderRadius:m.role==="user"?"16px 16px 5px 16px":"16px 16px 16px 5px",padding:"10px 14px",fontSize:"0.88em",lineHeight:1.6,boxShadow:"0 6px 18px rgba(90,56,39,0.06)",border:m.role!=="user"?"1px solid rgba(216,199,174,0.9)":"none",whiteSpace:"pre-wrap"}}>{m.content}</div>
+                    <div style={{background:m.role==="user"?C.green:(IS_EVERPLATE?C.paper:"rgba(255,249,238,0.86)"),color:m.role==="user"?C.white:C.dark,borderRadius:m.role==="user"?"16px 16px 5px 16px":"16px 16px 16px 5px",padding:"10px 14px",fontSize:"0.88em",lineHeight:1.6,boxShadow:"0 6px 18px rgba(90,56,39,0.06)",border:m.role!=="user"?"1px solid "+C.border:"none",whiteSpace:"pre-wrap"}}>{m.content}</div>
                     {m.matches && m.matches.length > 0 && (
                       <div style={{display:"grid",gap:8}}>
-                        <div style={{fontSize:"0.68em",letterSpacing:1.4,textTransform:"uppercase",color:C.light,fontWeight:700}}>Recipes from your RecipeBox</div>
+                        <div style={{fontSize:"0.68em",letterSpacing:1.4,textTransform:"uppercase",color:C.light,fontWeight:700}}>Recipes from {PRODUCT.name}</div>
                         {m.matches.map((match) => (
                           <button key={match.recipe.id} onClick={() => onOpenRecipe(match.recipe)}
                             style={{...S.cardSoft,display:"flex",alignItems:"center",gap:10,textAlign:"left",padding:"9px 10px",cursor:"pointer",fontFamily:SANS}}>
@@ -2469,7 +2502,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             </div>
           )}
           {image && <div style={{textAlign:"center",padding:"3px 0",fontSize:"0.76em",color:C.terra,flexShrink:0}}>Photo ready</div>}
-          <div style={{padding:"8px 12px 9px",background:"rgba(255,249,238,0.96)",borderTop:"1px solid rgba(216,199,174,0.92)",boxShadow:"0 -8px 18px rgba(90,56,39,0.04)",flexShrink:0}}>
+          <div style={{padding:"8px 12px 9px",background:IS_EVERPLATE?C.paper:"rgba(255,249,238,0.96)",borderTop:"1px solid "+C.border,boxShadow:"0 -8px 18px rgba(90,56,39,0.04)",flexShrink:0}}>
             <div style={{maxWidth:680,margin:"0 auto",display:"flex",gap:7,alignItems:"flex-end"}}>
               <input type="file" ref={imgRef} accept="image/*,image/heic,image/heif" onChange={async (e) => { const f=e.target.files[0]; if(!f)return; const b=await fileToBase64(f); setImage(b); }} style={{display:"none"}} />
               <button onClick={() => imgRef.current.click()} aria-label="Add pantry photo" style={{background:C.cream2,border:"1px solid "+C.border,borderRadius:11,width:42,height:42,cursor:"pointer",fontSize:"1.15em",flexShrink:0,display:"inline-flex",alignItems:"center",justifyContent:"center",color:C.blue}}>+</button>
@@ -2540,7 +2573,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         return () => { alive = false; };
       }, []);
       function notifyPackComingSoon() {
-        try { window.alert("AI Assist packs are coming soon. You'll never be charged without setting up billing first."); } catch {}
+        void showAlert("AI Assist packs are coming soon. You'll never be charged without setting up billing first.");
       }
 
       // --- Family / household (M1) ---
@@ -2573,12 +2606,12 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       }, [account?.id]);
       useEffect(() => { loadFounderOffer(); }, [loadFounderOffer]);
       async function chooseConversion(choice, label) {
-        if (choice === "free" && !window.confirm("Switch to the Free tier now? You'll get 15 welcome AI Assists, then 5 each month — and leave the unlimited beta.")) return;
+        if (choice === "free" && !(await confirmAction("Switch to the Free tier now? You'll get 15 welcome AI Assists, then 5 each month — and leave the unlimited beta."))) return;
         setConvBusy(true); setConvMsg("");
         try {
           await postJson("/api/me/convert", { choice });
           setConvMsg(choice === "free"
-            ? "You're on the Free tier now. Thank you for testing RecipeBox!"
+            ? "You're on the Free tier now. Thank you for testing " + PRODUCT.name + "!"
             : "Reserved — your " + label + " price is locked in. You'll claim it when paid plans launch; no charge now.");
           loadFounderOffer();
           if (choice === "free") fetchJson("/api/me/credits", null).then((c) => { if (c) setCredits(c); }).catch(() => {});
@@ -2620,7 +2653,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             await onCloudData(migrated.recipes, migrated.mealPlan);
             setAccountMsg("Signed in. This device's recipes were added to your account.");
           } else {
-            setAccountMsg("Signed in. Your cloud RecipeBox is loaded.");
+            setAccountMsg("Signed in. Your cloud " + PRODUCT.name + " library is loaded.");
             await onCloudData();
           }
         } catch (err) {
@@ -2634,7 +2667,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         setAccountMsg("");
         try {
           await postJson("/api/auth/request-password-reset", { email });
-          setAccountMsg("If that email has a RecipeBox account, a reset link is on the way.");
+          setAccountMsg("If that email has a " + PRODUCT.name + " account, a reset link is on the way.");
         } catch (err) {
           setAccountMsg(err.message || "Could not send reset link.");
         } finally {
@@ -2735,12 +2768,12 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       }
       function exportRecipes() {
         const data = backupBase();
-        downloadJson("recipebox-recipes-"+data.stamp+".json", data.recipes);
+        downloadJson(productFileName(PRODUCT.slug+"-recipes-"+data.stamp+".json"), data.recipes);
         setBackupMsg("Recipe cards exported.");
       }
       function exportMealPlan() {
         const data = backupBase();
-        downloadJson("recipebox-meal-plan-"+data.stamp+".json", data.mealPlan);
+        downloadJson(productFileName(PRODUCT.slug+"-meal-plan-"+data.stamp+".json"), data.mealPlan);
         setBackupMsg("Meal plan exported.");
       }
       function exportBackup() {
@@ -2750,8 +2783,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         let shoppingList = null, pantryStaples = null;
         try { shoppingList = JSON.parse(localStorage.getItem(SHOPPING_KEY) || "null"); } catch {}
         try { pantryStaples = JSON.parse(localStorage.getItem(PANTRY_KEY) || "null"); } catch {}
-        downloadJson("recipebox-backup-"+data.stamp+".json", {
-          app:"RecipeBox",
+        downloadJson(productFileName(PRODUCT.slug+"-backup-"+data.stamp+".json"), {
+          app:PRODUCT.name,
           version:2,
           exportedAt:new Date().toISOString(),
           account: account ? { email: account.email } : null,
@@ -2760,7 +2793,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           shoppingList: shoppingList || undefined,
           pantryStaples: Array.isArray(pantryStaples) ? pantryStaples : undefined,
         });
-        setBackupMsg("Full RecipeBox backup exported (recipes, tags, meal plan, shopping list, pantry).");
+        setBackupMsg("Full " + PRODUCT.name + " backup exported (recipes, tags, meal plan, shopping list, pantry).");
       }
       async function restoreBackup(file) {
         if (!file) return;
@@ -2770,8 +2803,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           const parsed = JSON.parse(raw);
           const nextRecipes = Array.isArray(parsed) ? parsed : Array.isArray(parsed.recipes) ? parsed.recipes : null;
           const nextMealPlan = parsed && typeof parsed === "object" && parsed.mealPlan && typeof parsed.mealPlan === "object" ? parsed.mealPlan : {};
-          if (!Array.isArray(nextRecipes)) throw new Error("That file does not look like a RecipeBox backup.");
-          const ok = window.confirm("Import this backup and replace the recipes and meal plan on this device"+(account ? " and your signed-in account" : "")+"?");
+          if (!Array.isArray(nextRecipes)) throw new Error("That file does not look like a " + PRODUCT.name + " backup.");
+          const ok = await confirmAction("Import this backup and replace the recipes and meal plan on this device"+(account ? " and your signed-in account" : "")+"?");
           if (!ok) return;
           try { localStorage.setItem(RECIPES_KEY, JSON.stringify(recipesForLocal(nextRecipes))); } catch {}
           try { localStorage.setItem(MEALPLAN_KEY, JSON.stringify(nextMealPlan)); } catch {}
@@ -2801,7 +2834,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           return { ...r, tags };
         });
         if (!changed) { setTagMsg("Your recipes already have suggested tags — nothing to add."); return; }
-        const ok = window.confirm("Suggest tags for your library? This adds tags to " + changed + " recipe" + (changed===1?"":"s") + " and never removes tags you added.");
+        const ok = await confirmAction("Suggest tags for your library? This adds tags to " + changed + " recipe" + (changed===1?"":"s") + " and never removes tags you added.");
         if (!ok) return;
         setTagBusy(true);
         try {
@@ -2813,15 +2846,15 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         } finally { setTagBusy(false); }
       }
       const placeholder = [
-        { title:"Appearance", text:"RecipeBox display and card preferences coming soon." },
+        { title:"Appearance", text:PRODUCT.name + " display and card preferences coming soon." },
         { title:"Import Preferences", text:"Default cleanup and recipe-card photo options coming soon." },
       ];
       return (
         <div style={{...S.page,paddingBottom:NAV_CLEARANCE}}>
-          <PageHeader title="Settings" subtitle="Account, sync, timers, and RecipeBox preferences" compact={compactHeader} />
+          <PageHeader title="Settings" subtitle={"Account, sync, timers, and " + PRODUCT.name + " preferences"} compact={compactHeader} />
           <div style={{maxWidth:760,margin:"16px auto",padding:"0 15px",display:"grid",gap:13}}>
             <div style={{...S.card,padding:15}}>
-              <div style={{fontFamily:SERIF,fontSize:"1.1em",color:C.dark,marginBottom:4}}>RecipeBox Account</div>
+              <div style={{fontFamily:SERIF,fontSize:"1.1em",color:C.dark,marginBottom:4}}>{PRODUCT.name} Account</div>
               {account ? (
                 <div>
                   <div style={{fontSize:"0.84em",color:C.mid,lineHeight:1.46,marginBottom:11}}>
@@ -2830,7 +2863,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   {account.emailVerified === false && (
                     <div style={{background:C.goldPale,border:"1px solid "+C.goldLight,borderRadius:11,padding:"12px 14px",marginBottom:12}}>
                       <div style={{fontWeight:700,color:C.brown,fontSize:"0.86em",marginBottom:3}}>Confirm your email</div>
-                      <div style={{fontSize:"0.8em",color:C.mid,lineHeight:1.45,marginBottom:9}}>We sent a confirmation link to {account.email}. Tap it to confirm your address. {verifyState==="sent" && "Sent — check your inbox."} {verifyState==="verified" && "Already confirmed — refresh the app."} {verifyState==="unavailable" && "Email isn't configured yet; you can keep using RecipeBox."} {verifyState==="error" && "Couldn't send right now — try again shortly."}</div>
+                      <div style={{fontSize:"0.8em",color:C.mid,lineHeight:1.45,marginBottom:9}}>We sent a confirmation link to {account.email}. Tap it to confirm your address. {verifyState==="sent" && "Sent — check your inbox."} {verifyState==="verified" && "Already confirmed — refresh the app."} {verifyState==="unavailable" && "Email isn't configured yet; you can keep using " + PRODUCT.name + "."} {verifyState==="error" && "Couldn't send right now — try again shortly."}</div>
                       <button onClick={resendVerification} disabled={verifyState==="sending"} style={{...S.ghostBtn,borderRadius:9,padding:"8px 12px",fontSize:"0.78em",opacity:verifyState==="sending"?0.6:1}}>
                         {verifyState==="sending" ? "Sending…" : "Resend confirmation email"}
                       </button>
@@ -2863,7 +2896,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 </div>
               ) : (
                 <div>
-                  <div style={{fontSize:"0.84em",color:C.light,lineHeight:1.5,marginBottom:12}}>Keep your RecipeBox synced with email and password. Apple and Google sign-in are planned for v1.</div>
+                  <div style={{fontSize:"0.84em",color:C.light,lineHeight:1.5,marginBottom:12}}>Keep your {PRODUCT.name} library synced with email and password. Apple and Google sign-in are planned for v1.</div>
                   <div style={{display:"flex",gap:7,marginBottom:12}}>
                     {["create","signin","reset"].map((m) => (
                       <button key={m} onClick={() => { setMode(m); setAccountMsg(""); }}
@@ -2876,7 +2909,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     <input value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="Email address" inputMode="email" autoCapitalize="none"
                       style={{...S.input,width:"100%",padding:"10px 12px",fontSize:"0.88em"}} />
                     {mode === "reset" ? (
-                      <div style={{fontSize:"0.78em",color:C.light,lineHeight:1.45}}>Enter your email and RecipeBox will send a reset link.</div>
+                      <div style={{fontSize:"0.78em",color:C.light,lineHeight:1.45}}>Enter your email and {PRODUCT.name} will send a reset link.</div>
                     ) : mode === "create" ? (
                       <>
                         <input value={displayName} onChange={(e)=>setDisplayName(e.target.value)} placeholder="Name (optional)"
@@ -3051,7 +3084,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
             {account && founderOffer?.eligible && (
               <div style={{...S.card,padding:16,border:"1px solid "+C.goldLight,background:"linear-gradient(160deg,#FFFDF7,"+C.goldPale+")"}}>
-                <div style={{fontFamily:SERIF,fontSize:"1.3em",color:C.dark,marginBottom:4}}>Thank you for testing RecipeBox 💛</div>
+                <div style={{fontFamily:SERIF,fontSize:"1.3em",color:C.dark,marginBottom:4}}>Thank you for testing {PRODUCT.name}</div>
                 <div style={{fontSize:"0.84em",color:C.mid,lineHeight:1.6,marginBottom:13}}>
                   You helped shape this app, and that means the world. As a beta tester you've earned <strong style={{color:C.brown}}>Founders pricing</strong> — locked in for as long as you keep your plan, and only ever offered to early testers like you. Pick what fits, no pressure:
                 </div>
@@ -3153,10 +3186,10 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
                     <div style={{display:"flex",gap:8,flexWrap:"wrap",borderTop:"1px solid "+C.border,paddingTop:11}}>
                       {hhRole === "owner" ? (
-                        <button disabled={hhBusy} onClick={()=>{ if(!window.confirm("Disband this household? Members will be removed. (Their own recipes are not affected.)"))return; hhAction(async()=>{ await postJson("/api/household/disband",{}); setHousehold({household:null}); setHhInvite(null); setHhMsg("Household disbanded."); }); }}
+                        <button disabled={hhBusy} onClick={async()=>{ if(!(await confirmAction("Disband this household? Members will be removed. (Their own recipes are not affected.)")))return; hhAction(async()=>{ await postJson("/api/household/disband",{}); setHousehold({household:null}); setHhInvite(null); setHhMsg("Household disbanded."); }); }}
                           style={{background:"none",border:"1px solid "+C.border,borderRadius:8,padding:"7px 13px",color:C.red,fontWeight:700,fontSize:"0.78em",cursor:"pointer",fontFamily:SANS}}>Disband household</button>
                       ) : (
-                        <button disabled={hhBusy} onClick={()=>{ if(!window.confirm("Leave this household?"))return; hhAction(async()=>{ await postJson("/api/household/leave",{}); setHousehold({household:null}); setHhMsg("You left the household."); }); }}
+                        <button disabled={hhBusy} onClick={async()=>{ if(!(await confirmAction("Leave this household?")))return; hhAction(async()=>{ await postJson("/api/household/leave",{}); setHousehold({household:null}); setHhMsg("You left the household."); }); }}
                           style={{background:"none",border:"1px solid "+C.border,borderRadius:8,padding:"7px 13px",color:C.red,fontWeight:700,fontSize:"0.78em",cursor:"pointer",fontFamily:SANS}}>Leave household</button>
                       )}
                     </div>
@@ -3218,7 +3251,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                       </button>
                     ))}
                   </div>
-                  <textarea value={feedbackText} onChange={(e)=>setFeedbackText(e.target.value)} placeholder="What happened? What felt off? What would make RecipeBox better?" rows={4}
+                  <textarea value={feedbackText} onChange={(e)=>setFeedbackText(e.target.value)} placeholder={"What happened? What felt off? What would make " + PRODUCT.name + " better?"} rows={4}
                     style={{...S.input,width:"100%",padding:"10px 12px",fontSize:"0.86em",resize:"vertical",lineHeight:1.45}} />
                   <button onClick={sendFeedback} disabled={feedbackBusy || feedbackText.trim().length < 8}
                     style={{...S.primaryBtn,borderRadius:9,padding:"10px 12px",fontSize:"0.82em",opacity:(feedbackBusy || feedbackText.trim().length < 8)?0.55:1}}>
@@ -3240,7 +3273,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
             <div style={{...S.card,padding:16}}>
               <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark,marginBottom:4}}>Data & Backup</div>
-              <div style={{fontSize:"0.82em",color:C.light,lineHeight:1.5,marginBottom:12}}>Keep a local copy of your recipe cards and meal plan. Imports replace your current RecipeBox data after confirmation.</div>
+              <div style={{fontSize:"0.82em",color:C.light,lineHeight:1.5,marginBottom:12}}>Keep a local copy of your recipe cards and meal plan. Imports replace your current {PRODUCT.name} data after confirmation.</div>
               <input ref={importRef} type="file" accept="application/json,.json" onChange={(e)=>restoreBackup(e.target.files && e.target.files[0])} style={{display:"none"}} />
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(145px, 1fr))",gap:8}}>
                 <button onClick={exportBackup} style={{...S.primaryBtn,borderRadius:9,padding:"10px 11px",fontSize:"0.78em"}}>Export Backup</button>
@@ -3252,8 +3285,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             </div>
 
             <div style={{...S.card,padding:16}}>
-              <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark,marginBottom:4}}>About RecipeBox</div>
-              <div style={{fontSize:"0.82em",color:C.mid,lineHeight:1.55}}>RecipeBox is your personal family recipe box: AI-powered import, clean recipe cards, meal planning, Pantry Chef, Cook Mode, timers, and cloud sync for your signed-in devices.</div>
+              <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark,marginBottom:4}}>About {PRODUCT.name}</div>
+              <div style={{fontSize:"0.82em",color:C.mid,lineHeight:1.55}}>{IS_EVERPLATE ? "EverPlate is a lifelong home for your recipes, memories, and traditions—with thoughtful imports, meal planning, Cook Mode, and secure cloud sync." : "RecipeBox is your personal family recipe box: AI-powered import, clean recipe cards, meal planning, Pantry Chef, Cook Mode, timers, and cloud sync for your signed-in devices."}</div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(120px, 1fr))",gap:8,marginTop:12}}>
                 <div style={{...S.cardSoft,padding:"9px 10px"}}><div style={{fontWeight:900,color:C.dark,fontSize:"0.9em"}}>{recipes.length}</div><div style={{fontSize:"0.72em",color:C.light}}>recipe cards</div></div>
                 <div style={{...S.cardSoft,padding:"9px 10px"}}><div style={{fontWeight:900,color:C.dark,fontSize:"0.9em"}}>{Object.values(mealPlan || {}).flat().length}</div><div style={{fontSize:"0.72em",color:C.light}}>planned meals</div></div>
@@ -3265,10 +3298,10 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               <div style={{fontFamily:SERIF,fontSize:"1.15em",color:C.dark,marginBottom:4}}>Legal & Support</div>
               <div style={{fontSize:"0.82em",color:C.light,lineHeight:1.5,marginBottom:12}}>Release-ready links for help, privacy, terms, and account deletion.</div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(135px, 1fr))",gap:8}}>
-                <a href="/support.html" target="_blank" rel="noreferrer" style={{...S.ghostBtn,textDecoration:"none",textAlign:"center",borderRadius:9,padding:"10px 11px",fontSize:"0.78em"}}>Support</a>
-                <a href="/privacy.html" target="_blank" rel="noreferrer" style={{...S.ghostBtn,textDecoration:"none",textAlign:"center",borderRadius:9,padding:"10px 11px",fontSize:"0.78em"}}>Privacy</a>
-                <a href="/terms.html" target="_blank" rel="noreferrer" style={{...S.ghostBtn,textDecoration:"none",textAlign:"center",borderRadius:9,padding:"10px 11px",fontSize:"0.78em"}}>Terms</a>
-                <a href="/delete-account.html" target="_blank" rel="noreferrer" style={{...S.ghostBtn,textDecoration:"none",textAlign:"center",borderRadius:9,padding:"10px 11px",fontSize:"0.78em"}}>Delete Account</a>
+                <a href={PRODUCT.links.support} target="_blank" rel="noreferrer" style={{...S.ghostBtn,textDecoration:"none",textAlign:"center",borderRadius:9,padding:"10px 11px",fontSize:"0.78em"}}>Support</a>
+                <a href={PRODUCT.links.privacy} target="_blank" rel="noreferrer" style={{...S.ghostBtn,textDecoration:"none",textAlign:"center",borderRadius:9,padding:"10px 11px",fontSize:"0.78em"}}>Privacy</a>
+                <a href={PRODUCT.links.terms} target="_blank" rel="noreferrer" style={{...S.ghostBtn,textDecoration:"none",textAlign:"center",borderRadius:9,padding:"10px 11px",fontSize:"0.78em"}}>Terms</a>
+                <a href={PRODUCT.links.deleteAccount} target="_blank" rel="noreferrer" style={{...S.ghostBtn,textDecoration:"none",textAlign:"center",borderRadius:9,padding:"10px 11px",fontSize:"0.78em"}}>Delete Account</a>
               </div>
             </div>
 
@@ -3276,7 +3309,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               <div style={{...S.card,padding:16,border:"1px solid "+C.redPale,background:C.paper}}>
                 <div style={{fontFamily:SERIF,fontSize:"1.05em",color:C.dark,marginBottom:4}}>Danger Zone</div>
                 <div style={{fontWeight:900,color:C.red,fontSize:"0.86em",marginBottom:6}}>Delete account</div>
-                <div style={{fontSize:"0.78em",color:C.light,lineHeight:1.45,marginBottom:10}}>This permanently deletes your account, recipes, meal plan, sessions, and usage history from RecipeBox cloud storage, and clears your shopping list and pantry from this device. This can't be undone — export a backup first if you want a copy.</div>
+                <div style={{fontSize:"0.78em",color:C.light,lineHeight:1.45,marginBottom:10}}>This permanently deletes your account, recipes, meal plan, sessions, and usage history from {PRODUCT.name} cloud storage, and clears your shopping list and pantry from this device. This can't be undone — export a backup first if you want a copy.</div>
                 <div style={{display:"grid",gap:8}}>
                   <input value={deleteConfirm} onChange={(e)=>setDeleteConfirm(e.target.value)} placeholder="Type DELETE"
                     style={{...S.input,width:"100%",padding:"9px 11px",fontSize:"0.84em"}} />
@@ -3394,7 +3427,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         } finally { setBusy(false); }
       }
       async function deactivateSource(source) {
-        if (!window.confirm("Deactivate this App Control source?")) return;
+        if (!(await confirmAction("Deactivate this App Control source?"))) return;
         setBusy(true);
         try {
           const res = await apiFetch("/api/admin/knowledge/" + encodeURIComponent(source.id), { method:"DELETE" });
@@ -3406,7 +3439,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         finally { setBusy(false); }
       }
       async function rollback(change) {
-        if (!window.confirm("Roll back this App Control change?")) return;
+        if (!(await confirmAction("Roll back this App Control change?"))) return;
         setBusy(true);
         try {
           await postJson("/api/admin/change-log/" + encodeURIComponent(change.id) + "/rollback", {});
@@ -4060,7 +4093,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           try {
             return parseAIJson(repaired);
           } catch {
-            throw new Error("RecipeBox could not read the recipe format. Try Paste Text, or upload a clearer PDF/photo.");
+            throw new Error(productText("RecipeBox could not read the recipe format. Try Paste Text, or upload a clearer PDF/photo."));
           }
         }
       }
@@ -4074,7 +4107,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       async function callAIExtract(messages, system, maxTokens, opts, _retried) {
         opts = opts || {};
         if (typeof navigator !== "undefined" && navigator.onLine === false) {
-          throw new Error("You're offline. Reconnect to use RecipeBox AI — your saved recipes are still available.");
+          throw new Error(productText("You're offline. Reconnect to use RecipeBox AI — your saved recipes are still available."));
         }
         const requested = maxTokens || 2500;
         const body = {
@@ -4100,7 +4133,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         // No tool_use — the model returned text. Fall back to the text+repair path.
         const text = RecipeBoxSchema.textContent(data);
         if (text.trim()) return await parseImportedRecipe(text);
-        throw new Error("RecipeBox could not read the recipe. Try Paste Text, or upload a clearer photo/PDF.");
+        throw new Error(productText("RecipeBox could not read the recipe. Try Paste Text, or upload a clearer photo/PDF."));
       }
 
       // Stage 3: minimal AI cleanup. Runs ONLY when the deterministic audit found
@@ -4252,7 +4285,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             const socialRes = await apiFetch("/api/fetch-social?url=" + encodeURIComponent(socialUrl));
             const socialData = await socialRes.json();
             if (socialData.error) {
-              throw new Error("RecipeBox could not access the full caption or recipe text from this social post. Try Paste Text with the caption or upload screenshots.");
+              throw new Error(productText("RecipeBox could not access the full caption or recipe text from this social post. Try Paste Text with the caption or upload screenshots."));
             }
             const availableText = [
               socialData.caption,
@@ -4262,7 +4295,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             ].filter(Boolean).join("\n\n").trim();
             capturedText = availableText;
             if (availableText.length < 120 || socialData.sourceQuality === "low") {
-              throw new Error("RecipeBox could not access the full caption or recipe text from this social post. Try Paste Text with the caption or upload screenshots.");
+              throw new Error(productText("RecipeBox could not access the full caption or recipe text from this social post. Try Paste Text with the caption or upload screenshots."));
             }
             importSourceText = [socialData.caption, socialData.description, socialData.text].filter(Boolean).join("\n");
             importSourceQuality = socialData.sourceQuality === "good" ? "high" : (socialData.sourceQuality || "medium");
@@ -4284,7 +4317,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             extractCtx = { messages: socialMessages, maxTokens: 4096, heroFallback: socialData.image || socialData.thumbnail || "" };
             parsed = await callAIExtract(socialMessages, EXTRACT_PROMPT, 2500);
             if (parsed.error === "not_enough_recipe_text" || parsed.error === "unknown_recipe") {
-              throw new Error(parsed.message || "RecipeBox could not access the full caption or recipe text from this social post. Try Paste Text with the caption or upload screenshots.");
+              throw new Error(parsed.message || productText("RecipeBox could not access the full caption or recipe text from this social post. Try Paste Text with the caption or upload screenshots."));
             }
             const socialImage = socialData.image || socialData.thumbnail || "";
             if (!parsed.heroImage && socialImage) parsed.heroImage = socialImage;
@@ -4544,7 +4577,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           reader.onload = async function(e) {
             try {
               const lib = window["pdfjs-dist/build/pdf"];
-              lib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+              lib.GlobalWorkerOptions.workerSrc = PRODUCT.native ? "/vendor/pdf.worker.min.mjs" : "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
               const pdf = await lib.getDocument({ data: e.target.result }).promise;
               let text = "";
               for (let i = 1; i <= Math.min(pdf.numPages, 10); i++) {
@@ -4564,7 +4597,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           reader.onload = async function(e) {
             try {
               const lib = window["pdfjs-dist/build/pdf"];
-              lib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+              lib.GlobalWorkerOptions.workerSrc = PRODUCT.native ? "/vendor/pdf.worker.min.mjs" : "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
               const pdf = await lib.getDocument({ data: e.target.result }).promise;
               const pages = [];
               for (let i = 1; i <= Math.min(pdf.numPages, 4); i++) {
@@ -4829,7 +4862,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             <button onClick={onCancel} style={{background:"rgba(255,255,255,0.12)",border:"none",borderRadius:8,padding:"7px 14px",color:"rgba(255,255,255,0.8)",cursor:"pointer",fontFamily:SANS,fontSize:"0.85em"}}>← Back</button>
             <div>
               <div style={{fontFamily:SERIF,fontSize:"1.35em",color:C.white,lineHeight:1}}>Add a recipe to your box</div>
-              <div style={{fontSize:"0.76em",color:"rgba(255,249,238,0.72)",marginTop:3}}>RecipeBox will help turn it into a clean card.</div>
+              <div style={{fontSize:"0.76em",color:"rgba(255,249,238,0.72)",marginTop:3}}>{PRODUCT.name} will help turn it into a clean card.</div>
             </div>
           </div>
 
@@ -4853,7 +4886,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 <input value={ytUrl} onChange={(e) => setYtUrl(e.target.value)} onKeyDown={(e) => e.key==="Enter"&&extract()} placeholder="https://youtube.com/watch?v=..."
                   style={{...S.input,width:"100%",padding:"12px 15px",fontSize:"0.92em",marginBottom:10,boxSizing:"border-box"}} />
                 <div style={{...S.cardSoft,background:C.goldPale,border:"1px solid "+C.goldLight,padding:"10px 13px",fontSize:"0.78em",color:C.brown,marginBottom:18,lineHeight:1.5}}>
-                  RecipeBox will look for the video transcript and build a recipe card. It works best when the recipe is spoken in the video.
+                  {PRODUCT.name} will look for the video transcript and build a recipe card. It works best when the recipe is spoken in the video.
                 </div>
               </div>
             )}
@@ -4863,7 +4896,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 <input value={socialUrl} onChange={(e) => setSocialUrl(e.target.value)} onKeyDown={(e) => e.key==="Enter"&&extract()} placeholder="https://www.tiktok.com/@creator/video/..."
                   style={{...S.input,width:"100%",padding:"12px 15px",fontSize:"0.92em",marginBottom:10,boxSizing:"border-box"}} />
                 <div style={{...S.cardSoft,background:C.goldPale,border:"1px solid "+C.goldLight,padding:"10px 13px",fontSize:"0.78em",color:C.brown,marginBottom:18,lineHeight:1.5}}>
-                  Works best with public posts that include the recipe in the caption. If RecipeBox cannot access it, paste the caption or upload screenshots.
+                  Works best with public posts that include the recipe in the caption. If {PRODUCT.name} cannot access it, paste the caption or upload screenshots.
                 </div>
               </div>
             )}
@@ -4911,7 +4944,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 )}
                 {images.length > 0 && (
                   <div style={{...S.cardSoft,background:C.goldPale,border:"1px solid "+C.goldLight,padding:"8px 12px",fontSize:"0.78em",color:C.brown,marginBottom:10}}>
-                    Please make sure all images are pages of the same recipe. HEIC/HEIF photos are converted to JPEG before RecipeBox reads them.
+                    Please make sure all images are pages of the same recipe. HEIC/HEIF photos are converted to JPEG before {PRODUCT.name} reads them.
                   </div>
                 )}
                 {mediaFiles.length > 0 && (
@@ -5190,12 +5223,12 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             msgs=[{role:"user",content:"For recipe: "+recipe.title+"\nNeeded: "+il+"\nI have: "+wtbText+"\nReturn JSON: {\"have\":[],\"need\":[],\"notes\":\"\"}"}];
           }
           setWtbResult(parseAIJson(await callAI(msgs, null, 800)));
-        } catch(e) { alert("Analysis failed."); }
+        } catch(e) { void showAlert("Analysis failed."); }
         setWtbLoading(false);
       }
 
       function buildRecipeDoc() {
-        if (!window.jspdf) { alert("PDF library loading. Try again."); return null; }
+        if (!window.jspdf) { void showAlert("PDF library loading. Try again."); return null; }
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         const pageW = doc.internal.pageSize.getWidth();
@@ -5211,7 +5244,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         // branding, a personal-use/attribution note, and page numbers.
         const stampFooters = () => {
           const pages = doc.getNumberOfPages();
-          const attribution = recipe.sourceUrl ? ("Imported from " + String(recipe.sourceUrl).replace(/^https?:\/\//, "").slice(0, 70)) : "Saved with RecipeBox for personal use";
+          const attribution = recipe.sourceUrl ? ("Imported from " + String(recipe.sourceUrl).replace(/^https?:\/\//, "").slice(0, 70)) : "Saved with " + PRODUCT.name + " for personal use";
           for (let p = 1; p <= pages; p++) {
             doc.setPage(p);
             doc.setDrawColor(...rgb(C.border)); doc.setLineWidth(0.2);
@@ -5236,7 +5269,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         doc.setFillColor(...rgb(C.green));
         doc.rect(0, 0, pageW, 34, "F");
         doc.setFont("helvetica", "bold"); doc.setFontSize(10); setText(C.goldLight);
-        doc.text("RecipeBox", margin, 13);
+        doc.text(PRODUCT.name, margin, 13);
         doc.setFont("helvetica", "bold"); doc.setFontSize(21); setText(C.white);
         writeWrapped(recipe.title, margin, pageW - margin * 2, 8);
         y = Math.max(y + 4, 43);
@@ -5326,12 +5359,17 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           (sec.steps || []).forEach((step, i) => lines.push((i + 1) + ". " + plainStepText(step.text, sec.ingredients, scale, metric)));
         });
         if (recipe.notes && String(recipe.notes).trim()) lines.push("", "NOTES", String(recipe.notes).trim());
-        lines.push("", "Shared from RecipeBox");
+        lines.push("", "Shared from " + PRODUCT.name);
         return lines.join("\n");
       }
       async function shareRecipe() {
         const text = buildRecipeShareText();
         try {
+          if (PRODUCT.native) {
+            const nativeDoc = buildRecipeDoc();
+            if (nativeDoc && await shareNativeBlob(recipe.title || "Recipe", (recipe.title || "Recipe") + " — shared from " + PRODUCT.name, recipeFileBase() + ".pdf", nativeDoc.output("blob"))) return;
+            if (await shareNativeText(recipe.title || "Recipe", text)) return;
+          }
           // Prefer sharing the branded PDF (with a short text summary) when the
           // platform supports file sharing; otherwise share the full text.
           if (typeof navigator !== "undefined" && navigator.canShare) {
@@ -5339,7 +5377,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             if (doc) {
               const file = new File([doc.output("blob")], recipeFileBase() + ".pdf", { type: "application/pdf" });
               if (navigator.canShare({ files: [file] })) {
-                await navigator.share({ title: recipe.title || "Recipe", text: (recipe.title || "Recipe") + " — shared from RecipeBox", files: [file] });
+                await navigator.share({ title: recipe.title || "Recipe", text: (recipe.title || "Recipe") + " — shared from " + PRODUCT.name, files: [file] });
                 return;
               }
             }
@@ -5348,11 +5386,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             await navigator.share({ title: recipe.title || "Recipe", text });
             return;
           }
-          if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(text); alert("Recipe copied to clipboard."); return; }
+          if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(text); await showAlert("Recipe copied to clipboard."); return; }
           exportPDF();
         } catch (e) {
           if (e && e.name === "AbortError") return; // user dismissed the share sheet
-          try { if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(text); alert("Recipe copied to clipboard."); return; } } catch (e2) {}
+          try { if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(text); await showAlert("Recipe copied to clipboard."); return; } } catch (e2) {}
           exportPDF();
         }
       }
@@ -6010,7 +6048,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         setMessage("");
         try {
           await postJson("/api/auth/request-password-reset", { email });
-          setMessage("If that email has a RecipeBox account, a reset link is on the way.");
+          setMessage("If that email has a " + PRODUCT.name + " account, a reset link is on the way.");
         } catch (err) {
           setMessage(err.message || "Could not send reset link.");
         } finally {
@@ -6042,9 +6080,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         <div style={{minHeight:"100dvh",background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",padding:"max(env(safe-area-inset-top),20px) 20px max(env(safe-area-inset-bottom),20px)"}}>
           <div style={{width:"100%",maxWidth:430}}>
             <div style={{textAlign:"center",marginBottom:20}}>
-              <img src="/icon-192.png" alt="" style={{width:92,height:92,borderRadius:22,display:"block",margin:"0 auto 14px",boxShadow:"0 18px 55px rgba(28,20,16,0.28)"}} />
-              <div style={{fontFamily:SERIF,fontSize:"2.3em",color:C.white,lineHeight:1}}>RecipeBox</div>
-              <div style={{marginTop:6,color:C.brownLight,fontSize:"0.9em",fontWeight:700}}>Start your RecipeBox</div>
+              <img src={IS_EVERPLATE ? PRODUCT.assets.monogram : "/icon-192.png"} alt="" style={{width:92,height:92,borderRadius:22,display:"block",margin:"0 auto 14px",boxShadow:"0 18px 55px rgba(28,20,16,0.28)"}} />
+              {IS_EVERPLATE ? <img src={PRODUCT.assets.wordmarkLight} alt="EverPlate" style={{width:230,maxWidth:"78%",height:60,objectFit:"contain",display:"block",margin:"0 auto"}} /> : <div style={{fontFamily:SERIF,fontSize:"2.3em",color:C.white,lineHeight:1}}>{PRODUCT.name}</div>}
+              <div style={{marginTop:6,color:C.brownLight,fontSize:"0.9em",fontWeight:700}}>{IS_EVERPLATE ? "A lifelong home for your recipes" : "Start your RecipeBox"}</div>
             </div>
 
             <div style={{background:C.cream,border:"1px solid rgba(255,255,255,0.16)",borderRadius:18,padding:18,boxShadow:"0 18px 60px rgba(0,0,0,0.28)"}}>
@@ -6065,7 +6103,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     style={{width:"100%",padding:"12px 13px",border:"1px solid "+C.border,borderRadius:10,fontFamily:SANS,fontSize:"0.92em",outline:"none",background:C.white}} />
                 )}
                 {isResetRequest ? (
-                  <div style={{fontSize:"0.8em",color:C.light,lineHeight:1.45}}>Enter your email and RecipeBox will send a secure reset link.</div>
+                  <div style={{fontSize:"0.8em",color:C.light,lineHeight:1.45}}>Enter your email and {PRODUCT.name} will send a secure reset link.</div>
                 ) : isCreate ? (
                   <>
                     <input value={displayName} onChange={(e)=>setDisplayName(e.target.value)} placeholder="Name (optional)"
@@ -6123,9 +6161,9 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       return (
         <div style={{position:"fixed",inset:0,zIndex:200,background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",padding:28}}>
           <div style={{textAlign:"center",animation:"splashIn 0.55s ease both"}}>
-            <img src="/icon-192.png" alt="" style={{width:118,height:118,borderRadius:28,display:"block",margin:"0 auto 18px",boxShadow:"0 18px 55px rgba(28,20,16,0.32)",animation:"splashGlow 2.2s ease-in-out infinite"}} />
-            <div style={{fontFamily:SERIF,fontSize:"2.45em",color:C.white,lineHeight:1,letterSpacing:"0.01em"}}>RecipeBox</div>
-            <div style={{marginTop:9,color:"rgba(255,249,238,0.82)",fontSize:"0.92em",fontWeight:600,letterSpacing:"0.02em"}}>Your recipes, ready when you are</div>
+            <img src={IS_EVERPLATE ? PRODUCT.assets.monogram : "/icon-192.png"} alt="" style={{width:118,height:118,borderRadius:28,display:"block",margin:"0 auto 18px",boxShadow:"0 18px 55px rgba(28,20,16,0.32)",animation:"splashGlow 2.2s ease-in-out infinite"}} />
+            {IS_EVERPLATE ? <img src={PRODUCT.assets.wordmarkLight} alt="EverPlate" style={{width:250,maxWidth:"82vw",height:66,objectFit:"contain",display:"block",margin:"0 auto"}} /> : <div style={{fontFamily:SERIF,fontSize:"2.45em",color:C.white,lineHeight:1,letterSpacing:"0.01em"}}>{PRODUCT.name}</div>}
+            <div style={{marginTop:9,color:"rgba(255,249,238,0.82)",fontSize:"0.92em",fontWeight:600,letterSpacing:"0.02em"}}>{IS_EVERPLATE ? PRODUCT.tagline : "Your recipes, ready when you are"}</div>
           </div>
         </div>
       );
@@ -6182,6 +6220,13 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         } catch { return null; }
       });
       const [account, setAccount] = useState(() => loadAccountSession().user || null);
+      useEffect(() => {
+        if (!PRODUCT.native) return;
+        try {
+          if (account) localStorage.setItem(NATIVE_ACCOUNT_CACHE_KEY, JSON.stringify(account));
+          else localStorage.removeItem(NATIVE_ACCOUNT_CACHE_KEY);
+        } catch {}
+      }, [account]);
       // Whether the signed-in user is in a household (gates the "Share with
       // household" control on recipes).
       const [inHousehold, setInHousehold] = useState(false);
@@ -6194,6 +6239,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [aiUsage, setAiUsage] = useState(() => defaultAiUsage());
       const [newFeedback, setNewFeedback] = useState(0);
       const [showSplash, setShowSplash] = useState(true);
+      const [isOnline, setIsOnline] = useState(() => navigator.onLine !== false);
       const backTabRef = useRef("library");
       const navDepthRef = useRef(0);
       const prevNavRef = useRef("splash");
@@ -6296,6 +6342,36 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         const t = setTimeout(() => setShowSplash(false), 2400);
         return () => clearTimeout(t);
       }, []);
+      useEffect(() => {
+        const online = () => setIsOnline(true);
+        const offline = () => setIsOnline(false);
+        window.addEventListener("online", online);
+        window.addEventListener("offline", offline);
+        return () => { window.removeEventListener("online", online); window.removeEventListener("offline", offline); };
+      }, []);
+      useEffect(() => {
+        if (!PRODUCT.native) return;
+        const onBack = () => {
+          if (screen === "view") { closeToOrigin(); return; }
+          if (screen === "edit") { setScreen("view"); return; }
+          if (screen === "import" || screen === "admin") { setScreen("library"); return; }
+          if (tab !== "library") { setMainTab("library"); return; }
+          void nativeBridge()?.exitApp?.();
+        };
+        const onResume = async () => {
+          if (!account) return;
+          const session = await fetchJson("/api/auth/session", { user:null });
+          if (!session?.user) { setAccount(null); return; }
+          setAccount(session.user);
+          await loadCloudData();
+        };
+        window.addEventListener("everplate:native-back", onBack);
+        window.addEventListener("everplate:native-resume", onResume);
+        return () => {
+          window.removeEventListener("everplate:native-back", onBack);
+          window.removeEventListener("everplate:native-resume", onResume);
+        };
+      }, [account?.id, screen, tab]);
       // Cream backdrop while signed in and inside the app (no green flash behind
       // screen transitions); transparent (green) on splash/auth.
       useEffect(() => {
@@ -6349,25 +6425,27 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         const t = { ...r, id:r.id||uid(), createdAt:r.createdAt||new Date().toISOString(), tags: RecipeBoxTags.applyTagsOnCreate(r) };
         const saved = await persistRecipe(t,"create");
         setRecipes((p) => p.some((x)=>x.id===saved.id) ? p.map((x)=>x.id===saved.id?saved:x) : [saved,...p]);
+        void nativeBridge()?.haptic?.({ style:"light" });
         setCurrent(saved); setRecipeNotice("Recipe saved to your library."); setScreen("view"); return saved;
       }
       async function updateRecipe(r, operation="update") {
         if (r && r.householdShared) throw new Error("Only the recipe owner can change this recipe.");
         const t = { ...r, tags: RecipeBoxTags.normalizeRecipeTags(r.tags) };
         const saved = await persistRecipe(t,operation);
+        void nativeBridge()?.haptic?.({ style:"light" });
         setRecipes((p) => p.map((x) => x.id===saved.id?saved:x)); setCurrent(saved); setRecipeNotice(operation==="move"?"Recipe moved successfully.":"Recipe changes saved."); return saved;
       }
       async function deleteRecipe(id) {
         const rec=recipes.find((x)=>x.id===id); if(rec&&rec.householdShared)return;
-        if(!window.confirm("Delete this recipe?"))return;
+        if(!(await confirmAction("Delete this recipe?")))return;
         const next=recipes.filter((r)=>r.id!==id);
         try { const data=await putJson("/api/recipes",{recipes:ownRecipes(next)}); if(!data.savedToDatabase)throw new Error("Deletion was not confirmed by the database."); setRecipes(next); setScreen("library"); }
-        catch(e) { window.alert(e.message||"Could not delete this recipe."); }
+        catch(e) { await showAlert(e.message||"Could not delete this recipe."); }
       }
       async function toggleFavorite(id) {
         const rec=recipes.find((r)=>r.id===id); if(!rec||rec.householdShared)return;
         try { await updateRecipe({...rec,favorite:!rec.favorite}); }
-        catch(e) { window.alert(e.message||"Could not update this recipe."); }
+        catch(e) { await showAlert(e.message||"Could not update this recipe."); }
       }
       function editRecipeFromLibrary(recipe) { setCurrent(recipe); setScreen("edit"); }
       function setMainTab(nextTab) {
@@ -6390,7 +6468,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       else if (resetToken) { body = <AuthScreen recipes={recipes} mealPlan={mealPlan} setAccount={setAccount} onCloudData={loadCloudData} initialMode="newpass" resetToken={resetToken} />; navName = "auth"; }
       else if (!account) { body = <AuthScreen recipes={recipes} mealPlan={mealPlan} setAccount={setAccount} onCloudData={loadCloudData} />; navName = "auth"; }
       else if (screen==="admin" && account?.isMasterAdmin) { body = <AppControl account={account} onBack={()=>{refreshAdminAlerts();setScreen("library");}} onFeedbackChange={setNewFeedback} />; navName = "admin"; }
-      else if (screen==="import") { body = <ImportScreen initialMode={importMode} initialValue={importPrefill} onDone={async(r)=>{ const list=Array.isArray(r)?r:[r]; try { for(const recipe of list) await addRecipe(recipe); if(list.length!==1)setScreen("library"); } catch(e) { window.alert((e.message||"Could not save this recipe.")+" Your imported recipe remains on this screen so you can try again."); throw e; } }} onCancel={()=>setScreen("library")} />; navName = "import"; }
+      else if (screen==="import") { body = <ImportScreen initialMode={importMode} initialValue={importPrefill} onDone={async(r)=>{ const list=Array.isArray(r)?r:[r]; try { for(const recipe of list) await addRecipe(recipe); if(list.length!==1)setScreen("library"); } catch(e) { await showAlert((e.message||"Could not save this recipe.")+" Your imported recipe remains on this screen so you can try again."); throw e; } }} onCancel={()=>setScreen("library")} />; navName = "import"; }
       else if (screen==="edit"&&current) { body = <EditRecipe recipe={current} onSave={async(r)=>{ if(recipes.find((x)=>x.id===r.id)) await updateRecipe(r); else await addRecipe(r); setScreen("view"); }} onCancel={()=>setScreen("view")} />; navName = "edit"; }
       else if (screen==="view"&&current) {
         navName = "view"; showNav = true;
@@ -6432,6 +6510,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               {verifyMsg.text} <span style={{opacity:0.7,fontWeight:400}}> · tap to dismiss</span>
             </div>
           )}
+          {!isOnline && !showSplash && (
+            <div role="status" aria-live="polite" style={{position:"fixed",top:"calc(env(safe-area-inset-top, 0px) + 8px)",left:"50%",transform:"translateX(-50%)",zIndex:80,background:C.dark,color:C.white,border:"1px solid "+C.border,borderRadius:999,padding:"8px 14px",fontSize:"0.78em",fontWeight:700,boxShadow:"0 6px 20px rgba(0,0,0,0.2)"}}>
+              Offline · saved recipes remain available on this device
+            </div>
+          )}
           {showNav && <BottomNav tab={tab} setTab={setMainTab} badges={{settings:newFeedback}} />}
         </>
       );
@@ -6439,11 +6522,14 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
     const root = ReactDOM.createRoot(document.getElementById("root"));
     root.render(<App />);
+    if (IS_EVERPLATE && typeof window.matchMedia === "function") {
+      window.matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => window.location.reload());
+    }
 
     // Register the service worker for instant launch + offline. On an update, a
     // new worker activates and takes control; reload once to get the fresh app.
     // (No reload on the very first install, when there was no controller yet.)
-    if ("serviceWorker" in navigator) {
+    if (!PRODUCT.native && "serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         const hadController = !!navigator.serviceWorker.controller;
         let refreshing = false;
