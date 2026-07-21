@@ -1,8 +1,8 @@
 # EverPlate store metadata checklist
 
-Not for submission until approved vector artwork and dedicated legal URLs exist.
+Not for submission until dedicated legal URLs and store-account details exist.
 
-## Shared listing placeholders
+## Shared listing draft
 
 - Name: EverPlate
 - Subtitle/short description: A lifelong home for your recipes, memories, and traditions.
@@ -12,7 +12,7 @@ Not for submission until approved vector artwork and dedicated legal URLs exist.
 - Account deletion URL: pending dedicated EverPlate URL
 - Copyright/owner: pending legal owner confirmation
 - Contact email and phone: pending owner confirmation
-- Store screenshots: pending final artwork and real-device visual QA
+- Store screenshots: pending real-device visual QA; do not substitute marketing composites for screenshots
 
 ## Privacy/data review
 
@@ -27,7 +27,7 @@ Confirm this inventory against production backend behavior and current Apple/Goo
 
 ## Release gates
 
-- Approved final monogram, wordmark, iOS icon, adaptive icon, monochrome icon, and splash art
+- Production monogram, path-based wordmark, iOS icon catalog, adaptive icon, monochrome icon, and splash art present
 - Final support/privacy/terms/account-deletion URLs
 - Apple App ID/team/signing and App Store Connect record
 - Google Play app record, upload key, Play App Signing, Data Safety answers
