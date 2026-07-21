@@ -41,16 +41,10 @@
 	<string>EverPlate uses the camera when you choose to photograph a recipe for import.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>EverPlate accesses photos only when you choose recipe images to import.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>EverPlate can save an exported recipe when you explicitly choose to save it to Photos.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
-	<key>UIRequiredDeviceCapabilities</key>
-	<array>
-		<string>armv7</string>
-	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

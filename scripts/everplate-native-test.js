@@ -71,7 +71,14 @@ const info = read('native/everplate/ios/App/App/Info.plist');
 for (const value of ['EverPlate','everplate','NSCameraUsageDescription','NSPhotoLibraryUsageDescription','PrivacyInfo']) {
   if (value !== 'PrivacyInfo') assert(info.includes(value), `Info.plist missing ${value}`);
 }
+assert(!info.includes('NSPhotoLibraryAddUsageDescription'), 'iOS must not request unused Photos write permission');
+assert(!info.includes('UIRequiredDeviceCapabilities'), 'iOS must not retain obsolete template device requirements');
 assert(exists('native/everplate/ios/App/App/PrivacyInfo.xcprivacy'));
+
+const xcodeProject = read('native/everplate/ios/App/App.xcodeproj/project.pbxproj');
+assert.strictEqual((xcodeProject.match(/MARKETING_VERSION = 1\.0\.0;/g) || []).length, 2, 'iOS Debug and Release must use version 1.0.0');
+assert.strictEqual((xcodeProject.match(/CURRENT_PROJECT_VERSION = 1;/g) || []).length, 2, 'iOS Debug and Release must use build 1');
+assert.strictEqual((xcodeProject.match(/PRODUCT_BUNDLE_IDENTIFIER = com\.benjaminaird\.everplate;/g) || []).length, 2, 'iOS bundle ID must remain stable');
 
 const manifest = read('native/everplate/android/app/src/main/AndroidManifest.xml');
 for (const value of ['android.permission.CAMERA','android.permission.READ_MEDIA_IMAGES','android:scheme="everplate"','android:allowBackup="false"','android:usesCleartextTraffic="false"']) {
