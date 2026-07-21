@@ -1,0 +1,29 @@
+{
+  "reviewedAt": "2026-07-21",
+  "authoritativeReference": "User-supplied EverPlate brand guide",
+  "candidateCounts": {
+    "monogram": 3,
+    "wordmark": 3,
+    "appIcon": 3,
+    "splashLight": 2,
+    "splashDark": 2,
+    "hero": 2
+  },
+  "selections": {
+    "monogramReference": "candidates/monogram/image_2.png",
+    "wordmarkReferences": [
+      "candidates/wordmark/image_2.png",
+      "candidates/wordmark/image_3.png"
+    ],
+    "appIconReference": "candidates/app-icon/image_2.png",
+    "splashLightReference": "candidates/splash-light/image_2.png",
+    "splashDarkReference": "candidates/splash-dark/image_1.png",
+    "heroSource": "candidates/hero/image_2.png"
+  },
+  "productionPolicy": {
+    "generatedLetteringRetained": false,
+    "screenshotCropsUsedAsProductionArtwork": false,
+    "monogramReconstructedAsPaths": true,
+    "wordmarkReconstructedAsPaths": true
+  }
+}
