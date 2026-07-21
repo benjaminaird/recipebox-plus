@@ -1,0 +1,52 @@
+{
+  "appId": "com.benjaminaird.everplate",
+  "appName": "EverPlate",
+  "webDir": "../../dist/everplate",
+  "bundledWebRuntime": false,
+  "ios": {
+    "scheme": "EverPlate",
+    "contentInset": "automatic",
+    "backgroundColor": "#274233",
+    "preferredContentMode": "mobile",
+    "allowsLinkPreview": false,
+    "scrollEnabled": true
+  },
+  "android": {
+    "backgroundColor": "#274233",
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  },
+  "server": {
+    "iosScheme": "https",
+    "androidScheme": "https",
+    "hostname": "localhost"
+  },
+  "plugins": {
+    "CapacitorCookies": {
+      "enabled": true
+    },
+    "CapacitorHttp": {
+      "enabled": true
+    },
+    "SplashScreen": {
+      "launchShowDuration": 2200,
+      "launchAutoHide": false,
+      "backgroundColor": "#274233",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP",
+      "splashFullScreen": true,
+      "splashImmersive": false
+    },
+    "Keyboard": {
+      "resize": "body",
+      "style": "light",
+      "resizeOnFullScreen": true
+    },
+    "StatusBar": {
+      "overlaysWebView": true,
+      "style": "dark",
+      "backgroundColor": "#274233"
+    }
+  }
+}

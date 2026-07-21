@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TEMPORARY EVERPLATE PLACEHOLDER — replace with approved vector master before distribution. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd"
+        android:pathData="M54,19A35,35 0,1 0,54,89A35,35 0,1 0,54,19M54,23A31,31 0,1 1,54,85A31,31 0,1 1,54,23" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M43,32L69,32L69,38L50,38L50,51L67,51L67,57L50,57L50,70L70,70L70,76L43,76Z" />
+</vector>

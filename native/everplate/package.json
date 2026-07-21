@@ -1,0 +1,50 @@
+{
+  "name": "@recipebox/everplate-native",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:bridge": "esbuild src/native-bridge.js --bundle --format=iife --target=es2020 --legal-comments=none --outfile=../../dist/everplate/native-bridge.js && esbuild src/vendor-entry.js --bundle --format=iife --target=es2020 --legal-comments=none --outfile=../../dist/everplate/vendor.js && node scripts/copy-runtime-assets.js",
+    "sync": "npx cap sync",
+    "add:ios": "npx cap add ios",
+    "add:android": "npx cap add android",
+    "assets": "npx capacitor-assets generate --ios --android --assetPath assets --iconBackgroundColor '#274233' --iconBackgroundColorDark '#0F1412' --splashBackgroundColor '#274233' --splashBackgroundColorDark '#0F1412'",
+    "open:ios": "npx cap open ios",
+    "open:android": "npx cap open android",
+    "build:ios:development": "npx cap run ios",
+    "build:ios:preview": "xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build",
+    "build:ios:everplate-internal": "xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -destination 'generic/platform=iOS' -archivePath build/EverPlate.xcarchive archive",
+    "build:ios:everplate-production": "xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -destination 'generic/platform=iOS' -archivePath build/EverPlate.xcarchive archive",
+    "build:android:development": "cd android && ./gradlew assembleDebug",
+    "build:android:preview": "cd android && ./gradlew assembleDebug",
+    "build:android:everplate-internal": "cd android && ./gradlew bundleRelease",
+    "build:android:everplate-production": "cd android && ./gradlew bundleRelease"
+  },
+  "dependencies": {
+    "@capacitor/app": "8.1.1",
+    "@capacitor/browser": "8.0.4",
+    "@capacitor/core": "8.4.2",
+    "@capacitor/dialog": "8.0.1",
+    "@capacitor/filesystem": "8.1.2",
+    "@capacitor/haptics": "8.0.2",
+    "@capacitor/keyboard": "8.0.5",
+    "@capacitor/network": "8.0.1",
+    "@capacitor/share": "8.0.1",
+    "@capacitor/splash-screen": "8.0.2",
+    "@capacitor/status-bar": "8.0.3",
+    "@fontsource/lora": "5.3.0",
+    "@fontsource/source-sans-3": "5.3.0",
+    "heic2any": "0.0.4",
+    "jspdf": "4.2.1",
+    "pdfjs-dist": "4.10.38",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@capacitor/android": "8.4.2",
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "8.4.2",
+    "@capacitor/ios": "8.4.2",
+    "esbuild": "0.20.2"
+  }
+}
