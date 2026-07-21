@@ -64,6 +64,7 @@ const ADMIN_KB_CATEGORIES = [
   'Product Strategy',
   'WhatsNext Sync',
 ];
+const RECIPE_CATEGORIES = ['Breakfast','Appetizers','Entrées','Sides','Condiments & Sauces','Beverages','Desserts','Baked Goods'];
 const ADMIN_FEATURES = [
   'Import',
   'Manual Recipe Entry',
@@ -1439,6 +1440,53 @@ function normalizeRecipeForDb(recipe) {
   };
 }
 
+function validateRecipeForSave(recipe) {
+  if (!recipe || typeof recipe !== 'object' || Array.isArray(recipe)) throw new Error('recipe must be an object');
+  const id = String(recipe.id || '').trim();
+  const title = String(recipe.title || '').trim();
+  if (!id || id.length > 120) throw new Error('recipe id is required');
+  if (!title) throw new Error('recipe title is required');
+  if (!Array.isArray(recipe.sections) || !recipe.sections.length) throw new Error('recipe must include at least one section');
+  if (recipe.category != null && typeof recipe.category !== 'string') throw new Error('recipe category must be text');
+  if (recipe.category && !RECIPE_CATEGORIES.includes(recipe.category)) throw new Error('recipe category is not allowed');
+  return { ...recipe, id, title };
+}
+
+async function upsertUserRecipe(userId, input) {
+  const db = await getPool();
+  if (!db) throw new Error('database is unavailable');
+  const recipe = validateRecipeForSave(input);
+  const r = normalizeRecipeForDb(recipe);
+  await db.query('BEGIN');
+  try {
+    await db.query('SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))', [userId, recipe.id]);
+    // RecipeBox's stable recipe id lives inside recipe_json. Lock a matching
+    // owned row so repeated taps update it instead of creating duplicates.
+    const existing = await db.query(
+      `SELECT id FROM recipes WHERE user_id=$1 AND recipe_json->>'id'=$2 FOR UPDATE`,
+      [userId, recipe.id]
+    );
+    if (existing.rows[0]) {
+      await db.query(
+        `UPDATE recipes SET title=$3, category=$4, hero_image_url=$5, recipe_json=$6::jsonb,
+          favorite=$7, rating=$8, updated_at=now() WHERE id=$1 AND user_id=$2`,
+        [existing.rows[0].id, userId, r.title, r.category, r.heroImage, JSON.stringify(r.json), r.favorite, r.rating]
+      );
+    } else {
+      await db.query(
+        `INSERT INTO recipes(user_id, title, category, hero_image_url, recipe_json, favorite, rating)
+         VALUES($1, $2, $3, $4, $5::jsonb, $6, $7)`,
+        [userId, r.title, r.category, r.heroImage, JSON.stringify(r.json), r.favorite, r.rating]
+      );
+    }
+    await db.query('COMMIT');
+    return r.json;
+  } catch (err) {
+    await db.query('ROLLBACK');
+    throw err;
+  }
+}
+
 async function readUserRecipes(userId) {
   const db = await getPool();
   if (!db) return [];
@@ -2356,6 +2404,24 @@ app.get('/api/recipes', async (req, res) => {
     res.json([]);
   }
   catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.post('/api/recipes/save', async (req, res) => {
+  const requestId = String(req.headers['x-request-id'] || require('crypto').randomUUID());
+  let user = null;
+  try {
+    user = await currentUser(req);
+    if (!user) return res.status(401).json({ error: 'sign in required', requestId });
+    const recipe = await upsertUserRecipe(user.user_id, req.body.recipe);
+    await logUserActivity(user, 'recipe_saved', { recipeId: recipe.id, operation: req.body.operation === 'create' ? 'create' : 'update' });
+    return res.json({ ok: true, savedToDatabase: true, recipe, requestId });
+  } catch (err) {
+    const status = /required|must include|must be|not allowed/.test(err.message) ? 400 : 500;
+    // Request references are enough to correlate a client report. Do not log
+    // recipe data, recipe ids, account ids, credentials, or session details.
+    const log = status === 400 ? console.warn : console.error;
+    log('recipe_save_failed', { requestId, operation: req.body?.operation === 'create' ? 'create' : req.body?.operation === 'move' ? 'move' : 'update', error: err.name, message: err.message });
+    return res.status(status).json({ error: status === 400 ? err.message : 'Recipe could not be saved. Please try again.', requestId });
+  }
 });
 app.put('/api/recipes', async (req, res) => {
   try {

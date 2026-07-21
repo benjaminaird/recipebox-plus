@@ -8,7 +8,7 @@
  *  - Versioned caches; old versions are purged on activate.
  * Bump VERSION on each deploy so a new worker installs and updates take effect.
  */
-const VERSION = '2026-07-01c';
+const VERSION = '2026-07-20-recipe-save';
 const SHELL_CACHE = 'rb-shell-' + VERSION;
 const RUNTIME_CACHE = 'rb-runtime-' + VERSION;
 
@@ -16,6 +16,7 @@ const PRECACHE = [
   '/', '/index.html', '/app.js', '/shopping-list.js', '/recipe-tags.js', '/nutrition.js', '/recipe-extract.js', '/recipe-grounding.js', '/recipe-schema.js', '/recipe-normalize.js', '/app-config.js',
   '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/maskable-icon.png',
   '/apple-touch-icon.png', '/favicon-32.png',
+  '/images/categories/baked-goods.webp',
   'https://unpkg.com/react@18/umd/react.production.min.js',
   'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',

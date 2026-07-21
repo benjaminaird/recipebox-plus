@@ -39,7 +39,7 @@
       eyebrow: { fontSize:"0.68em", letterSpacing:2.4, textTransform:"uppercase", fontWeight:800, color:C.brownLight },
     };
     const CARD_COLORS = ["#234B32","#B85D32","#B88A2B","#5A3827","#3E6F4B","#8B6252","#35676B"];
-    const CATEGORIES = ["Breakfast","Appetizers","Entrées","Sides","Condiments & Sauces","Beverages","Desserts"];
+    const CATEGORIES = ["Breakfast","Appetizers","Entrées","Sides","Condiments & Sauces","Beverages","Desserts","Baked Goods"];
     const APP_CONTROL_CATEGORIES = ["All","Methodology","AI Instruction","Import Rule","Recipe Normalization","Meal Planning","Pantry Logic","Image Handling","User Experience","Safety / Guardrail","Legal / Copyright","Product Strategy","WhatsNext Sync"];
     const APP_CONTROL_FEATURES = ["Import","Manual Recipe Entry","AI Adjust","AI Chat Editor","Pantry Chef","Meal Planner","Shopping List","Cook Mode","PDF Export","Recipe Detail","Library","Settings"];
     const APP_CONTROL_SCOPE_TYPES = ["Global","Feature","Account","Recipe Category"];
@@ -51,12 +51,15 @@
       "Sides": "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=800&q=80",
       "Condiments & Sauces": "https://images.unsplash.com/photo-1604909052743-94e838986d24?auto=format&fit=crop&w=800&q=80",
       "Beverages": "https://images.unsplash.com/photo-1497534446932-c925b458314e?auto=format&fit=crop&w=800&q=80",
-      "Desserts": "https://images.unsplash.com/photo-1519915028121-7d3463d20b13?auto=format&fit=crop&w=800&q=80"
+      "Desserts": "https://images.unsplash.com/photo-1519915028121-7d3463d20b13?auto=format&fit=crop&w=800&q=80",
+      "Baked Goods": "/images/categories/baked-goods.webp"
     };
     const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
     const MAIN_TABS = ["library","plan","shopping","pantry","settings"];
 
-    const uid = () => Math.random().toString(36).slice(2, 9);
+    const uid = () => (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function")
+      ? globalThis.crypto.randomUUID()
+      : Date.now().toString(36)+"-"+Math.random().toString(36).slice(2, 14);
     const cardColor = (t) => CARD_COLORS[(t?.charCodeAt(0) || 0) % CARD_COLORS.length];
 
     function hasHorizontalScrollParent(node, stopAt) {
@@ -1832,7 +1835,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                     {(showAllCats ? [...primaryBrowse, ...emptyCats] : primaryBrowse).map((card) => (
                       <button key={card.label} onClick={card.onClick}
                         style={{height:116,position:"relative",overflow:"hidden",background:C.dark,border:"1px solid rgba(216,199,174,0.95)",borderRadius:14,padding:0,textAlign:"left",cursor:"pointer",boxShadow:"0 10px 24px rgba(90,56,39,0.13)",fontFamily:SANS,opacity:card.count===0?0.82:1}}>
-                        <img src={card.image} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:0.74}} />
+                        <img src={card.image} alt={card.label+" category assortment"} style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:0.74}} />
                         <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg, rgba(32,20,14,0.06), rgba(32,20,14,0.48))"}} />
                         <div style={{position:"absolute",left:13,right:13,bottom:12,color:C.white}}>
                           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
@@ -4028,7 +4031,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             }
             if (!recipes.length) throw new Error("Could not extract these recipes separately. Try importing one at a time.");
             setMultiRecipe(null);
-            onDone(recipes);
+            await onDone(recipes);
           } else {
             setLoadingMsg("Extracting \"" + choice.name + "\"...");
             const recipe = await extractNamedRecipe(ctx, choice.name);
@@ -4500,11 +4503,16 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         readyRecipeForSave(parsed, { sourceText: raw, mode:"text" });
       }
 
-      function handleCategorySelect(category) {
+      async function handleCategorySelect(category) {
         const recipe = { ...pendingRecipe, category };
-        setShowCategoryModal(false);
-        setPendingRecipe(null);
-        onDone(recipe);
+        setError("");
+        try {
+          await onDone(recipe);
+          setShowCategoryModal(false);
+          setPendingRecipe(null);
+        } catch (err) {
+          setError(err.message || "Could not save this recipe. Your imported recipe is still here.");
+        }
       }
 
       async function handlePromptHeroImage(e) {
@@ -4944,9 +4952,13 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     }
 
     // Recipe View
-    function RecipeView({ recipe, inHousehold, onBack, onEdit, onDelete, onUpdate, onImport, onTagClick, onAddToShopping, timerSound }) {
+    function RecipeView({ recipe, inHousehold, notice, onDismissNotice, onBack, onEdit, onDelete, onUpdate, onImport, onTagClick, onAddToShopping, timerSound }) {
       const [scale, setScale] = useState(1);
       const [metric, setMetric] = useState(false);
+      const [showMoveCategory, setShowMoveCategory] = useState(false);
+      const [moveCategory, setMoveCategory] = useState(recipe.category || "");
+      const [moveBusy, setMoveBusy] = useState(false);
+      const [moveMessage, setMoveMessage] = useState("");
       const [cookMode, setCookMode] = useState(false);
       const [cookStep, setCookStep] = useState(0);
       const [timers, setTimers] = useState({});
@@ -5432,6 +5444,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 {label:"Cook",action:()=>setCookMode(true),bg:C.green,color:C.white,border:"none"},
                 {label:"Share",icon:"share",action:shareRecipe,bg:C.cream2,color:C.brown,border:"1px solid "+C.border},
                 {label:"Adjust",action:()=>setShowAI(!showAI),bg:C.cream2,color:C.brown,border:"1px solid "+C.border},
+                ...(!recipe.householdShared ? [{label:"Move to Category",action:()=>{setMoveCategory(recipe.category||"");setMoveMessage("");setShowMoveCategory(true);},bg:C.cream2,color:C.brown,border:"1px solid "+C.border}] : []),
                 {label:"Shopping List",action:()=>setShowShop(!showShop),bg:C.goldPale,color:C.brown,border:"1px solid "+C.goldLight},
                 {label:"What to Buy",action:()=>setShowWTB(!showWTB),bg:C.terraPale,color:C.terra,border:"1px solid "+C.terra+"25"},
                 {label:"PDF",icon:"pdf",action:exportPDF,bg:C.greenPale,color:C.green,border:"1px solid "+C.green+"25"},
@@ -5439,6 +5452,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                 <button key={btn.label} onClick={btn.action} style={{background:btn.bg,color:btn.color,border:btn.border,borderRadius:9,padding:"7px 14px",fontWeight:800,cursor:"pointer",fontSize:"0.8em",fontFamily:SANS,whiteSpace:"nowrap",flexShrink:0,display:"inline-flex",alignItems:"center",gap:6}}>{btn.icon && <Icon name={btn.icon} size={15} />}{btn.label}</button>
               ))}
             </div>
+            {notice && <div role="status" style={{margin:"10px 0",background:C.greenPale,border:"1px solid "+C.green+"33",color:C.green,borderRadius:9,padding:"9px 12px",fontSize:"0.8em",fontWeight:800,display:"flex",justifyContent:"space-between",gap:10,alignItems:"center"}}><span>{notice}</span><button aria-label="Dismiss save confirmation" onClick={onDismissNotice} style={{border:0,background:"transparent",color:C.green,cursor:"pointer",fontWeight:900}}>×</button></div>}
+            {moveMessage && !showMoveCategory && !showAI && <div role="status" style={{margin:"10px 0",background:C.greenPale,border:"1px solid "+C.green+"33",color:C.green,borderRadius:9,padding:"9px 12px",fontSize:"0.8em",fontWeight:800}}>{moveMessage}</div>}
 
             {/* Household sharing (M2): read-only "added by" badge for a member's
                 shared recipe, or a share toggle on your own recipe. */}
@@ -5627,7 +5642,28 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             </div>
 
             {/* AI adjust */}
-            {showAI && (
+              {showMoveCategory && (
+                <div style={{...S.card,padding:16,marginBottom:16,border:"1px solid "+C.goldLight}}>
+                  <div style={{fontFamily:SERIF,fontSize:"1.05em",marginBottom:4}}>Move to Category</div>
+                  <div style={{fontSize:"0.78em",color:C.light,marginBottom:10}}>Current category: <strong>{recipe.category || "Uncategorized"}</strong></div>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                    <select value={moveCategory} onChange={(e)=>setMoveCategory(e.target.value)} disabled={moveBusy} style={{...S.input,flex:"1 1 210px",padding:"9px 11px",background:C.white}}>
+                      <option value="">Uncategorized</option>
+                      {CATEGORIES.map((c)=><option key={c} value={c}>{c}{c===recipe.category?" (current)":""}</option>)}
+                    </select>
+                    <button disabled={moveBusy||moveCategory===(recipe.category||"")} onClick={async()=>{
+                      setMoveBusy(true); setMoveMessage("");
+                      try { await onUpdate({...recipe,category:moveCategory},"move"); setMoveMessage("Recipe moved successfully."); setShowMoveCategory(false); }
+                      catch(e) { setMoveMessage(e.message||"Could not move this recipe."); }
+                      finally { setMoveBusy(false); }
+                    }} style={{...S.primaryBtn,padding:"9px 14px",opacity:moveBusy||moveCategory===(recipe.category||"")?0.55:1}}>{moveBusy?"Moving…":"Move Recipe"}</button>
+                    <button disabled={moveBusy} onClick={()=>setShowMoveCategory(false)} style={{...S.ghostBtn,padding:"9px 12px"}}>Cancel</button>
+                  </div>
+                  {moveMessage&&<div role="status" style={{marginTop:9,color:moveMessage.includes("success")?C.green:C.red,fontSize:"0.8em",fontWeight:800}}>{moveMessage}</div>}
+                </div>
+              )}
+
+              {showAI && (
               <div style={{...S.cardSoft,background:C.goldPale,border:"1px solid "+C.goldLight,padding:16,marginBottom:18}}>
                 <div style={{fontFamily:SERIF,fontSize:"1.05em",marginBottom:4}}>Recipe Adjustment</div>
                 <div style={{color:C.brownLight,fontSize:"0.78em",marginBottom:10}}>Try: "make gluten-free", "dairy-free", "lower calorie", "swap butter for olive oil"</div>
@@ -5636,11 +5672,18 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   <button onClick={runAIAdjust} disabled={aiLoading} style={{...S.goldBtn,borderRadius:8,padding:"8px 18px",display:"flex",alignItems:"center",gap:6}}>{aiLoading?<Spinner/>:"Apply"}</button>
                 </div>
                 {aiError && <div style={{marginTop:9,background:C.redPale,border:"1px solid rgba(192,57,43,0.25)",borderRadius:8,padding:"8px 10px",color:C.red,fontSize:"0.78em",fontWeight:800,lineHeight:1.4}}>{aiError}</div>}
+                {moveMessage && !showMoveCategory && <div role="alert" style={{marginTop:9,background:C.redPale,border:"1px solid rgba(192,57,43,0.25)",borderRadius:8,padding:"8px 10px",color:C.red,fontSize:"0.78em",fontWeight:800,lineHeight:1.4}}>{moveMessage}</div>}
                 {aiResult && (
                   <div style={{...S.cardSoft,marginTop:11,padding:11}}>
                     <div style={{fontWeight:600,marginBottom:7,color:C.dark,fontSize:"0.9em"}}>Preview: {aiResult.title}</div>
                     <div style={{display:"flex",gap:7}}>
-                      <button onClick={()=>{ const r={...aiResult,id:uid(),createdAt:new Date().toISOString(),title:aiResult.title+" (adjusted)",rating:0,favorite:false,collectionOverrides:recipe.collectionOverrides}; onImport(r); setShowAI(false); setAiResult(null); }} style={{...S.primaryBtn,borderRadius:7,padding:"7px 14px",fontSize:"0.82em"}}>Save as new version</button>
+                      <button disabled={moveBusy} onClick={async()=>{
+                        const r={...aiResult,id:uid(),createdAt:new Date().toISOString(),rating:0,favorite:false,collectionOverrides:recipe.collectionOverrides,aiMetadata:{...(aiResult.aiMetadata||{}),adjustedFromRecipeId:recipe.id,adjustedAt:new Date().toISOString()}};
+                        setMoveBusy(true); setMoveMessage("");
+                        try { await onImport(r); setShowAI(false); setAiResult(null); }
+                        catch(e) { setMoveMessage((e.message||"Could not save this adjusted recipe.")+" Your adjusted version is still available."); }
+                        finally { setMoveBusy(false); }
+                      }} style={{...S.primaryBtn,borderRadius:7,padding:"7px 14px",fontSize:"0.82em",opacity:moveBusy?0.6:1}}>{moveBusy?"Saving…":"Save as new version"}</button>
                       <button onClick={()=>setAiResult(null)} style={{background:"none",border:"1px solid "+C.border,color:C.mid,borderRadius:6,padding:"6px 12px",cursor:"pointer",fontSize:"0.82em",fontFamily:SANS}}>Discard</button>
                     </div>
                   </div>
@@ -5765,6 +5808,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [aiChat, setAiChat] = useState("");
       const [aiLoading, setAiLoading] = useState(false);
       const [aiHistory, setAiHistory] = useState([]);
+      const [saveBusy, setSaveBusy] = useState(false);
+      const [saveError, setSaveError] = useState("");
       const heroImgRef = useRef();
 
       const set = (k,v) => setDraft((p) => ({...p,[k]:v}));
@@ -5811,10 +5856,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           <div style={{...S.brandHeader,padding:safePad(15,20,15),display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:10}}>
             <button onClick={onCancel} style={{background:"rgba(255,255,255,0.12)",border:"none",borderRadius:8,padding:"7px 13px",color:C.white,cursor:"pointer",fontFamily:SANS,fontSize:"0.83em"}}>Cancel</button>
             <div style={{flex:1,color:"rgba(255,255,255,0.65)",fontSize:"0.86em",fontFamily:SERIF,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{draft.title}</div>
-            <button onClick={() => onSave(draft)} style={{...S.goldBtn,borderRadius:8,padding:"8px 20px"}}>Save</button>
+            <button disabled={saveBusy} onClick={async()=>{setSaveBusy(true);setSaveError("");try{await onSave(draft);}catch(e){setSaveError(e.message||"Could not save this recipe. Your edits are still here.");}finally{setSaveBusy(false);}}} style={{...S.goldBtn,borderRadius:8,padding:"8px 20px",opacity:saveBusy?0.6:1}}>{saveBusy?"Saving…":"Save"}</button>
           </div>
 
           <div style={{maxWidth:760,margin:"0 auto",padding:"24px 20px"}}>
+            {saveError&&<div role="alert" style={{background:C.redPale,border:"1px solid "+C.red+"55",color:C.red,borderRadius:10,padding:"11px 13px",marginBottom:14,fontSize:"0.84em",fontWeight:800}}>{saveError}</div>}
 
             {/* AI Chat Helper */}
             <div style={{background:"linear-gradient(135deg, "+C.goldPale+", "+C.terraPale+")",border:"1px solid "+C.goldLight,borderRadius:14,padding:16,marginBottom:20}}>
@@ -6112,6 +6158,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       }
       const [timerSound, setTimerSound] = useState(() => loadTimerSound());
       const [current, setCurrent] = useState(null);
+      const [recipeNotice, setRecipeNotice] = useState("");
       const [libraryTag, setLibraryTag] = useState("");
       const [importMode, setImportMode] = useState("url");
       const [importPrefill, setImportPrefill] = useState("");
@@ -6187,7 +6234,12 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         })();
       }, []);
 
-      useEffect(() => { saveRecipes(recipes); }, [recipes]);
+      // The local mirror is updated after state changes, but cloud persistence is
+      // explicit and awaited by each recipe action. Never report success from an
+      // unobserved background request.
+      useEffect(() => {
+        try { localStorage.setItem(RECIPES_KEY, JSON.stringify(recipesForLocal(recipes))); } catch {}
+      }, [recipes]);
       useEffect(() => {
         if (dataSourceRef.current === "household") asyncPutJson("/api/household/shopping-list", { shoppingList });
         else saveShoppingList(shoppingList);
@@ -6283,10 +6335,40 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         try { localStorage.setItem(RECIPES_KEY, JSON.stringify(recipesForLocal(Array.isArray(cloudRecipes) ? cloudRecipes : []))); } catch {}
         try { localStorage.setItem(MEALPLAN_KEY, JSON.stringify(cloudMealPlan && typeof cloudMealPlan === "object" ? cloudMealPlan : {})); } catch {}
       }
-      function addRecipe(r) { const t = { ...r, tags: RecipeBoxTags.applyTagsOnCreate(r) }; setRecipes((p) => [t, ...p]); setCurrent(t); setScreen("view"); }
-      function updateRecipe(r) { if (r && r.householdShared) { setCurrent(r); return; } const t = { ...r, tags: RecipeBoxTags.normalizeRecipeTags(r.tags) }; setRecipes((p) => p.map((x) => x.id===t.id?t:x)); setCurrent(t); }
-      function deleteRecipe(id) { const rec = recipes.find((x) => x.id===id); if (rec && rec.householdShared) return; if (!window.confirm("Delete this recipe?")) return; setRecipes((p) => p.filter((r) => r.id!==id)); setScreen("library"); }
-      function toggleFavorite(id) { setRecipes((p) => p.map((r) => r.id===id && !r.householdShared ? {...r,favorite:!r.favorite} : r)); }
+      async function persistRecipe(recipe, operation) {
+        const requestId = "recipe-"+Date.now().toString(36)+"-"+uid();
+        const res = await apiFetch("/api/recipes/save", { method:"POST", headers:{"Content-Type":"application/json","X-Request-Id":requestId}, body:JSON.stringify({recipe,operation}) });
+        const data = await res.json().catch(()=>({}));
+        if (!res.ok || !data.savedToDatabase || !data.recipe) {
+          const suffix = data.requestId ? " Reference: "+data.requestId : "";
+          throw new Error((data.error || "Recipe could not be saved. Please try again.")+suffix);
+        }
+        return data.recipe;
+      }
+      async function addRecipe(r) {
+        const t = { ...r, id:r.id||uid(), createdAt:r.createdAt||new Date().toISOString(), tags: RecipeBoxTags.applyTagsOnCreate(r) };
+        const saved = await persistRecipe(t,"create");
+        setRecipes((p) => p.some((x)=>x.id===saved.id) ? p.map((x)=>x.id===saved.id?saved:x) : [saved,...p]);
+        setCurrent(saved); setRecipeNotice("Recipe saved to your library."); setScreen("view"); return saved;
+      }
+      async function updateRecipe(r, operation="update") {
+        if (r && r.householdShared) throw new Error("Only the recipe owner can change this recipe.");
+        const t = { ...r, tags: RecipeBoxTags.normalizeRecipeTags(r.tags) };
+        const saved = await persistRecipe(t,operation);
+        setRecipes((p) => p.map((x) => x.id===saved.id?saved:x)); setCurrent(saved); setRecipeNotice(operation==="move"?"Recipe moved successfully.":"Recipe changes saved."); return saved;
+      }
+      async function deleteRecipe(id) {
+        const rec=recipes.find((x)=>x.id===id); if(rec&&rec.householdShared)return;
+        if(!window.confirm("Delete this recipe?"))return;
+        const next=recipes.filter((r)=>r.id!==id);
+        try { const data=await putJson("/api/recipes",{recipes:ownRecipes(next)}); if(!data.savedToDatabase)throw new Error("Deletion was not confirmed by the database."); setRecipes(next); setScreen("library"); }
+        catch(e) { window.alert(e.message||"Could not delete this recipe."); }
+      }
+      async function toggleFavorite(id) {
+        const rec=recipes.find((r)=>r.id===id); if(!rec||rec.householdShared)return;
+        try { await updateRecipe({...rec,favorite:!rec.favorite}); }
+        catch(e) { window.alert(e.message||"Could not update this recipe."); }
+      }
       function editRecipeFromLibrary(recipe) { setCurrent(recipe); setScreen("edit"); }
       function setMainTab(nextTab) {
         if (!MAIN_TABS.includes(nextTab)) return;
@@ -6308,11 +6390,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       else if (resetToken) { body = <AuthScreen recipes={recipes} mealPlan={mealPlan} setAccount={setAccount} onCloudData={loadCloudData} initialMode="newpass" resetToken={resetToken} />; navName = "auth"; }
       else if (!account) { body = <AuthScreen recipes={recipes} mealPlan={mealPlan} setAccount={setAccount} onCloudData={loadCloudData} />; navName = "auth"; }
       else if (screen==="admin" && account?.isMasterAdmin) { body = <AppControl account={account} onBack={()=>{refreshAdminAlerts();setScreen("library");}} onFeedbackChange={setNewFeedback} />; navName = "admin"; }
-      else if (screen==="import") { body = <ImportScreen initialMode={importMode} initialValue={importPrefill} onDone={(r)=>{ const list=Array.isArray(r)?r:[r]; list.forEach(addRecipe); if(list.length!==1) setScreen("library"); /* single import: addRecipe already opens the recipe for review */ }} onCancel={()=>setScreen("library")} />; navName = "import"; }
-      else if (screen==="edit"&&current) { body = <EditRecipe recipe={current} onSave={(r)=>{ if(recipes.find((x)=>x.id===r.id)) updateRecipe(r); else addRecipe(r); setScreen("view"); }} onCancel={()=>setScreen("view")} />; navName = "edit"; }
+      else if (screen==="import") { body = <ImportScreen initialMode={importMode} initialValue={importPrefill} onDone={async(r)=>{ const list=Array.isArray(r)?r:[r]; try { for(const recipe of list) await addRecipe(recipe); if(list.length!==1)setScreen("library"); } catch(e) { window.alert((e.message||"Could not save this recipe.")+" Your imported recipe remains on this screen so you can try again."); throw e; } }} onCancel={()=>setScreen("library")} />; navName = "import"; }
+      else if (screen==="edit"&&current) { body = <EditRecipe recipe={current} onSave={async(r)=>{ if(recipes.find((x)=>x.id===r.id)) await updateRecipe(r); else await addRecipe(r); setScreen("view"); }} onCancel={()=>setScreen("view")} />; navName = "edit"; }
       else if (screen==="view"&&current) {
         navName = "view"; showNav = true;
-        body = <RecipeView recipe={current} inHousehold={inHousehold} onBack={closeToOrigin} onEdit={()=>setScreen("edit")} onDelete={()=>deleteRecipe(current.id)} onUpdate={(r)=>{updateRecipe(r);setCurrent(r);}} onImport={(r)=>{addRecipe(r);setCurrent(r);}} onTagClick={(t)=>{setLibraryTag(t);setMainTab("library");}} onAddToShopping={(id)=>openShoppingFrom([id],{replace:false})} timerSound={timerSound} />;
+        body = <RecipeView recipe={current} inHousehold={inHousehold} notice={recipeNotice} onDismissNotice={()=>setRecipeNotice("")} onBack={closeToOrigin} onEdit={()=>setScreen("edit")} onDelete={()=>deleteRecipe(current.id)} onUpdate={updateRecipe} onImport={addRecipe} onTagClick={(t)=>{setLibraryTag(t);setMainTab("library");}} onAddToShopping={(id)=>openShoppingFrom([id],{replace:false})} timerSound={timerSound} />;
       }
       else {
         navName = "main"; showNav = true;

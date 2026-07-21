@@ -35,7 +35,8 @@
     "grounding-test": "node scripts/grounding-test.js",
     "recipe-schema-test": "node scripts/recipe-schema-test.js",
     "household-test": "node scripts/household-test.js",
-    "normalize-test": "node scripts/normalize-test.js"
+    "normalize-test": "node scripts/normalize-test.js",
+    "recipe-save-test": "node scripts/recipe-save-test.js"
   },
   "dependencies": {
     "express": "^4.18.2",

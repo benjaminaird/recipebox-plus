@@ -65,7 +65,7 @@
       cookTime: { type: "string", description: "e.g. '35 min'." },
       totalTime: { type: "string" },
       heroImage: { type: "string", description: "Image URL if one is given by the source." },
-      category: { type: "string", description: "Real food type, e.g. 'Desserts', 'Entrées'. Never 'Copycat'." },
+      category: { type: "string", description: "Real food type, e.g. 'Baked Goods', 'Desserts', 'Entrées'. Never 'Copycat'." },
       notes: { type: "string", description: "Source-grounded tips only; do not invent." },
       tags: { type: "array", items: { type: "string" }, description: "Concise labels. 'Copycat' may be a tag, never a category." },
       macros: {
