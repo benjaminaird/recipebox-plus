@@ -17,3 +17,7 @@ scripts/import-test/sources/pdfs/
 scripts/import-test/sources/photos/
 scripts/import-test/sources/desktop-pdfs/
 scripts/import-test/sources/desktop-photos/
+tools/everplate-assets/.venv/
+tools/everplate-assets/tmp/
+tools/everplate-assets/logs/
+tools/everplate-assets/local/

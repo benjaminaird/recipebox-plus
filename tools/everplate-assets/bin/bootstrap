@@ -1,0 +1,17 @@
+#!/bin/bash
+set -euo pipefail
+
+TOOLS_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+PYTHON_BIN="${EVERPLATE_PYTHON:-python3}"
+
+if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
+  printf 'Python 3 is required to prepare the EverPlate asset tools.\n' >&2
+  exit 1
+fi
+
+if [[ ! -x "$TOOLS_DIR/.venv/bin/python" ]]; then
+  "$PYTHON_BIN" -m venv "$TOOLS_DIR/.venv"
+fi
+
+"$TOOLS_DIR/.venv/bin/python" -m pip install --disable-pip-version-check --quiet -r "$TOOLS_DIR/requirements.txt"
+printf 'EverPlate asset environment is ready.\n'

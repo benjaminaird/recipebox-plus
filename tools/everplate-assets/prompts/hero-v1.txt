@@ -1,0 +1,12 @@
+Use case: ads-marketing
+Asset type: source atmosphere for App Store promotional artwork, Google Play feature graphic, Open Graph image, and support-site hero
+Input images: Image 1 is the authoritative EverPlate brand-guide reference; use it only for mood, palette, materials, lighting, and restraint
+Primary request: a refined quiet overhead editorial still life suggesting the preservation of family recipes and memories
+Scene/backdrop: dark walnut surface, softly draped natural ivory linen, corner of a closed deep-green archival recipe book, one understated handwritten recipe card with writing too soft to read, restrained eucalyptus at the edge
+Style/medium: premium natural editorial product photography, timeless and realistic
+Composition/framing: wide landscape with broad uncluttered negative space through the center-left for later vector branding; objects remain at the outer edges
+Lighting/mood: soft directional window light, calm, trustworthy, warm without rustic styling
+Color palette: deep green #274233, near-black green #0F1412, warm cream #FAF7F0, restrained brass #CB9A4E, natural walnut
+Materials/textures: realistic leather or book cloth, fine linen weave, uncoated archival paper, subtle wood grain
+Constraints: no logo; no readable words; no food; no utensils; no people; no device; no embedded typography; no mockup frame; no watermark
+Avoid: farmhouse styling, stains, vintage kitsch, recipe-card collage, fake depth-of-field artifacts, muddy gradients, generic AI ornament

@@ -1,0 +1,41 @@
+#!/bin/bash
+set -euo pipefail
+
+TOOLS_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+KEYCHAIN_SERVICE="com.openai.recipebox-plus.everplate"
+IMAGE_GEN_CLI="${EVERPLATE_IMAGE_GEN_CLI:-${CODEX_HOME:-$HOME/.codex}/skills/.system/imagegen/scripts/image_gen.py}"
+
+if [[ ! -x "$TOOLS_DIR/.venv/bin/python" ]]; then
+  printf 'Asset environment is missing. Run tools/everplate-assets/bin/bootstrap first.\n' >&2
+  exit 1
+fi
+
+if [[ ! -f "$IMAGE_GEN_CLI" ]]; then
+  printf 'The bundled OpenAI image CLI could not be found.\n' >&2
+  exit 1
+fi
+
+if ! OPENAI_API_KEY="$(security find-generic-password -a "$USER" -s "$KEYCHAIN_SERVICE" -w 2>/dev/null)"; then
+  printf 'The EverPlate OpenAI API key is unavailable in macOS Keychain.\n' >&2
+  exit 1
+fi
+
+if [[ ! "$OPENAI_API_KEY" =~ ^sk-[A-Za-z0-9_-]{20,}$ ]]; then
+  unset OPENAI_API_KEY
+  printf 'The Keychain item does not contain a recognizable OpenAI API key.\n' >&2
+  exit 1
+fi
+
+export OPENAI_API_KEY
+trap 'unset OPENAI_API_KEY' EXIT
+
+# The OpenAI SDK masks credentials in normal errors, but even a masked
+# fingerprint is unnecessary. Redact every key-shaped token before either
+# output stream reaches the terminal while preserving the CLI exit status.
+set +e
+"$TOOLS_DIR/.venv/bin/python" "$IMAGE_GEN_CLI" "$@" \
+  > >(sed -E 's/sk-[A-Za-z0-9_.*-]+/[REDACTED_OPENAI_KEY]/g') \
+  2> >(sed -E 's/sk-[A-Za-z0-9_.*-]+/[REDACTED_OPENAI_KEY]/g' >&2)
+status=$?
+set -e
+exit "$status"

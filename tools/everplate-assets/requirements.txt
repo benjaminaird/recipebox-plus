@@ -1,0 +1,5 @@
+openai==2.21.0
+pillow==12.2.0
+fonttools[woff]==4.61.1
+uharfbuzz==0.53.3
+cairosvg==2.9.0

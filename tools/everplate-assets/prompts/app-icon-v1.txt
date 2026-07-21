@@ -1,0 +1,10 @@
+Use case: logo-brand
+Asset type: iOS and Android app-icon concept reference for later deterministic production construction
+Input images: Image 1 is the authoritative EverPlate brand-guide reference; use it only for monogram geometry, safe margin, palette, and premium atmosphere
+Primary request: a timeless square EverPlate app icon using only the circular E monogram from the guide
+Scene/backdrop: flat deep green #274233 filling the entire square
+Subject: one centered warm ivory #FAF7F0 circular E monogram with generous optical safe margins
+Style/medium: precise minimal identity design, Apple-quality productivity app, restrained and calm
+Composition/framing: centered square; remains unmistakable at 20 px; safe under circle, squircle, rounded-square, and teardrop masks
+Constraints: monogram only; no wordmark; no text beyond the capital E; no transparent corners; no baked-in rounded corners; no photographic texture; no glossy startup gradient; no shadow; no mockup; no watermark
+Avoid: food, utensils, plates, leaves, bright gradients, bevels, shine, excessive detail, borders touching the edge

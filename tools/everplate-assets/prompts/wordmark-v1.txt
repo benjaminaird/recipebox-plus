@@ -1,0 +1,11 @@
+Use case: logo-brand
+Asset type: EverPlate wordmark concept reference for later deterministic vector reconstruction
+Input images: Image 1 is the authoritative EverPlate brand-guide reference; use it only for letter character, proportions, kerning, palette, and restraint
+Primary request: isolate the exact wordmark from the guide with refined quiet serif letterforms
+Scene/backdrop: perfectly flat warm ivory #FAF7F0
+Subject: the exact text "EverPlate" with capital E and capital P, dark deep-green #274233, no monogram
+Style/medium: clean flat vector-like wordmark, premium editorial serif, timeless and highly legible
+Composition/framing: centered horizontal canvas with generous clear space and balanced kerning
+Text (verbatim): "EverPlate"
+Constraints: spell E-v-e-r-P-l-a-t-e exactly; no extra text; no ligature that changes spelling; no gradients; no shadow; no mockup; no texture; no watermark
+Avoid: rustic lettering, wedding-calligraphy style, scripts, swashes, vintage kitsch, malformed text, presentation-board labels

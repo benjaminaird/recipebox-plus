@@ -1,0 +1,10 @@
+Use case: logo-brand
+Asset type: EverPlate monogram concept reference for later deterministic vector reconstruction
+Input images: Image 1 is the authoritative EverPlate brand-guide reference; use it only for geometry, proportion, spacing, serif character, palette, and restraint
+Primary request: isolate and refine the circular capital E monogram shown in the guide, preserving its distinctive open circular strokes and optically centered editorial E
+Scene/backdrop: perfectly flat warm ivory #FAF7F0
+Subject: one centered dark deep-green #274233 monogram, no wordmark
+Style/medium: clean flat vector-like identity mark, premium editorial minimalism
+Composition/framing: centered square canvas, generous clear space, strong silhouette at 20 px
+Constraints: one mark only; faithful to the supplied guide; clean geometry; no extra rings; no text besides the single capital E; no gradients; no shadow; no mockup; no texture; no food imagery; no watermark
+Avoid: chef hats, utensils, plates, leaves, vintage motifs, restaurant marks, decorative flourishes, malformed letters, fake SVG nodes, presentation-board labels

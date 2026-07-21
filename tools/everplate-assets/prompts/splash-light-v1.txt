@@ -1,0 +1,9 @@
+Use case: logo-brand
+Asset type: light native launch-screen composition concept reference
+Input images: Image 1 is the authoritative EverPlate brand-guide reference; use it only for monogram geometry, scale, spacing, palette, and restraint
+Primary request: a calm minimal portrait launch composition for EverPlate
+Scene/backdrop: uninterrupted warm cream #FAF7F0
+Subject: one centered deep-green #274233 circular E monogram
+Style/medium: flat premium identity composition, timeless Apple-quality restraint
+Composition/framing: portrait; monogram centered optically around 43 percent from the top; very generous negative space; safe across narrow and tall phones
+Constraints: no wordmark; no tagline; no status bar; no device frame; no scene; no food; no utensils; no cards; no gradients; no texture; no shadow; no watermark
