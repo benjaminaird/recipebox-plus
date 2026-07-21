@@ -30,9 +30,9 @@ index = index
   .replace(/  <link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com\/[^\n]+\n/, '  <link rel="stylesheet" href="/vendor/fonts.css" />\n')
   .replaceAll("'DM Sans', sans-serif", "'Source Sans 3', -apple-system, BlinkMacSystemFont, sans-serif")
   .replaceAll('#234B32', '#274233')
-  .replace('<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">', '<link rel="icon" type="image/svg+xml" href="/brand/everplate/monogram-placeholder.svg">')
+  .replace('<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">', '<link rel="icon" type="image/png" sizes="32x32" href="/brand/everplate/in-app/favicon-32.png">')
   .replace('<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">', '')
-  .replace('<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">', '<link rel="apple-touch-icon" href="/brand/everplate/monogram-placeholder.svg">')
+  .replace('<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">', '<link rel="apple-touch-icon" sizes="180x180" href="/brand/everplate/in-app/apple-touch-icon-180.png">')
   .replace('</style>', `
     html[data-product="everplate"] body { font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, sans-serif; }
     html[data-product="everplate"] body.in-app { background-color: #274233; }
@@ -85,8 +85,9 @@ fs.writeFileSync(path.join(outputDir, 'manifest.webmanifest'), JSON.stringify({
   categories:['food','lifestyle','productivity'],
   lang:'en-US',
   icons:[
-    { src:'/brand/everplate/monogram-placeholder.svg', sizes:'any', type:'image/svg+xml', purpose:'any' },
-    { src:'/brand/everplate/monogram-placeholder.svg', sizes:'any', type:'image/svg+xml', purpose:'maskable' },
+    { src:'/brand/everplate/in-app/pwa-icon-192.png', sizes:'192x192', type:'image/png', purpose:'any' },
+    { src:'/brand/everplate/in-app/pwa-icon-512.png', sizes:'512x512', type:'image/png', purpose:'any' },
+    { src:'/brand/everplate/in-app/pwa-maskable-512.png', sizes:'512x512', type:'image/png', purpose:'maskable' },
   ],
 }, null, 2) + '\n');
 

@@ -76,7 +76,14 @@ const products = {
       terms:"https://recipebox-kappa.vercel.app/terms.html",
       deleteAccount:"https://recipebox-kappa.vercel.app/delete-account.html",
     },
-    assets:{ monogram:"/brand/everplate/monogram-placeholder.svg", wordmark:"/brand/everplate/wordmark-placeholder.svg", wordmarkLight:"/brand/everplate/wordmark-light-placeholder.svg" },
+    assets:{
+      monogram:"/brand/everplate/masters/monogram-cream.svg",
+      wordmark:"/brand/everplate/masters/wordmark.svg",
+      wordmarkLight:"/brand/everplate/masters/wordmark-light.svg",
+      navigation:"/brand/everplate/in-app/navigation-monogram-64.png",
+      pdf:"/brand/everplate/in-app/pdf-monogram-grayscale-512.png",
+      share:"/brand/everplate/in-app/share-preview-mark-512.png",
+    },
   },
 };
 

@@ -6080,7 +6080,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         <div style={{minHeight:"100dvh",background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",padding:"max(env(safe-area-inset-top),20px) 20px max(env(safe-area-inset-bottom),20px)"}}>
           <div style={{width:"100%",maxWidth:430}}>
             <div style={{textAlign:"center",marginBottom:20}}>
-              <img src={IS_EVERPLATE ? PRODUCT.assets.monogram : "/icon-192.png"} alt="" style={{width:92,height:92,borderRadius:22,display:"block",margin:"0 auto 14px",boxShadow:"0 18px 55px rgba(28,20,16,0.28)"}} />
+              <img src={IS_EVERPLATE ? PRODUCT.assets.monogram : "/icon-192.png"} alt="" style={{width:92,height:92,display:"block",margin:"0 auto 14px",...(IS_EVERPLATE?{}:{borderRadius:22,boxShadow:"0 18px 55px rgba(28,20,16,0.28)"})}} />
               {IS_EVERPLATE ? <img src={PRODUCT.assets.wordmarkLight} alt="EverPlate" style={{width:230,maxWidth:"78%",height:60,objectFit:"contain",display:"block",margin:"0 auto"}} /> : <div style={{fontFamily:SERIF,fontSize:"2.3em",color:C.white,lineHeight:1}}>{PRODUCT.name}</div>}
               <div style={{marginTop:6,color:C.brownLight,fontSize:"0.9em",fontWeight:700}}>{IS_EVERPLATE ? "A lifelong home for your recipes" : "Start your RecipeBox"}</div>
             </div>
@@ -6161,7 +6161,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       return (
         <div style={{position:"fixed",inset:0,zIndex:200,background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",padding:28}}>
           <div style={{textAlign:"center",animation:"splashIn 0.55s ease both"}}>
-            <img src={IS_EVERPLATE ? PRODUCT.assets.monogram : "/icon-192.png"} alt="" style={{width:118,height:118,borderRadius:28,display:"block",margin:"0 auto 18px",boxShadow:"0 18px 55px rgba(28,20,16,0.32)",animation:"splashGlow 2.2s ease-in-out infinite"}} />
+            <img src={IS_EVERPLATE ? PRODUCT.assets.monogram : "/icon-192.png"} alt="" style={{width:118,height:118,display:"block",margin:"0 auto 18px",...(IS_EVERPLATE?{}:{borderRadius:28,boxShadow:"0 18px 55px rgba(28,20,16,0.32)",animation:"splashGlow 2.2s ease-in-out infinite"})}} />
             {IS_EVERPLATE ? <img src={PRODUCT.assets.wordmarkLight} alt="EverPlate" style={{width:250,maxWidth:"82vw",height:66,objectFit:"contain",display:"block",margin:"0 auto"}} /> : <div style={{fontFamily:SERIF,fontSize:"2.45em",color:C.white,lineHeight:1,letterSpacing:"0.01em"}}>{PRODUCT.name}</div>}
             <div style={{marginTop:9,color:"rgba(255,249,238,0.82)",fontSize:"0.92em",fontWeight:600,letterSpacing:"0.02em"}}>{IS_EVERPLATE ? PRODUCT.tagline : "Your recipes, ready when you are"}</div>
           </div>

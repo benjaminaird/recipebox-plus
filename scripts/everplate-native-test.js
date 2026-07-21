@@ -82,15 +82,19 @@ assert(exists('native/everplate/android/app/src/main/res/drawable/ic_launcher_mo
 assert(read('native/everplate/android/app/src/main/res/values/colors.xml').includes('#274233'));
 assert(read('native/everplate/android/app/src/main/res/values-night/colors.xml').includes('#0F1412'));
 
-const icon = pngDimensions('native/everplate/ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png');
+const icon = pngDimensions('native/everplate/ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024x1024@1x.png');
 assert.deepStrictEqual(icon, { width:1024, height:1024 });
 const splash = pngDimensions('native/everplate/ios/App/App/Assets.xcassets/Splash.imageset/Default@1x~universal~anyany.png');
 assert(splash.width >= 2000 && splash.height >= 2000);
 
-for (const asset of ['monogram-placeholder.svg','wordmark-placeholder.svg','wordmark-light-placeholder.svg','monochrome-placeholder.svg']) {
-  const body = read('public/brand/everplate/' + asset);
-  assert(body.includes('temporary-placeholder') && body.includes('not-approved-brand-artwork'));
+for (const asset of ['monogram.svg','wordmark.svg','wordmark-light.svg','monochrome.svg']) {
+  const body = read('public/brand/everplate/masters/' + asset);
+  assert(body.includes('asset-status=production'));
+  assert(!body.includes('<text'), `${asset} must contain converted paths, not live lettering`);
 }
+assert(!product.includes('placeholder.svg'), 'EverPlate runtime assets must not reference placeholders');
+assert(exists('public/brand/everplate/store/google-play-feature-1024x500.png'));
+assert(exists('public/brand/everplate/native/android/ic_launcher_monochrome.xml'));
 
 const clientBundle = read('dist/everplate/app-config.js') + read('dist/everplate/native-bridge.js');
 assert(!/(BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|sk-ant-|sk_live_|postgres(?:ql)?:\/\/[^\s"']+:[^\s"']+@)/i.test(clientBundle), 'client bundle appears to contain a credential');
