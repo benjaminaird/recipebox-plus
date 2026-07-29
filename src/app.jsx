@@ -39,7 +39,7 @@
       eyebrow: { fontSize:"0.68em", letterSpacing:2.4, textTransform:"uppercase", fontWeight:800, color:C.brownLight },
     };
     const CARD_COLORS = ["#234B32","#B85D32","#B88A2B","#5A3827","#3E6F4B","#8B6252","#35676B"];
-    const CATEGORIES = ["Breakfast","Appetizers","Entrées","Sides","Condiments & Sauces","Beverages","Desserts","Baked Goods"];
+    const CATEGORIES = RecipeBoxLibrary.CANONICAL_CATEGORIES;
     const APP_CONTROL_CATEGORIES = ["All","Methodology","AI Instruction","Import Rule","Recipe Normalization","Meal Planning","Pantry Logic","Image Handling","User Experience","Safety / Guardrail","Legal / Copyright","Product Strategy","WhatsNext Sync"];
     const APP_CONTROL_FEATURES = ["Import","Manual Recipe Entry","AI Adjust","AI Chat Editor","Pantry Chef","Meal Planner","Shopping List","Cook Mode","PDF Export","Recipe Detail","Library","Settings"];
     const APP_CONTROL_SCOPE_TYPES = ["Global","Feature","Account","Recipe Category"];
@@ -1404,6 +1404,13 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         e.stopPropagation();
         openActionAt({ x:e.clientX || 24, y:e.clientY || 120 });
       }
+      function openActionsButton(e) {
+        if (!onAction) return;
+        e.preventDefault();
+        e.stopPropagation();
+        clearLongPress();
+        onAction(recipe, { x:e.clientX || window.innerWidth - 230, y:e.clientY || 58 });
+      }
       function startPress(point, source, e) {
         if (!onAction) return;
         clearLongPress();
@@ -1482,7 +1489,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           className="card"
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && onClick) { e.preventDefault(); onClick(e); } }}
+          onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if ((e.key === "Enter" || e.key === " ") && onClick) { e.preventDefault(); onClick(e); } }}
           aria-label={(recipe.title || "Recipe") + ". Open recipe. Long press for actions."}
           style={{...S.card,...NO_TOUCH_SELECT,overflow:"hidden"}}>
           <div style={{...NO_TOUCH_SELECT,height:104,position:"relative",overflow:"hidden",background:hasImage?"#000":`linear-gradient(135deg, ${color}, ${C.brown})`}}>
@@ -1495,10 +1502,16 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             )}
             {recipe.householdShared
               ? <span style={{...NO_TOUCH_SELECT,position:"absolute",top:8,left:8,background:"rgba(32,20,14,0.55)",color:C.white,borderRadius:12,padding:"3px 9px",fontSize:"0.64em",fontWeight:700,display:"inline-flex",alignItems:"center",gap:4,zIndex:2,pointerEvents:"none"}}><Icon name="sync" size={11} /> {recipe.ownerName || "Shared"}</span>
-                : <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(); }}
-                  style={{...NO_TOUCH_SELECT,position:"absolute",top:8,right:8,background:"rgba(32,20,14,0.44)",border:"1px solid rgba(255,255,255,0.18)",borderRadius:"50%",width:32,height:32,cursor:"pointer",fontSize:"0.95em",color:recipe.favorite?C.goldLight:"rgba(255,255,255,0.78)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2}}>
+                : <button aria-label={recipe.favorite ? "Remove from favorites" : "Add to favorites"} onPointerDown={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(); }}
+                  style={{...NO_TOUCH_SELECT,position:"absolute",top:8,right:50,background:"rgba(32,20,14,0.44)",border:"1px solid rgba(255,255,255,0.18)",borderRadius:"50%",width:38,height:38,cursor:"pointer",fontSize:"0.95em",color:recipe.favorite?C.goldLight:"rgba(255,255,255,0.78)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2}}>
                   <Icon name="favorite" size={17} strokeWidth={recipe.favorite ? 2.5 : 2} />
                 </button>}
+            <button aria-label={"More actions for "+(recipe.title || "recipe")} aria-haspopup="menu"
+              onPointerDown={(e) => { e.stopPropagation(); clearLongPress(); }} onTouchStart={(e) => e.stopPropagation()}
+              onClick={openActionsButton}
+              style={{...NO_TOUCH_SELECT,position:"absolute",top:8,right:8,background:"rgba(32,20,14,0.58)",border:"1px solid rgba(255,255,255,0.22)",borderRadius:"50%",width:38,height:38,cursor:"pointer",fontSize:"1.35em",lineHeight:1,color:C.white,display:"flex",alignItems:"center",justifyContent:"center",zIndex:3,padding:0}}>
+              <span aria-hidden="true" style={{transform:"translateY(-2px)"}}>…</span>
+            </button>
             <div style={{...NO_TOUCH_SELECT,position:"absolute",bottom:0,left:0,right:0,display:"flex",justifyContent:"space-between",padding:"0 8px 6px",zIndex:2,pointerEvents:"none"}}>
               {recipe.cookTime && <span style={{...NO_TOUCH_SELECT,background:"rgba(32,20,14,0.55)",color:C.white,borderRadius:12,padding:"2px 8px",fontSize:"0.69em",fontWeight:700,display:"inline-flex",alignItems:"center",gap:4}}><Icon name="timer" size={12} /> {recipe.cookTime}</span>}
               {recipe.macros?.calories > 0 && <span style={{...NO_TOUCH_SELECT,background:"rgba(32,20,14,0.55)",color:C.white,borderRadius:12,padding:"2px 8px",fontSize:"0.69em",fontWeight:700}}>{recipe.macros.calories} cal</span>}
@@ -1519,7 +1532,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
     }
 
     // Library
-    function Library({ recipes, mealPlan, onOpen, onAdd, onFavorite, onShareRecipe, onExportRecipe, onEditRecipe, onDeleteRecipe, setTab, tagFilter, onTagFilter, onCreateShoppingList }) {
+    function Library({ recipes, mealPlan, onOpen, onAdd, onFavorite, onShareRecipe, onExportRecipe, onEditRecipe, onMoveRecipe, onDeleteRecipe, setTab, tagFilter, onTagFilter, onCreateShoppingList }) {
       const [search, setSearch] = useState("");
       const [cat, setCat] = useState("All");
       const [filter, setFilter] = useState("all");
@@ -1527,6 +1540,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [selectMode, setSelectMode] = useState(false);
       const [selected, setSelected] = useState([]);
       const [actionMenu, setActionMenu] = useState(null);
+      const [movePicker, setMovePicker] = useState(null);
+      const [moveBusy, setMoveBusy] = useState(false);
+      const [moveError, setMoveError] = useState("");
+      const [moveNotice, setMoveNotice] = useState("");
+      const moveBusyRef = useRef(false);
       const toggleSelect = (id) => setSelected((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
       const exitSelect = () => { setSelectMode(false); setSelected([]); };
       const openActionMenu = (recipe, point) => {
@@ -1540,6 +1558,34 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         const recipe = actionMenu?.recipe;
         setActionMenu(null);
         if (recipe && fn) fn(recipe);
+      };
+      const openMovePicker = (recipe) => {
+        setMoveError("");
+        setMovePicker({ recipe:{ ...recipe, category:RecipeBoxLibrary.canonicalRecipeCategory(recipe.category) } });
+      };
+      const cancelMove = () => {
+        if (moveBusyRef.current) return;
+        setMoveError("");
+        setMovePicker(null);
+      };
+      const chooseMoveCategory = async (destination) => {
+        if (!movePicker?.recipe || moveBusyRef.current) return;
+        const currentCategory = RecipeBoxLibrary.canonicalRecipeCategory(movePicker.recipe.category);
+        const nextCategory = RecipeBoxLibrary.canonicalRecipeCategory(destination);
+        if (nextCategory === currentCategory) return;
+        moveBusyRef.current = true;
+        setMoveBusy(true);
+        setMoveError("");
+        try {
+          const saved = await onMoveRecipe(movePicker.recipe.id, nextCategory);
+          setMovePicker(null);
+          setMoveNotice("Moved to "+saved.category);
+        } catch (error) {
+          setMoveError(error?.message || "Could not move this recipe. Please try again.");
+        } finally {
+          moveBusyRef.current = false;
+          setMoveBusy(false);
+        }
       };
       const tagKey = (t) => RecipeBoxTags.normalizeTagKey(t);
       const activeTag = tagFilter || "";
@@ -1597,6 +1643,31 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
       return (
         <div style={{...S.page,paddingBottom:NAV_CLEARANCE}}>
+          {moveNotice && <div role="status" onClick={() => setMoveNotice("")} style={{position:"fixed",zIndex:270,left:"50%",top:"calc(env(safe-area-inset-top, 0px) + 14px)",transform:"translateX(-50%)",maxWidth:"calc(100vw - 24px)",background:C.green,color:C.white,borderRadius:12,padding:"11px 15px",fontSize:"0.86em",fontWeight:800,boxShadow:"0 10px 30px rgba(32,20,14,0.24)",cursor:"pointer"}}>{moveNotice}</div>}
+          {movePicker && (
+            <div onClick={cancelMove} style={{position:"fixed",inset:0,zIndex:260,background:"rgba(32,20,14,0.54)",display:"flex",alignItems:"center",justifyContent:"center",padding:12}}>
+              <div tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="move-category-title" aria-describedby="move-category-description"
+                onKeyDown={(e) => { if (e.key === "Escape") cancelMove(); }} onClick={(e) => e.stopPropagation()}
+                style={{width:"min(360px, calc(100vw - 24px))",maxHeight:"calc(100dvh - 24px)",overflowY:"auto",background:C.paper,border:"1px solid "+C.border,borderRadius:18,boxShadow:"0 22px 60px rgba(32,20,14,0.34)",padding:16,outline:"none"}}>
+                <div id="move-category-title" style={{fontFamily:SERIF,fontSize:"1.28em",color:C.dark}}>Move to Category</div>
+                <div id="move-category-description" style={{fontSize:"0.8em",lineHeight:1.45,color:C.light,margin:"4px 0 12px"}}>
+                  {movePicker.recipe.title} is currently in <strong style={{color:C.dark}}>{movePicker.recipe.category || "Uncategorized"}</strong>.
+                </div>
+                <div style={{display:"grid",gap:7}}>
+                  {CATEGORIES.map((category) => {
+                    const current = category === movePicker.recipe.category;
+                    return <button key={category} autoFocus={category === CATEGORIES.find((item) => item !== movePicker.recipe.category)} disabled={current || moveBusy} onClick={() => chooseMoveCategory(category)}
+                      aria-label={current ? category+", current category" : "Move to "+category}
+                      style={{minHeight:48,width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,padding:"10px 12px",border:"1px solid "+(current?C.green:C.border),borderRadius:11,background:current?C.greenPale:C.white,color:current?C.green:C.dark,fontFamily:SANS,fontWeight:800,fontSize:"0.88em",textAlign:"left",cursor:current||moveBusy?"default":"pointer",opacity:moveBusy&&!current?0.58:1}}>
+                      <span>{category}</span>{current && <span style={{fontSize:"0.78em",fontWeight:700}}>Current</span>}
+                    </button>;
+                  })}
+                </div>
+                {moveError && <div role="alert" style={{marginTop:12,background:C.redPale,border:"1px solid "+C.red+"55",borderRadius:10,padding:"10px 12px",color:C.red,fontSize:"0.8em",fontWeight:800,lineHeight:1.45}}>{moveError}</div>}
+                <button disabled={moveBusy} onClick={cancelMove} style={{...S.ghostBtn,width:"100%",minHeight:48,marginTop:12,padding:"10px 14px",opacity:moveBusy?0.58:1}}>{moveBusy?"Moving…":"Cancel"}</button>
+              </div>
+            </div>
+          )}
           {actionMenu && (
             <div onClick={() => setActionMenu(null)} style={{position:"fixed",inset:0,zIndex:240,background:"rgba(32,20,14,0.16)"}}>
               <div onClick={(e) => e.stopPropagation()} role="menu" aria-label="Recipe actions"
@@ -1609,6 +1680,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
                   { label:"Export to PDF", icon:"pdf", action:() => runMenuAction(onExportRecipe) },
                   { label:actionMenu.recipe.favorite ? "Unfavorite" : "Favorite", icon:"favorite", action:() => runMenuAction((r) => onFavorite && onFavorite(r.id)), hidden:actionMenu.recipe.householdShared },
                   { label:"Edit Recipe", icon:"edit", action:() => runMenuAction(onEditRecipe), hidden:actionMenu.recipe.householdShared },
+                  { label:"Move to Category", icon:"recipeBox", action:() => runMenuAction(openMovePicker), hidden:actionMenu.recipe.householdShared },
                   { label:"Delete Recipe", icon:"trash", action:() => runMenuAction(onDeleteRecipe), danger:true, hidden:actionMenu.recipe.householdShared },
                 ].filter((item) => !item.hidden).map((item) => (
                   <button key={item.label} role="menuitem" onClick={item.action}
@@ -5802,7 +5874,10 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
 
     // Edit Recipe with AI Chat Helper
     function EditRecipe({ recipe, onSave, onCancel }) {
-      const [draft, setDraft] = useState(() => JSON.parse(JSON.stringify(recipe)));
+      const [draft, setDraft] = useState(() => {
+        const copy = JSON.parse(JSON.stringify(recipe));
+        return { ...copy, category:RecipeBoxLibrary.canonicalRecipeCategory(copy.category) || "" };
+      });
       const [aiChat, setAiChat] = useState("");
       const [aiLoading, setAiLoading] = useState(false);
       const [aiHistory, setAiHistory] = useState([]);
@@ -5831,7 +5906,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           const systemPrompt = EDITOR_AI_PROMPT + "\n\nCurrent recipe JSON:\n" + JSON.stringify(draftForAI);
           const raw = await callAI(newHistory, systemPrompt, 2000);
           const updated = parseAIJson(raw);
-          setDraft((p) => ({ ...updated, originalSource: p.originalSource }));
+          setDraft((p) => ({ ...updated, category:RecipeBoxLibrary.canonicalRecipeCategory(updated.category), originalSource: p.originalSource }));
           setAiHistory([...newHistory, { role:"assistant", content:"Done! I've updated the recipe. You can make more changes or save when ready." }]);
         } catch(e) {
           setAiHistory([...newHistory, { role:"assistant", content:"Sorry, I couldn't apply that change. Try describing it differently." }]);
@@ -5903,10 +5978,13 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
               <input value={draft.title} onChange={(e)=>set("title",e.target.value)} placeholder="Title" style={{...iStyle,gridColumn:"1/-1"}} />
               <input value={draft.cookTime||""} onChange={(e)=>set("cookTime",e.target.value)} placeholder="Cook time" style={iStyle} />
               <input value={String(draft.servings||"")} onChange={(e)=>set("servings",e.target.value)} placeholder="Servings" style={iStyle} />
-              <select value={draft.category||""} onChange={(e)=>set("category",e.target.value)} style={{...iStyle,background:C.white}}>
-                <option value="">-- Category --</option>
-                {CATEGORIES.map((c)=><option key={c} value={c}>{c}</option>)}
-              </select>
+              <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                <label htmlFor="edit-recipe-category" style={{fontWeight:700,color:C.dark,fontSize:"0.78em"}}>Category</label>
+                <select id="edit-recipe-category" value={draft.category||""} onChange={(e)=>set("category",e.target.value)} style={{...iStyle,background:C.white}}>
+                  <option value="">Uncategorized</option>
+                  {CATEGORIES.map((c)=><option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
               <input value={(draft.tags||[]).join(", ")} onChange={(e)=>set("tags",e.target.value.split(",").map((t)=>t.trim()).filter(Boolean))} placeholder="Tags: quick, vegetarian..." style={iStyle} />
             </div>
             <textarea value={draft.description||""} onChange={(e)=>set("description",e.target.value)} placeholder="Description" rows={2} style={{width:"100%",padding:"8px 11px",border:"1px solid "+C.border,borderRadius:8,fontSize:"0.86em",resize:"vertical",outline:"none",marginBottom:10,boxSizing:"border-box",fontFamily:SANS}} />
@@ -6134,6 +6212,8 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [tab, setTab] = useState("library");
       const [screen, setScreen] = useState("library");
       const [recipes, setRecipes] = useState(() => loadRecipes());
+      const recipesRef = useRef(recipes);
+      recipesRef.current = recipes;
       const [mealPlan, setMealPlanState] = useState(() => loadMealPlan());
       const [shoppingList, setShoppingListState] = useState(() => loadShoppingList());
       const setShoppingList = (updater) => setShoppingListState((prev) => typeof updater === "function" ? updater(prev) : updater);
@@ -6385,6 +6465,14 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         const saved = await persistRecipe(t,operation);
         setRecipes((p) => p.map((x) => x.id===saved.id?saved:x)); setCurrent(saved); setRecipeNotice(operation==="move"?"Recipe moved successfully.":"Recipe changes saved."); return saved;
       }
+      async function moveRecipeFromLibrary(recipeId, destination) {
+        const latest = recipesRef.current.find((recipe) => recipe.id === recipeId);
+        if (!latest) throw new Error("This recipe is no longer in your library.");
+        if (latest.householdShared) throw new Error("Only the recipe owner can move this recipe.");
+        const nextCategory = RecipeBoxLibrary.canonicalRecipeCategory(destination);
+        if (RecipeBoxLibrary.canonicalRecipeCategory(latest.category) === nextCategory) return latest;
+        return updateRecipe({ ...latest, category:nextCategory }, "move");
+      }
       async function deleteRecipe(id) {
         const rec=recipes.find((x)=>x.id===id); if(rec&&rec.householdShared)return;
         if(!window.confirm("Delete this recipe?"))return;
@@ -6428,7 +6516,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         navName = "main"; showNav = true;
         body = (
           <div style={{width:"100%",maxWidth:"100%",overflowX:"hidden"}}>
-            {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>openRecipe(r,"library")} onAdd={openImport} onFavorite={toggleFavorite} onShareRecipe={(r)=>shareRecipeObject(r)} onExportRecipe={(r)=>exportRecipePDF(r)} onEditRecipe={editRecipeFromLibrary} onDeleteRecipe={(r)=>deleteRecipe(r.id)} setTab={setMainTab} tagFilter={libraryTag} onTagFilter={setLibraryTag} onCreateShoppingList={(ids,title)=>openShoppingFrom(ids,{replace:true,title})} />}
+            {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>openRecipe(r,"library")} onAdd={openImport} onFavorite={toggleFavorite} onShareRecipe={(r)=>shareRecipeObject(r)} onExportRecipe={(r)=>exportRecipePDF(r)} onEditRecipe={editRecipeFromLibrary} onMoveRecipe={moveRecipeFromLibrary} onDeleteRecipe={(r)=>deleteRecipe(r.id)} setTab={setMainTab} tagFilter={libraryTag} onTagFilter={setLibraryTag} onCreateShoppingList={(ids,title)=>openShoppingFrom(ids,{replace:true,title})} />}
             {tab==="plan" && <MealPlanner recipes={recipes} mealPlan={mealPlan} setMealPlan={updateMealPlan} onOpen={(r)=>openRecipe(r,"plan")} onGenerateShoppingList={(ids)=>openShoppingFrom(ids,{replace:true,title:"This Week's Shopping List"})} inHousehold={inHousehold} />}
             {tab==="shopping" && <ShoppingListScreen list={shoppingList} recipes={recipes} onChange={setShoppingList} setTab={setMainTab} onOpenRecipe={(r)=>openRecipe(r,"shopping")} pantry={pantry} onTogglePantry={togglePantry} inHousehold={inHousehold} />}
             {tab==="pantry" && <PantryChef recipes={recipes} onImport={async(r)=>{await addRecipe(r);setMainTab("library");}} onOpenRecipe={(r)=>openRecipe(r,"pantry")} />}

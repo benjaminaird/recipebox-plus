@@ -7,6 +7,16 @@
 
   const DEFAULT_PAGE_SIZE = 50;
   const EMBEDDED_IMAGE_PREFIX = /^data:image\//i;
+  const CANONICAL_CATEGORIES = Object.freeze([
+    "Breakfast",
+    "Appetizers",
+    "Entrées",
+    "Sides",
+    "Condiments & Sauces",
+    "Beverages",
+    "Desserts",
+    "Baked Goods",
+  ]);
   const CATEGORY_ALIASES = new Map([["bakery","Baked Goods"],["baking","Baked Goods"],["baked good","Baked Goods"]]);
 
   function canonicalRecipeCategory(value) {
@@ -59,5 +69,5 @@
     }
   }
 
-  return { DEFAULT_PAGE_SIZE, canonicalRecipeCategory, canonicalizeRecipe, compactRecipeForLocal, compactRecipesForLocal, fetchAllPages };
+  return { CANONICAL_CATEGORIES, DEFAULT_PAGE_SIZE, canonicalRecipeCategory, canonicalizeRecipe, compactRecipeForLocal, compactRecipesForLocal, fetchAllPages };
 });

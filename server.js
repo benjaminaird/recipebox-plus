@@ -9,6 +9,8 @@ const { fetchTranscript } = require('youtube-transcript');
 const RecipeBoxExtract = require('./public/recipe-extract');
 // Shared shopping-list/pantry sanitizers (reused server-side for household data).
 const RecipeBoxShopping = require('./public/shopping-list');
+// One canonical category definition is shared by validation, hydration, and UI.
+const RecipeBoxLibrary = require('./public/recipe-library');
 
 const app = express();
 app.disable('x-powered-by');
@@ -64,14 +66,11 @@ const ADMIN_KB_CATEGORIES = [
   'Product Strategy',
   'WhatsNext Sync',
 ];
-const RECIPE_CATEGORIES = ['Breakfast','Appetizers','Entrées','Sides','Condiments & Sauces','Beverages','Desserts','Baked Goods'];
-const RECIPE_CATEGORY_ALIASES = new Map([['bakery','Baked Goods'],['baking','Baked Goods'],['baked good','Baked Goods']]);
+const RECIPE_CATEGORIES = RecipeBoxLibrary.CANONICAL_CATEGORIES;
 const DEFAULT_RECIPE_PAGE_SIZE = 50;
 const MAX_RECIPE_PAGE_SIZE = 100;
 function canonicalRecipeCategory(value) {
-  if (value == null || value === '') return value || null;
-  const text = String(value).trim();
-  return RECIPE_CATEGORY_ALIASES.get(text.toLowerCase()) || text;
+  return RecipeBoxLibrary.canonicalRecipeCategory(value);
 }
 function canonicalizeRecipeRecord(recipe) {
   if (!recipe || typeof recipe !== 'object') return recipe;
@@ -1510,6 +1509,48 @@ async function upsertUserRecipe(userId, input, dbOverride) {
   }
 }
 
+async function moveUserRecipeCategory(userId, input, dbOverride) {
+  const recipe = validateRecipeForSave(input);
+  if (!recipe.category) throw new Error('destination category is required');
+  const db = dbOverride || await getPool();
+  if (!db) throw new Error('database is unavailable');
+  const client = typeof db.connect === 'function' ? await db.connect() : db;
+  let transactionStarted = false;
+  try {
+    await client.query('BEGIN');
+    transactionStarted = true;
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [userId]);
+    const existing = await client.query(
+      `SELECT id FROM recipes WHERE user_id=$1 AND recipe_json->>'id'=$2 FOR UPDATE`,
+      [userId, recipe.id]
+    );
+    if (!existing.rows[0]) {
+      const error = new Error('recipe not found');
+      error.code = 'RECIPE_NOT_FOUND';
+      throw error;
+    }
+    const updated = await client.query(
+      `UPDATE recipes
+       SET category=$3,
+           recipe_json=jsonb_set(recipe_json, '{category}', to_jsonb($3::text), true),
+           updated_at=now()
+       WHERE id=$1 AND user_id=$2
+       RETURNING recipe_json`,
+      [existing.rows[0].id, userId, recipe.category]
+    );
+    if (!updated.rows[0]) throw new Error('recipe category update was not acknowledged');
+    await client.query('COMMIT');
+    return canonicalizeRecipeRecord(updated.rows[0].recipe_json);
+  } catch (err) {
+    if (transactionStarted) {
+      try { await client.query('ROLLBACK'); } catch (_) { /* preserve the original error */ }
+    }
+    throw err;
+  } finally {
+    if (client !== db && typeof client.release === 'function') client.release();
+  }
+}
+
 async function readUserRecipes(userId) {
   const db = await getPool();
   if (!db) return [];
@@ -2527,11 +2568,14 @@ app.post('/api/recipes/save', async (req, res) => {
   try {
     user = await currentUser(req);
     if (!user) return res.status(401).json({ error: 'sign in required', requestId });
-    const recipe = await upsertUserRecipe(user.user_id, req.body.recipe);
-    await logUserActivity(user, 'recipe_saved', { recipeId: recipe.id, operation: req.body.operation === 'create' ? 'create' : 'update' });
+    const operation = req.body.operation === 'create' ? 'create' : req.body.operation === 'move' ? 'move' : 'update';
+    const recipe = operation === 'move'
+      ? await moveUserRecipeCategory(user.user_id, req.body.recipe)
+      : await upsertUserRecipe(user.user_id, req.body.recipe);
+    await logUserActivity(user, 'recipe_saved', { recipeId: recipe.id, operation });
     return res.json({ ok: true, savedToDatabase: true, recipe, requestId });
   } catch (err) {
-    const status = /required|must include|must be|not allowed/.test(err.message) ? 400 : 500;
+    const status = err.code === 'RECIPE_NOT_FOUND' ? 404 : /required|must include|must be|not allowed/.test(err.message) ? 400 : 500;
     // Request references are enough to correlate a client report. Do not log
     // recipe data, recipe ids, account ids, credentials, or session details.
     const log = status === 400 ? console.warn : console.error;
@@ -3884,7 +3928,7 @@ module.exports._test = {
   canAddHouseholdMember, canInviteToHousehold, isHouseholdOwner, inviteIsUsable,
   publicEntitlementConfig, founderOfferTiers, isFounderEligible, FOUNDER_TIERS,
   normalizeRecipeForDb, sanitizeMealPlan, householdPoolLimit, HOUSEHOLD_POOL_TIERS,
-  validateRecipeForSave, upsertUserRecipe, canonicalRecipeCategory, canonicalizeRecipeRecord,
+  validateRecipeForSave, upsertUserRecipe, moveUserRecipeCategory, canonicalRecipeCategory, canonicalizeRecipeRecord,
   parseRecipePageLimit, encodeRecipeCursor, decodeRecipeCursor, readVisibleRecipesPage,
   DEFAULT_RECIPE_PAGE_SIZE, MAX_RECIPE_PAGE_SIZE, RECIPE_CATEGORIES,
   fetchWithTimeout, readBodyCapped, isAbortError,

@@ -7,6 +7,7 @@ const Library = require('../public/recipe-library');
 const {
   validateRecipeForSave,
   upsertUserRecipe,
+  moveUserRecipeCategory,
   readVisibleRecipesPage,
   parseRecipePageLimit,
   canonicalRecipeCategory,
@@ -46,6 +47,13 @@ class MemoryRecipeDb {
     if (sql.includes("SELECT id FROM recipes WHERE user_id=$1 AND recipe_json->>'id'=$2")) {
       const found = this.rows.find((row) => row.user_id === params[0] && row.recipe_json.id === params[1]);
       return { rows:found ? [{ id:found.row_id }] : [] };
+    }
+    if (sql.includes('UPDATE recipes') && sql.includes('jsonb_set')) {
+      const row = this.rows.find((item) => item.row_id === params[0] && item.user_id === params[1]);
+      if (!row) return { rows:[] };
+      row.category = params[2];
+      row.recipe_json = { ...row.recipe_json, category:params[2] };
+      return { rows:[{ recipe_json:JSON.parse(JSON.stringify(row.recipe_json)) }] };
     }
     if (sql.includes('UPDATE recipes SET title=')) {
       const row = this.rows.find((item) => item.row_id === params[0] && item.user_id === params[1]);
@@ -130,6 +138,34 @@ class MemoryRecipeDb {
   assert.strictEqual(db.rows.length, 25, 'failed persistence adds no record');
   assert.strictEqual(db.releaseCalls, 27, 'failed persistence also releases its database connection');
 
+  // A card move updates only the owned row's category. Even if the card held a
+  // stale recipe snapshot, newer saved content is returned intact.
+  const newerRecipe = { ...recipes[0], title:'Recipe 01 newer edit', notes:'Keep this newer note', tags:['newer'] };
+  await upsertUserRecipe(userId, newerRecipe, db);
+  const moved = await moveUserRecipeCategory(userId, { ...recipes[0], category:'Baked Goods' }, db);
+  assert.strictEqual(moved.category, 'Baked Goods', 'move persists the selected canonical category');
+  assert.strictEqual(moved.title, newerRecipe.title, 'move does not overwrite a newer title');
+  assert.strictEqual(moved.notes, newerRecipe.notes, 'move does not overwrite newer recipe data');
+  assert.deepStrictEqual(moved.tags, newerRecipe.tags, 'move preserves newer metadata');
+  assert.strictEqual(db.rows.length, 25, 'move mutates one row without duplicating it');
+
+  const ownerRowBeforeAttack = db.rows.find((row) => row.user_id === userId && row.recipe_json.id === recipes[0].id);
+  const ownerRecipeBeforeAttack = JSON.parse(JSON.stringify(ownerRowBeforeAttack.recipe_json));
+  const ownerCategoryBeforeAttack = ownerRowBeforeAttack.category;
+  await assert.rejects(
+    moveUserRecipeCategory('another-user', { ...recipes[0], category:'Desserts' }, db),
+    /recipe not found/,
+    'another user cannot move the owner row'
+  );
+  const ownerRowAfterAttack = db.rows.find((row) => row.user_id === userId && row.recipe_json.id === recipes[0].id);
+  assert.strictEqual(ownerRowAfterAttack.category, ownerCategoryBeforeAttack, 'failed cross-user move leaves the owner category unchanged');
+  assert.deepStrictEqual(ownerRowAfterAttack.recipe_json, ownerRecipeBeforeAttack, 'failed cross-user move leaves the owner recipe unchanged');
+  await assert.rejects(
+    moveUserRecipeCategory(userId, { ...recipes[0], category:'Not a RecipeBox Category' }, db),
+    /not allowed/,
+    'unsupported move destinations are rejected before mutation'
+  );
+
   // Canonical category compatibility, including bakery, survives save + reload.
   for (const category of RECIPE_CATEGORIES) assert.doesNotThrow(() => validateRecipeForSave(recipe(80, category)));
   const baked = restored.find((item) => item.category === 'Baked Goods');
@@ -137,6 +173,7 @@ class MemoryRecipeDb {
   assert.strictEqual(canonicalRecipeCategory('Bakery'), 'Baked Goods', 'legacy Bakery records normalize to the canonical category');
   assert.strictEqual(validateRecipeForSave(recipe(81, 'Bakery')).category, 'Baked Goods', 'legacy category saves remain compatible');
   assert.strictEqual(Library.canonicalizeRecipe(recipe(82, 'Baking')).category, 'Baked Goods', 'offline legacy records remain discoverable');
+  assert.deepStrictEqual(RECIPE_CATEGORIES, Library.CANONICAL_CATEGORIES, 'client and server share one canonical category list');
   assert.strictEqual(parseRecipePageLimit(undefined), 50);
   assert.throws(() => parseRecipePageLimit('0'), /between 1 and 100/);
 
