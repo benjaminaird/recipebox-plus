@@ -43,6 +43,9 @@ create table if not exists recipes (
 create index if not exists recipes_user_id_created_at_idx
   on recipes (user_id, created_at desc);
 
+create index if not exists recipes_user_cursor_idx
+  on recipes (user_id, created_at desc, id desc);
+
 create table if not exists meal_plans (
   id uuid primary key default gen_random_uuid(),
   user_id text not null,

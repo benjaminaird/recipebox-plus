@@ -42,6 +42,7 @@
     "household-test": "node scripts/household-test.js",
     "normalize-test": "node scripts/normalize-test.js",
     "recipe-save-test": "node scripts/recipe-save-test.js",
+    "recipe-persistence-test": "node scripts/recipe-persistence-test.js",
     "everplate-native-test": "node scripts/everplate-native-test.js"
   },
   "dependencies": {

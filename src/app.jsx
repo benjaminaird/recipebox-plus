@@ -611,6 +611,16 @@ async function fetchJson(url, fallback) {
     return fallback;
   }
 }
+async function fetchCompleteRecipeLibrary() {
+  return RecipeBoxLibrary.fetchAllPages(async (cursor) => {
+    const params = new URLSearchParams({ limit:String(RecipeBoxLibrary.DEFAULT_PAGE_SIZE) });
+    if (cursor) params.set("cursor", cursor);
+    const res = await apiFetch("/api/recipes?"+params.toString(), { cache:"no-store" });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(data?.error || "Could not load your complete recipe library.");
+    return data;
+  });
+}
     function loadAccountSession() {
   const session = syncGetJson("/api/auth/session", { user:null });
   if (session?.user || !PRODUCT.native) return session;
@@ -638,8 +648,6 @@ function loadRecipes() {
   // Defensive: tolerate corrupted OR tampered localStorage (valid JSON of the
   // wrong type) — always hand back an array so the UI never crashes/blanks.
   try { const v = JSON.parse(localStorage.getItem(RECIPES_KEY) || "[]"); if (Array.isArray(v)) local = v; } catch {}
-  const server = syncGetJson("/api/recipes", local);
-  if (Array.isArray(server) && server.length) { try { localStorage.setItem(RECIPES_KEY, JSON.stringify(recipesForLocal(server))); } catch {} return server; }
   return local;
 }
 // Recipes the signed-in user actually OWNS — household-shared recipes from other
@@ -652,17 +660,7 @@ function ownRecipes(r) {
 // signed-in users; we only drop it from the local mirror. Household-shared
 // recipes are excluded too (they belong to other members).
 function recipesForLocal(r) {
-  try {
-    return ownRecipes(r).map((rec) => {
-      if (rec && rec.originalSource) { const { originalSource, ...rest } = rec; return rest; }
-      return rec;
-    });
-  } catch { return ownRecipes(r); }
-}
-function saveRecipes(r) {
-  const own = ownRecipes(r);
-  try { localStorage.setItem(RECIPES_KEY, JSON.stringify(recipesForLocal(own))); } catch {}
-  asyncPutJson("/api/recipes", { recipes: own });
+  return RecipeBoxLibrary.compactRecipesForLocal(r);
 }
 function loadMealPlan() {
   let local = {};
@@ -764,7 +762,7 @@ For macros (nutrition) — always fill these in, never leave them at 0:
 - macros are ALWAYS stored per single serving (not the whole recipe). Use realistic whole numbers.
 
 For category and tags (these are SEPARATE fields, never mix them):
-- "category" is the single real food type. Use one of: Breakfast, Appetizers, Entrées, Sides, Condiments & Sauces, Beverages, Desserts. Pick the closest real type. "Copycat" is NEVER a category.
+- "category" is the single real food type. Use one of: Breakfast, Appetizers, Entrées, Sides, Condiments & Sauces, Beverages, Desserts, Baked Goods. Pick the closest real type. "Copycat" is NEVER a category.
 - "tags" is a short list of useful labels for searching and filtering, not SEO spam. Keep each tag concise and in Title Case. Deduplicate. Use at most 8 tags.
 - Only add a tag when the title, source, ingredients, or instructions clearly support it. Do not guess diet or allergy tags (Vegan, Vegetarian, Gluten-Free, Dairy-Free) unless the source explicitly says so or the recipe clearly meets it.
 - Add the "Copycat" tag (not category) when the title/source clearly indicates a homemade recreation of a restaurant or brand dish (e.g. "copycat", "restaurant-style", "better than takeout", "Starbucks-style", "Olive Garden inspired"). The tag is descriptive only; never claim official affiliation or add brand logos.
@@ -6197,6 +6195,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       const [timerSound, setTimerSound] = useState(() => loadTimerSound());
       const [current, setCurrent] = useState(null);
       const [recipeNotice, setRecipeNotice] = useState("");
+      const [librarySyncError, setLibrarySyncError] = useState("");
       const [libraryTag, setLibraryTag] = useState("");
       const [importMode, setImportMode] = useState("url");
       const [importPrefill, setImportPrefill] = useState("");
@@ -6220,6 +6219,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         } catch { return null; }
       });
       const [account, setAccount] = useState(() => loadAccountSession().user || null);
+      const startupAccountIdRef = useRef(account?.id || null);
       useEffect(() => {
         if (!PRODUCT.native) return;
         try {
@@ -6286,6 +6286,22 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
       useEffect(() => {
         try { localStorage.setItem(RECIPES_KEY, JSON.stringify(recipesForLocal(recipes))); } catch {}
       }, [recipes]);
+      // Hydrate only from a complete, successfully fetched set of cursor pages.
+      // A failed or interrupted refresh leaves the existing local library intact.
+      useEffect(() => {
+        if (!account || !isOnline || startupAccountIdRef.current !== account.id) return;
+        let alive = true;
+        fetchCompleteRecipeLibrary().then((cloudRecipes) => {
+          if (!alive) return;
+          setRecipes(cloudRecipes);
+          setLibrarySyncError("");
+        }).catch((err) => {
+          if (!alive) return;
+          setLibrarySyncError("Could not refresh every saved recipe. Showing the on-device copy; reconnect and try again.");
+          console.error("recipe_library_refresh_failed", { error:err?.name || "Error", message:err?.message || "unknown" });
+        });
+        return () => { alive = false; };
+      }, [account?.id, isOnline]);
       useEffect(() => {
         if (dataSourceRef.current === "household") asyncPutJson("/api/household/shopping-list", { shoppingList });
         else saveShoppingList(shoppingList);
@@ -6402,13 +6418,14 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         else saveMealPlan(plan);
       }
       async function loadCloudData(nextRecipes, nextMealPlan) {
-        const cloudRecipes = Array.isArray(nextRecipes) ? nextRecipes : await fetchJson("/api/recipes", []);
+        const cloudRecipes = Array.isArray(nextRecipes) ? nextRecipes : await fetchCompleteRecipeLibrary();
         const cloudMealPlan = nextMealPlan && typeof nextMealPlan === "object" ? nextMealPlan : await fetchJson("/api/mealplan", {});
-        setRecipes(Array.isArray(cloudRecipes) ? cloudRecipes : []);
+        setRecipes(cloudRecipes);
+        setLibrarySyncError("");
         // Don't let a personal cloud refresh clobber the shared household meal
         // plan that's currently loaded (the household source effect owns it).
         if (dataSourceRef.current !== "household") setMealPlanState(cloudMealPlan && typeof cloudMealPlan === "object" ? cloudMealPlan : {});
-        try { localStorage.setItem(RECIPES_KEY, JSON.stringify(recipesForLocal(Array.isArray(cloudRecipes) ? cloudRecipes : []))); } catch {}
+        try { localStorage.setItem(RECIPES_KEY, JSON.stringify(recipesForLocal(cloudRecipes))); } catch {}
         try { localStorage.setItem(MEALPLAN_KEY, JSON.stringify(cloudMealPlan && typeof cloudMealPlan === "object" ? cloudMealPlan : {})); } catch {}
       }
       async function persistRecipe(recipe, operation) {
@@ -6481,7 +6498,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
             {tab==="library" && <Library recipes={recipes} mealPlan={mealPlan} onOpen={(r)=>openRecipe(r,"library")} onAdd={openImport} onFavorite={toggleFavorite} onShareRecipe={(r)=>shareRecipeObject(r)} onExportRecipe={(r)=>exportRecipePDF(r)} onEditRecipe={editRecipeFromLibrary} onDeleteRecipe={(r)=>deleteRecipe(r.id)} setTab={setMainTab} tagFilter={libraryTag} onTagFilter={setLibraryTag} onCreateShoppingList={(ids,title)=>openShoppingFrom(ids,{replace:true,title})} />}
             {tab==="plan" && <MealPlanner recipes={recipes} mealPlan={mealPlan} setMealPlan={updateMealPlan} onOpen={(r)=>openRecipe(r,"plan")} onGenerateShoppingList={(ids)=>openShoppingFrom(ids,{replace:true,title:"This Week's Shopping List"})} inHousehold={inHousehold} />}
             {tab==="shopping" && <ShoppingListScreen list={shoppingList} recipes={recipes} onChange={setShoppingList} setTab={setMainTab} onOpenRecipe={(r)=>openRecipe(r,"shopping")} pantry={pantry} onTogglePantry={togglePantry} inHousehold={inHousehold} />}
-            {tab==="pantry" && <PantryChef recipes={recipes} onImport={(r)=>{addRecipe(r);setTab("library");}} onOpenRecipe={(r)=>openRecipe(r,"pantry")} />}
+            {tab==="pantry" && <PantryChef recipes={recipes} onImport={async(r)=>{await addRecipe(r);setMainTab("library");}} onOpenRecipe={(r)=>openRecipe(r,"pantry")} />}
             {tab==="settings" && <Settings timerSound={timerSound} setTimerSound={setTimerSound} account={account} setAccount={setAccount} recipes={recipes} mealPlan={mealPlan} aiUsage={aiUsage} onCloudData={loadCloudData} onOpenAdmin={()=>setScreen("admin")} newFeedback={newFeedback} />}
           </div>
         );
@@ -6513,6 +6530,11 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
           {!isOnline && !showSplash && (
             <div role="status" aria-live="polite" style={{position:"fixed",top:"calc(env(safe-area-inset-top, 0px) + 8px)",left:"50%",transform:"translateX(-50%)",zIndex:80,background:C.dark,color:C.white,border:"1px solid "+C.border,borderRadius:999,padding:"8px 14px",fontSize:"0.78em",fontWeight:700,boxShadow:"0 6px 20px rgba(0,0,0,0.2)"}}>
               Offline · saved recipes remain available on this device
+            </div>
+          )}
+          {librarySyncError && isOnline && !showSplash && (
+            <div role="alert" aria-live="polite" onClick={()=>setLibrarySyncError("")} style={{position:"fixed",top:"calc(env(safe-area-inset-top, 0px) + 8px)",left:"50%",transform:"translateX(-50%)",zIndex:80,maxWidth:"min(520px, calc(100vw - 24px))",background:C.red,color:C.white,borderRadius:12,padding:"9px 14px",fontSize:"0.78em",fontWeight:700,boxShadow:"0 6px 20px rgba(0,0,0,0.2)",cursor:"pointer",lineHeight:1.4}}>
+              {librarySyncError} <span style={{opacity:0.75}}>· tap to dismiss</span>
             </div>
           )}
           {showNav && <BottomNav tab={tab} setTab={setMainTab} badges={{settings:newFeedback}} />}
