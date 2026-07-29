@@ -36,6 +36,9 @@ create table if not exists public.recipes (
   updated_at timestamptz not null default now()
 );
 
+create index if not exists recipes_user_cursor_idx
+  on public.recipes (user_id, created_at desc, id desc);
+
 create table if not exists public.meal_plans (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,

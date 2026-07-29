@@ -65,6 +65,19 @@ const ADMIN_KB_CATEGORIES = [
   'WhatsNext Sync',
 ];
 const RECIPE_CATEGORIES = ['Breakfast','Appetizers','Entrées','Sides','Condiments & Sauces','Beverages','Desserts','Baked Goods'];
+const RECIPE_CATEGORY_ALIASES = new Map([['bakery','Baked Goods'],['baking','Baked Goods'],['baked good','Baked Goods']]);
+const DEFAULT_RECIPE_PAGE_SIZE = 50;
+const MAX_RECIPE_PAGE_SIZE = 100;
+function canonicalRecipeCategory(value) {
+  if (value == null || value === '') return value || null;
+  const text = String(value).trim();
+  return RECIPE_CATEGORY_ALIASES.get(text.toLowerCase()) || text;
+}
+function canonicalizeRecipeRecord(recipe) {
+  if (!recipe || typeof recipe !== 'object') return recipe;
+  const category = canonicalRecipeCategory(recipe.category);
+  return category === recipe.category ? recipe : { ...recipe, category };
+}
 const ADMIN_FEATURES = [
   'Import',
   'Manual Recipe Entry',
@@ -367,6 +380,7 @@ async function getPool() {
       updated_at timestamptz NOT NULL DEFAULT now()
     )`);
     await pool.query('CREATE INDEX IF NOT EXISTS recipes_user_id_created_at_idx ON recipes (user_id, created_at desc)');
+    await pool.query('CREATE INDEX IF NOT EXISTS recipes_user_cursor_idx ON recipes (user_id, created_at desc, id desc)');
     await pool.query(`CREATE TABLE IF NOT EXISTS meal_plans (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id text NOT NULL,
@@ -1430,13 +1444,14 @@ function normalizeRecipeForDb(recipe) {
   // Strip transient household-share annotations so they never persist in a row
   // (they're re-applied on read for other members' shared recipes only).
   const { householdShared, ownerId, ownerName, ...clean } = r;
+  const category = canonicalRecipeCategory(r.category);
   return {
     title: String(r.title || 'Untitled Recipe').slice(0, 240),
-    category: r.category || null,
+    category,
     heroImage: r.heroImage || null,
     favorite: !!r.favorite,
     rating: Number.isFinite(Number(r.rating)) ? Number(r.rating) : 0,
-    json: clean,
+    json: { ...clean, category },
   };
 }
 
@@ -1448,42 +1463,50 @@ function validateRecipeForSave(recipe) {
   if (!title) throw new Error('recipe title is required');
   if (!Array.isArray(recipe.sections) || !recipe.sections.length) throw new Error('recipe must include at least one section');
   if (recipe.category != null && typeof recipe.category !== 'string') throw new Error('recipe category must be text');
-  if (recipe.category && !RECIPE_CATEGORIES.includes(recipe.category)) throw new Error('recipe category is not allowed');
-  return { ...recipe, id, title };
+  const category = canonicalRecipeCategory(recipe.category);
+  if (category && !RECIPE_CATEGORIES.includes(category)) throw new Error('recipe category is not allowed');
+  return { ...recipe, id, title, category };
 }
 
-async function upsertUserRecipe(userId, input) {
-  const db = await getPool();
+async function upsertUserRecipe(userId, input, dbOverride) {
+  const db = dbOverride || await getPool();
   if (!db) throw new Error('database is unavailable');
   const recipe = validateRecipeForSave(input);
   const r = normalizeRecipeForDb(recipe);
-  await db.query('BEGIN');
+  const client = typeof db.connect === 'function' ? await db.connect() : db;
+  let transactionStarted = false;
   try {
-    await db.query('SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))', [userId, recipe.id]);
+    await client.query('BEGIN');
+    transactionStarted = true;
+    // Serialize every recipe mutation for this owner. This prevents concurrent
+    // imports and whole-library maintenance actions from interleaving writes.
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [userId]);
     // RecipeBox's stable recipe id lives inside recipe_json. Lock a matching
     // owned row so repeated taps update it instead of creating duplicates.
-    const existing = await db.query(
+    const existing = await client.query(
       `SELECT id FROM recipes WHERE user_id=$1 AND recipe_json->>'id'=$2 FOR UPDATE`,
       [userId, recipe.id]
     );
     if (existing.rows[0]) {
-      await db.query(
+      await client.query(
         `UPDATE recipes SET title=$3, category=$4, hero_image_url=$5, recipe_json=$6::jsonb,
           favorite=$7, rating=$8, updated_at=now() WHERE id=$1 AND user_id=$2`,
         [existing.rows[0].id, userId, r.title, r.category, r.heroImage, JSON.stringify(r.json), r.favorite, r.rating]
       );
     } else {
-      await db.query(
+      await client.query(
         `INSERT INTO recipes(user_id, title, category, hero_image_url, recipe_json, favorite, rating)
          VALUES($1, $2, $3, $4, $5::jsonb, $6, $7)`,
         [userId, r.title, r.category, r.heroImage, JSON.stringify(r.json), r.favorite, r.rating]
       );
     }
-    await db.query('COMMIT');
+    await client.query('COMMIT');
     return r.json;
   } catch (err) {
-    await db.query('ROLLBACK');
+    if (transactionStarted) await client.query('ROLLBACK');
     throw err;
+  } finally {
+    if (client !== db && typeof client.release === 'function') client.release();
   }
 }
 
@@ -1494,7 +1517,84 @@ async function readUserRecipes(userId) {
     'SELECT recipe_json FROM recipes WHERE user_id=$1 ORDER BY created_at DESC',
     [userId]
   );
-  return result.rows.map((row) => row.recipe_json);
+  return result.rows.map((row) => canonicalizeRecipeRecord(row.recipe_json));
+}
+
+function parseRecipePageLimit(value) {
+  if (value == null || value === '') return DEFAULT_RECIPE_PAGE_SIZE;
+  if (!/^\d+$/.test(String(value))) throw new Error('recipe page limit must be an integer');
+  const limit = Number(value);
+  if (limit < 1 || limit > MAX_RECIPE_PAGE_SIZE) {
+    throw new Error(`recipe page limit must be between 1 and ${MAX_RECIPE_PAGE_SIZE}`);
+  }
+  return limit;
+}
+
+function encodeRecipeCursor(row) {
+  return Buffer.from(JSON.stringify({ createdAt:new Date(row.created_at).toISOString(), id:String(row.row_id || row.id) })).toString('base64url');
+}
+
+function decodeRecipeCursor(value) {
+  if (!value) return null;
+  if (String(value).length > 512) throw new Error('recipe cursor is invalid');
+  try {
+    const parsed = JSON.parse(Buffer.from(String(value), 'base64url').toString('utf8'));
+    const createdAt = new Date(parsed.createdAt);
+    const id = String(parsed.id || '');
+    if (Number.isNaN(createdAt.getTime()) || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+      throw new Error('invalid fields');
+    }
+    return { createdAt:createdAt.toISOString(), id };
+  } catch {
+    throw new Error('recipe cursor is invalid');
+  }
+}
+
+async function readVisibleRecipesPage(userId, options = {}) {
+  const db = options.db || await getPool();
+  if (!db) return { recipes:[], nextCursor:null };
+  const limit = parseRecipePageLimit(options.limit);
+  const cursor = decodeRecipeCursor(options.cursor);
+  const params = [userId];
+  let cursorClause = '';
+  if (cursor) {
+    params.push(cursor.createdAt, cursor.id);
+    cursorClause = `AND (r.created_at, r.id) < ($${params.length - 1}::timestamptz, $${params.length}::uuid)`;
+  }
+  params.push(limit + 1);
+  const result = await db.query(
+    `SELECT r.recipe_json, r.user_id, r.created_at, r.id AS row_id, p.display_name
+       FROM recipes r
+       LEFT JOIN profiles p ON p.user_id = r.user_id
+      WHERE (
+        r.user_id = $1
+        OR (
+          r.user_id <> $1
+          AND (r.recipe_json->>'shared') = 'true'
+          AND EXISTS (
+            SELECT 1
+              FROM household_members viewer
+              JOIN household_members owner ON owner.household_id = viewer.household_id
+             WHERE viewer.user_id = $1 AND owner.user_id = r.user_id
+          )
+        )
+      )
+      ${cursorClause}
+      ORDER BY r.created_at DESC, r.id DESC
+      LIMIT $${params.length}`,
+    params
+  );
+  const hasMore = result.rows.length > limit;
+  const rows = hasMore ? result.rows.slice(0, limit) : result.rows;
+  return {
+    recipes: rows.map((row) => row.user_id === userId ? canonicalizeRecipeRecord(row.recipe_json) : {
+      ...canonicalizeRecipeRecord(row.recipe_json),
+      householdShared:true,
+      ownerId:row.user_id,
+      ownerName:row.display_name || 'A household member',
+    }),
+    nextCursor: hasMore && rows.length ? encodeRecipeCursor(rows[rows.length - 1]) : null,
+  };
 }
 
 // Recipes shared by OTHER members of the user's household (private by default —
@@ -1516,7 +1616,7 @@ async function readHouseholdSharedRecipes(userId) {
     [householdId, userId]
   );
   return result.rows.map((row) => ({
-    ...row.recipe_json,
+    ...canonicalizeRecipeRecord(row.recipe_json),
     householdShared: true,
     ownerId: row.user_id,
     ownerName: row.display_name || 'A household member',
@@ -1526,22 +1626,28 @@ async function readHouseholdSharedRecipes(userId) {
 async function replaceUserRecipes(userId, recipes) {
   const db = await getPool();
   if (!db) return false;
-  await db.query('BEGIN');
+  const client = typeof db.connect === 'function' ? await db.connect() : db;
+  let transactionStarted = false;
   try {
-    await db.query('DELETE FROM recipes WHERE user_id=$1', [userId]);
+    await client.query('BEGIN');
+    transactionStarted = true;
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [userId]);
+    await client.query('DELETE FROM recipes WHERE user_id=$1', [userId]);
     for (const recipe of recipes) {
       const r = normalizeRecipeForDb(recipe);
-      await db.query(
+      await client.query(
         `INSERT INTO recipes(user_id, title, category, hero_image_url, recipe_json, favorite, rating)
          VALUES($1, $2, $3, $4, $5::jsonb, $6, $7)`,
         [userId, r.title, r.category, r.heroImage, JSON.stringify(r.json), r.favorite, r.rating]
       );
     }
-    await db.query('COMMIT');
+    await client.query('COMMIT');
     return true;
   } catch (err) {
-    await db.query('ROLLBACK');
+    if (transactionStarted) await client.query('ROLLBACK');
     throw err;
+  } finally {
+    if (client !== db && typeof client.release === 'function') client.release();
   }
 }
 
@@ -2394,8 +2500,15 @@ app.post('/api/auth/migrate', async (req, res) => {
 
 app.get('/api/recipes', async (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
     const user = await currentUser(req);
     if (user) {
+      // Supplying limit opts into stable cursor pagination. Keep the legacy
+      // unpaginated array for older deployed clients during the rollout.
+      if (req.query.limit != null || req.query.cursor != null) {
+        return res.json(await readVisibleRecipesPage(user.user_id, { limit:req.query.limit, cursor:req.query.cursor }));
+      }
       const own = await readUserRecipes(user.user_id);
       const shared = await readHouseholdSharedRecipes(user.user_id);
       return res.json([...own, ...shared]);
@@ -2403,7 +2516,10 @@ app.get('/api/recipes', async (req, res) => {
     if (process.env.ALLOW_SHARED_GUEST_STORE === '1') return res.json(await readStore('recipes', []));
     res.json([]);
   }
-  catch (err) { res.status(500).json({ error: err.message }); }
+  catch (err) {
+    const status = /recipe (page limit|cursor)/.test(err.message) ? 400 : 500;
+    res.status(status).json({ error:status === 400 ? err.message : 'Recipe library could not be loaded. Please try again.' });
+  }
 });
 app.post('/api/recipes/save', async (req, res) => {
   const requestId = String(req.headers['x-request-id'] || require('crypto').randomUUID());
@@ -3768,6 +3884,9 @@ module.exports._test = {
   canAddHouseholdMember, canInviteToHousehold, isHouseholdOwner, inviteIsUsable,
   publicEntitlementConfig, founderOfferTiers, isFounderEligible, FOUNDER_TIERS,
   normalizeRecipeForDb, sanitizeMealPlan, householdPoolLimit, HOUSEHOLD_POOL_TIERS,
+  validateRecipeForSave, upsertUserRecipe, canonicalRecipeCategory, canonicalizeRecipeRecord,
+  parseRecipePageLimit, encodeRecipeCursor, decodeRecipeCursor, readVisibleRecipesPage,
+  DEFAULT_RECIPE_PAGE_SIZE, MAX_RECIPE_PAGE_SIZE, RECIPE_CATEGORIES,
   fetchWithTimeout, readBodyCapped, isAbortError,
   isPrivateIp, assertPublicHost, looksBlockedPage, buildPageResult, scraperRequestUrl, jinaRequestUrl,
   periodKey, resetAfter,

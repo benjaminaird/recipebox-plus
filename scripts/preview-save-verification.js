@@ -53,6 +53,24 @@ function recipe(id, title, category = 'Entrées') {
   };
 }
 
+function completeLibrary(user, pageSize = 7) {
+  const recipes = [];
+  const cursors = new Set();
+  let cursor = '';
+  do {
+    const route = `/api/recipes?limit=${pageSize}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`;
+    const page = request(user, route);
+    assert.ok(page && Array.isArray(page.recipes), 'paginated recipe response has recipes');
+    recipes.push(...page.recipes);
+    cursor = page.nextCursor || '';
+    if (cursor) {
+      assert.ok(!cursors.has(cursor), 'pagination cursor does not repeat');
+      cursors.add(cursor);
+    }
+  } while (cursor);
+  return recipes;
+}
+
 const originalId = crypto.randomUUID();
 const aiCopyId = crypto.randomUUID();
 const aiSecondId = crypto.randomUUID();
@@ -96,6 +114,18 @@ try {
   const secondCopy = { ...aiCopy, id:aiSecondId, createdAt:new Date().toISOString() };
   request(users[0], '/api/recipes/save', 'POST', { recipe:secondCopy, operation:'create' });
   checks.push('AI fixture copy provenance and retry semantics');
+
+  for (let i = 4; i <= 25; i++) {
+    const bulk = recipe(crypto.randomUUID(), `Preview Persistence ${String(i).padStart(2, '0')}`, i === 17 ? 'Baked Goods' : 'Entrées');
+    const saved = request(users[0], '/api/recipes/save', 'POST', { recipe:bulk, operation:'create' });
+    assert.strictEqual(saved.savedToDatabase, true);
+  }
+  const paginated = completeLibrary(users[0]);
+  assert.strictEqual(paginated.length, 25);
+  assert.strictEqual(new Set(paginated.map((r) => r.id)).size, 25);
+  assert.ok(paginated.some((r) => r.title === 'Preview Persistence 25'));
+  assert.ok(paginated.some((r) => r.category === 'Baked Goods'));
+  checks.push('25 recipes persist and restore across every cursor page');
 
   const invalid = request(users[0], '/api/recipes/save', 'POST', { recipe:{...edited,category:'Not A Real Category'}, operation:'update' });
   assert.match(invalid.error || '', /not allowed/);
