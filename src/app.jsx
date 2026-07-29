@@ -6459,11 +6459,14 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         setRecipes((p) => p.some((x)=>x.id===saved.id) ? p.map((x)=>x.id===saved.id?saved:x) : [saved,...p]);
         setCurrent(saved); setRecipeNotice("Recipe saved to your library."); setScreen("view"); return saved;
       }
-      async function updateRecipe(r, operation="update") {
+      async function updateRecipe(r, operation="update", options={}) {
         if (r && r.householdShared) throw new Error("Only the recipe owner can change this recipe.");
         const t = { ...r, tags: RecipeBoxTags.normalizeRecipeTags(r.tags) };
         const saved = await persistRecipe(t,operation);
-        setRecipes((p) => p.map((x) => x.id===saved.id?saved:x)); setCurrent(saved); setRecipeNotice(operation==="move"?"Recipe moved successfully.":"Recipe changes saved."); return saved;
+        setRecipes((p) => p.map((x) => x.id===saved.id?saved:x));
+        if (options.updateCurrent !== false) setCurrent(saved);
+        setRecipeNotice(operation==="move"?"Recipe moved successfully.":"Recipe changes saved.");
+        return saved;
       }
       async function moveRecipeFromLibrary(recipeId, destination) {
         const latest = recipesRef.current.find((recipe) => recipe.id === recipeId);
@@ -6471,7 +6474,7 @@ If the user asks to save, add, or make one of your new ideas into a recipe, retu
         if (latest.householdShared) throw new Error("Only the recipe owner can move this recipe.");
         const nextCategory = RecipeBoxLibrary.canonicalRecipeCategory(destination);
         if (RecipeBoxLibrary.canonicalRecipeCategory(latest.category) === nextCategory) return latest;
-        return updateRecipe({ ...latest, category:nextCategory }, "move");
+        return updateRecipe({ ...latest, category:nextCategory }, "move", { updateCurrent:false });
       }
       async function deleteRecipe(id) {
         const rec=recipes.find((x)=>x.id===id); if(rec&&rec.householdShared)return;

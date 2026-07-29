@@ -48,6 +48,7 @@ assert.match(app, /const saved = await onMoveRecipe/, 'picker waits for acknowle
 assert.match(app, /setMoveNotice\("Moved to "\+saved\.category\)/, 'success feedback names the destination category');
 assert.match(app, /setMoveError\(error\?\.message/, 'failed moves expose the structured request error');
 assert.match(app, /const latest = recipesRef\.current\.find/, 'move uses the latest local recipe rather than a stale card snapshot');
+assert.match(app, /updateRecipe\(\{ \.\.\.latest, category:nextCategory \}, "move", \{ updateCurrent:false \}\)/, 'card moves preserve Library filter and search component state');
 assert.match(app, /categoryCounts\[c\] = recipes\.filter\(\(r\) => r\.category === c\)\.length/, 'category counts derive from acknowledged local recipe state');
 assert.match(app, /const matchCat = cat === "All" \|\| r\.category === cat/, 'old and destination filtered views derive from the updated category');
 assert.match(app, /<label htmlFor="edit-recipe-category"[^>]*>Category<\/label>/, 'Edit Recipe has a visible Category label');
