@@ -32,6 +32,12 @@ into the product.
 - [0009](./docs/adr/0009-portable-library-export-format.md) — versioned export is the backup mechanism
 - [0010](./docs/adr/0010-versioned-api-and-token-auth.md) — /api/v1 + token auth for native; web cookies untouched
 - [0011](./docs/adr/0011-native-v1-scope-and-build-order.md) — v1 scope; household retained; sync built in four stages
+- [0012](./docs/adr/0012-structured-recipe-model.md) — one ingredient list, steps reference it; blocks Recipe Detail and Cook Mode
+
+## Product requirements
+
+- [docs/recipebox-2.0-requirements.md](./docs/recipebox-2.0-requirements.md) — the product experience, with confirmed / existing / unresolved / future clearly separated
+- [docs/recipe-model-investigation.md](./docs/recipe-model-investigation.md) — the recipe-model milestone that gates Recipe Detail and Cook Mode
 
 ## What is what
 
