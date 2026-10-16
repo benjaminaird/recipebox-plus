@@ -28,6 +28,10 @@ into the product.
 - [0005](./docs/adr/0005-web-app-becomes-a-secondary-surface.md) — the web app stays live as a secondary surface
 - [0006](./docs/adr/0006-synchronisation-and-conflict-policy.md) — revisions, conflict rules, tombstones, offline auth
 - [0007](./docs/adr/0007-deterministic-first-pasted-text.md) — pasted text parses on-device first
+- [0008](./docs/adr/0008-original-source-media-in-object-storage.md) — media to object storage; existing originals are already compressed
+- [0009](./docs/adr/0009-portable-library-export-format.md) — versioned export is the backup mechanism
+- [0010](./docs/adr/0010-versioned-api-and-token-auth.md) — /api/v1 + token auth for native; web cookies untouched
+- [0011](./docs/adr/0011-native-v1-scope-and-build-order.md) — v1 scope; household retained; sync built in four stages
 
 ## What is what
 
