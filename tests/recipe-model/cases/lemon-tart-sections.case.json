@@ -1,0 +1,151 @@
+{
+ "id": "lemon-tart-sections",
+ "title": "Lemon Tart (existing JSON-LD HowToSection fixture)",
+ "provenance": "Existing public fixture scripts/import-test/fixtures/jsonld-howtosection.html (synthetic, authored for RecipeBox).",
+ "categories": [
+  "section-confusion",
+  "step-links"
+ ],
+ "input": {
+  "kind": "html",
+  "file": "../../../scripts/import-test/fixtures/jsonld-howtosection.html",
+  "url": "https://example.com/lemon-tart"
+ },
+ "truth": {
+  "servings": "8",
+  "sections": [
+   {
+    "key": "crust",
+    "match": [
+     "crust"
+    ],
+    "ingredients": [
+     {
+      "key": "flour",
+      "match": [
+       "flour"
+      ],
+      "amount": "1 1/4",
+      "unit": "cup"
+     },
+     {
+      "key": "butter",
+      "match": [
+       "butter"
+      ],
+      "amount": "1/2",
+      "unit": "cup"
+     },
+     {
+      "key": "powdered",
+      "match": [
+       "powdered sugar"
+      ],
+      "amount": "1/4",
+      "unit": "cup"
+     }
+    ],
+    "steps": [
+     {
+      "key": "c1",
+      "cue": "pulse the flour",
+      "uses": [
+       {
+        "ing": "flour"
+       },
+       {
+        "ing": "butter"
+       },
+       {
+        "ing": "powdered"
+       }
+      ]
+     },
+     {
+      "key": "c2",
+      "cue": "blind-bake",
+      "uses": []
+     }
+    ]
+   },
+   {
+    "key": "filling",
+    "match": [
+     "filling"
+    ],
+    "ingredients": [
+     {
+      "key": "eggs",
+      "match": [
+       "egg"
+      ],
+      "amount": "3",
+      "unit": ""
+     },
+     {
+      "key": "gran",
+      "match": [
+       "granulated sugar"
+      ],
+      "amount": "3/4",
+      "unit": "cup"
+     },
+     {
+      "key": "juice",
+      "match": [
+       "lemon juice"
+      ],
+      "amount": "2/3",
+      "unit": "cup"
+     },
+     {
+      "key": "zest",
+      "match": [
+       "lemon zest"
+      ],
+      "amount": "1",
+      "unit": "tbsp"
+     }
+    ],
+    "steps": [
+     {
+      "key": "f1",
+      "cue": "whisk the eggs",
+      "uses": [
+       {
+        "ing": "eggs"
+       },
+       {
+        "ing": "gran"
+       },
+       {
+        "ing": "juice"
+       },
+       {
+        "ing": "zest"
+       }
+      ]
+     },
+     {
+      "key": "f2",
+      "cue": "pour into the crust",
+      "uses": []
+     }
+    ]
+   }
+  ],
+  "preparations": [
+   {
+    "key": "dough",
+    "match": [
+     "crumbly dough",
+     "tart dough"
+    ],
+    "producedBy": "c1",
+    "usedBy": [
+     "c2"
+    ]
+   }
+  ]
+ }
+}

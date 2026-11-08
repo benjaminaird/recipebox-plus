@@ -1,0 +1,102 @@
+{
+ "id": "flour-contradiction",
+ "title": "Plain Shortbread (list and method disagree)",
+ "provenance": "Synthetic, authored for RecipeBox; mirrors the shortbread flour disagreement described in ADR 0012.",
+ "categories": [
+  "contradiction",
+  "step-links"
+ ],
+ "input": {
+  "kind": "html",
+  "file": "flour-contradiction.html",
+  "url": "https://testkitchen.example/shortbread"
+ },
+ "truth": {
+  "servings": "24",
+  "sections": [
+   {
+    "key": "main",
+    "match": [
+     "main",
+     "ingredients",
+     ""
+    ],
+    "anySection": true,
+    "ingredients": [
+     {
+      "key": "flour",
+      "match": [
+       "flour"
+      ],
+      "amount": "1",
+      "unit": "cup"
+     },
+     {
+      "key": "butter",
+      "match": [
+       "butter"
+      ],
+      "amount": "1/2",
+      "unit": "cup"
+     },
+     {
+      "key": "sugar",
+      "match": [
+       "sugar"
+      ],
+      "amount": "1/4",
+      "unit": "cup"
+     },
+     {
+      "key": "salt",
+      "match": [
+       "salt"
+      ],
+      "amount": "1/4",
+      "unit": "tsp"
+     }
+    ],
+    "steps": [
+     {
+      "key": "s1",
+      "cue": "cream the butter",
+      "uses": [
+       {
+        "ing": "butter"
+       },
+       {
+        "ing": "sugar"
+       }
+      ]
+     },
+     {
+      "key": "s2",
+      "cue": "add 2 cups",
+      "uses": [
+       {
+        "ing": "flour"
+       },
+       {
+        "ing": "salt"
+       }
+      ]
+     },
+     {
+      "key": "s3",
+      "cue": "press into",
+      "uses": []
+     }
+    ]
+   }
+  ],
+  "contradictions": [
+   {
+    "ing": "flour",
+    "values": [
+     "1 cup",
+     "2 cups"
+    ]
+   }
+  ]
+ }
+}

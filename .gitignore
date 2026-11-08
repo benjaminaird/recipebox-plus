@@ -15,3 +15,8 @@ scripts/import-test/sources/pdfs/
 scripts/import-test/sources/photos/
 scripts/import-test/sources/desktop-pdfs/
 scripts/import-test/sources/desktop-photos/
+
+# M1 recipe-model corpus: private recipe cards, photos and sensitive sources
+# never enter this public repository. Only the README is tracked.
+tests/recipe-model/private/*
+!tests/recipe-model/private/README.md

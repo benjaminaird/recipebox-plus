@@ -1,0 +1,102 @@
+{
+ "id": "low-confidence-card",
+ "title": "Grandma-style handwritten card, OCR noise (synthetic)",
+ "provenance": "Synthetic text imitating OCR output of a handwritten card; no real card is used. Real cards belong in tests/recipe-model/private/.",
+ "categories": [
+  "import-review",
+  "missing-quantity",
+  "contradiction"
+ ],
+ "input": {
+  "kind": "text",
+  "text": "Oatmeal Cookies\n1 c. butter\n1 c. brn sugr\n?? tsp vanilla\n2 eggs\n3 c. oats\n1 1/2 c. flour\n1 tsp soda\n\nCream butter & sugar. Beat in eggs + vanilla. Stir in 2 c. flour, soda, oats. Bake 350 10-12 min."
+ },
+ "truth": {
+  "servings": null,
+  "blank": [
+   "servings",
+   "macros"
+  ],
+  "sections": [
+   {
+    "key": "main",
+    "match": [
+     "main",
+     "ingredients",
+     ""
+    ],
+    "anySection": true,
+    "ingredients": [
+     {
+      "key": "butter",
+      "match": [
+       "butter"
+      ],
+      "amount": "1",
+      "unit": "cup"
+     },
+     {
+      "key": "sugar",
+      "match": [
+       "sugar",
+       "sugr"
+      ],
+      "amount": "1",
+      "unit": "cup"
+     },
+     {
+      "key": "vanilla",
+      "match": [
+       "vanilla"
+      ],
+      "amount": "",
+      "unit": "tsp",
+      "unreadable": true
+     },
+     {
+      "key": "eggs",
+      "match": [
+       "egg"
+      ],
+      "amount": "2",
+      "unit": ""
+     },
+     {
+      "key": "oats",
+      "match": [
+       "oat"
+      ],
+      "amount": "3",
+      "unit": "cup"
+     },
+     {
+      "key": "flour",
+      "match": [
+       "flour"
+      ],
+      "amount": "1 1/2",
+      "unit": "cup"
+     },
+     {
+      "key": "soda",
+      "match": [
+       "soda"
+      ],
+      "amount": "1",
+      "unit": "tsp"
+     }
+    ],
+    "steps": []
+   }
+  ],
+  "contradictions": [
+   {
+    "ing": "flour",
+    "values": [
+     "1 1/2 cup",
+     "2 cups"
+    ]
+   }
+  ]
+ }
+}

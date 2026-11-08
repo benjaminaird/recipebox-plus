@@ -1,0 +1,171 @@
+{
+ "id": "pumpkin-pudding",
+ "title": "Pumpkin Pudding (synthetic stand-in)",
+ "provenance": "SYNTHETIC STAND-IN written for RecipeBox. It reproduces the failure class reported for the real pumpkin pudding recipe (a prepared mixture imported as something to buy, and a split ingredient). Replace or supplement with the real recipe in tests/recipe-model/private/ when it is provided; the real one is not in this repository.",
+ "categories": [
+  "preparation",
+  "split-quantity",
+  "missing-quantity",
+  "import-review"
+ ],
+ "input": {
+  "kind": "text",
+  "text": "Pumpkin Pudding\n\n1 can (15 oz) pumpkin puree\n1 cup whole milk\n3/4 cup sugar, divided\n3 eggs\n1 tsp cinnamon\n1/2 tsp ginger\npinch of salt\nwhipped cream, for serving\n\nWhisk the pumpkin, milk, eggs, spices, salt and 1/2 cup of the sugar to make the pumpkin mixture.\nPour the pumpkin mixture into a buttered baking dish and bake at 350°F for 45 minutes, until just set.\nSprinkle the remaining 1/4 cup sugar over the top and broil 2 minutes.\nServe warm or chilled with whipped cream."
+ },
+ "truth": {
+  "servings": null,
+  "blank": [
+   "servings",
+   "macros"
+  ],
+  "sections": [
+   {
+    "key": "main",
+    "match": [
+     "main",
+     "ingredients",
+     ""
+    ],
+    "anySection": true,
+    "ingredients": [
+     {
+      "key": "pumpkin",
+      "match": [
+       "pumpkin puree",
+       "pumpkin purée"
+      ],
+      "amount": "1",
+      "unit": "can"
+     },
+     {
+      "key": "milk",
+      "match": [
+       "milk"
+      ],
+      "amount": "1",
+      "unit": "cup"
+     },
+     {
+      "key": "sugar",
+      "match": [
+       "sugar"
+      ],
+      "amount": "3/4",
+      "unit": "cup",
+      "divided": true
+     },
+     {
+      "key": "eggs",
+      "match": [
+       "egg"
+      ],
+      "amount": "3",
+      "unit": ""
+     },
+     {
+      "key": "cinnamon",
+      "match": [
+       "cinnamon"
+      ],
+      "amount": "1",
+      "unit": "tsp"
+     },
+     {
+      "key": "ginger",
+      "match": [
+       "ginger"
+      ],
+      "amount": "1/2",
+      "unit": "tsp"
+     },
+     {
+      "key": "salt",
+      "match": [
+       "salt"
+      ],
+      "amount": "pinch",
+      "unit": ""
+     },
+     {
+      "key": "cream",
+      "match": [
+       "whipped cream"
+      ],
+      "amount": "",
+      "unit": "",
+      "optional": true
+     }
+    ],
+    "steps": [
+     {
+      "key": "s1",
+      "cue": "whisk the pumpkin",
+      "uses": [
+       {
+        "ing": "pumpkin"
+       },
+       {
+        "ing": "milk"
+       },
+       {
+        "ing": "eggs"
+       },
+       {
+        "ing": "cinnamon"
+       },
+       {
+        "ing": "ginger"
+       },
+       {
+        "ing": "salt"
+       },
+       {
+        "ing": "sugar",
+        "amount": "1/2",
+        "unit": "cup"
+       }
+      ]
+     },
+     {
+      "key": "s2",
+      "cue": "pour the pumpkin mixture",
+      "uses": []
+     },
+     {
+      "key": "s3",
+      "cue": "sprinkle the remaining",
+      "uses": [
+       {
+        "ing": "sugar",
+        "amount": "1/4",
+        "unit": "cup"
+       }
+      ]
+     },
+     {
+      "key": "s4",
+      "cue": "serve warm",
+      "uses": [
+       {
+        "ing": "cream"
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "preparations": [
+   {
+    "key": "mixture",
+    "match": [
+     "pumpkin mixture",
+     "pudding mixture"
+    ],
+    "producedBy": "s1",
+    "usedBy": [
+     "s2"
+    ]
+   }
+  ]
+ }
+}
