@@ -30,8 +30,8 @@ jobs:
       matrix:
         node: [22, 24]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node }}
       # No npm install on purpose: these modules must stay dependency-free.
@@ -52,8 +52,8 @@ jobs:
     name: Server tests (offline, no database)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
@@ -74,8 +74,8 @@ jobs:
     name: Web build and isolated preview
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
@@ -90,3 +90,26 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Isolated preview check (local server, no database, no keys)
         run: node scripts/web-preview-check.js
+
+  mobile:
+    name: Native shell (Expo, no device)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Generated tokens match design/tokens
+        run: npm run tokens:check
+      - name: Type check
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test
+      - name: Bundle iOS and Android (Hermes bytecode)
+        run: npm run export:check
