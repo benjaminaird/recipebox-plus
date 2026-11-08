@@ -1,0 +1,96 @@
+{
+  "$description": "RecipeBox semantic design tokens: the Modern Cookbook identity (ADR 0018), one token set with a light and a dark value (ADR 0019). Source of truth for the native app. Components use token names only, never raw values.",
+  "version": "1.0.0",
+  "appearances": ["light", "dark"],
+  "color": {
+    "canvas":        { "light": "#F6F5F1", "dark": "#141413", "role": "App background. Warm off-white / warm near-black. Never #FFFFFF or #000000." },
+    "surface":       { "light": "#FFFFFF", "dark": "#1E1D1B", "role": "Cards, grouped lists, recipe sheet over the hero photo." },
+    "surfaceRaised": { "light": "#FFFFFF", "dark": "#262522", "role": "Sheets, menus and anything above a surface. In dark, elevation is shown by a lighter surface, not a heavier shadow." },
+    "sunken":        { "light": "#ECEBE5", "dark": "#0E0E0D", "role": "Wells: search field, steppers, progress tracks." },
+    "material":      { "light": "rgba(246,245,241,0.80)", "dark": "rgba(20,20,19,0.78)", "role": "Translucent navigation and tab bars over scrolling content (with blur)." },
+    "text":          { "light": "#1C1D1B", "dark": "#EEE9DF", "role": "Primary text. Charcoal / warm ivory. Never pure black on pure white." },
+    "textSecondary": { "light": "#53554F", "dark": "#B9B3A7", "role": "Metadata, bylines, secondary lines." },
+    "textTertiary":  { "light": "#686A63", "dark": "#958F84", "role": "Captions, eyebrows, placeholder text, inactive tab labels." },
+    "separator":     { "light": "#E2E0D9", "dark": "#2E2C28", "role": "Hairlines between ingredient rows and steps." },
+    "separatorStrong": { "light": "#CBC9C0", "dark": "#45423C", "role": "Section rules, list separators, control outlines." },
+    "accent":        { "light": "#2B5B45", "dark": "#397457", "role": "Primary button fill, selected states, progress fill (light). Botanical green / deeper sage-green fill." },
+    "onAccent":      { "light": "#FFFFFF", "dark": "#F6F3EC", "role": "Text and icons on an accent fill." },
+    "accentText":    { "light": "#285641", "dark": "#9FCDB0", "role": "Links, active tab, tinted icons, progress fill (dark). Sage green in dark." },
+    "accentSoft":    { "light": "#E3ECE6", "dark": "#1F2E27", "role": "Tinted buttons and selected chips." },
+    "attention":     { "light": "#8A5410", "dark": "#E3B567", "role": "Needs-review text and icon (import flags, unresolved quantities). Always paired with an icon and a word." },
+    "attentionSoft": { "light": "#F7EBD9", "dark": "#30271A", "role": "Needs-review background." },
+    "success":       { "light": "#285641", "dark": "#9FCDB0", "role": "Resolved / saved text and icon." },
+    "successSoft":   { "light": "#E3ECE6", "dark": "#1F2E27", "role": "Resolved background." },
+    "danger":        { "light": "#A3352A", "dark": "#E58C7E", "role": "Destructive actions (Delete, Discard)." },
+    "focusRing":     { "light": "#2B5B45", "dark": "#9FCDB0", "role": "Keyboard / switch-control focus indicator." },
+    "scrim":         { "light": "rgba(24,24,22,0.32)", "dark": "rgba(0,0,0,0.55)", "role": "Behind modal sheets." },
+    "tileGround":    { "light": "#E8EEE9", "dark": "#1F2E27", "role": "Typographic tile for a recipe without a photo." },
+    "tileInk":       { "light": "#2B5B45", "dark": "#9FCDB0", "role": "Initial and category on the typographic tile." },
+    "onPhoto":       { "light": "#FFFFFF", "dark": "#FFFFFF", "role": "Icons and status text placed over photography. Only ever on top of photoOverlay or a photoControl disc." },
+    "photoControl":  { "light": "rgba(28,28,26,0.38)", "dark": "rgba(28,28,26,0.38)", "role": "Blurred disc behind a control that floats on a photo (back, favourite, more)." },
+    "photoOverlayTop": { "light": "rgba(0,0,0,0.42)", "dark": "rgba(0,0,0,0.42)", "role": "Top-edge gradient (to transparent over 120pt) behind the status bar and floating controls on a hero photo. The only overlay applied to photos; photos are never dimmed as a whole." }
+  },
+  "contrast": {
+    "$description": "Pairs that must meet the minimum ratio in BOTH appearances. Checked by scripts/design-tokens-check.js.",
+    "pairs": [
+      ["text", "canvas", 4.5], ["text", "surface", 4.5], ["text", "surfaceRaised", 4.5], ["text", "sunken", 4.5],
+      ["textSecondary", "canvas", 4.5], ["textSecondary", "surface", 4.5], ["textSecondary", "surfaceRaised", 4.5],
+      ["textTertiary", "canvas", 4.5], ["textTertiary", "surface", 4.5], ["textTertiary", "sunken", 4.5],
+      ["onAccent", "accent", 4.5],
+      ["accentText", "canvas", 4.5], ["accentText", "surface", 4.5], ["accentText", "surfaceRaised", 4.5], ["accentText", "accentSoft", 4.5],
+      ["attention", "attentionSoft", 4.5], ["attention", "canvas", 4.5], ["attention", "surface", 4.5],
+      ["success", "successSoft", 4.5], ["danger", "surface", 4.5], ["danger", "canvas", 4.5],
+      ["tileInk", "tileGround", 4.5],
+      ["focusRing", "canvas", 3.0], ["focusRing", "surface", 3.0],
+      ["accent", "canvas", 3.0], ["accent", "surface", 3.0], ["separatorStrong", "canvas", 1.4]
+    ]
+  },
+  "typography": {
+    "$description": "Sizes are iOS points / Android sp at the default text size. All roles scale with the OS text setting (Dynamic Type / font scale). Serif = Newsreader bundled with expo-font. Sans = the platform system font (SF Pro on iOS, Roboto on Android). Line heights are absolute at 100% and scale with size.",
+    "families": {
+      "serif": { "ios": "Newsreader", "android": "Newsreader", "weights": [300, 400, 500], "italic": [400], "fallback": "system serif (New York on iOS)" },
+      "sans": { "ios": "System", "android": "System", "note": "Never bundle a sans; the system face carries Dynamic Type metrics, legibility tuning and localisation." }
+    },
+    "roles": {
+      "largeTitle":   { "family": "serif", "size": 34, "lineHeight": 37, "weight": 400, "tracking": -0.3, "use": "Screen titles (Good evening, Recipes, Review import)." },
+      "recipeTitle":  { "family": "serif", "size": 28, "lineHeight": 31, "weight": 400, "tracking": -0.2, "use": "Recipe Detail title." },
+      "sectionTitle": { "family": "serif", "style": "italic", "size": 22, "lineHeight": 26, "weight": 400, "use": "Ingredients, Method, Source, Home sections." },
+      "preparationTitle": { "family": "serif", "style": "italic", "size": 20, "lineHeight": 24, "weight": 400, "use": "Preparation / component headings (Shortbread base, Caramel)." },
+      "cardTitle":    { "family": "serif", "size": 17, "lineHeight": 21, "weight": 400, "use": "Recipe titles on cards and list rows." },
+      "headline":     { "family": "sans", "size": 17, "lineHeight": 22, "weight": 600, "use": "Buttons, emphasised rows." },
+      "body":         { "family": "sans", "size": 17, "lineHeight": 26, "weight": 400, "use": "Method steps on Recipe Detail, ingredient names, paragraphs." },
+      "cookStep":     { "family": "sans", "size": 25, "lineHeight": 35, "weight": 400, "use": "The instruction in Cook Mode. System sans for legibility at arm's length (approved 2026-11-08)." },
+      "quantity":     { "family": "sans", "size": 17, "lineHeight": 22, "weight": 600, "fontVariant": ["tabular-nums"], "use": "Ingredient quantities, timers, servings." },
+      "timer":        { "family": "sans", "size": 34, "lineHeight": 38, "weight": 300, "fontVariant": ["tabular-nums"], "use": "Running timer in Cook Mode." },
+      "subhead":      { "family": "sans", "size": 15, "lineHeight": 20, "weight": 400, "use": "Secondary rows, chips, sheet body." },
+      "footnote":     { "family": "sans", "size": 13, "lineHeight": 18, "weight": 400, "use": "Metadata (times, servings, source domain)." },
+      "eyebrow":      { "family": "sans", "size": 12, "lineHeight": 16, "weight": 600, "tracking": 0.9, "transform": "uppercase", "use": "Labels above titles (Continue cooking, Step 5)." },
+      "tabLabel":     { "family": "sans", "size": 10.5, "lineHeight": 13, "weight": 500, "maxScale": 1.0, "use": "Tab bar labels. Do not scale; iOS shows the Large Content Viewer on long-press instead." }
+    },
+    "scaling": {
+      "minimumSupported": 2.0,
+      "rule": "Every role except tabLabel scales without a cap up to 200%. Layout changes at 1.35× and above (see design spec), never truncation.",
+      "largeLayoutThreshold": 1.35
+    }
+  },
+  "space": { "xxs": 2, "xs": 4, "sm": 8, "md": 12, "lg": 16, "xl": 20, "xxl": 24, "xxxl": 32, "huge": 40, "screenGutter": 20, "sectionGap": 30 },
+  "radius": { "sm": 10, "md": 14, "lg": 20, "xl": 26, "pill": 999, "curve": "continuous" },
+  "elevation": {
+    "$description": "Light: soft, warm shadows. Dark: shadows deepen but elevation is mainly carried by a lighter surface plus a 1pt top highlight (inset rgba(255,250,240,0.045)). Android maps level to `elevation`.",
+    "0": { "light": { "shadow": null }, "dark": { "shadow": null }, "android": 0, "use": "Flat content, rows." },
+    "1": { "light": { "color": "#1F1D18", "opacity": 0.08, "radius": 2, "offsetY": 1 }, "dark": { "color": "#000000", "opacity": 0.45, "radius": 2, "offsetY": 1, "highlight": true }, "android": 1, "use": "Chips, secondary buttons." },
+    "2": { "light": { "color": "#1F1D18", "opacity": 0.12, "radius": 14, "offsetY": 8 }, "dark": { "color": "#000000", "opacity": 0.55, "radius": 15, "offsetY": 10, "highlight": true }, "android": 4, "use": "Cards, recipe photos, primary docked button." },
+    "3": { "light": { "color": "#1F1D18", "opacity": 0.14, "radius": 20, "offsetY": -8 }, "dark": { "color": "#000000", "opacity": 0.5, "radius": 20, "offsetY": -8, "highlight": true }, "android": 8, "use": "Sheets and the recipe sheet rising over its hero." }
+  },
+  "touch": { "minTarget": { "ios": 44, "android": 48 }, "minSpacing": 8, "hitSlopForSmallVisuals": 6 },
+  "motion": {
+    "durations": { "quick": 120, "standard": 200, "emphasised": 280 },
+    "easing": { "standard": [0.2, 0.8, 0.2, 1] },
+    "reducedMotion": "When Reduce Motion is on: screen pushes become cross-fades, sheets appear without the rise, step changes in Cook Mode do not slide, and no element animates position. Haptics are unaffected."
+  },
+  "photography": {
+    "dimInDark": false,
+    "overlayPolicy": "Photos keep their natural colour and brightness in both appearances. The only overlay is photoOverlayTop, applied where status bar or controls sit on a hero photo. Text is never set directly on a photo.",
+    "missingPhoto": "typographicTile"
+  }
+}

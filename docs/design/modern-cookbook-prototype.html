@@ -121,7 +121,7 @@ p{margin:0}
   --text:#EEE9DF;          /* warm ivory, never #FFF */
   --text-2:#B9B3A7; --text-3:#958F84;
   --hair:#2E2C28; --hair-strong:#45423C;
-  --accent:#336B50; --accent-text:#9FCDB0; --on-accent:#F6F3EC; --accent-soft:#1F2E27;
+  --accent:#397457; --accent-text:#9FCDB0; --on-accent:#F6F3EC; --accent-soft:#1F2E27;
   --attn:#E3B567; --attn-soft:#30271A; --attn-line:#5C4826;
   --ok:#9FCDB0; --ok-soft:#1F2E27;
   --danger:#E58C7E;
@@ -130,7 +130,7 @@ p{margin:0}
   --shadow-3:0 -12px 40px rgba(0,0,0,.5);
   --lift:inset 0 1px 0 rgba(255,250,240,.045),inset 0 0 0 .5px rgba(255,250,240,.05);
   --scrim:rgba(0,0,0,.55);
-  --photo-filter:brightness(.88) saturate(.94);
+  --photo-filter:none;
   --tile-ink:#9FCDB0; --tile-ground:#1F2E27;
   --focus:#9FCDB0;
   color-scheme:dark;
@@ -341,7 +341,10 @@ button.pill::after{content:"";position:absolute;inset:-6px -2px}
 /* ── cook mode ────────────────────────────────────────────────────────── */
 .cook{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--canvas)}
 .cook-top{padding:calc(var(--status-h) + 4px) 14px 0;display:flex;align-items:center;gap:8px}
-.cook-top .ctr{flex:1;text-align:center;font-size:var(--t-fn);font-weight:600;color:var(--text-2);font-variant-numeric:tabular-nums}
+.cook-top .ctr{flex:1;min-width:0;text-align:center;font-size:var(--t-fn);font-weight:600;color:var(--text-2);font-variant-numeric:tabular-nums}
+.device.big .cook-top{flex-wrap:wrap;justify-content:space-between}
+.device.big .cook-top .ctr{order:3;flex-basis:100%;text-align:left;padding:6px 6px 0}
+.device.big .cook-top .ctitle{white-space:normal}
 .circbtn{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--surface);box-shadow:var(--lift),var(--shadow-1);color:var(--text)}
 .circbtn svg{width:20px;height:20px}
 .segs{display:flex;gap:4px;padding:12px 20px 0}
@@ -350,7 +353,8 @@ button.pill::after{content:"";position:absolute;inset:-6px -2px}
 .device[data-scheme="dark"] .segs i.on{background:var(--accent-text)}
 .cook-body{flex:1;overflow-y:auto;padding:22px 20px 20px;scrollbar-width:none}
 .cook-body::-webkit-scrollbar{display:none}
-.cook-step{font-family:var(--f-serif);font-size:var(--t-step);line-height:1.42;font-weight:400;margin-top:10px;letter-spacing:-.003em}
+.cook-step{font-family:var(--f-ui);font-size:var(--t-step);line-height:1.4;font-weight:400;margin-top:10px;letter-spacing:-.01em}
+.cook-top .ctitle{display:block;font-family:var(--f-serif);font-size:var(--t-sub);font-weight:400;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .forstep{margin-top:22px}
 .forstep .group .gi{min-height:52px}
 .forstep .q{font-weight:600;font-variant-numeric:tabular-nums;min-width:4.4em}
@@ -400,6 +404,24 @@ button.pill::after{content:"";position:absolute;inset:-6px -2px}
 .audit .device button,.audit .device input,.audit .device summary{outline:1.5px dashed rgba(46,140,255,.85);outline-offset:-1px}
 .audit .device .small-target{outline:2px solid #E5322B!important}
 
+/* recipe source attribution */
+.srcsec .srccard{background:var(--surface);border-radius:var(--r-md);box-shadow:var(--lift);padding:14px;display:flex;flex-direction:column;gap:12px}
+.mono{width:40px;height:40px;flex:0 0 40px;border-radius:10px;background:var(--tile-ground);color:var(--tile-ink);display:grid;place-items:center;font-family:var(--f-serif);font-size:22px}
+.sname{display:block;font-weight:600;font-size:var(--t-sub)}
+.srcdl{margin:0;display:flex;flex-direction:column}
+.srcdl>div{display:flex;flex-wrap:wrap;gap:2px 12px;padding:8px 0;border-top:.5px solid var(--hair)}
+.srcdl dt{font-size:var(--t-fn);color:var(--text-3);min-width:7.5em}
+.srcdl dd{margin:0;font-size:var(--t-fn);color:var(--text);flex:1;min-width:10em}
+.pill-neutral{color:var(--text-2);background:var(--sunken)}
+.linkbtn{color:var(--accent-text);font-weight:500;min-height:44px;display:inline-flex;align-items:center;font-size:inherit}
+.inline-src{color:var(--accent-text);font-weight:500}
+.offline-note{font-size:var(--t-fn);color:var(--text-2);display:flex;gap:8px;align-items:flex-start}
+.offline-note svg{width:16px;height:16px;flex:0 0 auto;margin-top:2px;color:var(--text-3)}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:var(--t-fn);color:var(--text-2);font-weight:500}
+.field input,.field select{min-height:44px;border-radius:var(--r-sm);border:0;background:var(--sunken);color:var(--text);font:inherit;font-size:var(--t-body);padding:0 12px;width:100%}
+.field input:focus,.field select:focus{outline:2px solid var(--focus);outline-offset:0}
+
 /* source disclosure */
 details.src{border-radius:var(--r-md);background:var(--surface);box-shadow:var(--lift)}
 details.src summary{min-height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-size:var(--t-sub);font-weight:500;cursor:pointer;list-style:none}
@@ -440,7 +462,7 @@ table.tok code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
 
 <div class="rbar" id="rbar">
   <div class="rbar-in">
-    <div class="rbar-name">RecipeBox <span>Modern Cookbook · for review</span></div>
+    <div class="rbar-name">RecipeBox <span>Modern Cookbook · approved direction</span></div>
     <div class="rgrp">
       <span class="rlab" id="lab-app">Appearance</span>
       <div class="seg" role="group" aria-labelledby="lab-app" id="segAppear">
@@ -465,8 +487,9 @@ table.tok code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
       </div>
     </div>
     <div class="rgrp">
-      <div class="seg" role="group" aria-label="Tap target check">
+      <div class="seg" role="group" aria-label="Checks">
         <button type="button" id="auditBtn" aria-pressed="false">Tap targets</button>
+        <button type="button" id="offlineBtn" aria-pressed="false">Offline</button>
       </div>
     </div>
     <div class="rscreens" role="group" aria-label="Screen" id="segScreen">
@@ -496,7 +519,7 @@ table.tok code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
       <ul>
         <li>Layered surfaces: the recipe sheet rises over its photo, cards sit on soft shadows.</li>
         <li>Rounded photography in a two-column grid, translucent bars over scrolling content.</li>
-        <li>B's sans for interface text, now the iPhone's own system font.</li>
+        <li>B's sans for interface text and Cook Mode instructions, now the platform system font.</li>
       </ul>
       <h3>Left behind</h3>
       <ul>
@@ -527,7 +550,7 @@ table.tok code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
       <div class="scales">
         <b>100%</b><span>Two-column recipe grid. Step portions sit in the margin beside each step. Four facts in one row.</span>
         <b>150%</b><span>The grid becomes a single-column list with large thumbnails. Margin portions move under the step as labelled chips. Facts wrap to two rows. Ingredient names drop below their quantity.</span>
-        <b>200%</b><span>The same rules as 150%. Cook Mode stacks Next above Back, and step text reaches about 50pt. Tab bar labels stay at their standard size, as on iOS. A long-press would show the enlarged label in a native build.</span>
+        <b>200%</b><span>The same rules as 150%. Cook Mode stacks Next above Back, and step text reaches 50pt. Tab bar labels stay at their standard size, as on iOS. A long-press would show the enlarged label in a native build.</span>
       </div>
       <p class="dimtxt" style="margin-top:10px">Nothing truncates at any scale. Titles wrap, and the inline navigation title is the only text that shortens with an ellipsis, as on iOS.</p>
     </div>
@@ -538,21 +561,27 @@ table.tok code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
         <li><b>Contrast:</b> every text token passes AA in both appearances (see table). Secondary and tertiary text stay above 4.5:1.</li>
         <li><b>Tap targets:</b> every control is at least 44 × 44 pt. Turn on <i>Tap targets</i> above to outline them. Anything smaller is drawn in red and counted under the phone.</li>
         <li><b>VoiceOver and TalkBack:</b> real headings, a named control for every icon button, a radio group for Appearance, and ingredient rows read as quantity then name. Timer completion is announced in a live region.</li>
-        <li><b>Cooking:</b> step text is 25pt serif at 100% with 1.42 line height. The step's own portions are listed right under it. The screen stays awake.</li>
+        <li><b>Cooking:</b> step text is 25pt system sans at 100% with 1.4 line height. The step's own portions are listed right under it. The screen stays awake.</li>
         <li><b>Status never uses colour alone.</b> Every flag carries an icon and a word.</li>
         <li><b>Reduced motion:</b> sheet and screen transitions are turned off.</li>
       </ul>
     </div>
 
     <div class="ncard">
-      <h2>Decisions for your review</h2>
+      <h2>Approved 8 November 2026</h2>
       <ul>
-        <li><b>Serif in Cook Mode.</b> Newsreader at 25pt reads like a printed cookbook. The alternative is SF Pro at the same size, which is slightly more legible from across a counter.</li>
-        <li><b>Dark accent.</b> Sage green (<code>#9FCDB0</code>) for text and icons on a deeper green button. Is this the right partner for the light botanical green?</li>
-        <li><b>Photo dimming in Dark.</b> Photos are dimmed about 12% so they don't glare at night. Undimmed is an option.</li>
-        <li><b>Recipes without photos</b> get a quiet typographic tile instead of a stock image.</li>
+        <li><b>Cook Mode</b> instructions use the system sans for legibility at a distance. Serif stays for recipe titles, preparation headings and editorial moments.</li>
+        <li><b>Dark accent</b> is sage green for text and icons on a deeper green fill, tuned so the fill also passes 3:1 against dark surfaces.</li>
+        <li><b>Photos</b> keep their natural colour and brightness in both appearances. The only overlay is a top gradient where controls sit on a hero photo. Glare is checked on physical devices.</li>
+        <li><b>No photo</b> means a typographic tile, never a stock image.</li>
       </ul>
-      <p class="dimtxt" style="margin-top:10px">After you approve, I'll finalize the token values and record the visual direction as an ADR. No native code has been started.</p>
+      <p class="dimtxt" style="margin-top:10px">Recorded in ADR 0018 (visual identity) and ADR 0019 (tokens and appearance). Tokens live in <code>design/tokens/recipebox.tokens.json</code>.</p>
+    </div>
+
+    <div class="ncard">
+      <h2>Recipe source</h2>
+      <p>Recipe Detail ends with a compact Source section: site, original title, how it was added, whether this version is adapted, and <b>View Original Recipe</b>. The byline links to it, so the source is one tap away without a large card above the ingredients.</p>
+      <p class="dimtxt">Try <i>Offline</i> in the bar above: the details stay, and the link explains that it needs a connection. Import Review lets you add a source for a family card.</p>
     </div>
 
     <div class="ncard">
@@ -618,7 +647,7 @@ const statusBar = '<span class="clock">9:41</span><span style="display:flex;gap:
 /* ── recipe data (same model as the Concept Studio) ──────────────────── */
 const EQ={e1:"Stand mixer",e2:"9 × 9 in pan",e3:"Heavy saucepan",e4:"Heatproof bowl",e5:"Offset spatula",e6:"Sheet pan",e8:"Whisk"};
 const SHORTBREAD={id:"r1",title:"Millionaire’s Shortbread",cat:"Desserts",photo:"shortbread",
-  prep:"30 min",cook:"25 min",total:"2 hr 30 min",servings:16,source:"Adapted from Nana Jean",
+  prep:"30 min",cook:"25 min",total:"2 hr 30 min",servings:16,
   sections:[
     {id:"c1",name:"Shortbread base",
      ing:[{id:"i1",a:1,u:"cup",n:"all-purpose flour"},{id:"i2",a:.5,u:"cup",n:"unsalted butter, softened"},
@@ -683,7 +712,11 @@ const S={
   cookStep:4,
   timer:{label:"Caramel",total:12*60,left:7*60+42,running:true},
   sheet:null,
-  audit:false
+  audit:false,offline:false,
+  src:{
+    detail:{kind:"Website",name:"Northfield Kitchen",link:"https://northfieldkitchen.com/recipes/millionaires-shortbread-bars",title:"Millionaire’s Shortbread Bars",author:"Hannah Lowe",imported:"Imported from a link, 12 March 2026",adapted:true,changes:2},
+    import:{kind:"Family recipe",name:"",link:"",title:"Chocolate Delight",author:"",imported:"Scanned from a photo today",adapted:false,changes:0}
+  }
 };
 function persist(){try{localStorage.setItem(KEY,JSON.stringify({appearance:S.appearance,scale:S.scale,compare:S.compare,screen:S.screen}))}catch(e){}}
 
@@ -822,7 +855,7 @@ function vDetail(){
     <div class="floatbar"><button type="button" class="fbtn" data-go="lib" aria-label="Back to Recipes">${I.back}</button>
     <span class="fgroup"><button type="button" class="fbtn" aria-label="Favourite" aria-pressed="true" data-toast="Favourite">${I.heartf}</button><button type="button" class="fbtn" aria-label="More actions" data-toast="More">${I.more}</button></span></div></div>`;
   h+=`<article class="sheetbody"><p class="eyebrow">${esc(r.cat)} · Bars</p><h1 class="d-title" style="margin-top:6px">${esc(r.title)}</h1>
-    <p class="byline">${esc(r.source)} · Saved 12 March</p>
+    <p class="byline">${S.src.detail.adapted?"Adapted from":"From"} <button type="button" class="inline-src" data-jump="src" style="min-height:0">${esc(S.src.detail.name||"an unknown source")}</button> · Saved 12 March</p>
     <dl class="facts"><div><dt>Prep</dt><dd>${r.prep}</dd></div><div><dt>Cook</dt><dd>${r.cook}</dd></div><div><dt>Total</dt><dd>${r.total}</dd></div><div><dt>Makes</dt><dd>${S.servings} bars</dd></div></dl>`;
   if(oi.length)h+=`<div class="notice" style="margin-top:18px"><span class="ni">${I.flag}</span><div class="grow"><p><b>1 thing to check.</b> ${esc(oi[0].why)} Both numbers are kept until you choose.</p>
       <button type="button" class="btn btn-sm btn-2" style="margin-top:10px" data-issue="${oi[0].id}">Review</button></div></div>`;
@@ -832,8 +865,28 @@ function vDetail(){
   h+=ingHTML(r,mult);
   h+=`<div class="sec"><h2>Method</h2><span class="meta">8 steps</span></div>`+stepsHTML(r,mult);
   h+=`<div class="note-card"><p class="eyebrow">Your note</p><p>Doubled this for the school bake sale. The caramel needs the full 12 minutes; don’t rush it.</p></div>`;
+  h+=sourceHTML("detail");
   h+=`</article>`;
   return {html:h,tab:"lib",photoTop:true,dock:`<button type="button" class="btn btn-block" data-go="cook">Start cooking</button>`};
+}
+
+function hostOf(u){try{return new URL(u).hostname.replace(/^www\./,"")}catch(e){return ""}}
+function sourceHTML(which){
+  const s=S.src[which],host=hostOf(s.link);
+  const ext='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>';
+  const cloud='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 18h10a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.1 9.3 4.4 4.4 0 0 0 7 18z"/><path d="M4 4l16 16"/></svg>';
+  let h=`<section class="srcsec" aria-labelledby="srch-${'$'}{SID}" id="srcsec-${'$'}{SID}"><div class="sec"><h2 id="srch-${'$'}{SID}">Source</h2><button type="button" class="more" data-editsrc="${which}" aria-label="Edit source">Edit</button></div><div class="srccard">`;
+  if(!s.name&&!s.link){
+    h+=`<p class="meta">No source recorded. Add where this recipe came from, such as a cookbook, a website or a family card.</p><button type="button" class="btn btn-2 btn-block" data-editsrc="${which}">Add source</button></div></section>`;return h;
+  }
+  h+=`<div class="row"><span class="mono" aria-hidden="true">${esc((s.name||host||"?")[0])}</span><span class="grow"><span class="sname">${esc(s.name||host)}</span><span class="meta">${esc([host,s.author].filter(Boolean).join(" · ")||s.kind)}</span></span></div>
+    <dl class="srcdl">${s.title?`<div><dt>Original title</dt><dd>${esc(s.title)}</dd></div>`:""}<div><dt>Added</dt><dd>${esc(s.imported)}</dd></div>
+    <div><dt>This version</dt><dd>${s.adapted?`<span class="pill pill-neutral">Adapted</span> ${s.changes} changes from the original. <button type="button" class="linkbtn" data-toast="Version history" style="min-height:0">See changes</button>`:"Same as the original"}</dd></div></dl>`;
+  if(s.link){
+    h+=`<button type="button" class="btn btn-2 btn-block" data-viewsrc="${which}">View Original Recipe ${ext}<span class="sr">, opens ${esc(host)} in your browser</span></button>`;
+    if(S.offline)h+=`<p class="offline-note" role="status">${cloud}<span>You’re offline. The source details are saved on this phone; opening the original page needs a connection.</span></p>`;
+  }
+  return h+`</div></section>`;
 }
 
 /* ── 4 · Cook Mode ────────────────────────────────────────────────────── */
@@ -842,7 +895,7 @@ function vCook(){
   const r=SHORTBREAD,fs=flat(r),i=Math.max(0,Math.min(S.cookStep,fs.length-1)),cur=fs[i],mult=S.servings/r.servings,all=allIng(r);
   const t=S.timer;
   let h=`<div class="cook"><div class="cook-top"><button type="button" class="circbtn" data-go="detail" aria-label="Leave Cook Mode">${I.x}</button>
-    <span class="ctr">Step ${i+1} of ${fs.length}</span><button type="button" class="btn btn-sm btn-2" data-sheet="ings">Ingredients</button></div>
+    <span class="ctr"><span class="ctitle">${esc(r.title)}</span>Step ${i+1} of ${fs.length}</span><button type="button" class="btn btn-sm btn-2" data-sheet="ings">Ingredients</button></div>
     <div class="segs" aria-hidden="true">${fs.map((_,k)=>`<i class="${k<=i?"on":""}"></i>`).join("")}</div>
     <div class="cook-body"><p class="eyebrow">${esc(cur.c.name)}</p><h1 class="cook-step">${esc(cur.s.t)}</h1>`;
   const uses=(cur.s.refs||[]).map(id=>all[id]);
@@ -875,6 +928,7 @@ function vImport(){
     </div>`;
   h+=`<div class="sec"><h2>Ingredients</h2></div>`+ingHTML(r,1);
   h+=`<div class="sec"><h2>Method</h2></div>`+stepsHTML(r,1);
+  h+=sourceHTML("import");
   h+=`<div class="stack" style="margin-top:24px"><button type="button" class="btn btn-block" data-save="1">${oi.length?`Save with ${oi.length} flag${oi.length>1?"s":""}`:"Save to Recipes"}</button>
       ${oi.length?`<button type="button" class="btn btn-2 btn-block" data-issue="${oi[0].id}">Check the first one now</button>`:""}</div></div>`;
   return {html:h,tab:"add"};
@@ -920,6 +974,25 @@ function sheetHTML(){
         <button type="button" class="btn btn-2 btn-block" style="margin-top:18px" data-close="1">Not now</button>`;
     }
   }
+  if(sh.k==="editsrc"){
+    const s=S.src[sh.which];label="Edit source";
+    const kinds=["Website","Video","Social post","Cookbook","Family recipe","Other"];
+    const f=(id,lab,val,type,ph)=>`<div class="field"><label for="es-${id}-${'$'}{SID}">${lab}</label><input id="es-${id}-${'$'}{SID}" data-f="${id}" type="${type||"text"}" value="${esc(val||"")}" placeholder="${esc(ph||"")}" autocomplete="off"></div>`;
+    body=`<h2>Source</h2><p class="lede">Where this recipe came from. It stays with the recipe through edits, adaptations, sharing and backups.</p>
+      <div class="stack" style="margin-top:16px">
+        <div class="field"><label for="es-kind-${'$'}{SID}">Type</label><select id="es-kind-${'$'}{SID}" data-f="kind">${kinds.map(k=>`<option${k===s.kind?" selected":""}>${k}</option>`).join("")}</select></div>
+        ${f("name","Name",s.name,"text","Grandma Ruth’s card, a cookbook, a website")}
+        ${f("link","Link (optional)",s.link,"url","https://")}
+        ${f("title","Original title",s.title)}
+        ${f("author","Author or creator (optional)",s.author)}
+      </div>
+      <button type="button" class="btn btn-block" style="margin-top:18px" data-savesrc="${sh.which}">Save source</button>
+      <button type="button" class="btn btn-2 btn-block" style="margin-top:10px" data-close="1">Cancel</button>`;
+  }
+  if(sh.k==="viewsrc"){const s=S.src[sh.which];label="Open original";
+    body=S.offline?`<h2>You’re offline</h2><p class="lede">The original page can’t open without a connection. Everything RecipeBox saved about the source is still here.</p><button type="button" class="btn btn-block" style="margin-top:18px" data-close="1">OK</button>`
+      :`<h2>Opening ${esc(hostOf(s.link))}</h2><p class="lede">In the app this opens the original page in an in-app browser (Safari View Controller on iPhone, a Custom Tab on Android). The prototype doesn’t leave this page.</p><p class="quote">${esc(s.link)}</p><button type="button" class="btn btn-block" style="margin-top:18px" data-close="1">OK</button>`;
+  }
   if(sh.k==="ings"){label="Ingredients";body=`<h2>Ingredients</h2><p class="lede">${S.servings} bars</p><div style="margin-top:10px">${ingHTML(SHORTBREAD,S.servings/16)}</div><button type="button" class="btn btn-block" style="margin-top:18px" data-close="1">Back to step ${S.cookStep+1}</button>`}
   if(sh.k==="toast"){label=sh.t;body=`<h2>${esc(sh.t)}</h2><p class="lede">This control isn’t part of the visual review. It keeps its current behaviour in the app.</p><button type="button" class="btn btn-block" style="margin-top:18px" data-close="1">OK</button>`}
   return `<div class="layer" data-scrim="1"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(label)}"><div class="grabber" aria-hidden="true"></div>${body}</div></div>`;
@@ -947,7 +1020,7 @@ function deviceHTML(scheme,SID){
     <div class="scroller" role="region" aria-label="RecipeBox, ${scheme} appearance"><div class="${S.screen!==lastScreen?"enter":""}">${v.cook?html:`<div class="page-wrap">${html}</div>`}</div></div>
     ${v.dock?`<div class="dock">${v.dock}</div>`:""}
     ${v.cook?"":tabbar(v.tab)}
-    ${sheetHTML()}
+    ${sheetHTML().replace(/\$\{SID\}/g,SID)}
     <div class="homebar" aria-hidden="true"></div></div>`;
 }
 function render(keepScroll){
@@ -976,6 +1049,7 @@ function syncBar(){
     const on=b.dataset.goto==="settings"?(S.sheet&&S.sheet.k==="settings"):(b.dataset.goto===S.screen&&!(S.sheet&&S.sheet.k==="settings"));
     b.setAttribute("aria-pressed",String(!!on))});
   $("#auditBtn").setAttribute("aria-pressed",String(S.audit));
+  $("#offlineBtn").setAttribute("aria-pressed",String(S.offline));
   document.body.classList.toggle("audit",S.audit);
 }
 function sizeDevice(){
@@ -1042,6 +1116,14 @@ document.addEventListener("click",e=>{
   const d=b.dataset;
   if(d.scrim){S.sheet=null;render(true);return}
   if(b.id==="auditBtn"){S.audit=!S.audit;syncBar();audit();return}
+  if(b.id==="offlineBtn"){S.offline=!S.offline;render(true);return}
+  if(d.editsrc){S.sheet={k:"editsrc",which:d.editsrc};render(true);return}
+  if(d.viewsrc){S.sheet={k:"viewsrc",which:d.viewsrc};render(true);return}
+  if(d.savesrc){const dev=b.closest(".device"),s=S.src[d.savesrc];
+    dev.querySelectorAll(".sheet [data-f]").forEach(el=>{s[el.dataset.f]=el.value.trim()});
+    S.sheet=null;render(true);return}
+  if(d.jump){const dev=b.closest(".device"),t=dev.querySelector("[id^=srcsec-]"),sc=dev.querySelector(".scroller");
+    if(t&&sc){sc.scrollTo({top:t.offsetTop+t.offsetParent.offsetTop-80,behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});const h=t.querySelector("h2");if(h){h.setAttribute("tabindex","-1");h.focus({preventScroll:true})}}return}
   if(d.appear){S.appearance=d.appear;persist();render(true);return}
   if(d.scale){S.scale=+d.scale;persist();render(true);return}
   if(d.compare){S.compare=d.compare==="1";persist();render(true);return}
