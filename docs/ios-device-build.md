@@ -7,7 +7,7 @@ working System/Light/Dark setting.
 **It contains nothing else:** no sign-in, no database, no AI calls, no sync and
 no network use. Nothing is submitted to the App Store.
 
-## What is ready (done in the cloud, on `claude/sweet-wozniak-ye7v06`)
+## What is ready (built on `claude/sweet-wozniak-ye7v06`, now consolidated into `feature/recipebox-2.0`)
 
 | Item | State |
 | --- | --- |
@@ -40,8 +40,8 @@ the iPhone.
 
 ```sh
 # 1. Get the branch (on your Mac this is the same repo; elsewhere, clone it)
-git clone https://github.com/benjaminaird/recipebox-plus.git && cd recipebox-plus   # or: git fetch && git switch claude/sweet-wozniak-ye7v06
-git switch claude/sweet-wozniak-ye7v06
+git clone https://github.com/benjaminaird/recipebox-plus.git && cd recipebox-plus   # or, in an existing clone: git fetch
+git switch feature/recipebox-2.0
 cd apps/mobile
 npm ci
 
@@ -79,7 +79,7 @@ because it is more than two weeks old.
    - Turn on VoiceOver. The Appearance options should read as a radio group
      with the selected option.
 4. After step 2, commit the `projectId` that `eas init` wrote into
-   `apps/mobile/app.json`, on this branch.
+   `apps/mobile/app.json`, on `feature/recipebox-2.0`.
 
 Then record the results in the QA log, as
 [accessibility-device-testing.md](./design/accessibility-device-testing.md)
