@@ -25,15 +25,11 @@ named branch. **That is stale.** Production follows `main`.
 This branch's own pushes created previews at `8cd9363`, `ce1f471`, `7c6ad2b`
 and `d174b63`. Previews are SSO-protected and not indexed.
 
-**Open question, needs you:** this session cannot read the project's
-environment variables (Vercel returned 403). If `DATABASE_URL`,
-`ANTHROPIC_API_KEY` or `RESEND_API_KEY` are set for the **Preview** environment
-with production values, then signing in or saving on any preview reads and
-writes **production data** and spends real AI credits. Until that's confirmed,
-**do not use preview deployments to test anything that writes**. Use the local
-isolated check below. To make previews safe: Vercel → Project → Settings →
-Environment Variables → give Preview its own Neon branch database (or none),
-and no production API keys.
+**Previews are not isolated from production.** A read-only health check on a
+preview reports a database. Neon's only RecipeBox branch is the one marked
+"vercel production branch", and no preview branches exist. Until that changes,
+**nothing that writes may be tested on a preview**. Findings and the exact
+configuration fix are in [preview-environment-safety.md](./preview-environment-safety.md).
 
 ## What gets deployed
 
