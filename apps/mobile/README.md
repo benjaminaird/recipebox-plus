@@ -52,7 +52,10 @@ npx expo start          # run on a device (development build recommended)
 - **Physical devices:** nothing has been run on an iPhone or Android device
   yet. The real-device protocol in
   `docs/design/accessibility-device-testing.md` applies from the first build.
-- **Icons:** the app icons and splash image are still the Expo template
-  placeholders.
-- **Bundle identifiers:** no bundle identifier or Android package name is set
-  yet. That decision is needed before the first development build.
+- **Icons:** the app icons and splash image are a provisional monogram, not
+  final artwork.
+- **Bundle identifier:** provisional, `com.benjaminaird.recipebox.dev`. The
+  permanent identifier is not chosen yet.
+- **iPhone install:** see `docs/ios-device-build.md`. Use the `device-test`
+  EAS profile (standalone) or `development` (dev client). There is no submit
+  profile.

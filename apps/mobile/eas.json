@@ -1,0 +1,28 @@
+{
+  "cli": {
+    "version": ">= 25.3.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "device-test": {
+      "distribution": "internal",
+      "ios": {
+        "simulator": false,
+        "buildConfiguration": "Release"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": false
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    }
+  }
+}
