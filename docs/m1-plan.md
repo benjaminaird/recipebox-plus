@@ -1,6 +1,6 @@
 # M1: Recipe Intelligence Baseline (engineering plan)
 
-Status at 2026-11-08: **the $0 harness and baseline exist** (`tests/recipe-model/`,
+Status at 2026-11-08: **the $0 harness and baseline exist**; the current numbers and the bugs they expose are in [recipe-model-baseline.md](./recipe-model-baseline.md) (`tests/recipe-model/`,
 `scripts/recipe-model/`). The paid bake-off has not run. Spec sources: ADR 0012,
 0014, 0016, 0017, 0020, and `docs/recipe-model-investigation.md`.
 

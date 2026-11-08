@@ -1,0 +1,22 @@
+{
+ "id": "video-source",
+ "title": "Video recipe attribution (metadata only)",
+ "provenance": "Synthetic metadata on a reserved .example host standing in for a video page; no real video is referenced.",
+ "categories": [
+  "source"
+ ],
+ "input": {
+  "kind": "video",
+  "url": "https://video.example/watch?v=abc123&si=sharetracking",
+  "title": "5-Minute Peanut Noodles",
+  "channel": "Fixture Kitchen Channel"
+ },
+ "truth": {
+  "sections": [],
+  "source": {
+   "url": "https://video.example/watch?v=abc123",
+   "originalTitle": "5-Minute Peanut Noodles",
+   "author": "Fixture Kitchen Channel"
+  }
+ }
+}

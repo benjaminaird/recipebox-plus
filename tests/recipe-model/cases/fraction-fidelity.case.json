@@ -1,0 +1,86 @@
+{
+ "id": "fraction-fidelity",
+ "title": "Banana Bread (fractions must stay fractions)",
+ "provenance": "Synthetic, authored for RecipeBox; mirrors the float artefacts found in recorded outputs (e.g. 2.3333332538605).",
+ "categories": [
+  "float-artefacts",
+  "quantities"
+ ],
+ "input": {
+  "kind": "text",
+  "text": "Banana Bread\nMakes 1 loaf\n\n2 1/3 cups mashed ripe bananas\n1/3 cup light brown sugar\n1/3 cup melted butter\n1 egg\n1 tsp baking soda\n1 1/2 cups flour\n1/8 tsp salt\n\nMash the bananas and stir in the sugar, butter and egg. Add the soda, salt and flour. Bake at 350°F for 60 minutes."
+ },
+ "truth": {
+  "servings": "1 loaf",
+  "sections": [
+   {
+    "key": "main",
+    "match": [
+     "main",
+     "ingredients",
+     ""
+    ],
+    "anySection": true,
+    "ingredients": [
+     {
+      "key": "banana",
+      "match": [
+       "banana"
+      ],
+      "amount": "2 1/3",
+      "unit": "cup"
+     },
+     {
+      "key": "brown",
+      "match": [
+       "brown sugar"
+      ],
+      "amount": "1/3",
+      "unit": "cup"
+     },
+     {
+      "key": "butter",
+      "match": [
+       "butter"
+      ],
+      "amount": "1/3",
+      "unit": "cup"
+     },
+     {
+      "key": "egg",
+      "match": [
+       "egg"
+      ],
+      "amount": "1",
+      "unit": ""
+     },
+     {
+      "key": "soda",
+      "match": [
+       "baking soda"
+      ],
+      "amount": "1",
+      "unit": "tsp"
+     },
+     {
+      "key": "flour",
+      "match": [
+       "flour"
+      ],
+      "amount": "1 1/2",
+      "unit": "cup"
+     },
+     {
+      "key": "salt",
+      "match": [
+       "salt"
+      ],
+      "amount": "1/8",
+      "unit": "tsp"
+     }
+    ],
+    "steps": []
+   }
+  ]
+ }
+}

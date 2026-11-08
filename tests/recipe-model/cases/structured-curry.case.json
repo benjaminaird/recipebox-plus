@@ -1,0 +1,147 @@
+{
+ "id": "structured-curry",
+ "title": "Weeknight Chickpea Curry (existing JSON-LD array fixture)",
+ "provenance": "Existing public synthetic fixture scripts/import-test/fixtures/jsonld-array.html.",
+ "categories": [
+  "step-links",
+  "quantities"
+ ],
+ "input": {
+  "kind": "html",
+  "file": "../../../scripts/import-test/fixtures/jsonld-array.html",
+  "url": "https://example.com/curry"
+ },
+ "truth": {
+  "servings": "4",
+  "sections": [
+   {
+    "key": "main",
+    "match": [
+     "main",
+     "ingredients",
+     ""
+    ],
+    "anySection": true,
+    "ingredients": [
+     {
+      "key": "oil",
+      "match": [
+       "olive oil"
+      ],
+      "amount": "2",
+      "unit": "tbsp"
+     },
+     {
+      "key": "onion",
+      "match": [
+       "onion"
+      ],
+      "amount": "1",
+      "unit": ""
+     },
+     {
+      "key": "garlic",
+      "match": [
+       "garlic"
+      ],
+      "amount": "3",
+      "unit": "clove"
+     },
+     {
+      "key": "curry",
+      "match": [
+       "curry powder"
+      ],
+      "amount": "2",
+      "unit": "tbsp"
+     },
+     {
+      "key": "chickpeas",
+      "match": [
+       "chickpea"
+      ],
+      "amount": "2",
+      "unit": "can"
+     },
+     {
+      "key": "coconut",
+      "match": [
+       "coconut milk"
+      ],
+      "amount": "1",
+      "unit": "can"
+     },
+     {
+      "key": "spinach",
+      "match": [
+       "spinach"
+      ],
+      "amount": "2",
+      "unit": "cup"
+     },
+     {
+      "key": "lime",
+      "match": [
+       "lime juice"
+      ],
+      "amount": "1",
+      "unit": "tbsp"
+     }
+    ],
+    "steps": [
+     {
+      "key": "s1",
+      "cue": "heat the oil",
+      "uses": [
+       {
+        "ing": "oil"
+       },
+       {
+        "ing": "onion"
+       }
+      ]
+     },
+     {
+      "key": "s2",
+      "cue": "add the garlic",
+      "uses": [
+       {
+        "ing": "garlic"
+       },
+       {
+        "ing": "curry"
+       }
+      ]
+     },
+     {
+      "key": "s3",
+      "cue": "stir in the chickpeas",
+      "uses": [
+       {
+        "ing": "chickpeas"
+       },
+       {
+        "ing": "coconut"
+       }
+      ],
+      "keep": [
+       "15 minutes"
+      ]
+     },
+     {
+      "key": "s4",
+      "cue": "fold in the spinach",
+      "uses": [
+       {
+        "ing": "spinach"
+       },
+       {
+        "ing": "lime"
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ }
+}

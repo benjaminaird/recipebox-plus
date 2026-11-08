@@ -45,6 +45,18 @@ function validate(base, cand, change = {}) {
     if (any && sum > total + 0.011) add("PORTIONS_EXCEED_TOTAL", `${g.name}: ${sum} > ${total}`);
   }
 
+  // a portion written into the step's wording must agree with the portion on its reference
+  const QTY = /(\d+(?:\s+\d+\/\d+)?|\d+\/\d+)\s*(cups?|tablespoons?|tbsp|teaspoons?|tsp|oz|ounces?|lb|g|ml)\b/gi;
+  for (const s of steps) {
+    const written = [...String(s.text || "").matchAll(QTY)].map((x) => ({ amount: x[1], unit: normUnit(x[2]) }));
+    for (const r of s.ingredientRefs || []) {
+      if (typeof r !== "object" || r.amount == null) continue;
+      const sameUnit = written.filter((w) => w.unit === normUnit(r.unit));
+      const n = parseAmount(r.amount);
+      if (sameUnit.length && !sameUnit.some((w) => Math.abs(parseAmount(w.amount) - n) < 0.011)) add("STEP_TEXT_DISAGREES_WITH_PORTION", `${s.id}: text says ${sameUnit.map((w) => w.amount + " " + w.unit).join(", ")}, reference says ${r.amount} ${r.unit}`);
+    }
+  }
+
   // a preparation is consumed only after the step that makes it
   const order = new Map(steps.map((s, i) => [s.id, i]));
   for (const p of cand.preparations || []) {

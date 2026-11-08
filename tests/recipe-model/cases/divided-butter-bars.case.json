@@ -106,12 +106,21 @@
        {
         "ing": "salt"
        }
+      ],
+      "keep": [
+       "1/2 cup",
+       "1 1/2 cups"
       ]
      },
      {
       "key": "b2",
       "cue": "press into",
-      "uses": []
+      "uses": [],
+      "keep": [
+       "9-inch",
+       "350°F",
+       "15 minutes"
+      ]
      }
     ]
    },
@@ -139,6 +148,9 @@
        {
         "ing": "brown"
        }
+      ],
+      "keep": [
+       "1/2 cup"
       ]
      },
      {
@@ -148,6 +160,9 @@
        {
         "ing": "jam"
        }
+      ],
+      "keep": [
+       "25 minutes"
       ]
      }
     ]

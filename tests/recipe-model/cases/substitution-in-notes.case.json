@@ -1,0 +1,133 @@
+{
+ "id": "substitution-in-notes",
+ "title": "Skillet Cornbread (substitution offered in the description)",
+ "provenance": "Synthetic, authored for RecipeBox.",
+ "categories": [
+  "adjustment",
+  "modification"
+ ],
+ "input": {
+  "kind": "html",
+  "file": "substitution-in-notes.html",
+  "url": "https://testkitchen.example/cornbread"
+ },
+ "truth": {
+  "servings": "8",
+  "sections": [
+   {
+    "key": "main",
+    "match": [
+     "main",
+     "ingredients",
+     ""
+    ],
+    "anySection": true,
+    "ingredients": [
+     {
+      "key": "cornmeal",
+      "match": [
+       "cornmeal"
+      ],
+      "amount": "1",
+      "unit": "cup"
+     },
+     {
+      "key": "flour",
+      "match": [
+       "flour"
+      ],
+      "amount": "1",
+      "unit": "cup"
+     },
+     {
+      "key": "bp",
+      "match": [
+       "baking powder"
+      ],
+      "amount": "1",
+      "unit": "tbsp"
+     },
+     {
+      "key": "salt",
+      "match": [
+       "salt"
+      ],
+      "amount": "1/2",
+      "unit": "tsp"
+     },
+     {
+      "key": "buttermilk",
+      "match": [
+       "buttermilk"
+      ],
+      "amount": "1",
+      "unit": "cup"
+     },
+     {
+      "key": "egg",
+      "match": [
+       "egg"
+      ],
+      "amount": "1",
+      "unit": ""
+     },
+     {
+      "key": "butter",
+      "match": [
+       "butter,",
+       "butter"
+      ],
+      "amount": "1/4",
+      "unit": "cup"
+     }
+    ],
+    "steps": [
+     {
+      "key": "s1",
+      "cue": "heat a 10-inch",
+      "uses": [],
+      "keep": [
+       "425°F"
+      ]
+     },
+     {
+      "key": "s2",
+      "cue": "whisk the cornmeal",
+      "uses": [
+       {
+        "ing": "cornmeal"
+       },
+       {
+        "ing": "flour"
+       },
+       {
+        "ing": "bp"
+       },
+       {
+        "ing": "salt"
+       }
+      ]
+     },
+     {
+      "key": "s3",
+      "cue": "stir in the buttermilk",
+      "uses": [
+       {
+        "ing": "buttermilk"
+       },
+       {
+        "ing": "egg"
+       },
+       {
+        "ing": "butter"
+       }
+      ],
+      "keep": [
+       "20 minutes"
+      ]
+     }
+    ]
+   }
+  ]
+ }
+}

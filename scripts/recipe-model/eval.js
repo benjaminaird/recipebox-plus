@@ -21,6 +21,7 @@ const path = require("path");
 const ROOT = path.join(__dirname, "..", "..");
 const DIR = path.join(ROOT, "tests", "recipe-model");
 const Extract = require(path.join(ROOT, "public", "recipe-extract.js"));
+const Normalize = require(path.join(ROOT, "public", "recipe-normalize.js"));
 const { score, referenceOutput } = require("./scorer");
 const { validate } = require("./validate");
 
@@ -33,6 +34,7 @@ function loadCases(dir) {
 }
 
 function runExtractor(c) {
+  if (c.input.kind === "video") return { skipped: "video metadata comes from the server import path, which this $0 harness does not call" };
   if (c.input.kind !== "html") return { skipped: "not an HTML source; needs the AI path" };
   const html = fs.readFileSync(path.join(c._dir, c.input.file), "utf8");
   const r = Extract.extractFromHtml(html, { url: c.input.url });
@@ -40,15 +42,25 @@ function runExtractor(c) {
   return { output: { ...r.recipe, sourceUrl: c.input.url } }; // mirrors src/app.jsx: parsed.sourceUrl = pageData.finalUrl || url
 }
 
+// The app's own post-processing of every import (src/app.jsx sanitizeImportedRecipe, stage 2):
+// normalizeRecipe then quantityAwareDirections. Stage 1 there (an equipment-word filter) lives
+// inline in the web app and is not reproduced here.
+function runAppDeterministic(c) {
+  const ex = runExtractor(c);
+  if (ex.skipped || !ex.output) return ex;
+  const copy = JSON.parse(JSON.stringify(ex.output));
+  return { output: Normalize.quantityAwareDirections(Normalize.normalizeRecipe(copy)) };
+}
+
 function summarise(results) {
   const agg = {};
   const bump = (k, n, d) => { agg[k] = agg[k] || { n: 0, d: 0 }; agg[k].n += n; agg[k].d += d; };
+  const detection = {}, modification = {};
   for (const r of results) {
     const m = r.metrics; if (!m) continue;
     bump("ingredients found", m.ingredients.found, m.ingredients.total);
     bump("quantities correct", m.quantities.correct, m.quantities.checked);
     bump("quantities written as the source wrote them", m.quantities.faithful, m.quantities.checked);
-    bump("quantities not invented", (m.quantities.checked + m.quantities.unreadable) - m.quantities.invented, m.quantities.checked + m.quantities.unreadable);
     if (m.quantities.unreadable) bump("unreadable quantities flagged", m.quantities.unreadableFlagged, m.quantities.unreadable);
     if (m.sections) bump("ingredients in the right section", m.sections.correct, m.sections.checked);
     if (m.links) { bump("step links recall", m.links.correct, m.links.truthPairs); bump("step links precision", m.links.correct, m.links.outputPairs); }
@@ -57,22 +69,30 @@ function summarise(results) {
     if (m.contradictions) bump("contradictions surfaced", m.contradictions.surfaced, m.contradictions.total);
     if (m.suppression) bump("unknown fields left blank", m.suppression.ok, m.suppression.total);
     if (m.source) bump("source fields captured", m.source.ok, m.source.total);
+    if (m.steps && m.steps.keepPhrases) bump("step wording preserved", m.steps.keepPhrases - m.steps.wordingChanged, m.steps.keepPhrases);
+    for (const [k, v] of Object.entries(m.classes.detection)) detection[k] = (detection[k] || 0) + v;
+    for (const [k, v] of Object.entries(m.classes.modification)) modification[k] = (modification[k] || 0) + v;
   }
-  const out = {};
-  for (const [k, { n, d }] of Object.entries(agg)) out[k] = { score: n, of: d, pct: d ? Math.round((n / d) * 1000) / 10 : null };
-  return out;
+  const metrics = {};
+  for (const [k, { n, d }] of Object.entries(agg)) metrics[k] = { score: n, of: d, pct: d ? Math.round((n / d) * 1000) / 10 : null };
+  const sortObj = (o) => Object.fromEntries(Object.entries(o).sort());
+  return { metrics, detection: sortObj(detection), modification: sortObj(modification) };
 }
 
 function evalCases(cases) {
-  const subjects = { extractor: [], reference: [] };
-  const pending = [];
+  const subjects = { extractor: [], appDeterministic: [], reference: [] };
+  const pending = [], notApplicable = [];
   for (const c of cases) {
     const ex = runExtractor(c);
     subjects.extractor.push(ex.skipped ? { id: c.id, skipped: ex.skipped } : { id: c.id, metrics: score(c.truth, ex.output) });
+    const ap = runAppDeterministic(c);
+    subjects.appDeterministic.push(ap.skipped ? { id: c.id, skipped: ap.skipped } : { id: c.id, metrics: score(c.truth, ap.output) });
     subjects.reference.push({ id: c.id, metrics: score(c.truth, referenceOutput(c.truth)) });
-    if (c.input.kind !== "html") pending.push(c.id);
+    if (c.input.kind === "text") pending.push(c.id);
+    if (c.input.kind === "video") notApplicable.push(c.id);
   }
-  return { subjects, summary: { extractor: summarise(subjects.extractor), reference: summarise(subjects.reference) }, pendingPaid: pending };
+  return { subjects, summary: { extractor: summarise(subjects.extractor), appDeterministic: summarise(subjects.appDeterministic), reference: summarise(subjects.reference) },
+    pendingPaid: pending, pendingServerPath: notApplicable };
 }
 
 function evalAdjustments() {
@@ -144,18 +164,32 @@ if (privateCases.length) {
 
 // Self-checks that make the baseline trustworthy.
 const problems = [];
-for (const [k, v] of Object.entries(report.summary.reference)) if (v.pct !== null && v.pct !== 100) problems.push(`reference output scores ${v.pct}% on "${k}" (scorer bug)`);
+for (const [k, v] of Object.entries(report.summary.reference.metrics)) if (v.pct !== null && v.pct !== 100) problems.push(`reference output scores ${v.pct}% on "${k}" (scorer bug)`);
+for (const cls of ["detection", "modification"]) if (Object.keys(report.summary.reference[cls]).length) problems.push(`reference output has ${cls} findings (scorer bug)`);
+// Determinism: a second, independent run must produce byte-identical results.
+if (JSON.stringify(stable({ ...evalCases(loadCases(path.join(DIR, "cases"))), adjustments: evalAdjustments(), recordedAudit: auditRecorded() })) !==
+    JSON.stringify({ subjects: report.subjects, summary: report.summary, pendingPaid: report.pendingPaid, pendingServerPath: report.pendingServerPath, adjustments: report.adjustments, recordedAudit: report.recordedAudit }))
+  problems.push("two runs in the same process produced different results (non-deterministic)");
 if (report.adjustments.agrees !== report.adjustments.total) problems.push(`validator disagrees with ${report.adjustments.total - report.adjustments.agrees} adjustment expectation(s)`);
 
 const baselinePath = path.join(DIR, "baseline.json");
+function printSubject(title, sx) {
+  console.log(title);
+  for (const [k, v] of Object.entries(sx.metrics)) console.log(`  ${k.padEnd(46)} ${String(v.score).padStart(3)} / ${String(v.of).padEnd(3)} ${v.pct === null ? "  n/a" : (v.pct + "%").padStart(6)}`);
+  const line = (o) => Object.entries(o).map(([k, v]) => `${k} ${v}`).join(", ") || "none";
+  console.log(`  Detection failures (recipe intact, problem not noticed or expressed): ${line(sx.detection)}`);
+  console.log(`  Modifications (the recipe itself was changed): ${line(sx.modification)}\n`);
+}
 function printSummary() {
+  const sx = report.summary.extractor;
   console.log(`recipe-model eval: ${publicCases.length} public case(s), ${privateCases.length} private case(s)\n`);
-  console.log("Current deterministic extractor (HTML cases only):");
-  for (const [k, v] of Object.entries(report.summary.extractor)) console.log(`  ${k.padEnd(46)} ${String(v.score).padStart(3)} / ${String(v.of).padEnd(3)} ${v.pct === null ? "  n/a" : (v.pct + "%").padStart(6)}`);
-  console.log(`\nValidator on adjustment candidates: ${report.adjustments.agrees}/${report.adjustments.total} as expected`);
+  printSubject("Deterministic extractor alone (structured-data HTML cases):", sx);
+  printSubject("Extractor + the app's normalisation stage (what a user gets for a free structured import):", report.summary.appDeterministic);
+  console.log(`Validator on adjustment candidates: ${report.adjustments.agrees}/${report.adjustments.total} as expected`);
   const ra = report.recordedAudit;
-  if (ra) console.log(`Recorded outputs audited: ${ra.recipes} recipes, ${ra.stepsWithRefs}/${ra.steps} steps carry ingredient links, ${ra.dividedWithoutPortions} "divided" ingredients with no portions, ${ra.floatArtefacts} float artefacts`);
-  console.log(`Paid AI subjects pending (not run): ${report.pendingPaid.length} case(s)`);
+  if (ra) console.log(`Recorded outputs audited: ${ra.recipes} recipes, ${ra.stepsWithRefs}/${ra.steps} steps carry ingredient links, ${ra.unresolvedRefs} invalid references, ${ra.dividedWithoutPortions} "divided" ingredients with no portions, ${ra.floatArtefacts} float artefacts`);
+  console.log(`Pending, not run: ${report.pendingPaid.length} paid AI-path case(s); ${report.pendingServerPath.length} server-path case(s)`);
+  console.log("Determinism: second run identical");
 }
 
 if (args.has("--json")) { console.log(JSON.stringify(report, null, 1)); process.exit(problems.length ? 1 : 0); }

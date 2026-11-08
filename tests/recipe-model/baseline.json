@@ -33,10 +33,39 @@
    "synthetic": true
   },
   {
+   "id": "eggs-divided-wash",
+   "categories": [
+    "split-quantity",
+    "step-links",
+    "preparation"
+   ],
+   "input": "html",
+   "synthetic": true
+  },
+  {
    "id": "flour-contradiction",
    "categories": [
     "contradiction",
     "step-links"
+   ],
+   "input": "html",
+   "synthetic": true
+  },
+  {
+   "id": "fraction-fidelity",
+   "categories": [
+    "float-artefacts",
+    "quantities"
+   ],
+   "input": "text",
+   "synthetic": true
+  },
+  {
+   "id": "frosting-headers-in-list",
+   "categories": [
+    "section-confusion",
+    "step-links",
+    "modification"
    ],
    "input": "html",
    "synthetic": true
@@ -61,6 +90,25 @@
    "synthetic": true
   },
   {
+   "id": "marinade-reserved",
+   "categories": [
+    "preparation",
+    "split-quantity",
+    "step-links"
+   ],
+   "input": "text",
+   "synthetic": true
+  },
+  {
+   "id": "microdata-rice",
+   "categories": [
+    "step-links",
+    "quantities"
+   ],
+   "input": "html",
+   "synthetic": true
+  },
+  {
    "id": "pumpkin-pudding",
    "categories": [
     "preparation",
@@ -77,6 +125,42 @@
     "source"
    ],
    "input": "html",
+   "synthetic": true
+  },
+  {
+   "id": "structured-cookies",
+   "categories": [
+    "step-links",
+    "source",
+    "quantities"
+   ],
+   "input": "html",
+   "synthetic": true
+  },
+  {
+   "id": "structured-curry",
+   "categories": [
+    "step-links",
+    "quantities"
+   ],
+   "input": "html",
+   "synthetic": true
+  },
+  {
+   "id": "substitution-in-notes",
+   "categories": [
+    "adjustment",
+    "modification"
+   ],
+   "input": "html",
+   "synthetic": true
+  },
+  {
+   "id": "video-source",
+   "categories": [
+    "source"
+   ],
+   "input": "video",
    "synthetic": true
   }
  ],
@@ -100,25 +184,37 @@
      },
      "ingredients": {
       "total": 6,
-      "found": 6
+      "found": 6,
+      "dropped": 0,
+      "invented": 0
      },
      "quantities": {
       "checked": 6,
       "correct": 6,
       "faithful": 6,
-      "invented": 0,
+      "modified": 0,
       "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
       "unreadableFlagged": 0,
-      "unreadable": 0
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 0,
+      "invalid": 0
      },
      "steps": {
       "total": 4,
-      "matched": 4
+      "matched": 4,
+      "keepPhrases": 7,
+      "wordingChanged": 0
      },
      "links": {
       "truthPairs": 8,
       "outputPairs": 0,
       "correct": 0,
+      "wrong": 0,
       "precision": null,
       "recall": 0
      },
@@ -146,6 +242,71 @@
         "ok": false
        }
       }
+     },
+     "classes": {
+      "detection": {
+       "linksMissing": 8,
+       "portionsMissing": 4,
+       "sourceFieldsMissing": 3
+      },
+      "modification": {}
+     }
+    }
+   },
+   {
+    "id": "eggs-divided-wash",
+    "metrics": {
+     "preparations": {
+      "total": 1,
+      "listedAsIngredient": 0,
+      "ok": 1
+     },
+     "ingredients": {
+      "total": 7,
+      "found": 7,
+      "dropped": 0,
+      "invented": 0
+     },
+     "quantities": {
+      "checked": 7,
+      "correct": 7,
+      "faithful": 7,
+      "modified": 0,
+      "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 0,
+      "invalid": 0
+     },
+     "steps": {
+      "total": 3,
+      "matched": 3,
+      "keepPhrases": 3,
+      "wordingChanged": 0
+     },
+     "links": {
+      "truthPairs": 8,
+      "outputPairs": 0,
+      "correct": 0,
+      "wrong": 0,
+      "precision": null,
+      "recall": 0
+     },
+     "portions": {
+      "total": 2,
+      "correct": 0
+     },
+     "classes": {
+      "detection": {
+       "linksMissing": 8,
+       "portionsMissing": 2
+      },
+      "modification": {}
      }
     }
    },
@@ -154,32 +315,116 @@
     "metrics": {
      "ingredients": {
       "total": 4,
-      "found": 4
+      "found": 4,
+      "dropped": 0,
+      "invented": 0
      },
      "quantities": {
-      "checked": 4,
-      "correct": 4,
-      "faithful": 4,
-      "invented": 0,
+      "checked": 3,
+      "correct": 3,
+      "faithful": 3,
+      "modified": 0,
       "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
       "unreadableFlagged": 0,
-      "unreadable": 0
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 0,
+      "invalid": 0
      },
      "steps": {
       "total": 3,
-      "matched": 3
+      "matched": 3,
+      "keepPhrases": 0,
+      "wordingChanged": 0
      },
      "links": {
       "truthPairs": 4,
       "outputPairs": 0,
       "correct": 0,
+      "wrong": 0,
       "precision": null,
       "recall": 0
      },
      "contradictions": {
       "total": 1,
       "surfaced": 0,
-      "silentlyResolved": 1
+      "keptUnflagged": 1,
+      "changedSilently": 0
+     },
+     "classes": {
+      "detection": {
+       "linksMissing": 4,
+       "contradictionsNotFlagged": 1
+      },
+      "modification": {}
+     }
+    }
+   },
+   {
+    "id": "fraction-fidelity",
+    "skipped": "not an HTML source; needs the AI path"
+   },
+   {
+    "id": "frosting-headers-in-list",
+    "metrics": {
+     "preparations": {
+      "total": 1,
+      "listedAsIngredient": 1,
+      "ok": 0
+     },
+     "ingredients": {
+      "total": 10,
+      "found": 10,
+      "dropped": 0,
+      "invented": 1
+     },
+     "quantities": {
+      "checked": 10,
+      "correct": 10,
+      "faithful": 10,
+      "modified": 0,
+      "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "sections": {
+      "checked": 10,
+      "correct": 0
+     },
+     "references": {
+      "total": 0,
+      "invalid": 0
+     },
+     "steps": {
+      "total": 4,
+      "matched": 4,
+      "keepPhrases": 2,
+      "wordingChanged": 0
+     },
+     "links": {
+      "truthPairs": 10,
+      "outputPairs": 0,
+      "correct": 0,
+      "wrong": 0,
+      "precision": null,
+      "recall": 0
+     },
+     "classes": {
+      "detection": {
+       "linksMissing": 10,
+       "sectionsWrong": 10,
+       "preparationsListedAsIngredients": 1
+      },
+      "modification": {
+       "ingredientsInvented": 1
+      }
      }
     }
    },
@@ -193,37 +438,107 @@
      },
      "ingredients": {
       "total": 7,
-      "found": 7
+      "found": 7,
+      "dropped": 0,
+      "invented": 0
      },
      "quantities": {
       "checked": 7,
       "correct": 7,
       "faithful": 7,
-      "invented": 0,
+      "modified": 0,
       "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
       "unreadableFlagged": 0,
-      "unreadable": 0
+      "unreadableUnflagged": 0
      },
      "sections": {
       "checked": 7,
       "correct": 3
      },
+     "references": {
+      "total": 0,
+      "invalid": 0
+     },
      "steps": {
       "total": 4,
-      "matched": 4
+      "matched": 4,
+      "keepPhrases": 0,
+      "wordingChanged": 0
      },
      "links": {
       "truthPairs": 7,
       "outputPairs": 0,
       "correct": 0,
+      "wrong": 0,
       "precision": null,
       "recall": 0
+     },
+     "classes": {
+      "detection": {
+       "linksMissing": 7,
+       "sectionsWrong": 4
+      },
+      "modification": {}
      }
     }
    },
    {
     "id": "low-confidence-card",
     "skipped": "not an HTML source; needs the AI path"
+   },
+   {
+    "id": "marinade-reserved",
+    "skipped": "not an HTML source; needs the AI path"
+   },
+   {
+    "id": "microdata-rice",
+    "metrics": {
+     "ingredients": {
+      "total": 5,
+      "found": 5,
+      "dropped": 0,
+      "invented": 0
+     },
+     "quantities": {
+      "checked": 5,
+      "correct": 5,
+      "faithful": 5,
+      "modified": 0,
+      "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 0,
+      "invalid": 0
+     },
+     "steps": {
+      "total": 3,
+      "matched": 3,
+      "keepPhrases": 1,
+      "wordingChanged": 0
+     },
+     "links": {
+      "truthPairs": 5,
+      "outputPairs": 0,
+      "correct": 0,
+      "wrong": 0,
+      "precision": null,
+      "recall": 0
+     },
+     "classes": {
+      "detection": {
+       "linksMissing": 5
+      },
+      "modification": {}
+     }
+    }
    },
    {
     "id": "pumpkin-pudding",
@@ -234,25 +549,37 @@
     "metrics": {
      "ingredients": {
       "total": 5,
-      "found": 5
+      "found": 5,
+      "dropped": 0,
+      "invented": 0
      },
      "quantities": {
       "checked": 4,
       "correct": 4,
       "faithful": 4,
-      "invented": 0,
+      "modified": 0,
       "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
       "unreadableFlagged": 0,
-      "unreadable": 0
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 0,
+      "invalid": 0
      },
      "steps": {
       "total": 2,
-      "matched": 2
+      "matched": 2,
+      "keepPhrases": 0,
+      "wordingChanged": 0
      },
      "links": {
       "truthPairs": 5,
       "outputPairs": 0,
       "correct": 0,
+      "wrong": 0,
       "precision": null,
       "recall": 0
      },
@@ -281,8 +608,820 @@
         "ok": false
        }
       }
+     },
+     "classes": {
+      "detection": {
+       "linksMissing": 5,
+       "sourceFieldsMissing": 4
+      },
+      "modification": {}
      }
     }
+   },
+   {
+    "id": "structured-cookies",
+    "metrics": {
+     "preparations": {
+      "total": 2,
+      "listedAsIngredient": 0,
+      "ok": 2
+     },
+     "ingredients": {
+      "total": 9,
+      "found": 9,
+      "dropped": 0,
+      "invented": 0
+     },
+     "quantities": {
+      "checked": 9,
+      "correct": 5,
+      "faithful": 5,
+      "modified": 2,
+      "dropped": 2,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 0,
+      "invalid": 0
+     },
+     "steps": {
+      "total": 5,
+      "matched": 5,
+      "keepPhrases": 2,
+      "wordingChanged": 0
+     },
+     "links": {
+      "truthPairs": 9,
+      "outputPairs": 0,
+      "correct": 0,
+      "wrong": 0,
+      "precision": null,
+      "recall": 0
+     },
+     "source": {
+      "total": 3,
+      "ok": 0,
+      "fields": {
+       "url": {
+        "expected": "https://example.com/brown-butter-cookies",
+        "got": "https://example.com/brown-butter-cookies?utm_source=feed",
+        "ok": false
+       },
+       "siteName": {
+        "expected": "Tasty Blog",
+        "got": "",
+        "ok": false
+       },
+       "originalTitle": {
+        "expected": "Brown Butter Chocolate Chip Cookies",
+        "got": "",
+        "ok": false
+       }
+      }
+     },
+     "classes": {
+      "detection": {
+       "linksMissing": 9,
+       "sourceFieldsMissing": 3
+      },
+      "modification": {
+       "quantitiesChanged": 2,
+       "quantitiesDropped": 2
+      }
+     }
+    }
+   },
+   {
+    "id": "structured-curry",
+    "metrics": {
+     "ingredients": {
+      "total": 8,
+      "found": 8,
+      "dropped": 0,
+      "invented": 0
+     },
+     "quantities": {
+      "checked": 8,
+      "correct": 8,
+      "faithful": 8,
+      "modified": 0,
+      "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 0,
+      "invalid": 0
+     },
+     "steps": {
+      "total": 4,
+      "matched": 4,
+      "keepPhrases": 1,
+      "wordingChanged": 0
+     },
+     "links": {
+      "truthPairs": 8,
+      "outputPairs": 0,
+      "correct": 0,
+      "wrong": 0,
+      "precision": null,
+      "recall": 0
+     },
+     "classes": {
+      "detection": {
+       "linksMissing": 8
+      },
+      "modification": {}
+     }
+    }
+   },
+   {
+    "id": "substitution-in-notes",
+    "metrics": {
+     "ingredients": {
+      "total": 7,
+      "found": 7,
+      "dropped": 0,
+      "invented": 0
+     },
+     "quantities": {
+      "checked": 7,
+      "correct": 7,
+      "faithful": 7,
+      "modified": 0,
+      "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 0,
+      "invalid": 0
+     },
+     "steps": {
+      "total": 3,
+      "matched": 3,
+      "keepPhrases": 2,
+      "wordingChanged": 0
+     },
+     "links": {
+      "truthPairs": 7,
+      "outputPairs": 0,
+      "correct": 0,
+      "wrong": 0,
+      "precision": null,
+      "recall": 0
+     },
+     "classes": {
+      "detection": {
+       "linksMissing": 7
+      },
+      "modification": {}
+     }
+    }
+   },
+   {
+    "id": "video-source",
+    "skipped": "video metadata comes from the server import path, which this $0 harness does not call"
+   }
+  ],
+  "appDeterministic": [
+   {
+    "id": "ambiguous-quantities",
+    "skipped": "not an HTML source; needs the AI path"
+   },
+   {
+    "id": "chocolate-ice-cream",
+    "skipped": "not an HTML source; needs the AI path"
+   },
+   {
+    "id": "divided-butter-bars",
+    "metrics": {
+     "preparations": {
+      "total": 1,
+      "listedAsIngredient": 0,
+      "ok": 1
+     },
+     "ingredients": {
+      "total": 6,
+      "found": 6,
+      "dropped": 0,
+      "invented": 0
+     },
+     "quantities": {
+      "checked": 6,
+      "correct": 6,
+      "faithful": 6,
+      "modified": 0,
+      "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 2,
+      "invalid": 0
+     },
+     "steps": {
+      "total": 4,
+      "matched": 4,
+      "keepPhrases": 7,
+      "wordingChanged": 0
+     },
+     "links": {
+      "truthPairs": 8,
+      "outputPairs": 2,
+      "correct": 2,
+      "wrong": 0,
+      "precision": 1,
+      "recall": 0.25
+     },
+     "portions": {
+      "total": 4,
+      "correct": 0
+     },
+     "source": {
+      "total": 3,
+      "ok": 0,
+      "fields": {
+       "url": {
+        "expected": "https://testkitchen.example/bars",
+        "got": "https://testkitchen.example/bars?utm_source=pinterest&utm_medium=social",
+        "ok": false
+       },
+       "siteName": {
+        "expected": "Test Kitchen Fixture",
+        "got": "",
+        "ok": false
+       },
+       "originalTitle": {
+        "expected": "Brown Butter Crumble Bars",
+        "got": "",
+        "ok": false
+       }
+      }
+     },
+     "classes": {
+      "detection": {
+       "linksMissing": 6,
+       "portionsMissing": 4,
+       "sourceFieldsMissing": 3
+      },
+      "modification": {}
+     }
+    }
+   },
+   {
+    "id": "eggs-divided-wash",
+    "metrics": {
+     "preparations": {
+      "total": 1,
+      "listedAsIngredient": 0,
+      "ok": 1
+     },
+     "ingredients": {
+      "total": 7,
+      "found": 7,
+      "dropped": 0,
+      "invented": 0
+     },
+     "quantities": {
+      "checked": 7,
+      "correct": 7,
+      "faithful": 7,
+      "modified": 0,
+      "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 6,
+      "invalid": 0
+     },
+     "steps": {
+      "total": 3,
+      "matched": 3,
+      "keepPhrases": 3,
+      "wordingChanged": 0
+     },
+     "links": {
+      "truthPairs": 8,
+      "outputPairs": 6,
+      "correct": 6,
+      "wrong": 0,
+      "precision": 1,
+      "recall": 0.75
+     },
+     "portions": {
+      "total": 2,
+      "correct": 0
+     },
+     "classes": {
+      "detection": {
+       "linksMissing": 2,
+       "portionsMissing": 2
+      },
+      "modification": {}
+     }
+    }
+   },
+   {
+    "id": "flour-contradiction",
+    "metrics": {
+     "ingredients": {
+      "total": 4,
+      "found": 4,
+      "dropped": 0,
+      "invented": 0
+     },
+     "quantities": {
+      "checked": 3,
+      "correct": 3,
+      "faithful": 3,
+      "modified": 0,
+      "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 3,
+      "invalid": 0
+     },
+     "steps": {
+      "total": 3,
+      "matched": 3,
+      "keepPhrases": 0,
+      "wordingChanged": 0
+     },
+     "links": {
+      "truthPairs": 4,
+      "outputPairs": 3,
+      "correct": 3,
+      "wrong": 0,
+      "precision": 1,
+      "recall": 0.75
+     },
+     "contradictions": {
+      "total": 1,
+      "surfaced": 0,
+      "keptUnflagged": 1,
+      "changedSilently": 0
+     },
+     "classes": {
+      "detection": {
+       "linksMissing": 1,
+       "contradictionsNotFlagged": 1
+      },
+      "modification": {}
+     }
+    }
+   },
+   {
+    "id": "fraction-fidelity",
+    "skipped": "not an HTML source; needs the AI path"
+   },
+   {
+    "id": "frosting-headers-in-list",
+    "metrics": {
+     "preparations": {
+      "total": 1,
+      "listedAsIngredient": 1,
+      "ok": 0
+     },
+     "ingredients": {
+      "total": 10,
+      "found": 10,
+      "dropped": 0,
+      "invented": 1
+     },
+     "quantities": {
+      "checked": 10,
+      "correct": 10,
+      "faithful": 10,
+      "modified": 0,
+      "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "sections": {
+      "checked": 10,
+      "correct": 0
+     },
+     "references": {
+      "total": 8,
+      "invalid": 0
+     },
+     "steps": {
+      "total": 4,
+      "matched": 4,
+      "keepPhrases": 2,
+      "wordingChanged": 0
+     },
+     "links": {
+      "truthPairs": 10,
+      "outputPairs": 8,
+      "correct": 7,
+      "wrong": 1,
+      "precision": 0.875,
+      "recall": 0.7
+     },
+     "classes": {
+      "detection": {
+       "linksMissing": 3,
+       "linksWrong": 1,
+       "sectionsWrong": 10,
+       "preparationsListedAsIngredients": 1
+      },
+      "modification": {
+       "ingredientsInvented": 1
+      }
+     }
+    }
+   },
+   {
+    "id": "lemon-tart-sections",
+    "metrics": {
+     "preparations": {
+      "total": 1,
+      "listedAsIngredient": 0,
+      "ok": 1
+     },
+     "ingredients": {
+      "total": 7,
+      "found": 7,
+      "dropped": 0,
+      "invented": 0
+     },
+     "quantities": {
+      "checked": 7,
+      "correct": 7,
+      "faithful": 7,
+      "modified": 0,
+      "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "sections": {
+      "checked": 7,
+      "correct": 3
+     },
+     "references": {
+      "total": 2,
+      "invalid": 0
+     },
+     "steps": {
+      "total": 4,
+      "matched": 4,
+      "keepPhrases": 0,
+      "wordingChanged": 0
+     },
+     "links": {
+      "truthPairs": 7,
+      "outputPairs": 2,
+      "correct": 2,
+      "wrong": 0,
+      "precision": 1,
+      "recall": 0.2857142857142857
+     },
+     "classes": {
+      "detection": {
+       "linksMissing": 5,
+       "sectionsWrong": 4
+      },
+      "modification": {}
+     }
+    }
+   },
+   {
+    "id": "low-confidence-card",
+    "skipped": "not an HTML source; needs the AI path"
+   },
+   {
+    "id": "marinade-reserved",
+    "skipped": "not an HTML source; needs the AI path"
+   },
+   {
+    "id": "microdata-rice",
+    "metrics": {
+     "ingredients": {
+      "total": 5,
+      "found": 5,
+      "dropped": 0,
+      "invented": 0
+     },
+     "quantities": {
+      "checked": 5,
+      "correct": 5,
+      "faithful": 5,
+      "modified": 0,
+      "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 5,
+      "invalid": 0
+     },
+     "steps": {
+      "total": 3,
+      "matched": 3,
+      "keepPhrases": 1,
+      "wordingChanged": 0
+     },
+     "links": {
+      "truthPairs": 5,
+      "outputPairs": 5,
+      "correct": 4,
+      "wrong": 1,
+      "precision": 0.8,
+      "recall": 0.8
+     },
+     "classes": {
+      "detection": {
+       "linksMissing": 1,
+       "linksWrong": 1
+      },
+      "modification": {}
+     }
+    }
+   },
+   {
+    "id": "pumpkin-pudding",
+    "skipped": "not an HTML source; needs the AI path"
+   },
+   {
+    "id": "source-attribution-blog",
+    "metrics": {
+     "ingredients": {
+      "total": 5,
+      "found": 5,
+      "dropped": 0,
+      "invented": 0
+     },
+     "quantities": {
+      "checked": 4,
+      "correct": 4,
+      "faithful": 4,
+      "modified": 0,
+      "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 2,
+      "invalid": 0
+     },
+     "steps": {
+      "total": 2,
+      "matched": 2,
+      "keepPhrases": 0,
+      "wordingChanged": 0
+     },
+     "links": {
+      "truthPairs": 5,
+      "outputPairs": 2,
+      "correct": 2,
+      "wrong": 0,
+      "precision": 1,
+      "recall": 0.4
+     },
+     "source": {
+      "total": 4,
+      "ok": 0,
+      "fields": {
+       "url": {
+        "expected": "https://fixturefoodblog.example/recipes/weeknight-lentil-soup/",
+        "got": "https://fixturefoodblog.example/recipes/weeknight-lentil-soup/?utm_campaign=newsletter&fbclid=abc123",
+        "ok": false
+       },
+       "siteName": {
+        "expected": "Fixture Food Blog",
+        "got": "",
+        "ok": false
+       },
+       "originalTitle": {
+        "expected": "Weeknight Lentil Soup",
+        "got": "",
+        "ok": false
+       },
+       "author": {
+        "expected": "Avery Quinn",
+        "got": "",
+        "ok": false
+       }
+      }
+     },
+     "classes": {
+      "detection": {
+       "linksMissing": 3,
+       "sourceFieldsMissing": 4
+      },
+      "modification": {}
+     }
+    }
+   },
+   {
+    "id": "structured-cookies",
+    "metrics": {
+     "preparations": {
+      "total": 2,
+      "listedAsIngredient": 0,
+      "ok": 2
+     },
+     "ingredients": {
+      "total": 9,
+      "found": 9,
+      "dropped": 0,
+      "invented": 0
+     },
+     "quantities": {
+      "checked": 9,
+      "correct": 5,
+      "faithful": 5,
+      "modified": 2,
+      "dropped": 2,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 6,
+      "invalid": 0
+     },
+     "steps": {
+      "total": 5,
+      "matched": 5,
+      "keepPhrases": 2,
+      "wordingChanged": 0
+     },
+     "links": {
+      "truthPairs": 9,
+      "outputPairs": 6,
+      "correct": 5,
+      "wrong": 1,
+      "precision": 0.8333333333333334,
+      "recall": 0.5555555555555556
+     },
+     "source": {
+      "total": 3,
+      "ok": 0,
+      "fields": {
+       "url": {
+        "expected": "https://example.com/brown-butter-cookies",
+        "got": "https://example.com/brown-butter-cookies?utm_source=feed",
+        "ok": false
+       },
+       "siteName": {
+        "expected": "Tasty Blog",
+        "got": "",
+        "ok": false
+       },
+       "originalTitle": {
+        "expected": "Brown Butter Chocolate Chip Cookies",
+        "got": "",
+        "ok": false
+       }
+      }
+     },
+     "classes": {
+      "detection": {
+       "linksMissing": 4,
+       "linksWrong": 1,
+       "sourceFieldsMissing": 3
+      },
+      "modification": {
+       "quantitiesChanged": 2,
+       "quantitiesDropped": 2
+      }
+     }
+    }
+   },
+   {
+    "id": "structured-curry",
+    "metrics": {
+     "ingredients": {
+      "total": 8,
+      "found": 8,
+      "dropped": 0,
+      "invented": 0
+     },
+     "quantities": {
+      "checked": 8,
+      "correct": 8,
+      "faithful": 8,
+      "modified": 0,
+      "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 4,
+      "invalid": 0
+     },
+     "steps": {
+      "total": 4,
+      "matched": 4,
+      "keepPhrases": 1,
+      "wordingChanged": 0
+     },
+     "links": {
+      "truthPairs": 8,
+      "outputPairs": 4,
+      "correct": 4,
+      "wrong": 0,
+      "precision": 1,
+      "recall": 0.5
+     },
+     "classes": {
+      "detection": {
+       "linksMissing": 4
+      },
+      "modification": {}
+     }
+    }
+   },
+   {
+    "id": "substitution-in-notes",
+    "metrics": {
+     "ingredients": {
+      "total": 7,
+      "found": 7,
+      "dropped": 0,
+      "invented": 0
+     },
+     "quantities": {
+      "checked": 7,
+      "correct": 7,
+      "faithful": 7,
+      "modified": 0,
+      "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 7,
+      "invalid": 0
+     },
+     "steps": {
+      "total": 3,
+      "matched": 3,
+      "keepPhrases": 2,
+      "wordingChanged": 0
+     },
+     "links": {
+      "truthPairs": 7,
+      "outputPairs": 7,
+      "correct": 7,
+      "wrong": 0,
+      "precision": 1,
+      "recall": 1
+     },
+     "classes": {
+      "detection": {},
+      "modification": {}
+     }
+    }
+   },
+   {
+    "id": "video-source",
+    "skipped": "video metadata comes from the server import path, which this $0 harness does not call"
    }
   ],
   "reference": [
@@ -291,21 +1430,34 @@
     "metrics": {
      "ingredients": {
       "total": 7,
-      "found": 7
+      "found": 7,
+      "dropped": 0,
+      "invented": 0
      },
      "quantities": {
       "checked": 5,
       "correct": 5,
       "faithful": 5,
-      "invented": 0,
+      "modified": 0,
       "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
       "unreadableFlagged": 0,
-      "unreadable": 0
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 0,
+      "invalid": 0
      },
      "suppression": {
       "total": 2,
       "invented": 0,
       "ok": 2
+     },
+     "classes": {
+      "detection": {},
+      "modification": {}
      }
     }
    },
@@ -319,35 +1471,51 @@
      },
      "ingredients": {
       "total": 8,
-      "found": 8
+      "found": 8,
+      "dropped": 0,
+      "invented": 0
      },
      "quantities": {
       "checked": 8,
       "correct": 8,
       "faithful": 8,
-      "invented": 0,
+      "modified": 0,
       "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
       "unreadableFlagged": 0,
-      "unreadable": 0
+      "unreadableUnflagged": 0
      },
      "sections": {
       "checked": 8,
       "correct": 8
      },
+     "references": {
+      "total": 9,
+      "invalid": 0
+     },
      "steps": {
       "total": 5,
-      "matched": 5
+      "matched": 5,
+      "keepPhrases": 0,
+      "wordingChanged": 0
      },
      "links": {
       "truthPairs": 9,
       "outputPairs": 9,
       "correct": 9,
+      "wrong": 0,
       "precision": 1,
       "recall": 1
      },
      "portions": {
       "total": 2,
       "correct": 2
+     },
+     "classes": {
+      "detection": {},
+      "modification": {}
      }
     }
    },
@@ -361,25 +1529,37 @@
      },
      "ingredients": {
       "total": 6,
-      "found": 6
+      "found": 6,
+      "dropped": 0,
+      "invented": 0
      },
      "quantities": {
       "checked": 6,
       "correct": 6,
       "faithful": 6,
-      "invented": 0,
+      "modified": 0,
       "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
       "unreadableFlagged": 0,
-      "unreadable": 0
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 8,
+      "invalid": 0
      },
      "steps": {
       "total": 4,
-      "matched": 4
+      "matched": 4,
+      "keepPhrases": 7,
+      "wordingChanged": 0
      },
      "links": {
       "truthPairs": 8,
       "outputPairs": 8,
       "correct": 8,
+      "wrong": 0,
       "precision": 1,
       "recall": 1
      },
@@ -407,6 +1587,64 @@
         "ok": true
        }
       }
+     },
+     "classes": {
+      "detection": {},
+      "modification": {}
+     }
+    }
+   },
+   {
+    "id": "eggs-divided-wash",
+    "metrics": {
+     "preparations": {
+      "total": 1,
+      "listedAsIngredient": 0,
+      "ok": 1
+     },
+     "ingredients": {
+      "total": 7,
+      "found": 7,
+      "dropped": 0,
+      "invented": 0
+     },
+     "quantities": {
+      "checked": 7,
+      "correct": 7,
+      "faithful": 7,
+      "modified": 0,
+      "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 8,
+      "invalid": 0
+     },
+     "steps": {
+      "total": 3,
+      "matched": 3,
+      "keepPhrases": 3,
+      "wordingChanged": 0
+     },
+     "links": {
+      "truthPairs": 8,
+      "outputPairs": 8,
+      "correct": 8,
+      "wrong": 0,
+      "precision": 1,
+      "recall": 1
+     },
+     "portions": {
+      "total": 2,
+      "correct": 2
+     },
+     "classes": {
+      "detection": {},
+      "modification": {}
      }
     }
    },
@@ -415,32 +1653,134 @@
     "metrics": {
      "ingredients": {
       "total": 4,
-      "found": 4
+      "found": 4,
+      "dropped": 0,
+      "invented": 0
      },
      "quantities": {
-      "checked": 4,
-      "correct": 4,
-      "faithful": 4,
-      "invented": 0,
+      "checked": 3,
+      "correct": 3,
+      "faithful": 3,
+      "modified": 0,
       "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
       "unreadableFlagged": 0,
-      "unreadable": 0
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 4,
+      "invalid": 0
      },
      "steps": {
       "total": 3,
-      "matched": 3
+      "matched": 3,
+      "keepPhrases": 0,
+      "wordingChanged": 0
      },
      "links": {
       "truthPairs": 4,
       "outputPairs": 4,
       "correct": 4,
+      "wrong": 0,
       "precision": 1,
       "recall": 1
      },
      "contradictions": {
       "total": 1,
       "surfaced": 1,
-      "silentlyResolved": 0
+      "keptUnflagged": 0,
+      "changedSilently": 0
+     },
+     "classes": {
+      "detection": {},
+      "modification": {}
+     }
+    }
+   },
+   {
+    "id": "fraction-fidelity",
+    "metrics": {
+     "ingredients": {
+      "total": 7,
+      "found": 7,
+      "dropped": 0,
+      "invented": 0
+     },
+     "quantities": {
+      "checked": 7,
+      "correct": 7,
+      "faithful": 7,
+      "modified": 0,
+      "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 0,
+      "invalid": 0
+     },
+     "classes": {
+      "detection": {},
+      "modification": {}
+     }
+    }
+   },
+   {
+    "id": "frosting-headers-in-list",
+    "metrics": {
+     "preparations": {
+      "total": 1,
+      "listedAsIngredient": 0,
+      "ok": 1
+     },
+     "ingredients": {
+      "total": 10,
+      "found": 10,
+      "dropped": 0,
+      "invented": 0
+     },
+     "quantities": {
+      "checked": 10,
+      "correct": 10,
+      "faithful": 10,
+      "modified": 0,
+      "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "sections": {
+      "checked": 10,
+      "correct": 10
+     },
+     "references": {
+      "total": 10,
+      "invalid": 0
+     },
+     "steps": {
+      "total": 4,
+      "matched": 4,
+      "keepPhrases": 2,
+      "wordingChanged": 0
+     },
+     "links": {
+      "truthPairs": 10,
+      "outputPairs": 10,
+      "correct": 10,
+      "wrong": 0,
+      "precision": 1,
+      "recall": 1
+     },
+     "classes": {
+      "detection": {},
+      "modification": {}
      }
     }
    },
@@ -454,31 +1794,47 @@
      },
      "ingredients": {
       "total": 7,
-      "found": 7
+      "found": 7,
+      "dropped": 0,
+      "invented": 0
      },
      "quantities": {
       "checked": 7,
       "correct": 7,
       "faithful": 7,
-      "invented": 0,
+      "modified": 0,
       "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
       "unreadableFlagged": 0,
-      "unreadable": 0
+      "unreadableUnflagged": 0
      },
      "sections": {
       "checked": 7,
       "correct": 7
      },
+     "references": {
+      "total": 7,
+      "invalid": 0
+     },
      "steps": {
       "total": 4,
-      "matched": 4
+      "matched": 4,
+      "keepPhrases": 0,
+      "wordingChanged": 0
      },
      "links": {
       "truthPairs": 7,
       "outputPairs": 7,
       "correct": 7,
+      "wrong": 0,
       "precision": 1,
       "recall": 1
+     },
+     "classes": {
+      "detection": {},
+      "modification": {}
      }
     }
    },
@@ -487,26 +1843,135 @@
     "metrics": {
      "ingredients": {
       "total": 7,
-      "found": 7
+      "found": 7,
+      "dropped": 0,
+      "invented": 0
      },
      "quantities": {
-      "checked": 6,
-      "correct": 6,
-      "faithful": 6,
-      "invented": 0,
+      "checked": 5,
+      "correct": 5,
+      "faithful": 5,
+      "modified": 0,
       "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 1,
       "unreadableFlagged": 1,
-      "unreadable": 1
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 0,
+      "invalid": 0
      },
      "contradictions": {
       "total": 1,
       "surfaced": 1,
-      "silentlyResolved": 0
+      "keptUnflagged": 0,
+      "changedSilently": 0
      },
      "suppression": {
       "total": 2,
       "invented": 0,
       "ok": 2
+     },
+     "classes": {
+      "detection": {},
+      "modification": {}
+     }
+    }
+   },
+   {
+    "id": "marinade-reserved",
+    "metrics": {
+     "preparations": {
+      "total": 1,
+      "listedAsIngredient": 0,
+      "ok": 1
+     },
+     "ingredients": {
+      "total": 5,
+      "found": 5,
+      "dropped": 0,
+      "invented": 0
+     },
+     "quantities": {
+      "checked": 5,
+      "correct": 5,
+      "faithful": 5,
+      "modified": 0,
+      "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 5,
+      "invalid": 0
+     },
+     "steps": {
+      "total": 3,
+      "matched": 3,
+      "keepPhrases": 3,
+      "wordingChanged": 0
+     },
+     "links": {
+      "truthPairs": 5,
+      "outputPairs": 5,
+      "correct": 5,
+      "wrong": 0,
+      "precision": 1,
+      "recall": 1
+     },
+     "classes": {
+      "detection": {},
+      "modification": {}
+     }
+    }
+   },
+   {
+    "id": "microdata-rice",
+    "metrics": {
+     "ingredients": {
+      "total": 5,
+      "found": 5,
+      "dropped": 0,
+      "invented": 0
+     },
+     "quantities": {
+      "checked": 5,
+      "correct": 5,
+      "faithful": 5,
+      "modified": 0,
+      "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 5,
+      "invalid": 0
+     },
+     "steps": {
+      "total": 3,
+      "matched": 3,
+      "keepPhrases": 1,
+      "wordingChanged": 0
+     },
+     "links": {
+      "truthPairs": 5,
+      "outputPairs": 5,
+      "correct": 5,
+      "wrong": 0,
+      "precision": 1,
+      "recall": 1
+     },
+     "classes": {
+      "detection": {},
+      "modification": {}
      }
     }
    },
@@ -520,25 +1985,37 @@
      },
      "ingredients": {
       "total": 8,
-      "found": 8
+      "found": 8,
+      "dropped": 0,
+      "invented": 0
      },
      "quantities": {
       "checked": 7,
       "correct": 7,
       "faithful": 7,
-      "invented": 0,
+      "modified": 0,
       "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
       "unreadableFlagged": 0,
-      "unreadable": 0
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 9,
+      "invalid": 0
      },
      "steps": {
       "total": 4,
-      "matched": 4
+      "matched": 4,
+      "keepPhrases": 0,
+      "wordingChanged": 0
      },
      "links": {
       "truthPairs": 9,
       "outputPairs": 9,
       "correct": 9,
+      "wrong": 0,
       "precision": 1,
       "recall": 1
      },
@@ -550,6 +2027,10 @@
       "total": 2,
       "invented": 0,
       "ok": 2
+     },
+     "classes": {
+      "detection": {},
+      "modification": {}
      }
     }
    },
@@ -558,25 +2039,37 @@
     "metrics": {
      "ingredients": {
       "total": 5,
-      "found": 5
+      "found": 5,
+      "dropped": 0,
+      "invented": 0
      },
      "quantities": {
       "checked": 4,
       "correct": 4,
       "faithful": 4,
-      "invented": 0,
+      "modified": 0,
       "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
       "unreadableFlagged": 0,
-      "unreadable": 0
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 5,
+      "invalid": 0
      },
      "steps": {
       "total": 2,
-      "matched": 2
+      "matched": 2,
+      "keepPhrases": 0,
+      "wordingChanged": 0
      },
      "links": {
       "truthPairs": 5,
       "outputPairs": 5,
       "correct": 5,
+      "wrong": 0,
       "precision": 1,
       "recall": 1
      },
@@ -605,6 +2098,223 @@
         "ok": true
        }
       }
+     },
+     "classes": {
+      "detection": {},
+      "modification": {}
+     }
+    }
+   },
+   {
+    "id": "structured-cookies",
+    "metrics": {
+     "preparations": {
+      "total": 2,
+      "listedAsIngredient": 0,
+      "ok": 2
+     },
+     "ingredients": {
+      "total": 9,
+      "found": 9,
+      "dropped": 0,
+      "invented": 0
+     },
+     "quantities": {
+      "checked": 9,
+      "correct": 9,
+      "faithful": 9,
+      "modified": 0,
+      "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 9,
+      "invalid": 0
+     },
+     "steps": {
+      "total": 5,
+      "matched": 5,
+      "keepPhrases": 2,
+      "wordingChanged": 0
+     },
+     "links": {
+      "truthPairs": 9,
+      "outputPairs": 9,
+      "correct": 9,
+      "wrong": 0,
+      "precision": 1,
+      "recall": 1
+     },
+     "source": {
+      "total": 3,
+      "ok": 3,
+      "fields": {
+       "url": {
+        "expected": "https://example.com/brown-butter-cookies",
+        "got": "https://example.com/brown-butter-cookies",
+        "ok": true
+       },
+       "siteName": {
+        "expected": "Tasty Blog",
+        "got": "Tasty Blog",
+        "ok": true
+       },
+       "originalTitle": {
+        "expected": "Brown Butter Chocolate Chip Cookies",
+        "got": "Brown Butter Chocolate Chip Cookies",
+        "ok": true
+       }
+      }
+     },
+     "classes": {
+      "detection": {},
+      "modification": {}
+     }
+    }
+   },
+   {
+    "id": "structured-curry",
+    "metrics": {
+     "ingredients": {
+      "total": 8,
+      "found": 8,
+      "dropped": 0,
+      "invented": 0
+     },
+     "quantities": {
+      "checked": 8,
+      "correct": 8,
+      "faithful": 8,
+      "modified": 0,
+      "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 8,
+      "invalid": 0
+     },
+     "steps": {
+      "total": 4,
+      "matched": 4,
+      "keepPhrases": 1,
+      "wordingChanged": 0
+     },
+     "links": {
+      "truthPairs": 8,
+      "outputPairs": 8,
+      "correct": 8,
+      "wrong": 0,
+      "precision": 1,
+      "recall": 1
+     },
+     "classes": {
+      "detection": {},
+      "modification": {}
+     }
+    }
+   },
+   {
+    "id": "substitution-in-notes",
+    "metrics": {
+     "ingredients": {
+      "total": 7,
+      "found": 7,
+      "dropped": 0,
+      "invented": 0
+     },
+     "quantities": {
+      "checked": 7,
+      "correct": 7,
+      "faithful": 7,
+      "modified": 0,
+      "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 7,
+      "invalid": 0
+     },
+     "steps": {
+      "total": 3,
+      "matched": 3,
+      "keepPhrases": 2,
+      "wordingChanged": 0
+     },
+     "links": {
+      "truthPairs": 7,
+      "outputPairs": 7,
+      "correct": 7,
+      "wrong": 0,
+      "precision": 1,
+      "recall": 1
+     },
+     "classes": {
+      "detection": {},
+      "modification": {}
+     }
+    }
+   },
+   {
+    "id": "video-source",
+    "metrics": {
+     "ingredients": {
+      "total": 0,
+      "found": 0,
+      "dropped": 0,
+      "invented": 0
+     },
+     "quantities": {
+      "checked": 0,
+      "correct": 0,
+      "faithful": 0,
+      "modified": 0,
+      "dropped": 0,
+      "invented": 0,
+      "floatArtefacts": 0,
+      "unreadable": 0,
+      "unreadableFlagged": 0,
+      "unreadableUnflagged": 0
+     },
+     "references": {
+      "total": 0,
+      "invalid": 0
+     },
+     "source": {
+      "total": 3,
+      "ok": 3,
+      "fields": {
+       "url": {
+        "expected": "https://video.example/watch?v=abc123",
+        "got": "https://video.example/watch?v=abc123",
+        "ok": true
+       },
+       "originalTitle": {
+        "expected": "5-Minute Peanut Noodles",
+        "got": "5-Minute Peanut Noodles",
+        "ok": true
+       },
+       "author": {
+        "expected": "Fixture Kitchen Channel",
+        "got": "Fixture Kitchen Channel",
+        "ok": true
+       }
+      }
+     },
+     "classes": {
+      "detection": {},
+      "modification": {}
      }
     }
    }
@@ -612,139 +2322,236 @@
  },
  "summary": {
   "extractor": {
-   "ingredients found": {
-    "score": 22,
-    "of": 22,
-    "pct": 100
+   "metrics": {
+    "ingredients found": {
+     "score": 68,
+     "of": 68,
+     "pct": 100
+    },
+    "quantities correct": {
+     "score": 62,
+     "of": 66,
+     "pct": 93.9
+    },
+    "quantities written as the source wrote them": {
+     "score": 62,
+     "of": 66,
+     "pct": 93.9
+    },
+    "step links recall": {
+     "score": 0,
+     "of": 71,
+     "pct": 0
+    },
+    "step links precision": {
+     "score": 0,
+     "of": 0,
+     "pct": null
+    },
+    "step portions correct": {
+     "score": 0,
+     "of": 6,
+     "pct": 0
+    },
+    "preparations not listed as ingredients": {
+     "score": 5,
+     "of": 6,
+     "pct": 83.3
+    },
+    "source fields captured": {
+     "score": 0,
+     "of": 10,
+     "pct": 0
+    },
+    "step wording preserved": {
+     "score": 18,
+     "of": 18,
+     "pct": 100
+    },
+    "contradictions surfaced": {
+     "score": 0,
+     "of": 1,
+     "pct": 0
+    },
+    "ingredients in the right section": {
+     "score": 3,
+     "of": 17,
+     "pct": 17.6
+    }
    },
-   "quantities correct": {
-    "score": 21,
-    "of": 21,
-    "pct": 100
+   "detection": {
+    "contradictionsNotFlagged": 1,
+    "linksMissing": 71,
+    "portionsMissing": 6,
+    "preparationsListedAsIngredients": 1,
+    "sectionsWrong": 14,
+    "sourceFieldsMissing": 10
    },
-   "quantities written as the source wrote them": {
-    "score": 21,
-    "of": 21,
-    "pct": 100
+   "modification": {
+    "ingredientsInvented": 1,
+    "quantitiesChanged": 2,
+    "quantitiesDropped": 2
+   }
+  },
+  "appDeterministic": {
+   "metrics": {
+    "ingredients found": {
+     "score": 68,
+     "of": 68,
+     "pct": 100
+    },
+    "quantities correct": {
+     "score": 62,
+     "of": 66,
+     "pct": 93.9
+    },
+    "quantities written as the source wrote them": {
+     "score": 62,
+     "of": 66,
+     "pct": 93.9
+    },
+    "step links recall": {
+     "score": 42,
+     "of": 71,
+     "pct": 59.2
+    },
+    "step links precision": {
+     "score": 42,
+     "of": 45,
+     "pct": 93.3
+    },
+    "step portions correct": {
+     "score": 0,
+     "of": 6,
+     "pct": 0
+    },
+    "preparations not listed as ingredients": {
+     "score": 5,
+     "of": 6,
+     "pct": 83.3
+    },
+    "source fields captured": {
+     "score": 0,
+     "of": 10,
+     "pct": 0
+    },
+    "step wording preserved": {
+     "score": 18,
+     "of": 18,
+     "pct": 100
+    },
+    "contradictions surfaced": {
+     "score": 0,
+     "of": 1,
+     "pct": 0
+    },
+    "ingredients in the right section": {
+     "score": 3,
+     "of": 17,
+     "pct": 17.6
+    }
    },
-   "quantities not invented": {
-    "score": 21,
-    "of": 21,
-    "pct": 100
+   "detection": {
+    "contradictionsNotFlagged": 1,
+    "linksMissing": 29,
+    "linksWrong": 3,
+    "portionsMissing": 6,
+    "preparationsListedAsIngredients": 1,
+    "sectionsWrong": 14,
+    "sourceFieldsMissing": 10
    },
-   "step links recall": {
-    "score": 0,
-    "of": 24,
-    "pct": 0
-   },
-   "step links precision": {
-    "score": 0,
-    "of": 0,
-    "pct": null
-   },
-   "step portions correct": {
-    "score": 0,
-    "of": 4,
-    "pct": 0
-   },
-   "preparations not listed as ingredients": {
-    "score": 2,
-    "of": 2,
-    "pct": 100
-   },
-   "source fields captured": {
-    "score": 0,
-    "of": 7,
-    "pct": 0
-   },
-   "contradictions surfaced": {
-    "score": 0,
-    "of": 1,
-    "pct": 0
-   },
-   "ingredients in the right section": {
-    "score": 3,
-    "of": 7,
-    "pct": 42.9
+   "modification": {
+    "ingredientsInvented": 1,
+    "quantitiesChanged": 2,
+    "quantitiesDropped": 2
    }
   },
   "reference": {
-   "ingredients found": {
-    "score": 52,
-    "of": 52,
-    "pct": 100
+   "metrics": {
+    "ingredients found": {
+     "score": 110,
+     "of": 110,
+     "pct": 100
+    },
+    "quantities correct": {
+     "score": 103,
+     "of": 103,
+     "pct": 100
+    },
+    "quantities written as the source wrote them": {
+     "score": 103,
+     "of": 103,
+     "pct": 100
+    },
+    "unknown fields left blank": {
+     "score": 6,
+     "of": 6,
+     "pct": 100
+    },
+    "ingredients in the right section": {
+     "score": 25,
+     "of": 25,
+     "pct": 100
+    },
+    "step links recall": {
+     "score": 94,
+     "of": 94,
+     "pct": 100
+    },
+    "step links precision": {
+     "score": 94,
+     "of": 94,
+     "pct": 100
+    },
+    "step portions correct": {
+     "score": 10,
+     "of": 10,
+     "pct": 100
+    },
+    "preparations not listed as ingredients": {
+     "score": 10,
+     "of": 10,
+     "pct": 100
+    },
+    "source fields captured": {
+     "score": 13,
+     "of": 13,
+     "pct": 100
+    },
+    "step wording preserved": {
+     "score": 21,
+     "of": 21,
+     "pct": 100
+    },
+    "contradictions surfaced": {
+     "score": 2,
+     "of": 2,
+     "pct": 100
+    },
+    "unreadable quantities flagged": {
+     "score": 1,
+     "of": 1,
+     "pct": 100
+    }
    },
-   "quantities correct": {
-    "score": 47,
-    "of": 47,
-    "pct": 100
-   },
-   "quantities written as the source wrote them": {
-    "score": 47,
-    "of": 47,
-    "pct": 100
-   },
-   "quantities not invented": {
-    "score": 48,
-    "of": 48,
-    "pct": 100
-   },
-   "unknown fields left blank": {
-    "score": 6,
-    "of": 6,
-    "pct": 100
-   },
-   "ingredients in the right section": {
-    "score": 15,
-    "of": 15,
-    "pct": 100
-   },
-   "step links recall": {
-    "score": 42,
-    "of": 42,
-    "pct": 100
-   },
-   "step links precision": {
-    "score": 42,
-    "of": 42,
-    "pct": 100
-   },
-   "step portions correct": {
-    "score": 8,
-    "of": 8,
-    "pct": 100
-   },
-   "preparations not listed as ingredients": {
-    "score": 5,
-    "of": 5,
-    "pct": 100
-   },
-   "source fields captured": {
-    "score": 7,
-    "of": 7,
-    "pct": 100
-   },
-   "contradictions surfaced": {
-    "score": 2,
-    "of": 2,
-    "pct": 100
-   },
-   "unreadable quantities flagged": {
-    "score": 1,
-    "of": 1,
-    "pct": 100
-   }
+   "detection": {},
+   "modification": {}
   }
  },
  "pendingPaid": [
   "ambiguous-quantities",
   "chocolate-ice-cream",
+  "fraction-fidelity",
   "low-confidence-card",
+  "marinade-reserved",
   "pumpkin-pudding"
  ],
+ "pendingServerPath": [
+  "video-source"
+ ],
  "adjustments": {
-  "total": 9,
-  "agrees": 9,
+  "total": 13,
+  "agrees": 13,
   "results": [
    {
     "fixture": "crumble-bars-adjustments",
@@ -779,10 +2586,12 @@
     "fixture": "crumble-bars-adjustments",
     "candidate": "halve-portions-exceed",
     "expected": [
-     "PORTIONS_EXCEED_TOTAL"
+     "PORTIONS_EXCEED_TOTAL",
+     "STEP_TEXT_DISAGREES_WITH_PORTION"
     ],
     "got": [
-     "PORTIONS_EXCEED_TOTAL"
+     "PORTIONS_EXCEED_TOTAL",
+     "STEP_TEXT_DISAGREES_WITH_PORTION"
     ],
     "agrees": true
    },
@@ -834,6 +2643,46 @@
     ],
     "got": [
      "SOURCE_CHANGED"
+    ],
+    "agrees": true
+   },
+   {
+    "fixture": "crumble-bars-adjustments",
+    "candidate": "halve-leaves-step-wording",
+    "expected": [
+     "STEP_TEXT_DISAGREES_WITH_PORTION"
+    ],
+    "got": [
+     "STEP_TEXT_DISAGREES_WITH_PORTION"
+    ],
+    "agrees": true
+   },
+   {
+    "fixture": "crumble-bars-adjustments",
+    "candidate": "double-keeps-pan-and-oven",
+    "expected": [],
+    "got": [],
+    "agrees": true
+   },
+   {
+    "fixture": "crumble-bars-adjustments",
+    "candidate": "double-scales-pan",
+    "expected": [
+     "SCALED_TIME_TEMPERATURE_OR_PAN"
+    ],
+    "got": [
+     "SCALED_TIME_TEMPERATURE_OR_PAN"
+    ],
+    "agrees": true
+   },
+   {
+    "fixture": "crumble-bars-adjustments",
+    "candidate": "edit-dangling-reference",
+    "expected": [
+     "REF_UNRESOLVED"
+    ],
+    "got": [
+     "REF_UNRESOLVED"
     ],
     "agrees": true
    }

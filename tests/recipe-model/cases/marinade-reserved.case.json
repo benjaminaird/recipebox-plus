@@ -1,0 +1,126 @@
+{
+ "id": "marinade-reserved",
+ "title": "Lime Chicken (marinade made, then split and reserved)",
+ "provenance": "Synthetic, authored for RecipeBox.",
+ "categories": [
+  "preparation",
+  "split-quantity",
+  "step-links"
+ ],
+ "input": {
+  "kind": "text",
+  "text": "Lime Chicken\nServes 4\n\n1/2 cup lime juice\n1/4 cup olive oil\n3 cloves garlic, minced\n1 tsp ground cumin\n1 1/2 lb chicken thighs\n\nWhisk the lime juice, oil, garlic and cumin to make the marinade. Set aside 1/4 cup of the marinade for serving.\nMarinate the chicken in the rest of the marinade for 2 hours.\nGrill the chicken 6 minutes per side and spoon over the reserved marinade."
+ },
+ "truth": {
+  "servings": "4",
+  "sections": [
+   {
+    "key": "main",
+    "match": [
+     "main",
+     "ingredients",
+     ""
+    ],
+    "anySection": true,
+    "ingredients": [
+     {
+      "key": "lime",
+      "match": [
+       "lime juice"
+      ],
+      "amount": "1/2",
+      "unit": "cup"
+     },
+     {
+      "key": "oil",
+      "match": [
+       "olive oil"
+      ],
+      "amount": "1/4",
+      "unit": "cup"
+     },
+     {
+      "key": "garlic",
+      "match": [
+       "garlic"
+      ],
+      "amount": "3",
+      "unit": "clove"
+     },
+     {
+      "key": "cumin",
+      "match": [
+       "cumin"
+      ],
+      "amount": "1",
+      "unit": "tsp"
+     },
+     {
+      "key": "chicken",
+      "match": [
+       "chicken"
+      ],
+      "amount": "1 1/2",
+      "unit": "lb"
+     }
+    ],
+    "steps": [
+     {
+      "key": "s1",
+      "cue": "whisk the lime",
+      "uses": [
+       {
+        "ing": "lime"
+       },
+       {
+        "ing": "oil"
+       },
+       {
+        "ing": "garlic"
+       },
+       {
+        "ing": "cumin"
+       }
+      ],
+      "keep": [
+       "1/4 cup"
+      ]
+     },
+     {
+      "key": "s2",
+      "cue": "marinate the chicken",
+      "uses": [
+       {
+        "ing": "chicken"
+       }
+      ],
+      "keep": [
+       "2 hours"
+      ]
+     },
+     {
+      "key": "s3",
+      "cue": "grill the chicken",
+      "uses": [],
+      "keep": [
+       "6 minutes"
+      ]
+     }
+    ]
+   }
+  ],
+  "preparations": [
+   {
+    "key": "marinade",
+    "match": [
+     "marinade"
+    ],
+    "producedBy": "s1",
+    "usedBy": [
+     "s2",
+     "s3"
+    ]
+   }
+  ]
+ }
+}

@@ -517,7 +517,8 @@
     "factor": 0.5
    },
    "expect": [
-    "PORTIONS_EXCEED_TOTAL"
+    "PORTIONS_EXCEED_TOTAL",
+    "STEP_TEXT_DISAGREES_WITH_PORTION"
    ],
    "recipe": {
     "title": "Brown Butter Crumble Bars",
@@ -1286,6 +1287,524 @@
         "ingredientRefs": [
          "i6",
          "p1"
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "label": "halve-leaves-step-wording",
+   "change": {
+    "kind": "scale",
+    "factor": 0.5
+   },
+   "expect": [
+    "STEP_TEXT_DISAGREES_WITH_PORTION"
+   ],
+   "recipe": {
+    "title": "Brown Butter Crumble Bars",
+    "servings": "8",
+    "source": {
+     "url": "https://testkitchen.example/bars",
+     "siteName": "Test Kitchen Fixture",
+     "originalTitle": "Brown Butter Crumble Bars"
+    },
+    "preparations": [
+     {
+      "id": "p1",
+      "name": "crumble",
+      "producedBy": "s3"
+     }
+    ],
+    "sections": [
+     {
+      "name": "Ingredients",
+      "ingredients": [
+       {
+        "id": "i1",
+        "name": "unsalted butter",
+        "amount": "1/2",
+        "unit": "cup"
+       },
+       {
+        "id": "i2",
+        "name": "all-purpose flour",
+        "amount": "1",
+        "unit": "cup"
+       },
+       {
+        "id": "i3",
+        "name": "granulated sugar",
+        "amount": "1/4",
+        "unit": "cup"
+       },
+       {
+        "id": "i4",
+        "name": "light brown sugar",
+        "amount": "1/4",
+        "unit": "cup"
+       },
+       {
+        "id": "i5",
+        "name": "fine salt",
+        "amount": "1/4",
+        "unit": "tsp"
+       },
+       {
+        "id": "i6",
+        "name": "raspberry jam",
+        "amount": "1/2",
+        "unit": "cup"
+       }
+      ],
+      "steps": []
+     },
+     {
+      "name": "Base",
+      "ingredients": [],
+      "steps": [
+       {
+        "id": "s1",
+        "text": "Melt 1/2 cup of the butter and stir it into 1 1/2 cups of the flour, the granulated sugar and the salt.",
+        "ingredientRefs": [
+         {
+          "id": "i1",
+          "amount": "1/4",
+          "unit": "cup"
+         },
+         {
+          "id": "i2",
+          "amount": "3/4",
+          "unit": "cup"
+         },
+         "i3",
+         "i5"
+        ]
+       },
+       {
+        "id": "s2",
+        "text": "Press into a lined 9-inch pan and bake at 350\u00b0F for 15 minutes.",
+        "ingredientRefs": []
+       }
+      ]
+     },
+     {
+      "name": "Topping",
+      "ingredients": [],
+      "steps": [
+       {
+        "id": "s3",
+        "text": "Rub the remaining 1/4 cup cold butter into the remaining 1/4 cup flour and the brown sugar until crumbly.",
+        "ingredientRefs": [
+         {
+          "id": "i1",
+          "amount": "1/4",
+          "unit": "cup"
+         },
+         {
+          "id": "i2",
+          "amount": "1/4",
+          "unit": "cup"
+         },
+         "i4"
+        ]
+       },
+       {
+        "id": "s4",
+        "text": "Spread the jam over the base, scatter the crumble over the top and bake 25 minutes more.",
+        "ingredientRefs": [
+         "i6",
+         "p1"
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "label": "double-keeps-pan-and-oven",
+   "change": {
+    "kind": "scale",
+    "factor": 2
+   },
+   "expect": [],
+   "recipe": {
+    "title": "Brown Butter Crumble Bars",
+    "servings": "32",
+    "source": {
+     "url": "https://testkitchen.example/bars",
+     "siteName": "Test Kitchen Fixture",
+     "originalTitle": "Brown Butter Crumble Bars"
+    },
+    "preparations": [
+     {
+      "id": "p1",
+      "name": "crumble",
+      "producedBy": "s3"
+     }
+    ],
+    "sections": [
+     {
+      "name": "Ingredients",
+      "ingredients": [
+       {
+        "id": "i1",
+        "name": "unsalted butter",
+        "amount": "2",
+        "unit": "cup"
+       },
+       {
+        "id": "i2",
+        "name": "all-purpose flour",
+        "amount": "4",
+        "unit": "cup"
+       },
+       {
+        "id": "i3",
+        "name": "granulated sugar",
+        "amount": "1",
+        "unit": "cup"
+       },
+       {
+        "id": "i4",
+        "name": "light brown sugar",
+        "amount": "1",
+        "unit": "cup"
+       },
+       {
+        "id": "i5",
+        "name": "fine salt",
+        "amount": "1",
+        "unit": "tsp"
+       },
+       {
+        "id": "i6",
+        "name": "raspberry jam",
+        "amount": "2",
+        "unit": "cup"
+       }
+      ],
+      "steps": []
+     },
+     {
+      "name": "Base",
+      "ingredients": [],
+      "steps": [
+       {
+        "id": "s1",
+        "text": "Melt 1 cup of the butter and stir it into 3 cups of the flour, the granulated sugar and the salt.",
+        "ingredientRefs": [
+         {
+          "id": "i1",
+          "amount": "1",
+          "unit": "cup"
+         },
+         {
+          "id": "i2",
+          "amount": "3",
+          "unit": "cup"
+         },
+         "i3",
+         "i5"
+        ]
+       },
+       {
+        "id": "s2",
+        "text": "Press into a lined 9-inch pan and bake at 350\u00b0F for 15 minutes.",
+        "ingredientRefs": []
+       }
+      ]
+     },
+     {
+      "name": "Topping",
+      "ingredients": [],
+      "steps": [
+       {
+        "id": "s3",
+        "text": "Rub the remaining 1 cup cold butter into the remaining 1 cup flour and the brown sugar until crumbly.",
+        "ingredientRefs": [
+         {
+          "id": "i1",
+          "amount": "1",
+          "unit": "cup"
+         },
+         {
+          "id": "i2",
+          "amount": "1",
+          "unit": "cup"
+         },
+         "i4"
+        ]
+       },
+       {
+        "id": "s4",
+        "text": "Spread the jam over the base, scatter the crumble over the top and bake 25 minutes more.",
+        "ingredientRefs": [
+         "i6",
+         "p1"
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "label": "double-scales-pan",
+   "change": {
+    "kind": "scale",
+    "factor": 2
+   },
+   "expect": [
+    "SCALED_TIME_TEMPERATURE_OR_PAN"
+   ],
+   "recipe": {
+    "title": "Brown Butter Crumble Bars",
+    "servings": "32",
+    "source": {
+     "url": "https://testkitchen.example/bars",
+     "siteName": "Test Kitchen Fixture",
+     "originalTitle": "Brown Butter Crumble Bars"
+    },
+    "preparations": [
+     {
+      "id": "p1",
+      "name": "crumble",
+      "producedBy": "s3"
+     }
+    ],
+    "sections": [
+     {
+      "name": "Ingredients",
+      "ingredients": [
+       {
+        "id": "i1",
+        "name": "unsalted butter",
+        "amount": "2",
+        "unit": "cup"
+       },
+       {
+        "id": "i2",
+        "name": "all-purpose flour",
+        "amount": "4",
+        "unit": "cup"
+       },
+       {
+        "id": "i3",
+        "name": "granulated sugar",
+        "amount": "1",
+        "unit": "cup"
+       },
+       {
+        "id": "i4",
+        "name": "light brown sugar",
+        "amount": "1",
+        "unit": "cup"
+       },
+       {
+        "id": "i5",
+        "name": "fine salt",
+        "amount": "1",
+        "unit": "tsp"
+       },
+       {
+        "id": "i6",
+        "name": "raspberry jam",
+        "amount": "2",
+        "unit": "cup"
+       }
+      ],
+      "steps": []
+     },
+     {
+      "name": "Base",
+      "ingredients": [],
+      "steps": [
+       {
+        "id": "s1",
+        "text": "Melt 1 cup of the butter and stir it into 3 cups of the flour, the granulated sugar and the salt.",
+        "ingredientRefs": [
+         {
+          "id": "i1",
+          "amount": "1",
+          "unit": "cup"
+         },
+         {
+          "id": "i2",
+          "amount": "3",
+          "unit": "cup"
+         },
+         "i3",
+         "i5"
+        ]
+       },
+       {
+        "id": "s2",
+        "text": "Press into a lined 18-inch pan and bake at 350\u00b0F for 15 minutes.",
+        "ingredientRefs": []
+       }
+      ]
+     },
+     {
+      "name": "Topping",
+      "ingredients": [],
+      "steps": [
+       {
+        "id": "s3",
+        "text": "Rub the remaining 1 cup cold butter into the remaining 1 cup flour and the brown sugar until crumbly.",
+        "ingredientRefs": [
+         {
+          "id": "i1",
+          "amount": "1",
+          "unit": "cup"
+         },
+         {
+          "id": "i2",
+          "amount": "1",
+          "unit": "cup"
+         },
+         "i4"
+        ]
+       },
+       {
+        "id": "s4",
+        "text": "Spread the jam over the base, scatter the crumble over the top and bake 25 minutes more.",
+        "ingredientRefs": [
+         "i6",
+         "p1"
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "label": "edit-dangling-reference",
+   "change": {
+    "kind": "edit"
+   },
+   "expect": [
+    "REF_UNRESOLVED"
+   ],
+   "recipe": {
+    "title": "Brown Butter Crumble Bars",
+    "servings": "16",
+    "source": {
+     "url": "https://testkitchen.example/bars",
+     "siteName": "Test Kitchen Fixture",
+     "originalTitle": "Brown Butter Crumble Bars"
+    },
+    "preparations": [
+     {
+      "id": "p1",
+      "name": "crumble",
+      "producedBy": "s3"
+     }
+    ],
+    "sections": [
+     {
+      "name": "Ingredients",
+      "ingredients": [
+       {
+        "id": "i1",
+        "name": "unsalted butter",
+        "amount": "1",
+        "unit": "cup"
+       },
+       {
+        "id": "i2",
+        "name": "all-purpose flour",
+        "amount": "2",
+        "unit": "cup"
+       },
+       {
+        "id": "i3",
+        "name": "granulated sugar",
+        "amount": "1/2",
+        "unit": "cup"
+       },
+       {
+        "id": "i4",
+        "name": "light brown sugar",
+        "amount": "1/2",
+        "unit": "cup"
+       },
+       {
+        "id": "i5",
+        "name": "fine salt",
+        "amount": "1/2",
+        "unit": "tsp"
+       },
+       {
+        "id": "i6",
+        "name": "raspberry jam",
+        "amount": "1",
+        "unit": "cup"
+       }
+      ],
+      "steps": []
+     },
+     {
+      "name": "Base",
+      "ingredients": [],
+      "steps": [
+       {
+        "id": "s1",
+        "text": "Melt 1/2 cup of the butter and stir it into 1 1/2 cups of the flour, the granulated sugar and the salt.",
+        "ingredientRefs": [
+         {
+          "id": "i1",
+          "amount": "1/2",
+          "unit": "cup"
+         },
+         {
+          "id": "i2",
+          "amount": "1 1/2",
+          "unit": "cup"
+         },
+         "i3",
+         "i5"
+        ]
+       },
+       {
+        "id": "s2",
+        "text": "Press into a lined 9-inch pan and bake at 350\u00b0F for 15 minutes.",
+        "ingredientRefs": []
+       }
+      ]
+     },
+     {
+      "name": "Topping",
+      "ingredients": [],
+      "steps": [
+       {
+        "id": "s3",
+        "text": "Rub the remaining 1/2 cup cold butter into the remaining 1/2 cup flour and the brown sugar until crumbly.",
+        "ingredientRefs": [
+         {
+          "id": "i1",
+          "amount": "1/2",
+          "unit": "cup"
+         },
+         {
+          "id": "i2",
+          "amount": "1/2",
+          "unit": "cup"
+         },
+         "i4"
+        ]
+       },
+       {
+        "id": "s4",
+        "text": "Spread the jam over the base, scatter the crumble over the top and bake 25 minutes more.",
+        "ingredientRefs": [
+         "i6",
+         "p1",
+         "i9"
         ]
        }
       ]

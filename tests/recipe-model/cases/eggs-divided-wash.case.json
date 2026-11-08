@@ -1,0 +1,154 @@
+{
+ "id": "eggs-divided-wash",
+ "title": "Braided Sweet Bread (eggs divided by count)",
+ "provenance": "Synthetic, authored for RecipeBox.",
+ "categories": [
+  "split-quantity",
+  "step-links",
+  "preparation"
+ ],
+ "input": {
+  "kind": "html",
+  "file": "eggs-divided-wash.html",
+  "url": "https://testkitchen.example/braid"
+ },
+ "truth": {
+  "servings": "1 loaf",
+  "sections": [
+   {
+    "key": "main",
+    "match": [
+     "main",
+     "ingredients",
+     ""
+    ],
+    "anySection": true,
+    "ingredients": [
+     {
+      "key": "flour",
+      "match": [
+       "flour"
+      ],
+      "amount": "3 1/2",
+      "unit": "cup"
+     },
+     {
+      "key": "sugar",
+      "match": [
+       "sugar"
+      ],
+      "amount": "1/4",
+      "unit": "cup"
+     },
+     {
+      "key": "yeast",
+      "match": [
+       "yeast"
+      ],
+      "amount": "2 1/4",
+      "unit": "tsp"
+     },
+     {
+      "key": "salt",
+      "match": [
+       "salt"
+      ],
+      "amount": "1",
+      "unit": "tsp"
+     },
+     {
+      "key": "milk",
+      "match": [
+       "milk"
+      ],
+      "amount": "3/4",
+      "unit": "cup"
+     },
+     {
+      "key": "butter",
+      "match": [
+       "butter"
+      ],
+      "amount": "1/4",
+      "unit": "cup"
+     },
+     {
+      "key": "eggs",
+      "match": [
+       "egg"
+      ],
+      "amount": "3",
+      "unit": "",
+      "divided": true
+     }
+    ],
+    "steps": [
+     {
+      "key": "s1",
+      "cue": "mix the flour",
+      "uses": [
+       {
+        "ing": "flour"
+       },
+       {
+        "ing": "sugar"
+       },
+       {
+        "ing": "yeast"
+       },
+       {
+        "ing": "salt"
+       },
+       {
+        "ing": "milk"
+       },
+       {
+        "ing": "butter"
+       },
+       {
+        "ing": "eggs",
+        "amount": "2",
+        "unit": ""
+       }
+      ]
+     },
+     {
+      "key": "s2",
+      "cue": "let the dough rise",
+      "uses": [],
+      "keep": [
+       "1 hour"
+      ]
+     },
+     {
+      "key": "s3",
+      "cue": "beat the remaining egg",
+      "uses": [
+       {
+        "ing": "eggs",
+        "amount": "1",
+        "unit": ""
+       }
+      ],
+      "keep": [
+       "350°F",
+       "30 minutes"
+      ]
+     }
+    ]
+   }
+  ],
+  "preparations": [
+   {
+    "key": "dough",
+    "match": [
+     "dough"
+    ],
+    "producedBy": "s1",
+    "usedBy": [
+     "s2"
+    ]
+   }
+  ]
+ }
+}
