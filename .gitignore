@@ -15,3 +15,33 @@ scripts/import-test/sources/pdfs/
 scripts/import-test/sources/photos/
 scripts/import-test/sources/desktop-pdfs/
 scripts/import-test/sources/desktop-photos/
+
+# --- Generated build output ---------------------------------------------
+# Root-level bundler output for the former EverPlate web shell. Every file is
+# generated or vendored: app.js/vendor.js bundles, Capacitor's native-bridge.js,
+# vendored Lora / Source Sans 3 woff2 and pdf.worker.min.mjs, plus the raster
+# brand library emitted by build_assets.py. Anchored with a leading slash so it
+# can never match a nested dist/ inside apps/ or packages/.
+/dist/
+
+# --- Obsolete EverPlate native artifacts --------------------------------
+# The historical Capacitor shell: see docs/adr/0001-native-mobile-client.md.
+# Rejected direction, obsolete brand name, and entirely generated — installed
+# node_modules plus Capacitor-scaffolded ios/ and android/ platform projects
+# (including their copied web assets, Xcode user state and build/ output).
+# Scoped to this one path so a future legitimate native/ tree stays trackable.
+/native/everplate/
+
+# --- Python virtual environments -----------------------------------------
+# The brand-asset pipeline's interpreter (~87 MB). Scoped rather than a blanket
+# rule so tools/everplate-assets/scripts/, prompts/ and review/ — the inputs
+# PROVENANCE.md records as the authoritative sources — remain trackable if
+# they are ever restored.
+/tools/everplate-assets/.venv/
+
+# --- Scratch output from the brand-asset pipeline -------------------------
+# Intermediate candidate renders and preflight probes, not inputs.
+/tools/everplate-assets/tmp/
+
+# --- Editor / IDE local state --------------------------------------------
+*.xcuserstate
