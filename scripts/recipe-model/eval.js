@@ -109,39 +109,66 @@ function evalAdjustments() {
   return { total: res.length, agrees: res.filter((r) => r.agrees).length, results: res };
 }
 
-// Structural audit of recorded outputs. Reports counts and case ids only, never recipe text.
+// Structural audit of recorded production-pipeline outputs. The facts are read
+// from tests/recipe-model/recorded-structure.json: per-case counts only, never
+// recipe text, so the audit doesn't depend on third-party recipe content being
+// in the repository. `--refresh-recorded` regenerates that file from the raw
+// outputs in tests/results/imports/nightmare-debug when they are present locally.
+const RECORDED_SNAPSHOT = path.join(DIR, "recorded-structure.json");
+const RECORDED_RAW = path.join(ROOT, "tests", "results", "imports", "nightmare-debug");
+
+function recordedFacts(id, r) {
+  const f = { id, sections: (r.sections || []).length, steps: 0, stepsWithRefs: 0, ingredients: 0, ingredientsReferenced: 0, unresolvedRefs: 0,
+    divided: 0, preparationLike: 0, optionalOnlyInName: 0, floatArtefacts: 0, decimalAmounts: 0 };
+  const ids = new Set(), refd = new Set();
+  for (const s of r.sections || []) for (const g of s.ingredients || []) {
+    f.ingredients++; ids.add(g.id);
+    const name = String(g.name || "");
+    if (/\bdivided\b/i.test(name + " " + (g.raw || ""))) f.divided++;
+    if (/\b(mixture|batter|dough|crumble|reserved|prepared)\b/i.test(name)) f.preparationLike++;
+    if (/\boptional\b/i.test(name) && g.optional === undefined) f.optionalOnlyInName++;
+    if (/\.\d{3,}/.test(String(g.amount || ""))) f.floatArtefacts++;
+    if (/^\d*\.\d+$/.test(String(g.amount || ""))) f.decimalAmounts++;
+  }
+  for (const s of r.sections || []) for (const st of s.steps || []) {
+    f.steps++;
+    const refs = st.ingredientRefs || [];
+    if (refs.length) f.stepsWithRefs++;
+    for (const x of refs) { const k = typeof x === "string" ? x : x && x.id; if (ids.has(k)) refd.add(k); else f.unresolvedRefs++; }
+  }
+  f.ingredientsReferenced = refd.size;
+  return f;
+}
+
+function refreshRecordedSnapshot() {
+  if (!fs.existsSync(RECORDED_RAW)) throw new Error("no raw recorded outputs at " + path.relative(ROOT, RECORDED_RAW));
+  const facts = [];
+  for (const id of fs.readdirSync(RECORDED_RAW).sort()) {
+    const p = path.join(RECORDED_RAW, id, "normalized.json");
+    if (fs.existsSync(p)) facts.push(recordedFacts(id, JSON.parse(fs.readFileSync(p, "utf8"))));
+  }
+  fs.writeFileSync(RECORDED_SNAPSHOT, JSON.stringify({ source: "tests/results/imports/nightmare-debug/*/normalized.json (structure only; no recipe text)", recipes: facts }, null, 1) + "\n");
+  return facts.length;
+}
+
 function auditRecorded() {
-  const dir = path.join(ROOT, "tests", "results", "imports", "nightmare-debug");
-  if (!fs.existsSync(dir)) return null;
+  if (!fs.existsSync(RECORDED_SNAPSHOT)) return null;
+  const facts = JSON.parse(fs.readFileSync(RECORDED_SNAPSHOT, "utf8")).recipes;
   const a = { recipes: 0, multiSection: 0, steps: 0, stepsWithRefs: 0, ingredients: 0, ingredientsReferenced: 0, unresolvedRefs: 0,
     dividedWithoutPortions: 0, preparationLikeIngredients: 0, optionalOnlyInName: 0, floatArtefacts: 0, decimalAmounts: 0, examples: {} };
   const ex = (k, id) => { (a.examples[k] = a.examples[k] || []).length < 8 && !a.examples[k].includes(id) && a.examples[k].push(id); };
-  for (const id of fs.readdirSync(dir).sort()) {
-    const p = path.join(dir, id, "normalized.json");
-    if (!fs.existsSync(p)) continue;
-    const r = JSON.parse(fs.readFileSync(p, "utf8"));
+  const MAP = { dividedWithoutPortions: "divided", preparationLikeIngredients: "preparationLike", optionalOnlyInName: "optionalOnlyInName", floatArtefacts: "floatArtefacts", decimalAmounts: "decimalAmounts" };
+  for (const f of facts) {
     a.recipes++;
-    if ((r.sections || []).length > 1) a.multiSection++;
-    const ids = new Set(), refd = new Set();
-    for (const s of r.sections || []) for (const g of s.ingredients || []) {
-      a.ingredients++; ids.add(g.id);
-      const name = String(g.name || "");
-      if (/\bdivided\b/i.test(name + " " + (g.raw || ""))) { a.dividedWithoutPortions++; ex("dividedWithoutPortions", id); }
-      if (/\b(mixture|batter|dough|crumble|reserved|prepared)\b/i.test(name)) { a.preparationLikeIngredients++; ex("preparationLikeIngredients", id); }
-      if (/\boptional\b/i.test(name) && g.optional === undefined) { a.optionalOnlyInName++; ex("optionalOnlyInName", id); }
-      if (/\.\d{3,}/.test(String(g.amount || ""))) { a.floatArtefacts++; ex("floatArtefacts", id); }
-      if (/^\d*\.\d+$/.test(String(g.amount || ""))) { a.decimalAmounts++; ex("decimalAmounts", id); }
-    }
-    for (const s of r.sections || []) for (const st of s.steps || []) {
-      a.steps++;
-      const refs = st.ingredientRefs || [];
-      if (refs.length) a.stepsWithRefs++;
-      for (const x of refs) { const k = typeof x === "string" ? x : x && x.id; if (ids.has(k)) refd.add(k); else a.unresolvedRefs++; }
-    }
-    a.ingredientsReferenced += refd.size;
+    if (f.sections > 1) a.multiSection++;
+    for (const k of ["steps", "stepsWithRefs", "ingredients", "ingredientsReferenced", "unresolvedRefs"]) a[k] += f[k];
+    for (const [k, src] of Object.entries(MAP)) { a[k] += f[src]; if (f[src]) ex(k, f.id); }
   }
+  a.examples = Object.fromEntries(Object.entries(a.examples).sort());
   return a;
 }
+
+if (args.has("--refresh-recorded")) console.log(`recorded-structure.json refreshed from ${refreshRecordedSnapshot()} raw outputs`);
 
 function stable(o) { return JSON.parse(JSON.stringify(o)); }
 

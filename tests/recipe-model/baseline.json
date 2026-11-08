@@ -2712,16 +2712,6 @@
     "nr-008",
     "nr-035"
    ],
-   "floatArtefacts": [
-    "nr-001",
-    "nr-004"
-   ],
-   "preparationLikeIngredients": [
-    "nr-004",
-    "nr-049",
-    "nr-073",
-    "nr-080"
-   ],
    "dividedWithoutPortions": [
     "nr-006",
     "nr-013",
@@ -2732,6 +2722,10 @@
     "nr-089",
     "nr-098"
    ],
+   "floatArtefacts": [
+    "nr-001",
+    "nr-004"
+   ],
    "optionalOnlyInName": [
     "nr-011",
     "nr-015",
@@ -2741,6 +2735,12 @@
     "nr-024",
     "nr-033",
     "nr-036"
+   ],
+   "preparationLikeIngredients": [
+    "nr-004",
+    "nr-049",
+    "nr-073",
+    "nr-080"
    ]
   }
  }
