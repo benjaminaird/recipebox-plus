@@ -1,0 +1,189 @@
+{
+ "id": "frosting-headers-in-list",
+ "title": "Carrot Cake (section headers inside a flat ingredient list)",
+ "provenance": "Synthetic, authored for RecipeBox; mirrors a common recipe-plugin pattern where 'For the frosting:' appears as a list item.",
+ "categories": [
+  "section-confusion",
+  "step-links",
+  "modification"
+ ],
+ "input": {
+  "kind": "html",
+  "file": "frosting-headers-in-list.html",
+  "url": "https://testkitchen.example/carrot-cake"
+ },
+ "truth": {
+  "servings": "12",
+  "sections": [
+   {
+    "key": "cake",
+    "match": [
+     "cake"
+    ],
+    "ingredients": [
+     {
+      "key": "flour",
+      "match": [
+       "flour"
+      ],
+      "amount": "2",
+      "unit": "cup"
+     },
+     {
+      "key": "sugar",
+      "match": [
+       "sugar"
+      ],
+      "amount": "1 1/2",
+      "unit": "cup"
+     },
+     {
+      "key": "soda",
+      "match": [
+       "baking soda"
+      ],
+      "amount": "2",
+      "unit": "tsp"
+     },
+     {
+      "key": "eggs",
+      "match": [
+       "egg"
+      ],
+      "amount": "4",
+      "unit": ""
+     },
+     {
+      "key": "oil",
+      "match": [
+       "oil"
+      ],
+      "amount": "1",
+      "unit": "cup"
+     },
+     {
+      "key": "carrots",
+      "match": [
+       "carrot"
+      ],
+      "amount": "3",
+      "unit": "cup"
+     }
+    ],
+    "steps": [
+     {
+      "key": "c1",
+      "cue": "whisk the flour",
+      "uses": [
+       {
+        "ing": "flour"
+       },
+       {
+        "ing": "sugar"
+       },
+       {
+        "ing": "soda"
+       },
+       {
+        "ing": "eggs"
+       },
+       {
+        "ing": "oil"
+       },
+       {
+        "ing": "carrots"
+       }
+      ]
+     },
+     {
+      "key": "c2",
+      "cue": "bake in a 9x13",
+      "uses": [],
+      "keep": [
+       "350°F",
+       "40 minutes"
+      ]
+     }
+    ]
+   },
+   {
+    "key": "frosting",
+    "match": [
+     "frosting"
+    ],
+    "ingredients": [
+     {
+      "key": "cc",
+      "match": [
+       "cream cheese"
+      ],
+      "amount": "8",
+      "unit": "oz"
+     },
+     {
+      "key": "butter",
+      "match": [
+       "butter"
+      ],
+      "amount": "1/2",
+      "unit": "cup"
+     },
+     {
+      "key": "powdered",
+      "match": [
+       "powdered sugar"
+      ],
+      "amount": "3",
+      "unit": "cup"
+     },
+     {
+      "key": "vanilla",
+      "match": [
+       "vanilla"
+      ],
+      "amount": "1",
+      "unit": "tsp"
+     }
+    ],
+    "steps": [
+     {
+      "key": "f1",
+      "cue": "beat the cream cheese",
+      "uses": [
+       {
+        "ing": "cc"
+       },
+       {
+        "ing": "butter"
+       },
+       {
+        "ing": "powdered"
+       },
+       {
+        "ing": "vanilla"
+       }
+      ]
+     },
+     {
+      "key": "f2",
+      "cue": "spread the frosting",
+      "uses": []
+     }
+    ]
+   }
+  ],
+  "preparations": [
+   {
+    "key": "frosting",
+    "match": [
+     "the frosting"
+    ],
+    "producedBy": "f1",
+    "usedBy": [
+     "f2"
+    ]
+   }
+  ],
+  "allowedExtras": []
+ }
+}

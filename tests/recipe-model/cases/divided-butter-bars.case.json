@@ -1,0 +1,189 @@
+{
+ "id": "divided-butter-bars",
+ "title": "Brown Butter Crumble Bars",
+ "provenance": "Synthetic, authored for RecipeBox.",
+ "categories": [
+  "split-quantity",
+  "step-links",
+  "preparation",
+  "section-confusion"
+ ],
+ "input": {
+  "kind": "html",
+  "file": "divided-butter-bars.html",
+  "url": "https://testkitchen.example/bars?utm_source=pinterest&utm_medium=social"
+ },
+ "truth": {
+  "servings": "16",
+  "sections": [
+   {
+    "key": "shared",
+    "match": [
+     "main",
+     "ingredients",
+     "base",
+     "topping"
+    ],
+    "anySection": true,
+    "ingredients": [
+     {
+      "key": "butter",
+      "match": [
+       "butter"
+      ],
+      "amount": "1",
+      "unit": "cup",
+      "divided": true
+     },
+     {
+      "key": "flour",
+      "match": [
+       "flour"
+      ],
+      "amount": "2",
+      "unit": "cup",
+      "divided": true
+     },
+     {
+      "key": "gran",
+      "match": [
+       "granulated sugar"
+      ],
+      "amount": "1/2",
+      "unit": "cup"
+     },
+     {
+      "key": "brown",
+      "match": [
+       "brown sugar"
+      ],
+      "amount": "1/2",
+      "unit": "cup"
+     },
+     {
+      "key": "salt",
+      "match": [
+       "salt"
+      ],
+      "amount": "1/2",
+      "unit": "tsp"
+     },
+     {
+      "key": "jam",
+      "match": [
+       "jam"
+      ],
+      "amount": "1",
+      "unit": "cup"
+     }
+    ],
+    "steps": []
+   },
+   {
+    "key": "base",
+    "match": [
+     "base"
+    ],
+    "ingredients": [],
+    "steps": [
+     {
+      "key": "b1",
+      "cue": "melt 1/2 cup",
+      "uses": [
+       {
+        "ing": "butter",
+        "amount": "1/2",
+        "unit": "cup"
+       },
+       {
+        "ing": "flour",
+        "amount": "1 1/2",
+        "unit": "cup"
+       },
+       {
+        "ing": "gran"
+       },
+       {
+        "ing": "salt"
+       }
+      ],
+      "keep": [
+       "1/2 cup",
+       "1 1/2 cups"
+      ]
+     },
+     {
+      "key": "b2",
+      "cue": "press into",
+      "uses": [],
+      "keep": [
+       "9-inch",
+       "350°F",
+       "15 minutes"
+      ]
+     }
+    ]
+   },
+   {
+    "key": "topping",
+    "match": [
+     "topping"
+    ],
+    "ingredients": [],
+    "steps": [
+     {
+      "key": "t1",
+      "cue": "rub the remaining",
+      "uses": [
+       {
+        "ing": "butter",
+        "amount": "1/2",
+        "unit": "cup"
+       },
+       {
+        "ing": "flour",
+        "amount": "1/2",
+        "unit": "cup"
+       },
+       {
+        "ing": "brown"
+       }
+      ],
+      "keep": [
+       "1/2 cup"
+      ]
+     },
+     {
+      "key": "t2",
+      "cue": "spread the jam",
+      "uses": [
+       {
+        "ing": "jam"
+       }
+      ],
+      "keep": [
+       "25 minutes"
+      ]
+     }
+    ]
+   }
+  ],
+  "preparations": [
+   {
+    "key": "crumble",
+    "match": [
+     "crumble"
+    ],
+    "producedBy": "t1",
+    "usedBy": [
+     "t2"
+    ]
+   }
+  ],
+  "source": {
+   "url": "https://testkitchen.example/bars",
+   "siteName": "Test Kitchen Fixture",
+   "originalTitle": "Brown Butter Crumble Bars"
+  }
+ }
+}

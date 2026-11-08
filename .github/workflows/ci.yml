@@ -1,0 +1,115 @@
+name: CI
+
+# Tests only. This workflow uses no secrets, has read-only repository access,
+# and never contacts Vercel, Neon or any AI provider. Production deploys are
+# handled separately by Vercel's Git integration on `main` and are unaffected.
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Make the no-credentials guarantee explicit: none of these exist in CI.
+  DATABASE_URL: ""
+  ANTHROPIC_API_KEY: ""
+  RESEND_API_KEY: ""
+  YOUTUBE_API_KEY: ""
+
+jobs:
+  domain:
+    name: Domain logic (no dependencies)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node }}
+      # No npm install on purpose: these modules must stay dependency-free.
+      - name: Domain regression scripts
+        run: |
+          for t in normalize-test import-extract-test grounding-test recipe-schema-test \
+                   recipe-tags-test shopping-list-test nutrition-test recipe-library-test; do
+            echo "::group::$t"; node scripts/$t.js; echo "::endgroup::"
+          done
+      - name: Recipe-model scorer tests
+        run: node scripts/recipe-model/scorer-test.js
+      - name: Recipe-model evaluation (must match baseline, $0, no network)
+        run: node scripts/recipe-model/eval.js
+      - name: Design tokens
+        run: node scripts/design-tokens-check.js
+
+  server:
+    name: Server tests (offline, no database)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Server-dependent tests
+        run: |
+          for t in nutrition-billing-test ai-credits-test auth-rate-limit-test auth-verification-test \
+                   entitlements-test household-test import-fidelity-test import-reliability-test \
+                   library-view-test meal-plan-test nightmare-report-test notes-import-test \
+                   recipe-persistence-test recipe-save-test request-guards-test scraper-fallback-test \
+                   security-hardening-test security-headers-test youtube-parser-test; do
+            echo "::group::$t"; node scripts/$t.js; echo "::endgroup::"
+          done
+      - name: No tracked files changed
+        run: git diff --exit-code
+
+  web:
+    name: Web build and isolated preview
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: public/app.js is a faithful build of src/app.jsx
+        run: |
+          npm run build:app
+          git diff --exit-code public/app.js || { echo "::error::public/app.js is out of date with src/app.jsx. Run npm run build:app and commit it."; exit 1; }
+      - name: Install headless browser
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Isolated preview check (local server, no database, no keys)
+        run: node scripts/web-preview-check.js
+
+  mobile:
+    name: Native shell (Expo, no device)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Generated tokens match design/tokens
+        run: npm run tokens:check
+      - name: Type check
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test
+      - name: Bundle iOS and Android (Hermes bytecode)
+        run: npm run export:check

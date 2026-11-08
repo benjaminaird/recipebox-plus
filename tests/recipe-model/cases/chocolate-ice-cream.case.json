@@ -1,0 +1,212 @@
+{
+ "id": "chocolate-ice-cream",
+ "title": "Chocolate Ice Cream (synthetic stand-in)",
+ "provenance": "SYNTHETIC STAND-IN written for RecipeBox. It reproduces the failure class reported for the real chocolate ice cream recipe (a cooked custard base treated as an ingredient, cream split between two steps, optional mix-ins). Replace or supplement with the real recipe in tests/recipe-model/private/ when it is provided.",
+ "categories": [
+  "preparation",
+  "split-quantity",
+  "step-links",
+  "adjustment"
+ ],
+ "input": {
+  "kind": "text",
+  "text": "Chocolate Ice Cream\nMakes about 1 quart\n\nCustard base\n2 cups heavy cream, divided\n1 cup whole milk\n2/3 cup sugar\n5 egg yolks\n1/3 cup cocoa powder\n4 oz bittersweet chocolate, chopped\n\nTo finish\n1 tsp vanilla extract\n1/2 cup chopped toasted almonds (optional)\n\nPut the chocolate in a large bowl with 1 cup of the cream.\nHeat the milk, the remaining 1 cup cream, cocoa and sugar until steaming.\nWhisk the yolks, then slowly whisk in the hot milk mixture and return it to the pan. Cook, stirring, until it coats a spoon.\nStrain the custard base over the chocolate and cream, stir until smooth, add the vanilla and chill at least 4 hours.\nChurn the chilled base, folding in the almonds at the end if using."
+ },
+ "truth": {
+  "servings": "1 quart",
+  "sections": [
+   {
+    "key": "base",
+    "match": [
+     "custard base",
+     "base"
+    ],
+    "ingredients": [
+     {
+      "key": "cream",
+      "match": [
+       "heavy cream",
+       "cream"
+      ],
+      "amount": "2",
+      "unit": "cup",
+      "divided": true
+     },
+     {
+      "key": "milk",
+      "match": [
+       "milk"
+      ],
+      "amount": "1",
+      "unit": "cup"
+     },
+     {
+      "key": "sugar",
+      "match": [
+       "sugar"
+      ],
+      "amount": "2/3",
+      "unit": "cup"
+     },
+     {
+      "key": "yolks",
+      "match": [
+       "yolk"
+      ],
+      "amount": "5",
+      "unit": ""
+     },
+     {
+      "key": "cocoa",
+      "match": [
+       "cocoa"
+      ],
+      "amount": "1/3",
+      "unit": "cup"
+     },
+     {
+      "key": "choc",
+      "match": [
+       "bittersweet chocolate",
+       "chocolate"
+      ],
+      "amount": "4",
+      "unit": "oz"
+     }
+    ],
+    "steps": []
+   },
+   {
+    "key": "finish",
+    "match": [
+     "to finish",
+     "finish"
+    ],
+    "ingredients": [
+     {
+      "key": "vanilla",
+      "match": [
+       "vanilla"
+      ],
+      "amount": "1",
+      "unit": "tsp"
+     },
+     {
+      "key": "almonds",
+      "match": [
+       "almond"
+      ],
+      "amount": "1/2",
+      "unit": "cup",
+      "optional": true
+     }
+    ],
+    "steps": []
+   },
+   {
+    "key": "method",
+    "match": [
+     "method",
+     "directions",
+     "instructions",
+     "main",
+     "custard base",
+     "base",
+     "to finish",
+     "finish"
+    ],
+    "ingredients": [],
+    "steps": [
+     {
+      "key": "s1",
+      "cue": "put the chocolate",
+      "uses": [
+       {
+        "ing": "choc"
+       },
+       {
+        "ing": "cream",
+        "amount": "1",
+        "unit": "cup"
+       }
+      ]
+     },
+     {
+      "key": "s2",
+      "cue": "heat the milk",
+      "uses": [
+       {
+        "ing": "milk"
+       },
+       {
+        "ing": "cream",
+        "amount": "1",
+        "unit": "cup"
+       },
+       {
+        "ing": "cocoa"
+       },
+       {
+        "ing": "sugar"
+       }
+      ]
+     },
+     {
+      "key": "s3",
+      "cue": "whisk the yolks",
+      "uses": [
+       {
+        "ing": "yolks"
+       }
+      ]
+     },
+     {
+      "key": "s4",
+      "cue": "strain the custard",
+      "uses": [
+       {
+        "ing": "vanilla"
+       }
+      ]
+     },
+     {
+      "key": "s5",
+      "cue": "churn the chilled",
+      "uses": [
+       {
+        "ing": "almonds"
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "preparations": [
+   {
+    "key": "hotmilk",
+    "match": [
+     "hot milk mixture",
+     "milk mixture"
+    ],
+    "producedBy": "s2",
+    "usedBy": [
+     "s3"
+    ]
+   },
+   {
+    "key": "custard",
+    "match": [
+     "custard base",
+     "custard",
+     "ice cream base",
+     "chilled base"
+    ],
+    "producedBy": "s3",
+    "usedBy": [
+     "s4",
+     "s5"
+    ]
+   }
+  ]
+ }
+}

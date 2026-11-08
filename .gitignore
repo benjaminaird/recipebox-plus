@@ -16,6 +16,11 @@ scripts/import-test/sources/photos/
 scripts/import-test/sources/desktop-pdfs/
 scripts/import-test/sources/desktop-photos/
 
+# M1 recipe-model corpus: private recipe cards, photos and sensitive sources
+# never enter this public repository. Only the README is tracked.
+tests/recipe-model/private/*
+!tests/recipe-model/private/README.md
+
 # --- Generated build output ---------------------------------------------
 # Root-level bundler output for the former EverPlate web shell. Every file is
 # generated or vendored: app.js/vendor.js bundles, Capacitor's native-bridge.js,

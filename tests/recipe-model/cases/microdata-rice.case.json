@@ -1,0 +1,107 @@
+{
+ "id": "microdata-rice",
+ "title": "Garlic Butter Rice (existing microdata fixture)",
+ "provenance": "Existing public synthetic fixture scripts/import-test/fixtures/microdata-only.html.",
+ "categories": [
+  "step-links",
+  "quantities"
+ ],
+ "input": {
+  "kind": "html",
+  "file": "../../../scripts/import-test/fixtures/microdata-only.html",
+  "url": "https://example.com/rice"
+ },
+ "truth": {
+  "sections": [
+   {
+    "key": "main",
+    "match": [
+     "main",
+     "ingredients",
+     ""
+    ],
+    "anySection": true,
+    "ingredients": [
+     {
+      "key": "butter",
+      "match": [
+       "butter"
+      ],
+      "amount": "2",
+      "unit": "tbsp"
+     },
+     {
+      "key": "garlic",
+      "match": [
+       "garlic"
+      ],
+      "amount": "3",
+      "unit": "clove"
+     },
+     {
+      "key": "rice",
+      "match": [
+       "rice"
+      ],
+      "amount": "1",
+      "unit": "cup"
+     },
+     {
+      "key": "broth",
+      "match": [
+       "broth"
+      ],
+      "amount": "2",
+      "unit": "cup"
+     },
+     {
+      "key": "salt",
+      "match": [
+       "salt"
+      ],
+      "amount": "1/4",
+      "unit": "tsp"
+     }
+    ],
+    "steps": [
+     {
+      "key": "s1",
+      "cue": "melt the butter",
+      "uses": [
+       {
+        "ing": "butter"
+       },
+       {
+        "ing": "garlic"
+       }
+      ]
+     },
+     {
+      "key": "s2",
+      "cue": "toast the rice",
+      "uses": [
+       {
+        "ing": "rice"
+       }
+      ]
+     },
+     {
+      "key": "s3",
+      "cue": "add the broth",
+      "uses": [
+       {
+        "ing": "broth"
+       },
+       {
+        "ing": "salt"
+       }
+      ],
+      "keep": [
+       "18 minutes"
+      ]
+     }
+    ]
+   }
+  ]
+ }
+}

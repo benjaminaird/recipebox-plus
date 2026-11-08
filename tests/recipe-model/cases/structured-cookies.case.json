@@ -1,0 +1,194 @@
+{
+ "id": "structured-cookies",
+ "title": "Brown Butter Chocolate Chip Cookies (existing WPRM-style fixture)",
+ "provenance": "Existing public synthetic fixture scripts/import-test/fixtures/jsonld-wprm.html.",
+ "categories": [
+  "step-links",
+  "source",
+  "quantities"
+ ],
+ "input": {
+  "kind": "html",
+  "file": "../../../scripts/import-test/fixtures/jsonld-wprm.html",
+  "url": "https://example.com/brown-butter-cookies?utm_source=feed"
+ },
+ "truth": {
+  "servings": "24",
+  "sections": [
+   {
+    "key": "main",
+    "match": [
+     "main",
+     "ingredients",
+     ""
+    ],
+    "anySection": true,
+    "ingredients": [
+     {
+      "key": "butter",
+      "match": [
+       "butter"
+      ],
+      "amount": "1",
+      "unit": "cup"
+     },
+     {
+      "key": "brown",
+      "match": [
+       "brown sugar"
+      ],
+      "amount": "1 1/4",
+      "unit": "cup"
+     },
+     {
+      "key": "gran",
+      "match": [
+       "granulated sugar"
+      ],
+      "amount": "1/2",
+      "unit": "cup"
+     },
+     {
+      "key": "eggs",
+      "match": [
+       "egg"
+      ],
+      "amount": "2",
+      "unit": ""
+     },
+     {
+      "key": "vanilla",
+      "match": [
+       "vanilla"
+      ],
+      "amount": "2",
+      "unit": "tsp"
+     },
+     {
+      "key": "flour",
+      "match": [
+       "flour"
+      ],
+      "amount": "2 3/4",
+      "unit": "cup"
+     },
+     {
+      "key": "soda",
+      "match": [
+       "baking soda"
+      ],
+      "amount": "1",
+      "unit": "tsp"
+     },
+     {
+      "key": "salt",
+      "match": [
+       "salt"
+      ],
+      "amount": "3/4",
+      "unit": "tsp"
+     },
+     {
+      "key": "chips",
+      "match": [
+       "chocolate chip"
+      ],
+      "amount": "2",
+      "unit": "cup"
+     }
+    ],
+    "steps": [
+     {
+      "key": "s1",
+      "cue": "brown the butter",
+      "uses": [
+       {
+        "ing": "butter"
+       }
+      ]
+     },
+     {
+      "key": "s2",
+      "cue": "whisk the brown butter",
+      "uses": [
+       {
+        "ing": "brown"
+       },
+       {
+        "ing": "gran"
+       },
+       {
+        "ing": "eggs"
+       },
+       {
+        "ing": "vanilla"
+       }
+      ]
+     },
+     {
+      "key": "s3",
+      "cue": "stir in the flour",
+      "uses": [
+       {
+        "ing": "flour"
+       },
+       {
+        "ing": "soda"
+       },
+       {
+        "ing": "salt"
+       },
+       {
+        "ing": "chips"
+       }
+      ]
+     },
+     {
+      "key": "s4",
+      "cue": "scoop and chill",
+      "uses": [],
+      "keep": [
+       "30 minutes"
+      ]
+     },
+     {
+      "key": "s5",
+      "cue": "bake at 375",
+      "uses": [],
+      "keep": [
+       "10 to 11 minutes"
+      ]
+     }
+    ]
+   }
+  ],
+  "preparations": [
+   {
+    "key": "bb",
+    "match": [
+     "brown butter",
+     "browned butter"
+    ],
+    "producedBy": "s1",
+    "usedBy": [
+     "s2"
+    ]
+   },
+   {
+    "key": "dough",
+    "match": [
+     "dough"
+    ],
+    "producedBy": "s3",
+    "usedBy": [
+     "s4"
+    ]
+   }
+  ],
+  "source": {
+   "url": "https://example.com/brown-butter-cookies",
+   "siteName": "Tasty Blog",
+   "originalTitle": "Brown Butter Chocolate Chip Cookies"
+  }
+ }
+}

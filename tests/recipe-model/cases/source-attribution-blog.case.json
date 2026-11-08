@@ -1,0 +1,104 @@
+{
+ "id": "source-attribution-blog",
+ "title": "Weeknight Lentil Soup (attribution fields)",
+ "provenance": "Synthetic page on a reserved .example domain, authored for RecipeBox.",
+ "categories": [
+  "source"
+ ],
+ "input": {
+  "kind": "html",
+  "file": "source-attribution-blog.html",
+  "url": "https://fixturefoodblog.example/recipes/weeknight-lentil-soup/?utm_campaign=newsletter&fbclid=abc123"
+ },
+ "truth": {
+  "servings": "4",
+  "sections": [
+   {
+    "key": "main",
+    "match": [
+     "main",
+     "ingredients",
+     ""
+    ],
+    "anySection": true,
+    "ingredients": [
+     {
+      "key": "oil",
+      "match": [
+       "olive oil"
+      ],
+      "amount": "1",
+      "unit": "tbsp"
+     },
+     {
+      "key": "onion",
+      "match": [
+       "onion"
+      ],
+      "amount": "1",
+      "unit": ""
+     },
+     {
+      "key": "lentils",
+      "match": [
+       "lentil"
+      ],
+      "amount": "1",
+      "unit": "cup"
+     },
+     {
+      "key": "stock",
+      "match": [
+       "stock"
+      ],
+      "amount": "4",
+      "unit": "cup"
+     },
+     {
+      "key": "salt",
+      "match": [
+       "salt"
+      ],
+      "amount": "",
+      "unit": ""
+     }
+    ],
+    "steps": [
+     {
+      "key": "s1",
+      "cue": "soften the onion",
+      "uses": [
+       {
+        "ing": "onion"
+       },
+       {
+        "ing": "oil"
+       }
+      ]
+     },
+     {
+      "key": "s2",
+      "cue": "add the lentils",
+      "uses": [
+       {
+        "ing": "lentils"
+       },
+       {
+        "ing": "stock"
+       },
+       {
+        "ing": "salt"
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "source": {
+   "url": "https://fixturefoodblog.example/recipes/weeknight-lentil-soup/",
+   "siteName": "Fixture Food Blog",
+   "originalTitle": "Weeknight Lentil Soup",
+   "author": "Avery Quinn"
+  }
+ }
+}

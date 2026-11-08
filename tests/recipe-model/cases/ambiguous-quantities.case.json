@@ -1,0 +1,90 @@
+{
+ "id": "ambiguous-quantities",
+ "title": "Tomato Braised Beans (vague and missing amounts)",
+ "provenance": "Synthetic, authored for RecipeBox.",
+ "categories": [
+  "missing-quantity",
+  "import-review"
+ ],
+ "input": {
+  "kind": "text",
+  "text": "Tomato Braised Beans\n\n2 tbsp olive oil\n1 onion, sliced\n1 can white beans, drained\n1 can chopped tomatoes\na splash of red wine vinegar\nsalt and pepper to taste\neggs\n\nSoften the onion in the oil. Add the beans and tomatoes and simmer 15 minutes. Add a splash of vinegar and season to taste. Make wells and crack in the eggs; cover and cook until set."
+ },
+ "truth": {
+  "servings": null,
+  "blank": [
+   "servings",
+   "macros"
+  ],
+  "sections": [
+   {
+    "key": "main",
+    "match": [
+     "main",
+     "ingredients",
+     ""
+    ],
+    "anySection": true,
+    "ingredients": [
+     {
+      "key": "oil",
+      "match": [
+       "olive oil"
+      ],
+      "amount": "2",
+      "unit": "tbsp"
+     },
+     {
+      "key": "onion",
+      "match": [
+       "onion"
+      ],
+      "amount": "1",
+      "unit": ""
+     },
+     {
+      "key": "beans",
+      "match": [
+       "bean"
+      ],
+      "amount": "1",
+      "unit": "can"
+     },
+     {
+      "key": "tomatoes",
+      "match": [
+       "tomato"
+      ],
+      "amount": "1",
+      "unit": "can"
+     },
+     {
+      "key": "vinegar",
+      "match": [
+       "vinegar"
+      ],
+      "amount": "splash",
+      "unit": ""
+     },
+     {
+      "key": "salt",
+      "match": [
+       "salt"
+      ],
+      "amount": "",
+      "unit": ""
+     },
+     {
+      "key": "eggs",
+      "match": [
+       "egg"
+      ],
+      "amount": "",
+      "unit": ""
+     }
+    ],
+    "steps": []
+   }
+  ]
+ }
+}

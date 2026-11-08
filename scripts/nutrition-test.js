@@ -1,7 +1,8 @@
+// Pure domain test for public/nutrition.js: no server, no network, no
+// dependencies, so it can run on Node and later on Hermes. The server-side
+// billing checks for the nutrition prompt live in nutrition-billing-test.js.
 const assert = require("assert");
 const N = require("../public/nutrition");
-const app = require("../server");
-const { detectAiFeature, aiAssistCost } = app._test;
 
 // ── normalizeNutrition: coerce messy model/import output to a fixed shape ──
 const messy = N.normalizeNutrition({
@@ -82,11 +83,5 @@ assert.ok(prompt.system && Array.isArray(prompt.messages) && prompt.messages.len
 const text = prompt.messages[0].content;
 assert.ok(/broth/i.test(text) && /chicken/i.test(text), "ingredients are included");
 assert.ok(!/Mix|step|direction/i.test(text), "steps are NOT included (keeps the call small)");
-// The server must classify this prompt as the `nutrition` feature, costing 1 Assist.
-assert.strictEqual(detectAiFeature({ system: prompt.system, messages: prompt.messages }), "nutrition", "server bills the prompt as nutrition");
-assert.strictEqual(aiAssistCost("nutrition"), 1, "nutrition costs exactly 1 AI Assist");
-// And it must NOT trip the import/adjust classifiers.
-assert.notStrictEqual(detectAiFeature({ messages: prompt.messages }), "import");
-assert.notStrictEqual(detectAiFeature({ messages: prompt.messages }), "adjust");
 
 console.log("nutrition-test: ok");

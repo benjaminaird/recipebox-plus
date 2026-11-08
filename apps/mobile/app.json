@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "RecipeBox",
+    "slug": "recipebox",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.benjaminaird.recipebox.dev"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#2B5B45",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.benjaminaird.recipebox.dev"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#F6F5F1",
+          "dark": {
+            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#141413"
+          }
+        }
+      ],
+      "expo-sqlite",
+      "expo-font"
+    ],
+    "extra": {
+      "notes": "Design-system test build. Provisional identifiers (.dev); the permanent bundle identifier is not yet chosen. No auth, database, AI or sync."
+    }
+  }
+}
