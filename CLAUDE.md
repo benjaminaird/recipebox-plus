@@ -5,7 +5,7 @@ Read [GLOSSARY.md](./GLOSSARY.md) for the project's vocabulary and
 
 ## The one thing not to get wrong
 
-**RecipeBox 2.0 is a genuinely native mobile app, not a wrapped web app.** See
+**RecipeBox's mobile app is genuinely native, not a wrapped web app.** See
 [ADR 0001](./docs/adr/0001-native-mobile-client.md). Do not propose, plan or
 build a Capacitor/WebView shell, an embedding of the existing React web UI, or a
 responsive restyle of the web app presented as the native product. These were
@@ -18,6 +18,14 @@ brand name. It is not the direction.
 Web prototypes built to explore the visual identity are **disposable design
 experiments**, not the foundation of the mobile app. Do not let one graduate
 into the product.
+
+## Naming
+
+The product is **RecipeBox**. "RecipeBox 2.0" and "RecipeBox Plus" are obsolete
+names — do not use them in anything a user sees. The repository
+(`recipebox-plus`) and the branch (`feature/recipebox-2.0`) deliberately keep
+their names; do not rename them. ADRs 0001–0012 predate this and still say
+"RecipeBox 2.0"; read that as "the native RecipeBox client".
 
 ## Decisions already made
 
@@ -33,10 +41,15 @@ into the product.
 - [0010](./docs/adr/0010-versioned-api-and-token-auth.md) — /api/v1 + token auth for native; web cookies untouched
 - [0011](./docs/adr/0011-native-v1-scope-and-build-order.md) — v1 scope; household retained; sync built in four stages
 - [0012](./docs/adr/0012-structured-recipe-model.md) — one ingredient list, steps reference it; blocks Recipe Detail and Cook Mode
+- [0013](./docs/adr/0013-the-product-is-called-recipebox.md) — the product is **RecipeBox**; "2.0" and "Plus" are obsolete, but the branch and repo keep their names
+- [0014](./docs/adr/0014-contextual-import-review.md) — review in context; an unresolved recipe can still be saved
+- [0015](./docs/adr/0015-recipe-version-history.md) — originals kept, every change reversible
+- [0016](./docs/adr/0016-ai-recipe-helper.md) — the Helper proposes, validates, and waits for approval
+- [0017](./docs/adr/0017-model-selection-is-measured.md) — the production model is chosen by measurement
 
 ## Product requirements
 
-- [docs/recipebox-2.0-requirements.md](./docs/recipebox-2.0-requirements.md) — the product experience, with confirmed / existing / unresolved / future clearly separated
+- [docs/product-requirements.md](./docs/product-requirements.md) — the product experience, with confirmed / existing / unresolved / future clearly separated
 - [docs/recipe-model-investigation.md](./docs/recipe-model-investigation.md) — the recipe-model milestone that gates Recipe Detail and Cook Mode
 
 ## What is what

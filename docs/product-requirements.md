@@ -1,4 +1,4 @@
-# RecipeBox 2.0 — product requirements
+# RecipeBox — product requirements
 
 Architecture decisions live in [docs/adr/](./adr/). This document covers the
 product experience. Sections are labelled so settled decisions are never
@@ -8,9 +8,10 @@ confused with open ones.
 
 ## Identity — confirmed
 
-The product is **RecipeBox** on every surface. No plus sign in the user-facing
-brand; a `+` for an Add Recipe action is fine. **RecipeBox Plus** is reserved for
-a future paid tier. **EverPlate** was considered and rejected.
+The product is **RecipeBox** on every surface — no version number, no tier, no
+plus sign in the name; a `+` for an Add Recipe action is fine. "RecipeBox 2.0"
+and "RecipeBox Plus" are obsolete (ADR 0013). **EverPlate** was considered and
+rejected.
 
 The app icon should evoke a recipe box or recipe cards, carry no plus sign, and
 work as an iPhone home-screen icon, a PWA icon and a favicon.
@@ -107,6 +108,48 @@ decorative movement in the initial redesign. Performance and clarity first.
 
 ---
 
+## Import Review — confirmed
+
+Review shows **the recipe**, with uncertainty marked on the ingredient or step it
+concerns — never a form of blank fields. A recipe with unresolved flags **can be
+saved** and resolved later, including mid-cook. Source wording is preserved and
+shown, so a disagreement is resolved by choosing rather than retyping. When
+confidence is low, enhancements are **suppressed rather than guessed**: no
+invented servings, no estimated macros. See
+[ADR 0014](./adr/0014-contextual-import-review.md).
+
+## AI Recipe Helper — confirmed
+
+Modification through AI is a conversation ending in explicit approval: discuss →
+plain-English proposal → negotiate → show the concrete changes → validate against
+the recipe model → approve. Approving writes a new version, so it is reversible.
+The Helper never touches the imported original and never resolves an import flag
+on the user's behalf. See [ADR 0016](./adr/0016-ai-recipe-helper.md).
+
+## Version history — confirmed
+
+Every Recipe keeps the version it arrived as and every version since; any change
+is reversible, whatever made it — a hand edit, an accepted Helper proposal, a
+resolved flag, a sync conflict. See
+[ADR 0015](./adr/0015-recipe-version-history.md).
+
+## Preparations and Portions — confirmed
+
+The recipe model distinguishes an **Ingredient** from a **Preparation** — the
+thing the recipe makes and then uses. A pudding mixture the recipe produces is
+never read as another box of pudding mix. A step shows the **Portion** it uses:
+1 cup out of a 2-cup Ingredient reads as 1 cup, not 2. Both are part of
+[ADR 0012](./adr/0012-structured-recipe-model.md) and gated on the
+[recipe model investigation](./recipe-model-investigation.md).
+
+## Model selection — confirmed as a gate
+
+The production AI model is chosen by measuring accuracy, latency and real
+operating cost against the import corpus, not by reputation. See
+[ADR 0017](./adr/0017-model-selection-is-measured.md).
+
+---
+
 ## Existing behaviour to preserve
 
 Shipped in the web app and not to be lost: all Import paths (web link, YouTube,
@@ -124,7 +167,11 @@ email verification, household sharing, and offline reading.
 - The ten recipe-model questions in
   [recipe-model-investigation.md](./recipe-model-investigation.md).
 - Whether the ~2.4s branded splash experience fits the new design.
-- Visual direction — three written directions under review, then prototypes.
+- Visual direction — three concepts prototyped across four screens; Import Review
+  still to be added, then a direction chosen.
+- Version-history retention: unlimited is simplest, but needs a size estimate
+  against a large library before being promised (ADR 0015).
+- Whether different import paths warrant different models (ADR 0017).
 - Meal Plan's depth: it is shipped and retained, but how far planning develops in
   2.0 is open.
 

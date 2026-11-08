@@ -8,12 +8,9 @@ actually find them, stores them durably, and makes them easy to cook from.
 ### Product
 
 **RecipeBox**:
-The product, on every platform. The user-facing brand never carries a plus sign.
-_Avoid_: RecipeBox+, EverPlate, recipebox-plus (that is the repository, not the product)
-
-**RecipeBox Plus**:
-The future paid tier. Only ever a tier name, never the name of the app.
-_Avoid_: Premium, Pro
+The product, on every platform, with no version number or tier in the name.
+_Avoid_: RecipeBox 2.0, RecipeBox Plus, RecipeBox+, EverPlate, recipebox-plus
+(that is the repository, not the product)
 
 **EverPlate**:
 A rejected candidate product name. Retained only to explain existing assets and
@@ -51,6 +48,19 @@ _Avoid_: Origin, Reference
 The imported images or scanned pages themselves, kept alongside the cleaned
 Recipe so a handwritten family card stays viewable. Distinct from Source, which
 is merely the attribution.
+
+**Preparation**:
+Something a Recipe makes along the way and then uses — a cookie dough, a
+caramel, a pudding mixture. It is produced by a step, never bought, and never
+appears in a Shopping List. "Pudding mixture" is a Preparation; "a box of
+pudding mix" is an Ingredient, and the two are not interchangeable.
+_Avoid_: Component (ambiguous — it also means a section), Sub-recipe
+
+**Portion**:
+The share of an Ingredient a single step uses. A step that takes 1 cup from a
+2-cup Ingredient shows 1 cup. Portions across all of an Ingredient's references
+reconcile against its total; a mismatch is surfaced, never corrected silently.
+_Avoid_: Amount, Quantity (those are the Ingredient's own total)
 
 **Category**:
 A real food type a Recipe belongs to — Breakfast, Entrées, Desserts. A fixed,
