@@ -45,6 +45,25 @@ improvement in one can never hide a regression in the other.
 | Step wording preserved | `keep` phrases (times, temperatures, pan sizes, quantities) still present | most structured cases |
 | Substitution applied by the importer | ingredient dropped plus invented | `substitution-in-notes` |
 
+## Subjects
+
+- **extractor:** today's deterministic JSON-LD/microdata path
+  (`public/recipe-extract.js`), plus the app's `sourceUrl` assignment. It runs
+  only on HTML cases.
+- **appDeterministic:** the extractor followed by the web app's own import
+  post-processing (`normalizeRecipe` then `quantityAwareDirections`). This is
+  what a user actually gets from a free structured import. Inline `{i3}` tokens
+  are rendered the way the app renders its chips, and counted as links.
+- **reference:** the ideal target-model output built from each case's truth. It
+  must have no findings, or the run fails as a scorer bug.
+- **Paid AI paths** (pasted text, photos, AI fallback): **not run**. They are
+  listed under `pendingPaid` until a spend budget is agreed (ADR 0017).
+- **Recorded outputs audit:** a structural audit of 91 recorded
+  production-pipeline outputs. It reads `recorded-structure.json`: per-case
+  counts derived from `tests/results/imports/nightmare-debug`, with no recipe
+  text. The audit keeps working if that raw folder is removed. Regenerate it
+  with `--refresh-recorded` when the raw outputs are available locally.
+
 ## Case format (`cases/<id>.case.json`)
 
 ```jsonc
