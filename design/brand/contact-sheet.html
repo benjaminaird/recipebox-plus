@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RecipeBox brand assets</title>
+<style>
+  /* Newsreader, SIL Open Font License 1.1, loaded from the app's own
+     node_modules so no font file is duplicated into the repository.
+     Run `npm ci` in apps/mobile before opening this file. */
+  @font-face {
+    font-family: "Newsreader";
+    font-weight: 400;
+    src: url("../../apps/mobile/node_modules/@expo-google-fonts/newsreader/400Regular/Newsreader_400Regular.ttf") format("truetype");
+  }
+  @font-face {
+    font-family: "Newsreader";
+    font-weight: 300;
+    src: url("../../apps/mobile/node_modules/@expo-google-fonts/newsreader/300Light/Newsreader_300Light.ttf") format("truetype");
+  }
+  :root {
+    --canvas: #F6F5F1; --surface: #FFFFFF; --ink: #1C1D1B; --ink2: #53554F; --ink3: #686A63;
+    --rule: #E2E0D9; --green: #2B5B45; --dark: #141413; --darkInk: #EEE9DF; --sage: #9FCDB0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 48px; background: var(--canvas); color: var(--ink);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  h1 { font-family: Newsreader, Georgia, serif; font-weight: 400; font-size: 34px; margin: 0 0 4px; letter-spacing: -0.3px; }
+  .sub { color: var(--ink3); margin: 0 0 40px; }
+  h2 {
+    font-family: Newsreader, Georgia, serif; font-style: italic; font-weight: 400; font-size: 22px;
+    margin: 0 0 18px; padding-bottom: 10px; border-bottom: 1px solid var(--rule);
+  }
+  section { margin-bottom: 44px; }
+  .row { display: flex; align-items: flex-end; gap: 36px; flex-wrap: wrap; }
+  .cell { text-align: center; }
+  .cap { margin-top: 10px; color: var(--ink3); font-size: 11px; font-variant-numeric: tabular-nums; }
+  /* iOS masks the icon with a superellipse; ~22.37% of the side is a close CSS stand-in. */
+  .ios { border-radius: 22.37%; display: block; }
+  .sq { display: block; border-radius: 2px; }
+  .circle { border-radius: 50%; display: block; }
+  .panel { padding: 28px 32px; border-radius: 14px; display: inline-flex; align-items: center; gap: 20px; }
+  .light { background: var(--surface); border: 1px solid var(--rule); }
+  .dark { background: var(--dark); }
+  .wm { font-family: Newsreader, Georgia, serif; font-weight: 400; letter-spacing: -0.6px; line-height: 1; }
+  .onLight { color: var(--ink); }
+  .onDark  { color: var(--darkInk); }
+  .swatches { display: flex; gap: 14px; }
+  .sw { width: 74px; }
+  .chip { height: 56px; border-radius: 10px; border: 1px solid rgba(0,0,0,.08); }
+  .mono { font-variant-numeric: tabular-nums; font-size: 10px; color: var(--ink3); margin-top: 6px; }
+  .note { color: var(--ink2); max-width: 70ch; }
+  .adaptive { position: relative; width: 108px; height: 108px; }
+  .adaptive img { position: absolute; inset: 0; width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+
+<h1>RecipeBox</h1>
+<p class="sub">Brand asset validation sheet — Modern Cookbook identity (ADR 0018, ADR 0019). Generated from <code>design/brand/geometry.mjs</code>.</p>
+
+<section>
+  <h2>App icon at device sizes</h2>
+  <div class="row">
+    <div class="cell"><img class="ios" src="../../apps/mobile/assets/icon.png" width="180" height="180" alt=""><div class="cap">180 px<br>iPhone home screen @3x</div></div>
+    <div class="cell"><img class="ios" src="../../apps/mobile/assets/icon.png" width="120" height="120" alt=""><div class="cap">120 px<br>home screen @2x</div></div>
+    <div class="cell"><img class="ios" src="../../apps/mobile/assets/icon.png" width="60" height="60" alt=""><div class="cap">60 px<br>Spotlight</div></div>
+    <div class="cell"><img class="ios" src="../../apps/mobile/assets/icon.png" width="40" height="40" alt=""><div class="cap">40 px<br>Settings</div></div>
+    <div class="cell"><img class="ios" src="../../apps/mobile/assets/icon.png" width="24" height="24" alt=""><div class="cap">24 px<br>notification</div></div>
+  </div>
+</section>
+
+<section>
+  <h2>Android adaptive icon under system masks</h2>
+  <div class="row">
+    <div class="cell">
+      <div class="adaptive"><img class="circle" src="../../apps/mobile/assets/android-icon-background.png" alt=""><img class="circle" src="../../apps/mobile/assets/android-icon-foreground.png" alt=""></div>
+      <div class="cap">circle mask</div>
+    </div>
+    <div class="cell">
+      <div class="adaptive"><img class="ios" src="../../apps/mobile/assets/android-icon-background.png" alt=""><img class="ios" src="../../apps/mobile/assets/android-icon-foreground.png" alt=""></div>
+      <div class="cap">squircle mask</div>
+    </div>
+    <div class="cell">
+      <div class="adaptive" style="border-radius:8px;overflow:hidden"><img src="../../apps/mobile/assets/android-icon-background.png" alt=""><img src="../../apps/mobile/assets/android-icon-foreground.png" alt=""></div>
+      <div class="cap">rounded-square mask</div>
+    </div>
+    <div class="cell" style="background:#6B6B6B;padding:10px;border-radius:10px">
+      <img class="circle" src="../../apps/mobile/assets/android-icon-monochrome.png" width="88" height="88" alt="">
+      <div class="cap" style="color:#fff">monochrome layer<br>(system tints this)</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Horizontal lockup</h2>
+  <div class="row">
+    <div class="cell">
+      <div class="panel light">
+        <img src="../../apps/mobile/assets/brand-symbol-light.png" width="52" height="56" alt="">
+        <span class="wm onLight" style="font-size:44px">RecipeBox</span>
+      </div>
+      <div class="cap">light surface</div>
+    </div>
+    <div class="cell">
+      <div class="panel dark">
+        <img src="../../apps/mobile/assets/brand-symbol-dark.png" width="52" height="56" alt="">
+        <span class="wm onDark" style="font-size:44px">RecipeBox</span>
+      </div>
+      <div class="cap">dark surface</div>
+    </div>
+  </div>
+  <div class="row" style="margin-top:28px">
+    <div class="cell">
+      <div class="panel light">
+        <img src="../../apps/mobile/assets/brand-symbol-light.png" width="26" height="28" alt="">
+        <span class="wm onLight" style="font-size:22px">RecipeBox</span>
+      </div>
+      <div class="cap">light, navigation-bar size</div>
+    </div>
+    <div class="cell">
+      <div class="panel dark">
+        <img src="../../apps/mobile/assets/brand-symbol-dark.png" width="26" height="28" alt="">
+        <span class="wm onDark" style="font-size:22px">RecipeBox</span>
+      </div>
+      <div class="cap">dark, navigation-bar size</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Splash symbol on both appearances</h2>
+  <div class="row">
+    <div class="cell" style="background:var(--canvas);border:1px solid var(--rule);padding:38px 70px;border-radius:14px">
+      <img src="../../apps/mobile/assets/splash-icon.png" width="74" height="80" alt="">
+      <div class="cap">canvas light #F6F5F1</div>
+    </div>
+    <div class="cell" style="background:var(--dark);padding:38px 70px;border-radius:14px">
+      <img src="../../apps/mobile/assets/splash-icon-dark.png" width="74" height="80" alt="">
+      <div class="cap" style="color:#958F84">canvas dark #141413</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Palette</h2>
+  <div class="swatches">
+    <div class="sw"><div class="chip" style="background:#2B5B45"></div><div class="mono">accent<br>#2B5B45</div></div>
+    <div class="sw"><div class="chip" style="background:#F6F3EC"></div><div class="mono">onAccent<br>#F6F3EC</div></div>
+    <div class="sw"><div class="chip" style="background:#9FCDB0"></div><div class="mono">sage<br>#9FCDB0</div></div>
+    <div class="sw"><div class="chip" style="background:#F6F5F1"></div><div class="mono">canvas<br>#F6F5F1</div></div>
+    <div class="sw"><div class="chip" style="background:#141413"></div><div class="mono">canvas dk<br>#141413</div></div>
+    <div class="sw"><div class="chip" style="background:#1C1D1B"></div><div class="mono">ink<br>#1C1D1B</div></div>
+  </div>
+  <p class="note" style="margin-top:18px">Every colour is read from <code>design/tokens/recipebox.tokens.json</code> at build time, so the brand cannot drift from the product palette.</p>
+</section>
+
+</body>
+</html>

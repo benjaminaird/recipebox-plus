@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1081.07 312" width="1081.07" height="312" role="img" aria-label="RecipeBox">
+  <rect width="1081.07" height="312" rx="62.4" fill="#141413"/>
+  <g transform="translate(48 56) scale(0.22)">
+  <path fill="#9FCDB0" d="M38 0 H58 A38 38 0 0 1 96 38 V866 A38 38 0 0 1 58 904 H38 A38 38 0 0 1 0 866 V38 A38 38 0 0 1 38 0 Z"/>
+  <path fill="#9FCDB0" d="M228 0 H736 A96 96 0 0 1 832 96 V808 A96 96 0 0 1 736 904 H228 A96 96 0 0 1 132 808 V96 A96 96 0 0 1 228 0 Z"/>
+  <path fill="#141413" d="M482 409 H482 A26 26 0 0 1 508 435 V700 A26 26 0 0 1 482 726 H482 A26 26 0 0 1 456 700 V435 A26 26 0 0 1 482 409 Z"/>
+  <path fill="#141413" d="M482 455 Q452.93 258.33 632.23 172.46 Q661.3 369.13 482 455 Z"/>
+  <path fill="#141413" d="M482 455 Q302.7 369.13 331.77 172.46 Q511.07 258.33 482 455 Z"/>
+  </g>
+  <text x="288.07" y="212"
+        font-family="Newsreader, Georgia, 'Times New Roman', serif"
+        font-size="164" font-weight="400" letter-spacing="-2" fill="#EEE9DF">RecipeBox</text>
+</svg>

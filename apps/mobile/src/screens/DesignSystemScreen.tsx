@@ -2,7 +2,7 @@
 // real device: type roles, colour tokens, the typographic tile, a Cook Mode
 // instruction, and the Appearance setting. It holds no recipe data beyond the
 // fixed sample text below, and talks to no server.
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, PixelRatio, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../theme/ThemeProvider";
 import { textStyle } from "../theme/fonts";
@@ -11,10 +11,24 @@ import type { ColorName } from "../theme/tokens.generated";
 
 const LABELS: Record<AppearancePreference, string> = { system: "System", light: "Light", dark: "Dark" };
 
+// The brand symbol, in the two appearances. Square PNGs with the mark fitted
+// inside, so rendering at NxN with resizeMode "contain" gives a mark N tall.
+const SYMBOL = {
+  light: require("../../assets/brand-symbol-light.png"),
+  dark: require("../../assets/brand-symbol-dark.png"),
+};
+
+// The wordmark is live text, so the symbol beside it has to grow with the OS
+// text setting or the lockup falls apart at large sizes. Capped so the mark
+// cannot crowd out the title on the largest accessibility sizes.
+const TITLE_SIZE = 34;
+const MAX_MARK_SCALE = 1.6;
+
 export function DesignSystemScreen() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const c = t.colors;
+  const markSize = Math.round(TITLE_SIZE * Math.min(PixelRatio.getFontScale(), MAX_MARK_SCALE));
 
   return (
     <ScrollView
@@ -23,7 +37,17 @@ export function DesignSystemScreen() {
     >
       <View>
         <Text style={[textStyle("eyebrow"), { color: c.textTertiary }]}>Design system check</Text>
-        <Text accessibilityRole="header" style={[textStyle("largeTitle"), { color: c.text }]}>RecipeBox</Text>
+        <View style={styles.lockup}>
+          <Image
+            source={SYMBOL[t.scheme === "dark" ? "dark" : "light"]}
+            style={{ width: markSize, height: markSize }}
+            resizeMode="contain"
+            accessible={false}
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+          />
+          <Text accessibilityRole="header" style={[textStyle("largeTitle"), { color: c.text }]}>RecipeBox</Text>
+        </View>
         <Text style={[textStyle("subhead"), { color: c.textSecondary, marginTop: t.space.xs }]}>
           Modern Cookbook · {t.scheme === "dark" ? "Dark" : "Light"} · text {t.largeText ? "large layout" : "standard layout"}
         </Text>
@@ -114,6 +138,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 const styles = StyleSheet.create({
   group: { overflow: "hidden" },
+  lockup: { flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" },
   row: { flexDirection: "row", alignItems: "center" },
   radio: { width: 22, height: 22, borderRadius: 11 },
   recipeRow: { alignItems: "flex-start" },
