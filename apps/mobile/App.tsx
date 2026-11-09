@@ -1,6 +1,6 @@
-// RecipeBox native shell (development foundation only). It renders the design
-// system check screen; it has no recipe engine, no account, no network and no
-// sync yet. See README.md.
+// RecipeBox native shell. It runs entirely on the device: no account, no
+// network, no sync. Recipes come from a local SQLite database seeded with
+// sample data. See README.md.
 import { useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
@@ -8,7 +8,7 @@ import { useFonts } from "expo-font";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ThemeProvider } from "./src/theme/ThemeProvider";
 import { serifFonts } from "./src/theme/fonts";
-import { DesignSystemScreen } from "./src/screens/DesignSystemScreen";
+import { RootNavigator } from "./src/navigation/RootNavigator";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -25,7 +25,7 @@ export default function App() {
     <SafeAreaProvider>
       <ThemeProvider>
         <StatusBar style="auto" />
-        <DesignSystemScreen />
+        <RootNavigator />
       </ThemeProvider>
     </SafeAreaProvider>
   );
