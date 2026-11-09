@@ -1,97 +1,126 @@
 # RecipeBox brand assets
 
-The RecipeBox symbol is a cookbook seen front-on — a spine panel, a front cover
-and a two-leaf sprout — in the Modern Cookbook palette (ADR 0018, ADR 0019).
+The RecipeBox identity is the approved concept board: a green rounded-square
+cookbook icon with fanned pages and a two-leaf botanical motif, and an editorial
+serif wordmark.
 
-Everything in this directory and every brand PNG under `apps/mobile/assets/` is
-generated from one file, [`geometry.mjs`](./geometry.mjs). Nothing is hand-drawn
-or hand-exported, so the variants cannot drift apart.
+**The app's assets are cropped from that board. They are not redrawn.**
+[`extract.mjs`](./extract.mjs) is a crop-and-resample pipeline: it synthesises no
+shape, curve, colour or proportion.
 
-## Provenance
+## Source
 
-The direction came from a logo concept board supplied by the product owner on
-2026-11-08: a green cookbook with a leaf motif and an editorial serif wordmark.
+| | |
+| --- | --- |
+| File | [`source/recipebox-concept-board.webp`](./source/recipebox-concept-board.webp) |
+| Size | 1448 × 1086 |
+| SHA-256 | `617f4861a55553f3fd020be76ebe5bd362eab4c98107120644dacc772172088c` |
+| Supplied | 2026-11-08 by the product owner |
 
-**The artwork here is a reinterpretation of that board, not a reproduction of
-it.** Nothing was traced, cropped or sampled from the concept image. The
-geometry was rebuilt from primitives — rounded rectangles and leaves formed from
-paired quadratic arcs — and deliberately differs from the board in three ways:
-
-- **The book is upright and front-on**, not tilted with fanned pages. The fan
-  was the first thing to disappear below about 60 px.
-- **The binding is a separate panel** divided from the cover by a gap of
-  background, rather than a rule drawn on the cover face. In the silhouette it
-  reads as a book at large sizes and collapses into one clean card at small
-  ones, instead of leaving a stray stroke on the face.
-- **Colours are the product tokens**, not the board's. They are read from
-  `design/tokens/recipebox.tokens.json` at build time, so the brand cannot drift
-  from the palette the app actually ships.
-
-The wordmark is set in **Newsreader**, the project's existing serif, under the
-SIL Open Font License 1.1. It is already bundled in the app through
-`@expo-google-fonts/newsreader`. No font file is copied into this directory and
-no font was taken from the concept image.
+Keep this file. Every asset is derived from it, and the crop boxes below are
+meaningless against any other version of the board.
 
 ## Regenerating
 
 ```sh
 cd apps/mobile
 npm install --no-save sharp
-node ../../design/brand/build.mjs
+node ../../design/brand/extract.mjs
 ```
 
-`sharp` is intentionally **not** a dependency of `apps/mobile`: it ships large
-prebuilt binaries, it is only needed when the artwork changes, and leaving it
-out keeps `npm ci` and the CI mobile job unchanged. Install it on demand.
+`sharp` is deliberately not a dependency of `apps/mobile`: it ships large
+prebuilt binaries and is only needed when the artwork changes, so leaving it out
+keeps `npm ci` and the CI mobile job unchanged.
 
-To change the mark, edit the constants at the top of `geometry.mjs` — `SPINE`,
-`COVER`, `STEM`, `LEAF` — and re-run the build. Every asset below is rewritten.
+## Crop boxes
 
-## What gets written
+Measured from the source by colour-region analysis, not by eye. Each box stops
+short of the board's own specimen captions ("PRIMARY WORDMARK", "MONOCHROME
+(REVERSED)"), which sit below the artwork and were caught by the first two
+attempts at this.
 
-### Vector masters (this directory)
+| Region | left | top | width | height |
+| --- | --- | --- | --- | --- |
+| App icon tile | 1074 | 161 | 277 | 282 |
+| Primary lockup | 94 | 194 | 868 | 216 |
+| Symbol only | 94 | 194 | 188 | 216 |
+| Reversed lockup | 542 | 895 | 392 | 105 |
 
-| File | Use |
-| --- | --- |
-| `symbol-light.svg` | Symbol for light surfaces: green cover, ivory marks |
-| `symbol-dark.svg` | Symbol for dark surfaces: sage cover, near-black marks |
-| `symbol-mono.svg` | One colour, marks knocked out with `fill-rule="evenodd"` |
-| `app-icon.svg` | Full icon composition: green field, ivory cover, green marks |
-| `lockup-light.svg` | Horizontal symbol + wordmark for light surfaces |
-| `lockup-dark.svg` | Horizontal symbol + wordmark on a near-black panel |
+## What ships
 
-The lockup SVGs keep the wordmark as live `<text>` in Newsreader rather than
-outlined paths. Outlining would mean committing a second copy of the font's
-glyph data, and the app renders the wordmark with the real font anyway.
-Renderers without Newsreader fall back to Georgia, then a generic serif.
-
-### App assets (`apps/mobile/assets/`)
-
-| File | Size | Use |
+| File | From | Notes |
 | --- | --- | --- |
-| `icon.png` | 1024 | iOS and Android app icon. Opaque, no baked rounded corners |
-| `android-icon-foreground.png` | 1024 | Adaptive foreground, inside the 66/108 safe zone |
-| `android-icon-background.png` | 1024 | Adaptive background, flat `accent` |
-| `android-icon-monochrome.png` | 1024 | Adaptive monochrome layer; the system tints it |
-| `splash-icon.png` | 512 | Splash symbol, light appearance |
-| `splash-icon-dark.png` | 512 | Splash symbol, dark appearance |
-| `brand-symbol-light.png` | 256 | In-app header mark, light |
-| `brand-symbol-dark.png` | 256 | In-app header mark, dark |
-| `favicon.png` | 64 | Expo web |
+| `icon.png` | icon tile | 1024², opaque, full bleed |
+| `android-icon-foreground.png` | icon tile | Stepped in to clear the circle mask |
+| `android-icon-background.png` | icon tile | Flat mid-green sampled from the tile |
+| `android-icon-monochrome.png` | icon tile | Derived silhouette — see limitations |
+| `splash-icon.png` | symbol only | Light appearance |
+| `splash-icon-dark.png` | reversed lockup | Dark appearance |
+| `brand-wordmark-light.png` | primary lockup | In-app header, light |
+| `brand-wordmark-dark.png` | reversed lockup | In-app header, dark |
+| `favicon.png` | icon tile | Expo web |
 
-The PNGs are square with the mark fitted inside, so rendering one at N×N with
-`resizeMode="contain"` yields a mark exactly N tall.
+## Limitations
+
+These are consequences of the source, recorded rather than designed around.
+
+**Resolution.** The icon tile is 277 × 282 in the source and is upscaled 3.63×
+to reach the 1024² that iOS and Android require. Lanczos-3 resampling keeps it
+as clean as the source allows, but the result is soft at full size, and the
+board's own compression artefacts are magnified with it. A genuinely sharp icon
+needs the artwork redrawn as vectors or re-exported from whatever produced the
+board at 1024² or larger. **No sharpening is applied**, because unsharp masking
+at this ratio pulls halos out of those artefacts.
+
+**Rounded corners.** The source tile has rounded corners, a soft drop shadow and
+sits on the board's cream. iOS and Android both require an opaque square with no
+baked radius, because they apply their own mask. `fullBleed()` extends each
+row's own edge colour outward to fill the corner notches and cover the shadow.
+Only pixels outside the original tile change, and extending per row rather than
+flood-filling preserves the tile's vertical shading. The tile's own soft edge
+remains faintly visible at the corners and is mostly hidden by the platform
+mask.
+
+**Android adaptive layers.** Android expects a foreground and a background it
+can move independently. The source is one finished tile with its background
+baked in, and separating them would mean inpainting behind the artwork. Instead
+the foreground is the whole tile, stepped in to `ADAPTIVE_CONTENT` so the
+artwork clears the circle mask, with the tile's edge colour carried to the
+canvas edge so no seam shows. The background is a flat sample of the tile's mid
+green and is only visible if a launcher offsets the layers.
+
+**Monochrome.** The Android monochrome layer must be a single-colour silhouette
+with an alpha channel. A shaded raster carries no such form, so this one asset
+*is* derived: the ivory artwork is luminance-keyed out of the green field. It is
+the only file here that is not a straight crop, and it is an approximation.
+
+**The reversed lockup keeps its dark ground.** Keying it to transparency washed
+the cream artwork out — mark and ground are both soft-edged at this resolution,
+so an alpha cut along that boundary eats the antialiasing. Against the app's
+canvas (`#141413`) the board's ground (about `#37322A`) reads as a slightly
+lighter rounded chip.
+
+**The light crops keep the board's cream ground** (`#FAF5EE`). It cannot be keyed
+out because the artwork is cream too. Against the app's light canvas
+(`#F6F5F1`) the difference is about four levels and is not visible in practice.
+
+**Colour.** The board's green is an olive, roughly `rgb(82,107,51)` at the top of
+the tile shading to `rgb(58,79,35)` at the bottom. That is **not** the product's
+`accent` token `#2B5B45`. The artwork keeps its own colour, as approved; the
+rest of the app keeps the token palette.
+
+## Superseded
+
+[`superseded-geometry/`](./superseded-geometry/) holds an earlier attempt that
+*redrew* the mark from primitives instead of using the approved artwork. It was
+rejected. Nothing in the app references it. It is kept only so the history of
+the decision is legible.
 
 ## Checking the artwork
 
-[`contact-sheet.html`](./contact-sheet.html) shows the icon at 180, 120, 60, 40
-and 24 px under an iOS-style mask, the Android adaptive layers under circle,
-squircle and rounded-square masks, the lockups on light and dark surfaces, the
-splash symbol on both canvases, and the palette.
-
-It loads Newsreader from `apps/mobile/node_modules`, so run `npm ci` in
-`apps/mobile` first. Relative paths mean it needs to be served, not opened from
-`file://`:
+[`contact-sheet.html`](./contact-sheet.html) shows the extracted icon beside the
+original tile, at iPhone Home Screen sizes, with the lockups and splash on both
+appearances. It needs to be served, not opened from `file://`:
 
 ```sh
 python3 -m http.server 8765 --bind 127.0.0.1
@@ -99,13 +128,9 @@ python3 -m http.server 8765 --bind 127.0.0.1
 
 then open `http://127.0.0.1:8765/design/brand/contact-sheet.html`.
 
-## Known limits
+## Naming
 
-- **At 24 px** the sprout is no longer separable into two leaves; the icon reads
-  as a green tile with a light mark. That is expected at notification size and
-  is why the mark is kept this plain.
-- **The spine gap closes** below roughly 40 px, so the book reads as a single
-  card. Intended degradation, not a defect.
-- **No App Store artwork yet.** No 1024 marketing icon treatment, no screenshot
-  frames and no Play Store feature graphic. The permanent bundle identifier is
-  also still unchosen, so none of this is final for release.
+The app is **RecipeBox**, internally and on the device. "RecipeBox — Your
+Kitchen, Saved" is a provisional marketing subtitle only; it is not in
+`app.json` and not on any store listing. A competing RecipeBox already exists on
+the App Store, and trademark clearance is an open pre-launch requirement.
