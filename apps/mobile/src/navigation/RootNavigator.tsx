@@ -128,7 +128,22 @@ export function RootNavigator() {
         }}
       >
         <Stack.Screen name="Tabs" component={Tabs} />
-        <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
+        <Stack.Screen
+          name="RecipeDetail"
+          component={RecipeDetailScreen}
+          options={{
+            // A native header, for the system back chevron and swipe-back.
+            // The title stays empty: the screen sets the recipe title in the
+            // serif at full size, and repeating it in the bar is noise.
+            headerShown: true,
+            title: "",
+            headerBackTitle: "Recipes",
+            headerTransparent: false,
+            headerStyle: { backgroundColor: c.canvas },
+            headerShadowVisible: false,
+            headerTintColor: c.accentText,
+          }}
+        />
         <Stack.Screen
           name="CookMode"
           component={CookModeScreen}
