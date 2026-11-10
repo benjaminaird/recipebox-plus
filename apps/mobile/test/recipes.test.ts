@@ -4,7 +4,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { SAMPLE_RECIPES } from "../src/data/sampleRecipes.ts";
-import { buildSearchText, matches, queryLibrary } from "../src/data/query.ts";
+import { buildSearchText, matches, queryLibrary, recentlyAdded, resumableCooks } from "../src/data/query.ts";
 import {
   collectCategories,
   collectTags,
@@ -303,4 +303,62 @@ test("an ingredient the source gave no amount for prints its name alone", () => 
   assert.equal(use.quantity, "");
   assert.equal(useQuantityLabel(use), "");
   assert.equal(useChipLabel(use), "basil", "no stray separator or empty total");
+});
+
+
+// ---------------------------------------------------------------------------
+// Home dashboard.
+//
+// Progress rows outlive what they point at, so these guard the joins rather
+// than the happy path.
+// ---------------------------------------------------------------------------
+
+test("resumable cooks are joined to their recipe, newest first", () => {
+  const [a, b] = SAMPLE_RECIPES;
+  const cooks = resumableCooks(SAMPLE_RECIPES, [
+    { recipeId: a.id, stepIndex: 1, updatedAt: 1000 },
+    { recipeId: b.id, stepIndex: 0, updatedAt: 9000 },
+  ]);
+  assert.deepEqual(cooks.map((c) => c.recipe.id), [b.id, a.id]);
+  assert.equal(cooks[1].stepIndex, 1);
+  assert.equal(cooks[0].totalSteps, flattenSteps(b).length);
+});
+
+test("a progress row for a deleted recipe is dropped, not rendered", () => {
+  const cooks = resumableCooks(SAMPLE_RECIPES, [
+    { recipeId: "deleted-last-week", stepIndex: 2, updatedAt: 5000 },
+  ]);
+  assert.deepEqual(cooks, [], "a card that opens nothing is worse than no card");
+});
+
+test("a step index past the end of an edited recipe is clamped", () => {
+  const recipe = SAMPLE_RECIPES[0];
+  const total = flattenSteps(recipe).length;
+  const [cook] = resumableCooks(SAMPLE_RECIPES, [
+    { recipeId: recipe.id, stepIndex: 999, updatedAt: 1 },
+  ]);
+  assert.equal(cook.stepIndex, total - 1, "resume on the last step, not past it");
+
+  const [negative] = resumableCooks(SAMPLE_RECIPES, [
+    { recipeId: recipe.id, stepIndex: -4, updatedAt: 1 },
+  ]);
+  assert.equal(negative.stepIndex, 0);
+});
+
+test("a recipe with no steps cannot be resumed into", () => {
+  const empty = { ...SAMPLE_RECIPES[0], id: "stub", sections: [{ ingredients: [], steps: [] }] };
+  const cooks = resumableCooks([...SAMPLE_RECIPES, empty], [
+    { recipeId: "stub", stepIndex: 0, updatedAt: 1 },
+  ]);
+  assert.deepEqual(cooks.map((c) => c.recipe.id), []);
+});
+
+test("recently added returns the newest few, in order", () => {
+  const recent = recentlyAdded(SAMPLE_RECIPES, 3);
+  assert.equal(recent.length, 3);
+  for (let i = 1; i < recent.length; i++) {
+    assert.ok(recent[i - 1].createdAt >= recent[i].createdAt);
+  }
+  assert.ok(recentlyAdded([], 4).length === 0, "an empty library is not an error");
+  assert.equal(recentlyAdded(SAMPLE_RECIPES, 99).length, SAMPLE_RECIPES.length);
 });

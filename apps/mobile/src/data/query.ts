@@ -4,7 +4,10 @@
 // node test runner, so the behaviour worth testing — what matches a search,
 // what a filter admits, what order results come back in — lives here where
 // tests can reach it, and db.ts only does storage.
-import type { Recipe } from "./types";
+// Explicit .ts extension: this module is loaded directly by `node --test`,
+// where an extensionless specifier does not resolve. A type-only import is
+// erased before that matters, but flattenSteps is a real value.
+import { flattenSteps, type CookProgress, type Recipe } from "./types.ts";
 
 /**
  * The text a recipe is searchable by: its title, description, category, tags
@@ -59,4 +62,53 @@ export function byNewest(a: Recipe, b: Recipe): number {
 /** Filter and order a library in one step. */
 export function queryLibrary(recipes: Recipe[], filters: LibraryFilters = {}): Recipe[] {
   return recipes.filter((r) => matches(r, filters)).sort(byNewest);
+}
+
+
+// ---------------------------------------------------------------------------
+// Home dashboard.
+//
+// Assembled here rather than in the screen so the joins are testable: Home
+// shows data that has already gone wrong once in storage (a progress row whose
+// recipe no longer exists, a step index past the end of an edited recipe), and
+// a dashboard is the worst place to discover that.
+// ---------------------------------------------------------------------------
+
+export type ResumableCook = {
+  recipe: Recipe;
+  /** Clamped into the recipe's current step range. */
+  stepIndex: number;
+  totalSteps: number;
+  updatedAt: number;
+};
+
+/**
+ * Cooking sessions that can actually be resumed, most recent first.
+ *
+ * Progress rows outlive the thing they point at. A row whose recipe has been
+ * deleted is dropped rather than rendered as a card that opens nothing, and a
+ * row pointing past the end of a recipe that has since been shortened is
+ * clamped to the last step instead of resuming into empty space.
+ */
+export function resumableCooks(recipes: Recipe[], sessions: CookProgress[]): ResumableCook[] {
+  const byId = new Map(recipes.map((r) => [r.id, r]));
+  const out: ResumableCook[] = [];
+
+  for (const session of sessions) {
+    const recipe = byId.get(session.recipeId);
+    if (!recipe) continue;
+
+    const totalSteps = flattenSteps(recipe).length;
+    if (totalSteps === 0) continue; // nothing to resume into
+
+    const stepIndex = Math.min(Math.max(session.stepIndex, 0), totalSteps - 1);
+    out.push({ recipe, stepIndex, totalSteps, updatedAt: session.updatedAt });
+  }
+
+  return out.sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+/** The n most recently added recipes. */
+export function recentlyAdded(recipes: Recipe[], limit = 4): Recipe[] {
+  return [...recipes].sort(byNewest).slice(0, limit);
 }

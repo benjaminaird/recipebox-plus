@@ -1,18 +1,187 @@
-// Milestone 1: reachable and themed. The real dashboard lands in M7.
-import { Placeholder } from "../components/Placeholder";
+// The app's front door, on the device's own data.
+//
+// Everything here is read from SQLite: the recipes are the user's library and
+// the resumable cooks are real `cook_progress` rows written by Cook Mode. No
+// account, no network, no placeholder content dressed as working UI.
+//
+// Plan and Import are not built. Rather than mime them with empty cards that
+// look broken, Home says what is coming in one honest strip at the bottom.
+import { useCallback, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useTheme } from "../theme/ThemeProvider";
+import { textStyle } from "../theme/fonts";
+import { BrandHeader } from "../components/BrandHeader";
+import { RecipeTile } from "../components/RecipeTile";
+import { activeSessions, listRecipes } from "../data/db";
+import { recentlyAdded, resumableCooks, type ResumableCook } from "../data/query";
+import type { Recipe } from "../data/types";
+import type { RootStackParamList } from "../navigation/types";
+
+type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+type Dashboard = { recipes: Recipe[]; cooking: ResumableCook[] };
+
+/** "2 days ago" at the resolution a dashboard needs, and no finer. */
+function whenLabel(ts: number, now: number): string {
+  const mins = Math.max(0, Math.round((now - ts) / 60000));
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return hours === 1 ? "1 hour ago" : `${hours} hours ago`;
+  const days = Math.round(hours / 24);
+  return days === 1 ? "yesterday" : `${days} days ago`;
+}
 
 export function HomeScreen() {
+  const t = useTheme();
+  const c = t.colors;
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation<Nav>();
+  const [data, setData] = useState<Dashboard | null>(null);
+
+  // Re-read on every focus, not once on mount: leaving Cook Mode must change
+  // what Home says about the session that was just advanced or finished.
+  useFocusEffect(
+    useCallback(() => {
+      let live = true;
+      Promise.all([listRecipes(), activeSessions(3)])
+        .then(([recipes, sessions]) => {
+          if (live) setData({ recipes, cooking: resumableCooks(recipes, sessions) });
+        })
+        .catch(() => { if (live) setData({ recipes: [], cooking: [] }); });
+      return () => { live = false; };
+    }, []),
+  );
+
+  if (!data) {
+    return (
+      <View style={[styles.centre, { backgroundColor: c.canvas }]}>
+        <ActivityIndicator color={c.textTertiary} />
+      </View>
+    );
+  }
+
+  const recent = recentlyAdded(data.recipes, 4);
+  const now = Date.now();
+
   return (
-    <Placeholder
-      brand
-      title="Home"
-      summary="The dashboard that opens the app: what you cooked recently, what is planned, and anything waiting to be finished."
-      planned={[
-        "Recently added and recently cooked recipes",
-        "What is planned for today and tomorrow",
-        "A cooking session you left part-way through",
-        "Import drafts still waiting for review",
-      ]}
-    />
+    <ScrollView
+      style={{ backgroundColor: c.canvas }}
+      contentContainerStyle={{
+        paddingTop: insets.top + t.space.lg,
+        paddingBottom: insets.bottom + t.space.huge,
+        paddingHorizontal: t.space.screenGutter,
+        gap: t.space.xxl,
+      }}
+    >
+      <BrandHeader />
+
+      {data.cooking.length > 0 ? (
+        <View style={{ gap: t.space.md }}>
+          <Text accessibilityRole="header" style={[textStyle("sectionTitle"), { color: c.text }]}>
+            Still cooking
+          </Text>
+          {data.cooking.map((cook) => (
+            <Pressable
+              key={cook.recipe.id}
+              onPress={() => navigation.navigate("CookMode", { recipeId: cook.recipe.id })}
+              accessibilityRole="button"
+              accessibilityLabel={`Resume ${cook.recipe.title}, step ${cook.stepIndex + 1} of ${cook.totalSteps}`}
+              style={({ pressed }) => [
+                styles.resume,
+                {
+                  backgroundColor: c.accentSoft,
+                  borderRadius: t.radius.md,
+                  minHeight: t.minTouch,
+                  opacity: pressed ? 0.75 : 1,
+                },
+              ]}
+            >
+              <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+                <Text style={[textStyle("cardTitle"), { color: c.text }]} numberOfLines={2}>
+                  {cook.recipe.title}
+                </Text>
+                <Text style={[textStyle("footnote"), { color: c.accentText }]}>
+                  Step {cook.stepIndex + 1} of {cook.totalSteps} · {whenLabel(cook.updatedAt, now)}
+                </Text>
+              </View>
+              <Text style={[textStyle("headline"), { color: c.accentText }]}>Resume</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+
+      <View style={{ gap: t.space.md }}>
+        <View style={styles.sectionHead}>
+          <Text accessibilityRole="header" style={[textStyle("sectionTitle"), { color: c.text, flex: 1 }]}>
+            Recently added
+          </Text>
+          <Pressable
+            onPress={() => navigation.navigate("Tabs", { screen: "Recipes" })}
+            accessibilityRole="button"
+            accessibilityLabel="See all recipes"
+            hitSlop={10}
+            style={{ minHeight: t.minTouch, justifyContent: "center" }}
+          >
+            <Text style={[textStyle("footnote"), { color: c.accentText, fontWeight: "600" }]}>
+              All {data.recipes.length}
+            </Text>
+          </Pressable>
+        </View>
+
+        {recent.length === 0 ? (
+          <View style={[styles.card, { backgroundColor: c.surface, borderRadius: t.radius.md, padding: t.space.lg }]}>
+            <Text style={[textStyle("body"), { color: c.textSecondary }]}>
+              Your library is empty. Recipes you add live on this device.
+            </Text>
+          </View>
+        ) : (
+          recent.map((recipe) => (
+            <Pressable
+              key={recipe.id}
+              onPress={() => navigation.navigate("RecipeDetail", { recipeId: recipe.id })}
+              accessibilityRole="button"
+              accessibilityLabel={`${recipe.title}${recipe.category ? `, ${recipe.category}` : ""}`}
+              accessibilityHint="Opens the recipe"
+              style={({ pressed }) => [styles.row, { opacity: pressed ? 0.6 : 1 }]}
+            >
+              <RecipeTile title={recipe.title} category={recipe.category} size={64} />
+              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                <Text style={[textStyle("cardTitle"), { color: c.text }]} numberOfLines={2}>
+                  {recipe.title}
+                </Text>
+                <Text style={[textStyle("footnote"), { color: c.textSecondary }]} numberOfLines={1}>
+                  {[recipe.totalTime, recipe.servings ? `Serves ${recipe.servings}` : null]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </Text>
+              </View>
+            </Pressable>
+          ))
+        )}
+      </View>
+
+      <View style={{ gap: t.space.sm }}>
+        <View style={[styles.badge, { backgroundColor: c.attentionSoft, borderRadius: t.radius.sm }]}>
+          <Text style={[textStyle("footnote"), { color: c.attention, fontWeight: "600" }]}>Not built yet</Text>
+        </View>
+        <Text style={[textStyle("body"), { color: c.textSecondary }]}>
+          Today's planned meals and any import still waiting for review will appear here once Plan
+          and Add are built.
+        </Text>
+      </View>
+    </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  centre: { flex: 1, alignItems: "center", justifyContent: "center" },
+  card: { overflow: "hidden" },
+  sectionHead: { flexDirection: "row", alignItems: "center", gap: 12 },
+  resume: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },
+  row: { flexDirection: "row", gap: 14, alignItems: "center" },
+  badge: { alignSelf: "flex-start", paddingHorizontal: 9, paddingVertical: 3 },
+});
