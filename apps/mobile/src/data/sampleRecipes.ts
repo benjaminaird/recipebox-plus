@@ -313,4 +313,77 @@ export const SAMPLE_RECIPES: Recipe[] = [
       },
     ],
   },
+
+  {
+    id: "brown-butter-chocolate-chip-cookies",
+    title: "Brown Butter Chocolate Chip Cookies",
+    description:
+      "Half the butter is browned for depth and half stays pale for lift, so the two halves are not interchangeable.",
+    servings: 18,
+    prepTime: "25 min",
+    cookTime: "12 min",
+    totalTime: "1 hr 40 min",
+    category: "Baked Goods",
+    tags: ["Make ahead", "Crowd pleaser"],
+    notes:
+      "The butter is divided on purpose: browning all of it gives a flat, greasy cookie. Chill the dough or they spread.",
+    macros: { calories: 265, protein: 3, carbs: 32, fat: 14 },
+    createdAt: now,
+    updatedAt: now,
+    source: {
+      kind: "family",
+      reference: "Aunt Marjorie's card, copied out 1998",
+      method: "photo",
+      capturedAt: now,
+    },
+    sections: [
+      {
+        ingredients: [
+          // Totals stay whole here. The split lives on the steps that use them.
+          { id: "i1", amount: "230", unit: "g", name: "unsalted butter", raw: "230g unsalted butter, divided" },
+          { id: "i2", amount: "200", unit: "g", name: "dark chocolate", raw: "200g dark chocolate, chopped, divided" },
+          { id: "i3", amount: "280", unit: "g", name: "plain flour", raw: "280g plain flour" },
+          { id: "i4", amount: "200", unit: "g", name: "light brown sugar", raw: "200g light brown sugar" },
+          { id: "i5", amount: "100", unit: "g", name: "caster sugar", raw: "100g caster sugar" },
+          { id: "i6", amount: "2", name: "large eggs", raw: "2 large eggs" },
+          { id: "i7", amount: "1", unit: "tsp", name: "bicarbonate of soda", raw: "1 tsp bicarbonate of soda" },
+          { id: "i8", amount: "2", unit: "tsp", name: "vanilla extract", raw: "2 tsp vanilla extract" },
+          { id: "i9", amount: "1", unit: "tsp", name: "flaky sea salt", raw: "1 tsp flaky sea salt, for the dough and the tops" },
+        ],
+        steps: [
+          {
+            id: "s1",
+            text: "Brown half the butter in a light-coloured pan over a medium heat, swirling, until the milk solids are hazelnut brown and it smells nutty. Pour it into a bowl, scraping the pan.",
+            ingredientUses: [{ id: "i1", amount: "115", unit: "g" }],
+          },
+          {
+            id: "s2",
+            text: "Cut the remaining butter into the hot browned butter and stir until it melts. This drops the temperature and keeps the dough from going oily.",
+            ingredientUses: [{ id: "i1", amount: "115", unit: "g" }],
+          },
+          {
+            id: "s3",
+            text: "Whisk in both sugars, then the eggs and vanilla, and keep whisking for a minute until glossy.",
+            ingredientRefs: ["i4", "i5", "i6", "i8"],
+          },
+          {
+            id: "s4",
+            text: "Fold in the flour, the bicarbonate of soda and a pinch of the flaky salt, stopping while a little flour still shows.",
+            ingredientRefs: ["i3", "i7", "i9"],
+          },
+          {
+            id: "s5",
+            text: "Stir most of the chocolate through the dough, then chill it for at least an hour.",
+            ingredientUses: [{ id: "i2", amount: "150", unit: "g" }],
+          },
+          {
+            id: "s6",
+            text: "Scoop onto lined trays, press the rest of the chocolate onto the tops and bake at 180C for 11-12 minutes, until the edges are set and the middles still look underdone. Finish with the remaining flaky salt.",
+            ingredientRefs: ["i9"],
+            ingredientUses: [{ id: "i2", amount: "50", unit: "g" }],
+          },
+        ],
+      },
+    ],
+  },
 ];

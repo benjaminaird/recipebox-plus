@@ -5,6 +5,11 @@
 // its refs at render time, so a step cannot contradict the list. Those refs
 // have been written by the importer for a long time and never displayed —
 // this is the first screen to read them.
+//
+// A ref alone does not fix a quantity. Where a recipe divides an ingredient
+// across steps, the step's own share is shown; where it divides one without
+// saying how, the chip says "total" rather than implying the whole amount
+// belongs to that step. The list above keeps the undivided total either way.
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -13,7 +18,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme/ThemeProvider";
 import { textStyle } from "../theme/fonts";
 import { getRecipe } from "../data/db";
-import { formatQuantity, stepIngredients, type Recipe, type Source } from "../data/types";
+import { formatQuantity, stepIngredientUses, useChipLabel, type Recipe, type Source } from "../data/types";
 import type { RootStackParamList } from "../navigation/types";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -146,7 +151,7 @@ export function RecipeDetailScreen() {
             {section.name ? `${section.name} — method` : "Method"}
           </Text>
           {section.steps.map((step, i) => {
-            const used = stepIngredients(recipe, step);
+            const used = stepIngredientUses(recipe, step);
             return (
               <View key={step.id} style={{ gap: t.space.sm, paddingBottom: t.space.md }}>
                 <View style={styles.stepHead}>
@@ -160,13 +165,24 @@ export function RecipeDetailScreen() {
                 {used.length > 0 ? (
                   // Marginalia: what this step uses, resolved from the list.
                   <View style={styles.refs}>
-                    {used.map((ing) => (
+                    {used.map((use) => (
                       <View
-                        key={ing.id}
-                        style={[styles.refChip, { backgroundColor: c.accentSoft, borderRadius: 999 }]}
+                        key={use.ingredient.id}
+                        style={[
+                          styles.refChip,
+                          {
+                            // A total reads as context, not as an instruction,
+                            // so it is held back from the accent treatment.
+                            backgroundColor: use.isTotal ? c.sunken : c.accentSoft,
+                            borderRadius: 999,
+                          },
+                        ]}
                       >
-                        <Text style={[textStyle("footnote"), { color: c.accentText }]} numberOfLines={1}>
-                          {[formatQuantity(ing), ing.name].filter(Boolean).join(" ")}
+                        <Text
+                          style={[textStyle("footnote"), { color: use.isTotal ? c.textSecondary : c.accentText }]}
+                          numberOfLines={1}
+                        >
+                          {useChipLabel(use)}
                         </Text>
                       </View>
                     ))}

@@ -12,6 +12,9 @@ import {
   flattenSteps,
   formatQuantity,
   stepIngredients,
+  stepIngredientUses,
+  useChipLabel,
+  useQuantityLabel,
 } from "../src/data/types.ts";
 
 const byId = (id: string) => {
@@ -129,7 +132,9 @@ test("the library comes back newest first", () => {
   for (let i = 1; i < all.length; i++) {
     assert.ok(all[i - 1].createdAt >= all[i].createdAt, "not ordered newest first");
   }
-  assert.equal(all[0].id, "weeknight-tarka-dal", "the most recent sample should lead");
+  // Derived, not pinned: adding a sample should not break an ordering test.
+  const newest = SAMPLE_RECIPES.reduce((a, b) => (b.createdAt > a.createdAt ? b : a));
+  assert.equal(all[0].id, newest.id, "the most recent sample should lead");
 });
 
 test("an empty filter set admits everything", () => {
@@ -163,4 +168,139 @@ test("categories are food types, never 'Copycat'", () => {
   for (const recipe of SAMPLE_RECIPES) {
     assert.notEqual(recipe.category, "Copycat", `${recipe.id}: Copycat is a tag, never a category`);
   }
+});
+
+
+// ---------------------------------------------------------------------------
+// Divided ingredients.
+//
+// A ref establishes WHICH ingredient a step touches, never HOW MUCH. These
+// guard the three ways a quantity can be arrived at, and in particular that an
+// unqualified ref on a shared ingredient is never presented as the step's own
+// share.
+// ---------------------------------------------------------------------------
+
+const COOKIES = SAMPLE_RECIPES.find((r) => r.id === "brown-butter-chocolate-chip-cookies")!;
+
+function stepById(recipe: typeof COOKIES, id: string) {
+  const step = flattenSteps(recipe).find((s) => s.id === id);
+  assert.ok(step, `no step ${id}`);
+  return step!;
+}
+
+test("the library keeps a divided ingredient's full total", () => {
+  const butter = findIngredient(COOKIES, "i1")!;
+  assert.equal(formatQuantity(butter), "230 g", "the ingredient list shows the whole amount");
+  const chocolate = findIngredient(COOKIES, "i2")!;
+  assert.equal(formatQuantity(chocolate), "200 g");
+});
+
+test("each step shows its own share of a divided ingredient, not the total", () => {
+  const browned = stepIngredientUses(COOKIES, stepById(COOKIES, "s1"));
+  assert.equal(browned.length, 1);
+  assert.equal(browned[0].ingredient.id, "i1");
+  assert.equal(browned[0].quantity, "115 g", "half the butter, not 230 g");
+  assert.equal(browned[0].basis, "portion");
+  assert.equal(browned[0].isTotal, false);
+
+  const rest = stepIngredientUses(COOKIES, stepById(COOKIES, "s2"));
+  assert.equal(rest[0].quantity, "115 g", "the other half, stated independently");
+
+  const inDough = stepIngredientUses(COOKIES, stepById(COOKIES, "s5"));
+  assert.equal(inDough[0].quantity, "150 g");
+  const onTop = stepIngredientUses(COOKIES, stepById(COOKIES, "s6")).find((u) => u.ingredient.id === "i2")!;
+  assert.equal(onTop.quantity, "50 g");
+});
+
+test("the stated shares add up to the amount in the ingredient list", () => {
+  // If they ever stop adding up, the recipe is wrong rather than the renderer.
+  for (const [id, total] of [["i1", 230], ["i2", 200]] as const) {
+    let summed = 0;
+    for (const step of flattenSteps(COOKIES)) {
+      for (const use of step.ingredientUses ?? []) {
+        if (use.id === id && use.amount) summed += Number(use.amount);
+      }
+    }
+    assert.equal(summed, total, `shares of ${id} should sum to ${total}`);
+    assert.equal(findIngredient(COOKIES, id)!.amount, String(total));
+  }
+});
+
+test("an ingredient used by one step alone shows the whole amount", () => {
+  const fold = stepIngredientUses(COOKIES, stepById(COOKIES, "s4"));
+  const flour = fold.find((u) => u.ingredient.id === "i3")!;
+  assert.equal(flour.basis, "all");
+  assert.equal(flour.quantity, "280 g");
+  assert.equal(flour.isTotal, false, "unambiguous: this step uses all of it");
+});
+
+test("a shared ingredient with no stated share is labelled as a total, not a share", () => {
+  // Flaky salt goes into the dough and onto the tops, and the recipe never
+  // says how much goes where. Printing "1 tsp" against both steps would tell
+  // the cook to use twice what the recipe calls for.
+  for (const stepId of ["s4", "s6"]) {
+    const salt = stepIngredientUses(COOKIES, stepById(COOKIES, stepId)).find((u) => u.ingredient.id === "i9")!;
+    assert.equal(salt.basis, "unspecified", `step ${stepId}`);
+    assert.equal(salt.isTotal, true, "must be rendered as the recipe total");
+    assert.equal(salt.quantity, "1 tsp");
+  }
+});
+
+test("a stated use needs no separate ref, and refs are never duplicated", () => {
+  // s5 lists only ingredientUses; s6 lists i9 as a ref and i2 as a use.
+  assert.deepEqual(
+    stepIngredientUses(COOKIES, stepById(COOKIES, "s5")).map((u) => u.ingredient.id),
+    ["i2"],
+  );
+  assert.deepEqual(
+    stepIngredientUses(COOKIES, stepById(COOKIES, "s6")).map((u) => u.ingredient.id),
+    ["i9", "i2"],
+  );
+});
+
+test("every stated use points at an ingredient that exists", () => {
+  for (const recipe of SAMPLE_RECIPES) {
+    for (const step of flattenSteps(recipe)) {
+      for (const use of step.ingredientUses ?? []) {
+        assert.ok(
+          findIngredient(recipe, use.id),
+          `${recipe.id} step ${step.id} uses unknown ingredient ${use.id}`,
+        );
+      }
+    }
+  }
+});
+
+test("recipes without stated uses are unaffected", () => {
+  // The whole existing library predates ingredientUses and must resolve as before.
+  for (const recipe of SAMPLE_RECIPES.filter((r) => r.id !== COOKIES.id)) {
+    for (const step of flattenSteps(recipe)) {
+      const resolved = stepIngredientUses(recipe, step);
+      assert.deepEqual(
+        resolved.map((u) => u.ingredient.id),
+        stepIngredients(recipe, step).map((i) => i.id),
+        `${recipe.id} ${step.id}`,
+      );
+      for (const use of resolved) assert.notEqual(use.basis, "portion");
+    }
+  }
+});
+
+test("a total is always labelled as a total where it is shown", () => {
+  const salt = stepIngredientUses(COOKIES, stepById(COOKIES, "s4")).find((u) => u.ingredient.id === "i9")!;
+  assert.equal(useQuantityLabel(salt), "1 tsp total");
+  assert.equal(useChipLabel(salt), "flaky sea salt · 1 tsp total");
+
+  const butter = stepIngredientUses(COOKIES, stepById(COOKIES, "s1"))[0];
+  assert.equal(useQuantityLabel(butter), "115 g", "a stated share is never called a total");
+  assert.equal(useChipLabel(butter), "115 g unsalted butter");
+});
+
+test("an ingredient the source gave no amount for prints its name alone", () => {
+  const basil = SAMPLE_RECIPES.find((r) => r.id === "tomato-white-bean-soup")!;
+  const step = flattenSteps(basil).find((s) => (s.ingredientRefs ?? []).includes("i9"))!;
+  const use = stepIngredientUses(basil, step).find((u) => u.ingredient.id === "i9")!;
+  assert.equal(use.quantity, "");
+  assert.equal(useQuantityLabel(use), "");
+  assert.equal(useChipLabel(use), "basil", "no stray separator or empty total");
 });

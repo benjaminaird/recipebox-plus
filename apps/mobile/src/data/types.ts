@@ -28,6 +28,28 @@ export type Ingredient = {
   optional?: boolean;
 };
 
+/**
+ * How much of an ingredient one step uses.
+ *
+ * A ref says *which* ingredient a step touches. It does not say *how much*: a
+ * recipe that creams half the butter and browns the other half references the
+ * same id twice, and printing the full 200 g against both steps is wrong in a
+ * way a cook acts on. This carries the share, and the ingredient list keeps
+ * the untouched total.
+ *
+ * Additive and optional. A step that states no use behaves exactly as before.
+ */
+export type IngredientUse = {
+  /** The ingredient's stable id. */
+  id: string;
+  /** This step's share: "100", "1/2". Absent when only `note` applies. */
+  amount?: string;
+  /** Unit for `amount`. Falls back to the ingredient's own unit. */
+  unit?: string;
+  /** For shares that are not a number: "the rest", "a splash". */
+  note?: string;
+};
+
 export type Step = {
   /** Stable id (`s1`, `s2`). */
   id: string;
@@ -35,6 +57,11 @@ export type Step = {
   text: string;
   /** Ingredient ids this step uses. The step stores no quantity of its own. */
   ingredientRefs?: string[];
+  /**
+   * Per-step shares of a divided ingredient. Only needed where an ingredient
+   * is split across steps; everything else is covered by `ingredientRefs`.
+   */
+  ingredientUses?: IngredientUse[];
 };
 
 export type Section = {
@@ -146,6 +173,84 @@ export function formatQuantity(ingredient: Ingredient): string {
   return [ingredient.amount, ingredient.unit].filter(Boolean).join(" ").trim();
 }
 
+/**
+ * Why the quantity shown against a step is the number it is.
+ *
+ *   portion      the recipe states this step's share explicitly.
+ *   all          the ingredient is used by exactly one step, so the whole
+ *                amount is that step's amount. Safe to state.
+ *   unspecified  several steps use it and none says how much. The amount is
+ *                the recipe's TOTAL, and must be labelled as such rather than
+ *                presented as this step's share.
+ */
+export type UseBasis = "portion" | "all" | "unspecified";
+
+export type ResolvedUse = {
+  ingredient: Ingredient;
+  basis: UseBasis;
+  /** What to print beside the name. May be empty if the source gave nothing. */
+  quantity: string;
+  /** True when `quantity` is the recipe total, not this step's share. */
+  isTotal: boolean;
+};
+
+/** How many of the recipe's steps reference this ingredient id. */
+function refCount(recipe: Recipe, id: string): number {
+  let n = 0;
+  for (const section of recipe.sections) {
+    for (const step of section.steps) {
+      const ids = new Set([
+        ...(step.ingredientRefs ?? []),
+        ...(step.ingredientUses ?? []).map((u) => u.id),
+      ]);
+      if (ids.has(id)) n++;
+    }
+  }
+  return n;
+}
+
+/**
+ * The ingredients a step uses, each with the quantity that is actually true
+ * for that step.
+ *
+ * The rule that matters: an unqualified ref against an ingredient used by more
+ * than one step does NOT license printing the full amount as the step's share.
+ * That case is returned as `unspecified` with `isTotal`, so the interface can
+ * say "200 g total" instead of silently doubling the recipe.
+ */
+export function stepIngredientUses(recipe: Recipe, step: Step): ResolvedUse[] {
+  const uses = step.ingredientUses ?? [];
+  // A stated use implies a reference, so a step need not list the id twice.
+  const ids: string[] = [];
+  for (const id of [...(step.ingredientRefs ?? []), ...uses.map((u) => u.id)]) {
+    if (!ids.includes(id)) ids.push(id);
+  }
+
+  const out: ResolvedUse[] = [];
+  for (const id of ids) {
+    const ingredient = findIngredient(recipe, id);
+    if (!ingredient) continue; // a ref that matches nothing is dropped, not drawn broken
+
+    const use = uses.find((u) => u.id === id);
+    if (use && (use.note || use.amount)) {
+      const quantity = use.note
+        ? use.note
+        : [use.amount, use.unit ?? ingredient.unit].filter(Boolean).join(" ").trim();
+      out.push({ ingredient, basis: "portion", quantity, isTotal: false });
+      continue;
+    }
+
+    const shared = refCount(recipe, id) > 1;
+    out.push({
+      ingredient,
+      basis: shared ? "unspecified" : "all",
+      quantity: formatQuantity(ingredient),
+      isTotal: shared,
+    });
+  }
+  return out;
+}
+
 /** Every distinct tag across a set of recipes, in first-seen order. */
 export function collectTags(recipes: Recipe[]): string[] {
   const seen: string[] = [];
@@ -158,4 +263,23 @@ export function collectCategories(recipes: Recipe[]): string[] {
   const seen: string[] = [];
   for (const r of recipes) if (r.category && !seen.includes(r.category)) seen.push(r.category);
   return seen;
+}
+
+/**
+ * The quantity to print beside a step's ingredient.
+ *
+ * A total is always said to be a total. Leaving the word off would make an
+ * unapportioned amount read as this step's share, which is the exact mistake
+ * the use model exists to prevent.
+ */
+export function useQuantityLabel(use: ResolvedUse): string {
+  if (!use.quantity) return "";
+  return use.isTotal ? `${use.quantity} total` : use.quantity;
+}
+
+/** One-line form for a chip: "115 g unsalted butter", "flaky sea salt · 1 tsp total". */
+export function useChipLabel(use: ResolvedUse): string {
+  const name = use.ingredient.name;
+  if (!use.quantity) return name;
+  return use.isTotal ? `${name} · ${use.quantity} total` : `${use.quantity} ${name}`;
 }

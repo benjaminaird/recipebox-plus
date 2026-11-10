@@ -5,6 +5,11 @@
 // shows the ingredients it uses, resolved from the list at render time, so the
 // quantity on a step can never drift from the quantity in the list (ADR 0012).
 //
+// Where an ingredient is divided across steps, "For this step" shows that
+// step's share. This is the number someone weighs out mid-cook, so a total
+// shown in its place would be acted on: an unapportioned amount is marked
+// "total" and muted instead of standing as the step's quantity.
+//
 // Progress is written to SQLite on every step change, so putting the phone
 // down, backgrounding the app or force-quitting all return to the same step.
 //
@@ -18,7 +23,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme/ThemeProvider";
 import { textStyle } from "../theme/fonts";
 import { clearProgress, getProgress, getRecipe, saveProgress } from "../data/db";
-import { flattenSteps, formatQuantity, stepIngredients, type Recipe } from "../data/types";
+import { flattenSteps, formatQuantity, stepIngredientUses, useQuantityLabel, type Recipe } from "../data/types";
 import type { RootStackParamList } from "../navigation/types";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -88,7 +93,7 @@ export function CookModeScreen() {
   }
 
   const step = steps[index];
-  const used = stepIngredients(recipe, step);
+  const used = stepIngredientUses(recipe, step);
   const isLast = index === steps.length - 1;
   const progress = (index + 1) / steps.length;
 
@@ -138,17 +143,28 @@ export function CookModeScreen() {
           <View style={{ gap: t.space.sm }}>
             <Text style={[textStyle("eyebrow"), { color: c.textTertiary }]}>For this step</Text>
             <View style={[styles.card, { backgroundColor: c.surface, borderRadius: t.radius.md }]}>
-              {used.map((ing, i) => (
+              {used.map((use, i) => (
                 <View
-                  key={ing.id}
+                  key={use.ingredient.id}
                   style={[
                     styles.row,
                     i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.separator },
                   ]}
                 >
-                  <Text style={[textStyle("body"), { color: c.text, flex: 1, minWidth: 0 }]}>{ing.name}</Text>
-                  <Text style={[textStyle("body"), { color: c.accentText, fontVariant: ["tabular-nums"], fontWeight: "600" }]}>
-                    {formatQuantity(ing)}
+                  <Text style={[textStyle("body"), { color: c.text, flex: 1, minWidth: 0 }]}>
+                    {use.ingredient.name}
+                  </Text>
+                  <Text
+                    style={[
+                      textStyle("body"),
+                      {
+                        color: use.isTotal ? c.textTertiary : c.accentText,
+                        fontVariant: ["tabular-nums"],
+                        fontWeight: use.isTotal ? "400" : "600",
+                      },
+                    ]}
+                  >
+                    {useQuantityLabel(use)}
                   </Text>
                 </View>
               ))}

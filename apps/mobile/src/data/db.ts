@@ -58,19 +58,56 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
 }
 
 /**
- * Put the sample library in on first run only.
+ * Put the sample library in, once per sample.
  *
- * Guarded by a meta flag rather than by row count, so a library the user has
- * emptied is not silently refilled — and so re-seeding cannot overwrite edits.
+ * Two things have to hold at the same time. A recipe the user deleted must
+ * stay deleted, and an edited recipe must never be overwritten -- so this
+ * cannot key off row count, and it cannot re-run over the whole sample set.
+ * But a sample added later must still arrive, or a development install sits
+ * on a stale library forever and the new recipe is invisible on the device.
+ *
+ * So meta remembers which sample ids have EVER been seeded. A sample is
+ * inserted only if its id is not on that list, whatever the library now
+ * contains. Deleting a sample leaves its id on the list, so it stays gone.
+ *
+ * Installs predating this carry `seeded = '1'` and no list; their list is
+ * backfilled from whatever ids are present, which is the best available
+ * statement of "already offered once".
  */
 async function seedIfEmpty(db: SQLite.SQLiteDatabase): Promise<void> {
-  const row = await db.getFirstAsync<{ value: string }>(
-    `SELECT value FROM meta WHERE key = 'seeded'`,
+  const listRow = await db.getFirstAsync<{ value: string }>(
+    `SELECT value FROM meta WHERE key = 'seeded_ids'`,
   );
-  if (row?.value === "1") return;
+
+  let seeded: string[] = [];
+  if (listRow?.value) {
+    try {
+      const parsed: unknown = JSON.parse(listRow.value);
+      if (Array.isArray(parsed)) seeded = parsed.filter((v): v is string => typeof v === "string");
+    } catch {
+      seeded = []; // unreadable list: treat as nothing seeded, upsert is id-safe
+    }
+  } else {
+    const legacy = await db.getFirstAsync<{ value: string }>(
+      `SELECT value FROM meta WHERE key = 'seeded'`,
+    );
+    if (legacy?.value === "1") {
+      const rows = await db.getAllAsync<{ id: string }>(`SELECT id FROM recipes`);
+      seeded = rows.map((r) => r.id);
+    }
+  }
+
+  const missing = SAMPLE_RECIPES.filter((r) => !seeded.includes(r.id));
+  if (missing.length === 0) return;
 
   await db.withTransactionAsync(async () => {
-    for (const recipe of SAMPLE_RECIPES) await upsert(db, recipe);
+    for (const recipe of missing) await upsert(db, recipe);
+    const next = JSON.stringify([...seeded, ...missing.map((r) => r.id)]);
+    await db.runAsync(
+      `INSERT INTO meta (key, value) VALUES ('seeded_ids', ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+      [next],
+    );
     await db.runAsync(
       `INSERT INTO meta (key, value) VALUES ('seeded', '1')
        ON CONFLICT(key) DO UPDATE SET value = '1'`,
