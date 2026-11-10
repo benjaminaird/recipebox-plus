@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme/ThemeProvider";
-import { textStyle } from "../theme/fonts";
+import { maxScale, textStyle } from "../theme/fonts";
 import { getRecipe } from "../data/db";
 import { formatQuantity, stepIngredientUses, useChipLabel, type Recipe, type Source } from "../data/types";
 import type { RootStackParamList } from "../navigation/types";
@@ -61,7 +61,7 @@ export function RecipeDetailScreen() {
   if (recipe === null) {
     return (
       <View style={[styles.centre, { backgroundColor: c.canvas, padding: t.space.xxl, gap: t.space.sm }]}>
-        <Text style={[textStyle("sectionTitle"), { color: c.text }]}>Recipe not found</Text>
+        <Text maxFontSizeMultiplier={maxScale("sectionTitle")} style={[textStyle("sectionTitle"), { color: c.text }]}>Recipe not found</Text>
         <Text style={[textStyle("body"), { color: c.textSecondary, textAlign: "center" }]}>
           It may have been deleted from this device.
         </Text>
@@ -87,7 +87,7 @@ export function RecipeDetailScreen() {
         {recipe.category ? (
           <Text style={[textStyle("eyebrow"), { color: c.textTertiary }]}>{recipe.category}</Text>
         ) : null}
-        <Text accessibilityRole="header" style={[textStyle("recipeTitle"), { color: c.text }]}>
+        <Text accessibilityRole="header" maxFontSizeMultiplier={maxScale("recipeTitle")} style={[textStyle("recipeTitle"), { color: c.text }]}>
           {recipe.title}
         </Text>
         {meta ? <Text style={[textStyle("subhead"), { color: c.textSecondary }]}>{meta}</Text> : null}
@@ -112,7 +112,7 @@ export function RecipeDetailScreen() {
 
       {recipe.sections.map((section, si) => (
         <View key={`ing-${si}`} style={{ gap: t.space.md }}>
-          <Text style={[textStyle("sectionTitle"), { color: c.text }]}>
+          <Text maxFontSizeMultiplier={maxScale("sectionTitle")} style={[textStyle("sectionTitle"), { color: c.text }]}>
             {section.name ? `${section.name} — ingredients` : "Ingredients"}
           </Text>
           <View style={[styles.card, { backgroundColor: c.surface, borderRadius: t.radius.md }]}>
@@ -147,7 +147,7 @@ export function RecipeDetailScreen() {
 
       {recipe.sections.map((section, si) => (
         <View key={`steps-${si}`} style={{ gap: t.space.md }}>
-          <Text style={[textStyle("sectionTitle"), { color: c.text }]}>
+          <Text maxFontSizeMultiplier={maxScale("sectionTitle")} style={[textStyle("sectionTitle"), { color: c.text }]}>
             {section.name ? `${section.name} — method` : "Method"}
           </Text>
           {section.steps.map((step, i) => {
@@ -196,14 +196,14 @@ export function RecipeDetailScreen() {
 
       {recipe.notes ? (
         <View style={{ gap: t.space.sm }}>
-          <Text style={[textStyle("sectionTitle"), { color: c.text }]}>Notes</Text>
+          <Text maxFontSizeMultiplier={maxScale("sectionTitle")} style={[textStyle("sectionTitle"), { color: c.text }]}>Notes</Text>
           <Text style={[textStyle("body"), { color: c.textSecondary }]}>{recipe.notes}</Text>
         </View>
       ) : null}
 
       {recipe.source ? (
         <View style={{ gap: t.space.sm }}>
-          <Text style={[textStyle("sectionTitle"), { color: c.text }]}>Source</Text>
+          <Text maxFontSizeMultiplier={maxScale("sectionTitle")} style={[textStyle("sectionTitle"), { color: c.text }]}>Source</Text>
           <View style={[styles.card, { backgroundColor: c.surface, borderRadius: t.radius.md, padding: t.space.lg, gap: 4 }]}>
             <Text style={[textStyle("body"), { color: c.text }]}>{sourceLine(recipe.source)}</Text>
             {recipe.source.originalTitle && recipe.source.originalTitle !== recipe.title ? (

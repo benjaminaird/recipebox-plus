@@ -39,3 +39,42 @@ export function textStyle(role: Role): TextStyle {
   if (r.fontVariant) style.fontVariant = [...r.fontVariant] as TextStyle["fontVariant"];
   return style;
 }
+
+/**
+ * How far a role may grow under Dynamic Type.
+ *
+ * Body text scales all the way — that is the point of Dynamic Type, and
+ * capping it would be an accessibility regression. Display roles are the
+ * exception: they already start large for their own reasons (cookStep is 25pt
+ * because it is read at arm's length across a kitchen), and multiplying an
+ * already-large size by the top accessibility factor of roughly 3.1 put four
+ * words on the screen and pushed the ingredients and the buttons off it.
+ *
+ * So the big roles still grow, just not without bound. The cap is applied as
+ * `maxFontSizeMultiplier`, which the OS respects per Text.
+ */
+const MAX_SCALE: Partial<Record<Role, number>> = {
+  largeTitle: 1.6,
+  recipeTitle: 1.6,
+  sectionTitle: 1.7,
+  preparationTitle: 1.7,
+  cookStep: 1.7,
+  timer: 1.6,
+};
+
+export function maxScale(role: Role): number | undefined {
+  return MAX_SCALE[role];
+}
+
+/**
+ * A type role for a TextInput.
+ *
+ * Same as textStyle(), minus lineHeight. React Native positions a TextInput's
+ * text against an explicit lineHeight rather than growing with it, so at large
+ * Dynamic Type sizes the field grows while the text stays pinned near the
+ * bottom of the box. Dropping lineHeight lets the input centre its own text.
+ */
+export function inputStyle(role: Role): TextStyle {
+  const { lineHeight, ...rest } = textStyle(role);
+  return rest;
+}

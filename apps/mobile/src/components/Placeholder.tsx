@@ -6,7 +6,7 @@
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../theme/ThemeProvider";
-import { textStyle } from "../theme/fonts";
+import { maxScale, textStyle } from "../theme/fonts";
 import { BrandHeader } from "./BrandHeader";
 
 export function Placeholder({
@@ -40,12 +40,12 @@ export function Placeholder({
         <View style={[styles.badge, { backgroundColor: c.attentionSoft, borderRadius: t.radius.sm }]}>
           <Text style={[textStyle("footnote"), { color: c.attention, fontWeight: "600" }]}>Not built yet</Text>
         </View>
-        <Text accessibilityRole="header" style={[textStyle("largeTitle"), { color: c.text }]}>{title}</Text>
+        <Text accessibilityRole="header" maxFontSizeMultiplier={maxScale("largeTitle")} style={[textStyle("largeTitle"), { color: c.text }]}>{title}</Text>
         <Text style={[textStyle("subhead"), { color: c.textSecondary }]}>{summary}</Text>
       </View>
 
       <View style={{ gap: t.space.md }}>
-        <Text style={[textStyle("sectionTitle"), { color: c.text }]}>What will live here</Text>
+        <Text maxFontSizeMultiplier={maxScale("sectionTitle")} style={[textStyle("sectionTitle"), { color: c.text }]}>What will live here</Text>
         <View style={[styles.card, { backgroundColor: c.surface, borderRadius: t.radius.md }]}>
           {planned.map((line, i) => (
             <View

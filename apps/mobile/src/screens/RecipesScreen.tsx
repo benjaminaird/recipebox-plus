@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme/ThemeProvider";
-import { textStyle } from "../theme/fonts";
+import { inputStyle, maxScale, textStyle } from "../theme/fonts";
 import { RecipeTile } from "../components/RecipeTile";
 import { listRecipes } from "../data/db";
 import { collectCategories, collectTags, type Recipe } from "../data/types";
@@ -31,6 +31,13 @@ export function RecipesScreen() {
   const c = t.colors;
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
+
+  // The search field scales itself rather than letting the OS do it.
+  // TextInput sizes its box from the scaled metrics but lays the placeholder
+  // out at the base size and pins it to the bottom, and maxFontSizeMultiplier
+  // -- the obvious cap -- stops the placeholder rendering at all. Opting out
+  // and setting an explicit, capped size keeps text and placeholder together.
+  const searchSize = Math.round((inputStyle("body").fontSize ?? 17) * Math.min(t.fontScale, 1.6));
 
   const [all, setAll] = useState<Recipe[] | null>(null);
   const [query, setQuery] = useState("");
@@ -112,7 +119,7 @@ export function RecipesScreen() {
         ListHeaderComponent={
           <View style={{ gap: t.space.lg, marginBottom: t.space.lg }}>
             <View>
-              <Text accessibilityRole="header" style={[textStyle("largeTitle"), { color: c.text }]}>
+              <Text accessibilityRole="header" maxFontSizeMultiplier={maxScale("largeTitle")} style={[textStyle("largeTitle"), { color: c.text }]}>
                 Recipes
               </Text>
               <Text style={[textStyle("subhead"), { color: c.textSecondary, marginTop: t.space.xxs }]}>
@@ -122,20 +129,44 @@ export function RecipesScreen() {
               </Text>
             </View>
 
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Search recipes and ingredients"
-              placeholderTextColor={c.textTertiary}
-              clearButtonMode="while-editing"
-              autoCorrect={false}
-              accessibilityLabel="Search recipes and ingredients"
-              style={[
-                textStyle("body"),
-                styles.search,
-                { backgroundColor: c.sunken, color: c.text, borderRadius: t.radius.sm, minHeight: t.minTouch },
-              ]}
-            />
+            {/* The placeholder is drawn here rather than by TextInput.
+                Constraining the field's font scaling -- by any means:
+                allowFontScaling={false} or maxFontSizeMultiplier -- stops iOS
+                rendering the native placeholder at accessibility sizes, while
+                the typed value lays out correctly. Drawing it ourselves keeps
+                both, and the field still owns the accessibility label. */}
+            <View>
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                clearButtonMode="while-editing"
+                autoCorrect={false}
+                accessibilityLabel="Search recipes and ingredients"
+                allowFontScaling={false}
+                style={[
+                  inputStyle("body"),
+                  styles.search,
+                  {
+                    fontSize: searchSize,
+                    backgroundColor: c.sunken,
+                    color: c.text,
+                    borderRadius: t.radius.sm,
+                    minHeight: t.minTouch,
+                  },
+                ]}
+              />
+              {query.length === 0 ? (
+                <View pointerEvents="none" style={styles.placeholder}>
+                  <Text
+                    allowFontScaling={false}
+                    numberOfLines={1}
+                    style={{ fontSize: searchSize, color: c.textTertiary }}
+                  >
+                    Search recipes and ingredients
+                  </Text>
+                </View>
+              ) : null}
+            </View>
 
             {categories.length > 0 ? (
               <ScrollView
@@ -174,16 +205,27 @@ export function RecipesScreen() {
             accessibilityHint="Opens the recipe"
             style={({ pressed }) => [styles.row, { opacity: pressed ? 0.6 : 1 }]}
           >
-            <RecipeTile title={item.title} category={item.category} />
+            {/* See HomeScreen: the fixed tile yields to the text at
+                accessibility sizes rather than truncating it mid-word. */}
+            {t.largeText ? null : <RecipeTile title={item.title} category={item.category} />}
             <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
-              <Text style={[textStyle("cardTitle"), { color: c.text }]} numberOfLines={2}>
+              <Text
+                style={[textStyle("cardTitle"), { color: c.text }]}
+                numberOfLines={t.largeText ? undefined : 2}
+              >
                 {item.title}
               </Text>
-              <Text style={[textStyle("footnote"), { color: c.textSecondary }]} numberOfLines={1}>
+              <Text
+                style={[textStyle("footnote"), { color: c.textSecondary }]}
+                numberOfLines={t.largeText ? undefined : 1}
+              >
                 {[item.totalTime, item.servings ? `Serves ${item.servings}` : null].filter(Boolean).join(" · ")}
               </Text>
               {item.tags?.length ? (
-                <Text style={[textStyle("footnote"), { color: c.textTertiary }]} numberOfLines={1}>
+                <Text
+                  style={[textStyle("footnote"), { color: c.textTertiary }]}
+                  numberOfLines={t.largeText ? undefined : 1}
+                >
                   {item.tags.join(" · ")}
                 </Text>
               ) : null}
@@ -197,7 +239,7 @@ export function RecipesScreen() {
             </View>
           ) : (
             <View style={[styles.empty, { gap: t.space.sm }]}>
-              <Text style={[textStyle("sectionTitle"), { color: c.text, textAlign: "center" }]}>
+              <Text maxFontSizeMultiplier={maxScale("sectionTitle")} style={[textStyle("sectionTitle"), { color: c.text, textAlign: "center" }]}>
                 Nothing matches
               </Text>
               <Text style={[textStyle("body"), { color: c.textSecondary, textAlign: "center" }]}>
@@ -225,6 +267,12 @@ export function RecipesScreen() {
 
 const styles = StyleSheet.create({
   search: { paddingHorizontal: 14, paddingVertical: 10 },
+  placeholder: {
+    position: "absolute",
+    top: 0, left: 0, right: 0, bottom: 0,
+    justifyContent: "center",
+    paddingHorizontal: 14,
+  },
   chipRow: { gap: 8, paddingRight: 4 },
   chip: { paddingHorizontal: 13, justifyContent: "center", borderWidth: StyleSheet.hairlineWidth },
   row: { flexDirection: "row", gap: 14, alignItems: "center" },

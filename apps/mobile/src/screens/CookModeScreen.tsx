@@ -21,7 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme/ThemeProvider";
-import { textStyle } from "../theme/fonts";
+import { maxScale, textStyle } from "../theme/fonts";
 import { clearProgress, getProgress, getRecipe, saveProgress } from "../data/db";
 import { flattenSteps, formatQuantity, stepIngredientUses, useQuantityLabel, type Recipe } from "../data/types";
 import type { RootStackParamList } from "../navigation/types";
@@ -84,7 +84,7 @@ export function CookModeScreen() {
   if (recipe === null || steps.length === 0) {
     return (
       <View style={[styles.centre, { backgroundColor: c.canvas, padding: t.space.xxl, gap: t.space.md }]}>
-        <Text style={[textStyle("sectionTitle"), { color: c.text }]}>Nothing to cook</Text>
+        <Text maxFontSizeMultiplier={maxScale("sectionTitle")} style={[textStyle("sectionTitle"), { color: c.text }]}>Nothing to cook</Text>
         <Pressable onPress={() => navigation.goBack()} accessibilityRole="button">
           <Text style={[textStyle("headline"), { color: c.accentText }]}>Close</Text>
         </Pressable>
@@ -134,7 +134,11 @@ export function CookModeScreen() {
           <Text style={[textStyle("eyebrow"), { color: c.textTertiary }]}>
             {step.sectionName ? `${step.sectionName} · ` : ""}Step {index + 1} of {steps.length}
           </Text>
-          <Text accessibilityRole="header" style={[textStyle("cookStep"), { color: c.text }]}>
+          <Text
+            accessibilityRole="header"
+            maxFontSizeMultiplier={maxScale("cookStep")}
+            style={[textStyle("cookStep"), { color: c.text }]}
+          >
             {step.text}
           </Text>
         </View>
@@ -211,9 +215,14 @@ export function CookModeScreen() {
         </View>
       </ScrollView>
 
+      {/* At the largest text sizes a side-by-side pair cannot hold its labels:
+          "Back" broke across two lines inside its own rounded rect and "Next
+          step" overflowed. Above the large-text threshold the pair stacks, so
+          each button has the full width and the primary action stays first. */}
       <View
         style={[
           styles.footer,
+          t.largeText && styles.footerStacked,
           {
             paddingHorizontal: t.space.screenGutter,
             paddingBottom: insets.bottom + t.space.md,
@@ -230,15 +239,17 @@ export function CookModeScreen() {
           accessibilityState={{ disabled: index === 0 }}
           style={({ pressed }) => [
             styles.secondary,
+            t.largeText && styles.fullWidth,
             {
               borderColor: c.separatorStrong,
               borderRadius: t.radius.md,
               minHeight: t.minTouch,
+              paddingVertical: 12,
               opacity: index === 0 ? 0.35 : pressed ? 0.6 : 1,
             },
           ]}
         >
-          <Text style={[textStyle("headline"), { color: c.text }]}>Back</Text>
+          <Text numberOfLines={1} style={[textStyle("headline"), { color: c.text }]}>Back</Text>
         </Pressable>
 
         <Pressable
@@ -247,10 +258,19 @@ export function CookModeScreen() {
           accessibilityLabel={isLast ? "Finish cooking" : "Next step"}
           style={({ pressed }) => [
             styles.primary,
-            { backgroundColor: c.accent, borderRadius: t.radius.md, minHeight: t.minTouch, opacity: pressed ? 0.85 : 1 },
+            t.largeText && styles.fullWidth,
+            {
+              backgroundColor: c.accent,
+              borderRadius: t.radius.md,
+              minHeight: t.minTouch,
+              paddingVertical: 12,
+              opacity: pressed ? 0.85 : 1,
+            },
           ]}
         >
-          <Text style={[textStyle("headline"), { color: c.onAccent }]}>{isLast ? "Finish" : "Next step"}</Text>
+          <Text numberOfLines={1} style={[textStyle("headline"), { color: c.onAccent }]}>
+            {isLast ? "Finish" : "Next step"}
+          </Text>
         </Pressable>
       </View>
     </View>
@@ -264,6 +284,10 @@ const styles = StyleSheet.create({
   card: { overflow: "hidden" },
   row: { flexDirection: "row", gap: 16, alignItems: "baseline", paddingVertical: 11, paddingHorizontal: 16 },
   footer: { flexDirection: "row", gap: 12, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
+  // Stacked, primary first: the common action should not move to the bottom
+  // of the screen just because the text got bigger.
+  footerStacked: { flexDirection: "column-reverse" },
   secondary: { flex: 1, alignItems: "center", justifyContent: "center", borderWidth: StyleSheet.hairlineWidth },
   primary: { flex: 2, alignItems: "center", justifyContent: "center" },
+  fullWidth: { flex: 0, alignSelf: "stretch", width: "100%" },
 });

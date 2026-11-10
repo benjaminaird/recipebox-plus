@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme/ThemeProvider";
-import { textStyle } from "../theme/fonts";
+import { maxScale, textStyle } from "../theme/fonts";
 import { BrandHeader } from "../components/BrandHeader";
 import { RecipeTile } from "../components/RecipeTile";
 import { activeSessions, listRecipes } from "../data/db";
@@ -81,7 +81,7 @@ export function HomeScreen() {
 
       {data.cooking.length > 0 ? (
         <View style={{ gap: t.space.md }}>
-          <Text accessibilityRole="header" style={[textStyle("sectionTitle"), { color: c.text }]}>
+          <Text accessibilityRole="header" maxFontSizeMultiplier={maxScale("sectionTitle")} style={[textStyle("sectionTitle"), { color: c.text }]}>
             Still cooking
           </Text>
           {data.cooking.map((cook) => (
@@ -90,8 +90,12 @@ export function HomeScreen() {
               onPress={() => navigation.navigate("CookMode", { recipeId: cook.recipe.id })}
               accessibilityRole="button"
               accessibilityLabel={`Resume ${cook.recipe.title}, step ${cook.stepIndex + 1} of ${cook.totalSteps}`}
+              // Side by side, "Resume" takes a fixed share of the width and
+              // the title is squeezed into a few characters per line once the
+              // text is large. Above the threshold the card stacks instead.
               style={({ pressed }) => [
                 styles.resume,
+                t.largeText && styles.resumeStacked,
                 {
                   backgroundColor: c.accentSoft,
                   borderRadius: t.radius.md,
@@ -108,7 +112,9 @@ export function HomeScreen() {
                   Step {cook.stepIndex + 1} of {cook.totalSteps} · {whenLabel(cook.updatedAt, now)}
                 </Text>
               </View>
-              <Text style={[textStyle("headline"), { color: c.accentText }]}>Resume</Text>
+              <Text numberOfLines={1} style={[textStyle("headline"), { color: c.accentText }]}>
+                Resume
+              </Text>
             </Pressable>
           ))}
         </View>
@@ -116,7 +122,7 @@ export function HomeScreen() {
 
       <View style={{ gap: t.space.md }}>
         <View style={styles.sectionHead}>
-          <Text accessibilityRole="header" style={[textStyle("sectionTitle"), { color: c.text, flex: 1 }]}>
+          <Text accessibilityRole="header" maxFontSizeMultiplier={maxScale("sectionTitle")} style={[textStyle("sectionTitle"), { color: c.text, flex: 1 }]}>
             Recently added
           </Text>
           <Pressable
@@ -148,12 +154,23 @@ export function HomeScreen() {
               accessibilityHint="Opens the recipe"
               style={({ pressed }) => [styles.row, { opacity: pressed ? 0.6 : 1 }]}
             >
-              <RecipeTile title={recipe.title} category={recipe.category} size={64} />
+              {/* The tile is a fixed-size graphic. At accessibility text sizes
+                  it starves the title, which then truncates mid-word; the text
+                  is what the row is for, so the tile gives way. */}
+              {t.largeText ? null : (
+                <RecipeTile title={recipe.title} category={recipe.category} size={64} />
+              )}
               <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                <Text style={[textStyle("cardTitle"), { color: c.text }]} numberOfLines={2}>
+                <Text
+                  style={[textStyle("cardTitle"), { color: c.text }]}
+                  numberOfLines={t.largeText ? undefined : 2}
+                >
                   {recipe.title}
                 </Text>
-                <Text style={[textStyle("footnote"), { color: c.textSecondary }]} numberOfLines={1}>
+                <Text
+                  style={[textStyle("footnote"), { color: c.textSecondary }]}
+                  numberOfLines={t.largeText ? undefined : 1}
+                >
                   {[recipe.totalTime, recipe.servings ? `Serves ${recipe.servings}` : null]
                     .filter(Boolean)
                     .join(" · ")}
@@ -182,6 +199,7 @@ const styles = StyleSheet.create({
   card: { overflow: "hidden" },
   sectionHead: { flexDirection: "row", alignItems: "center", gap: 12 },
   resume: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },
+  resumeStacked: { flexDirection: "column", alignItems: "flex-start", gap: 8 },
   row: { flexDirection: "row", gap: 14, alignItems: "center" },
   badge: { alignSelf: "flex-start", paddingHorizontal: 9, paddingVertical: 3 },
 });
