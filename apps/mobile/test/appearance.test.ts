@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   parsePreference, resolveScheme, nativeOverride, isLargeText, minTouchTarget,
-  APPEARANCE_PREFERENCES, DEFAULT_APPEARANCE,
+  APPEARANCE_PREFERENCES, DEFAULT_APPEARANCE, artworkScale, MAX_ARTWORK_SCALE,
 } from "../src/theme/appearance.ts";
 import { colors } from "../src/theme/tokens.generated.ts";
 
@@ -45,4 +45,24 @@ test("generated tokens: both appearances define exactly the same names, never pu
   assert.notEqual(colors.dark.canvas.toUpperCase(), "#000000");
   assert.notEqual(colors.dark.text.toUpperCase(), "#FFFFFF");
   assert.notEqual(colors.light.canvas.toUpperCase(), "#FFFFFF");
+});
+
+// Regression: the brand header once filled the whole screen because the font
+// scale arrived non-finite, `height: NaN` was discarded by the layout engine,
+// and the 512x592 artwork fell back to its intrinsic size. A bad scale must
+// degrade to 1, never to NaN.
+test("artworkScale never yields a non-finite size", () => {
+  for (const bad of [NaN, Infinity, -Infinity, undefined, null, "1.2", {}, 0, -1]) {
+    const s = artworkScale(bad as never);
+    assert.equal(s, 1, `expected 1 for ${String(bad)}`);
+    assert.ok(Number.isFinite(34 * s));
+  }
+});
+
+test("artworkScale follows the font scale up to the cap", () => {
+  assert.equal(artworkScale(1), 1);
+  assert.equal(artworkScale(1.25), 1.25);
+  assert.equal(artworkScale(3), MAX_ARTWORK_SCALE);
+  assert.equal(artworkScale(0.85), 0.85, "a smaller text setting shrinks the mark too");
+  assert.equal(artworkScale(3, Number.POSITIVE_INFINITY), 3, "an uncapped read passes through");
 });

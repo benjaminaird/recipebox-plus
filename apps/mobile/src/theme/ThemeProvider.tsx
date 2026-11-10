@@ -5,7 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { Appearance, Platform, useColorScheme, useWindowDimensions } from "react-native";
 import * as SystemUI from "expo-system-ui";
 import { colors, radius, space, typography, type ColorTokens } from "./tokens.generated";
-import { isLargeText, minTouchTarget, nativeOverride, resolveScheme, type AppearancePreference, type Scheme } from "./appearance";
+import { artworkScale, isLargeText, minTouchTarget, nativeOverride, resolveScheme, type AppearancePreference, type Scheme } from "./appearance";
 import { loadAppearancePreference, saveAppearancePreference } from "./preferenceStore";
 
 export type Theme = {
@@ -17,6 +17,8 @@ export type Theme = {
   space: typeof space;
   radius: typeof radius;
   largeText: boolean;
+  /** OS font scale, guaranteed finite and positive. Artwork steps off this. */
+  fontScale: number;
   minTouch: number;
 };
 
@@ -48,6 +50,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     scheme, preference, setPreference,
     colors: colors[scheme], typography, space, radius,
     largeText: isLargeText(fontScale),
+    // Never hand a NaN down: see artworkScale's note on silent layout collapse.
+    fontScale: artworkScale(fontScale, Number.POSITIVE_INFINITY),
     minTouch: minTouchTarget(Platform.OS),
   }), [scheme, preference, setPreference, fontScale]);
 

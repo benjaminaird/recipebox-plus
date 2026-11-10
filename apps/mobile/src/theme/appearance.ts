@@ -36,3 +36,18 @@ export function isLargeText(fontScale: number): boolean {
 export function minTouchTarget(platform: string): number {
   return platform === "android" ? 48 : 44;
 }
+
+/** Artwork is not text, so it does not grow with Dynamic Type on its own. Marks
+ *  are stepped by the OS font scale and capped, so a large-text setting enlarges
+ *  the lockup without letting it overrun the header.
+ *
+ *  The guard is load-bearing, not defensive decoration. `useWindowDimensions()`
+ *  and `PixelRatio.getFontScale()` can both hand back a non-finite value before
+ *  the window has reported one, and `height: NaN` does not fail loudly: Yoga
+ *  discards the whole style and the image lays out at its full intrinsic size.
+ *  A 512x592 mark then covers the screen. Fall back to 1 instead. */
+export const MAX_ARTWORK_SCALE = 1.5;
+export function artworkScale(fontScale: unknown, max: number = MAX_ARTWORK_SCALE): number {
+  if (typeof fontScale !== "number" || !Number.isFinite(fontScale) || fontScale <= 0) return 1;
+  return Math.min(fontScale, max);
+}
