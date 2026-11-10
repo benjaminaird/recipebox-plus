@@ -186,8 +186,12 @@ function insetWithEdgeFill(src, size, fraction) {
 const png = (buf, w, h, ch) =>
   sharp(buf, { raw: { width: w, height: h, channels: ch } }).png({ compressionLevel: 9 });
 
-async function save(name, pipeline) {
-  const buf = await pipeline.toBuffer();
+// Accepts a sharp pipeline or an already-encoded buffer, so one encode can be
+// written to several names without re-rendering it.
+async function save(name, pipelineOrBuffer) {
+  const buf = Buffer.isBuffer(pipelineOrBuffer)
+    ? pipelineOrBuffer
+    : await pipelineOrBuffer.toBuffer();
   writeFileSync(join(assets, name), buf);
   note("apps/mobile/assets/" + name, buf);
 }
@@ -248,11 +252,12 @@ await save(
   );
 }
 
-// --- 3. Splash and in-app branding -----------------------------------------
-// Cropped straight from the board. The light crops keep the board's cream
-// ground (#FAF5EE), which is all but indistinguishable from the app's canvas
-// (#F6F5F1); keying it out is not possible because the artwork is cream too.
-await save("splash-icon.png", sharp(SOURCE).extract(CROP.symbolLight).resize(512, null, { kernel: "lanczos3" }).png({ compressionLevel: 9 }));
+// --- 3. Sheet crops and in-app branding ------------------------------------
+// These keep the board's cream ground. That is right for a reference sheet and
+// wrong inside the app: "all but indistinguishable" from the canvas is still
+// distinguishable, and on the launch screen the 4-point difference between the
+// board's #FAF5EE and the canvas #F6F5F1 drew a visible rectangle around the
+// mark. The splash is generated from the isolated symbol instead -- see 3b.
 await save("brand-wordmark-light.png", sharp(SOURCE).extract(CROP.lockupLight).resize(1200, null, { kernel: "lanczos3" }).png({ compressionLevel: 9 }));
 
 // The reversed lockup ships with the board's own dark ground rather than being
@@ -264,14 +269,7 @@ await save(
   "brand-wordmark-dark.png",
   sharp(SOURCE).extract(CROP.lockupReversed).resize(1200, null, { kernel: "lanczos3" }).png({ compressionLevel: 9 }),
 );
-// Dark splash: the symbol end of that same reversed lockup.
-await save(
-  "splash-icon-dark.png",
-  sharp(SOURCE)
-    .extract({ ...CROP.lockupReversed, width: Math.round(CROP.lockupReversed.width * 0.33) })
-    .resize(420, null, { kernel: "lanczos3" })
-    .png({ compressionLevel: 9 }),
-);
+
 
 // --- 3b. In-app header pieces ----------------------------------------------
 // The rectangular crops above are fine on a sheet but wrong inside the app: the
@@ -362,13 +360,16 @@ function inkMask({ data, w, h, c }, groundLum = 246, inkLum = 46) {
   const src = await raw(sharp(SOURCE).extract(box));
   const ground = [252, 246, 239];
   const iso = floodIsolate(src, ground);
-  await save(
-    "brand-symbol.png",
-    sharp(iso, { raw: { width: src.w, height: src.h, channels: 4 } })
-      .trim({ threshold: 1 })
-      .resize(512, null, { kernel: "lanczos3" })
-      .png({ compressionLevel: 9 }),
-  );
+  const isolated = sharp(iso, { raw: { width: src.w, height: src.h, channels: 4 } }).trim({ threshold: 1 });
+  const symbolPng = await isolated.clone().resize(512, null, { kernel: "lanczos3" }).png({ compressionLevel: 9 }).toBuffer();
+  await save("brand-symbol.png", symbolPng);
+
+  // The launch screen uses the same groundless artwork, so it sits directly on
+  // the splash background in either appearance with no rectangle behind it.
+  // One asset serves both: the mark carries its own cream pages and leaf
+  // against the green, so it reads on the dark canvas as well as the light.
+  await save("splash-icon.png", symbolPng);
+  await save("splash-icon-dark.png", symbolPng);
 
   // Wordmark letterforms as a tintable mask.
   const textBox = { left: 300, top: 245, width: 660, height: 156 };
