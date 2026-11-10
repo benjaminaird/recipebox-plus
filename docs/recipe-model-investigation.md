@@ -87,3 +87,54 @@ These need answers before a specification can be written.
 
 The user will supply further examples of real RecipeBox formatting problems;
 those become corpus cases rather than anecdotes.
+
+---
+
+## Partially answered: an ingredient split across steps (2026-11-10)
+
+Hard case 3 above — "an ingredient split across steps" — now has a *rendering*
+answer in the native client, though not yet an *extraction* one.
+
+**What exists.** `Step.ingredientUses?: { id, amount?, unit?, note? }[]` in
+`apps/mobile/src/data/types.ts`, additive and optional, with
+`stepIngredientUses()` resolving each referenced ingredient to the quantity
+that is true for that step. Three outcomes:
+
+| basis | when | shown as |
+| --- | --- | --- |
+| `portion` | the recipe states this step's share | `115 g` |
+| `all` | exactly one step uses the ingredient | `280 g` |
+| `unspecified` | several steps use it, none says how much | `1 tsp total` |
+
+The third is the point. A ref is evidence of *which* ingredient, never of *how
+much*, so an unqualified ref on a shared ingredient is rendered as the recipe
+total and labelled as one, instead of being presented as the step's share.
+Before this, Recipe Detail and Cook Mode printed the full amount against every
+step that referenced an ingredient — for a 230 g butter split across two steps,
+that instructed the cook to use 460 g.
+
+The ingredient list keeps the undivided total in all three cases.
+
+Covered by regression tests in `apps/mobile/test/recipes.test.ts`, including
+one asserting that the stated shares sum to the amount in the ingredient list,
+so a sample that stops adding up fails rather than merely looking odd. The
+sample recipe is `brown-butter-chocolate-chip-cookies`, which exercises all
+three bases at once.
+
+**Open question: should `public/recipe-schema.js` learn this field?**
+
+Deliberately not changed. `ingredientUses` is currently native-only, which
+means nothing populates it except hand-written sample data — the importer
+cannot produce it, so no imported recipe benefits.
+
+Adding it to the extraction tool schema is the obvious next step and is held
+back on purpose: that schema is the live production web importer's contract,
+and the rule is that the production web app stays unchanged in behaviour until
+a replacement is approved. Widening the tool definition changes what the model
+may emit on every import, for every user, today.
+
+It also should not be decided by assertion. Per the method above, it wants a
+corpus: divided-ingredient cases with expected per-step shares, a measurement
+of how often extraction gets them right, and the regression scripts as the
+gate. Until then the native renderer handles the data correctly when it is
+present, and degrades honestly when it is not.
