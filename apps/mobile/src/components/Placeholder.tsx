@@ -7,15 +7,19 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../theme/ThemeProvider";
 import { textStyle } from "../theme/fonts";
+import { BrandHeader } from "./BrandHeader";
 
 export function Placeholder({
   title,
   summary,
   planned,
+  brand = false,
 }: {
   title: string;
   summary: string;
   planned: string[];
+  /** Show the RecipeBox lockup above the title. Home only — the app's front door. */
+  brand?: boolean;
 }) {
   const t = useTheme();
   const insets = useSafeAreaInsets();
@@ -31,6 +35,7 @@ export function Placeholder({
         gap: t.space.xxl,
       }}
     >
+      {brand ? <BrandHeader /> : null}
       <View style={{ gap: t.space.sm }}>
         <View style={[styles.badge, { backgroundColor: c.attentionSoft, borderRadius: t.radius.sm }]}>
           <Text style={[textStyle("footnote"), { color: c.attention, fontWeight: "600" }]}>Not built yet</Text>

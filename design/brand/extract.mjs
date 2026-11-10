@@ -273,6 +273,115 @@ await save(
     .png({ compressionLevel: 9 }),
 );
 
+// --- 3b. In-app header pieces ----------------------------------------------
+// The rectangular crops above are fine on a sheet but wrong inside the app: the
+// reversed lockup drops a brown rectangle onto the dark canvas. These two
+// assets let the header be assembled from the same approved artwork with no
+// ground behind it.
+
+/**
+ * Isolate the symbol by flooding in from the border.
+ *
+ * A global colour key cannot be used here: the pages and the leaf are the same
+ * cream as the ground, so keying by colour alone punches holes straight through
+ * the artwork. Flooding from the edge only removes cream that is *connected to
+ * the outside*, which stops at the green outline and leaves the interior whole.
+ * Alpha ramps across the tolerance band so the source's antialiasing survives
+ * instead of becoming a hard, jagged cut.
+ */
+function floodIsolate({ data, w, h, c }, ground, tolLow = 26, tolHigh = 104) {
+  const dist = (i) => {
+    const dr = data[i] - ground[0];
+    const dg = data[i + 1] - ground[1];
+    const db = data[i + 2] - ground[2];
+    return Math.sqrt(dr * dr + dg * dg + db * db);
+  };
+  const outside = new Uint8Array(w * h);
+  const stack = [];
+  const push = (x, y) => {
+    if (x < 0 || y < 0 || x >= w || y >= h) return;
+    const p = y * w + x;
+    if (outside[p]) return;
+    if (dist(p * c) > tolHigh) return;
+    outside[p] = 1;
+    stack.push(p);
+  };
+  for (let x = 0; x < w; x++) { push(x, 0); push(x, h - 1); }
+  for (let y = 0; y < h; y++) { push(0, y); push(w - 1, y); }
+  while (stack.length) {
+    const p = stack.pop();
+    const x = p % w;
+    const y = (p / w) | 0;
+    push(x + 1, y); push(x - 1, y); push(x, y + 1); push(x, y - 1);
+  }
+
+  const out = Buffer.alloc(w * h * 4);
+  const clamp = (v) => Math.max(0, Math.min(255, Math.round(v)));
+  for (let p = 0; p < w * h; p++) {
+    const i = p * c;
+    const o = p * 4;
+    if (!outside[p]) {
+      out[o] = data[i]; out[o + 1] = data[i + 1]; out[o + 2] = data[i + 2]; out[o + 3] = 255;
+      continue;
+    }
+    const d = dist(i);
+    const a = d <= tolLow ? 0 : Math.min(1, (d - tolLow) / (tolHigh - tolLow));
+    out[o + 3] = Math.round(a * 255);
+    if (a <= 0) { out[o] = ground[0]; out[o + 1] = ground[1]; out[o + 2] = ground[2]; continue; }
+    // Decontaminate. An edge pixel is a blend of the artwork over the board's
+    // cream: C = aF + (1-a)G. Keeping C would carry that cream into the pixel
+    // and show as a pale halo once the mark sits on a dark surface, so recover
+    // F and store that instead.
+    for (let k = 0; k < 3; k++) out[o + k] = clamp((data[i + k] - (1 - a) * ground[k]) / a);
+  }
+  return out;
+}
+
+/**
+ * Turn the wordmark's dark letterforms into an alpha mask.
+ *
+ * The result carries the board's own typography but no colour of its own, so
+ * React Native can tint it with the `text` token and it reads correctly in both
+ * appearances. Partial alpha along each edge preserves the antialiasing.
+ */
+function inkMask({ data, w, h, c }, groundLum = 246, inkLum = 46) {
+  const out = Buffer.alloc(w * h * 4);
+  for (let p = 0; p < w * h; p++) {
+    const i = p * c;
+    const o = p * 4;
+    const lum = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+    const a = Math.round(Math.max(0, Math.min(1, (groundLum - lum) / (groundLum - inkLum))) * 255);
+    out[o] = 255; out[o + 1] = 255; out[o + 2] = 255; out[o + 3] = a;
+  }
+  return out;
+}
+
+{
+  // Symbol, isolated. Cropped with a margin so the flood starts on clean ground.
+  const box = { left: 88, top: 188, width: 200, height: 228 };
+  const src = await raw(sharp(SOURCE).extract(box));
+  const ground = [252, 246, 239];
+  const iso = floodIsolate(src, ground);
+  await save(
+    "brand-symbol.png",
+    sharp(iso, { raw: { width: src.w, height: src.h, channels: 4 } })
+      .trim({ threshold: 1 })
+      .resize(512, null, { kernel: "lanczos3" })
+      .png({ compressionLevel: 9 }),
+  );
+
+  // Wordmark letterforms as a tintable mask.
+  const textBox = { left: 300, top: 245, width: 660, height: 156 };
+  const tsrc = await raw(sharp(SOURCE).extract(textBox));
+  await save(
+    "brand-wordmark-mask.png",
+    sharp(inkMask(tsrc), { raw: { width: tsrc.w, height: tsrc.h, channels: 4 } })
+      .trim({ threshold: 1 })
+      .resize(1400, null, { kernel: "lanczos3" })
+      .png({ compressionLevel: 9 }),
+  );
+}
+
 await save("favicon.png", sharp(iconBuf).resize(64, 64, { kernel: "lanczos3" }).png({ compressionLevel: 9 }));
 
 // --- 4. Reference crop, for review only ------------------------------------

@@ -4,6 +4,7 @@ import { Placeholder } from "../components/Placeholder";
 export function HomeScreen() {
   return (
     <Placeholder
+      brand
       title="Home"
       summary="The dashboard that opens the app: what you cooked recently, what is planned, and anything waiting to be finished."
       planned={[

@@ -1,0 +1,190 @@
+// Local SQLite store. Everything the app shows comes from here.
+//
+// No network, no account, no sync (ADR 0004 is the eventual destination; this
+// is the local half of it). The recipe is stored as its own JSON rather than
+// shredded across columns, so the shape on disk is exactly the shape the rest
+// of the product uses and nothing has to be translated back. The columns
+// beside it exist only to make listing and searching cheap.
+import * as SQLite from "expo-sqlite";
+import type { CookProgress, Recipe } from "./types";
+import { buildSearchText, byNewest, type LibraryFilters } from "./query";
+import { SAMPLE_RECIPES } from "./sampleRecipes";
+
+const DB_NAME = "recipebox.db";
+
+/** Bump when the table shape changes; `migrate` is additive and idempotent. */
+const SCHEMA_VERSION = 1;
+
+let handle: Promise<SQLite.SQLiteDatabase> | null = null;
+
+function open(): Promise<SQLite.SQLiteDatabase> {
+  if (!handle) handle = SQLite.openDatabaseAsync(DB_NAME).then(async (db) => {
+    await migrate(db);
+    await seedIfEmpty(db);
+    return db;
+  });
+  return handle;
+}
+
+async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
+  await db.execAsync(`
+    PRAGMA journal_mode = WAL;
+    CREATE TABLE IF NOT EXISTS recipes (
+      id          TEXT PRIMARY KEY NOT NULL,
+      title       TEXT NOT NULL,
+      category    TEXT,
+      tags        TEXT NOT NULL DEFAULT '[]',
+      search      TEXT NOT NULL DEFAULT '',
+      created_at  INTEGER NOT NULL,
+      updated_at  INTEGER NOT NULL,
+      json        TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS recipes_created_at ON recipes (created_at DESC);
+    CREATE TABLE IF NOT EXISTS cook_progress (
+      recipe_id   TEXT PRIMARY KEY NOT NULL,
+      step_index  INTEGER NOT NULL,
+      updated_at  INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS meta (
+      key   TEXT PRIMARY KEY NOT NULL,
+      value TEXT NOT NULL
+    );
+  `);
+  await db.runAsync(
+    `INSERT INTO meta (key, value) VALUES ('schema_version', ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    [String(SCHEMA_VERSION)],
+  );
+}
+
+/**
+ * Put the sample library in on first run only.
+ *
+ * Guarded by a meta flag rather than by row count, so a library the user has
+ * emptied is not silently refilled — and so re-seeding cannot overwrite edits.
+ */
+async function seedIfEmpty(db: SQLite.SQLiteDatabase): Promise<void> {
+  const row = await db.getFirstAsync<{ value: string }>(
+    `SELECT value FROM meta WHERE key = 'seeded'`,
+  );
+  if (row?.value === "1") return;
+
+  await db.withTransactionAsync(async () => {
+    for (const recipe of SAMPLE_RECIPES) await upsert(db, recipe);
+    await db.runAsync(
+      `INSERT INTO meta (key, value) VALUES ('seeded', '1')
+       ON CONFLICT(key) DO UPDATE SET value = '1'`,
+    );
+  });
+}
+
+async function upsert(db: SQLite.SQLiteDatabase, recipe: Recipe): Promise<void> {
+  await db.runAsync(
+    `INSERT INTO recipes (id, title, category, tags, search, created_at, updated_at, json)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       title = excluded.title, category = excluded.category, tags = excluded.tags,
+       search = excluded.search, updated_at = excluded.updated_at, json = excluded.json`,
+    [
+      recipe.id,
+      recipe.title,
+      recipe.category ?? null,
+      JSON.stringify(recipe.tags ?? []),
+      buildSearchText(recipe),
+      recipe.createdAt,
+      recipe.updatedAt,
+      JSON.stringify(recipe),
+    ],
+  );
+}
+
+// --- reads -----------------------------------------------------------------
+
+/**
+ * The library, newest first, narrowed by filters.
+ *
+ * Text and category are narrowed in SQL; tags are checked in JS because they
+ * are stored as a JSON array and the set is small. If the library ever grows
+ * past a few thousand rows this wants a join table, not a bigger LIKE.
+ */
+export async function listRecipes(filters: LibraryFilters = {}): Promise<Recipe[]> {
+  const db = await open();
+  const where: string[] = [];
+  const args: (string | number)[] = [];
+
+  for (const term of (filters.query ?? "").trim().toLowerCase().split(/\s+/).filter(Boolean)) {
+    where.push("search LIKE ?");
+    args.push(`%${term}%`);
+  }
+  if (filters.category) {
+    where.push("category = ?");
+    args.push(filters.category);
+  }
+
+  const rows = await db.getAllAsync<{ json: string }>(
+    `SELECT json FROM recipes ${where.length ? "WHERE " + where.join(" AND ") : ""}
+     ORDER BY created_at DESC`,
+    args,
+  );
+  const recipes = rows.map((r) => JSON.parse(r.json) as Recipe);
+  const wanted = filters.tags ?? [];
+  const filtered = wanted.length
+    ? recipes.filter((r) => wanted.every((t) => (r.tags ?? []).includes(t)))
+    : recipes;
+  return filtered.sort(byNewest);
+}
+
+export async function getRecipe(id: string): Promise<Recipe | null> {
+  const db = await open();
+  const row = await db.getFirstAsync<{ json: string }>(`SELECT json FROM recipes WHERE id = ?`, [id]);
+  return row ? (JSON.parse(row.json) as Recipe) : null;
+}
+
+export async function countRecipes(): Promise<number> {
+  const db = await open();
+  const row = await db.getFirstAsync<{ n: number }>(`SELECT COUNT(*) AS n FROM recipes`);
+  return row?.n ?? 0;
+}
+
+// --- cooking progress ------------------------------------------------------
+
+export async function getProgress(recipeId: string): Promise<CookProgress | null> {
+  const db = await open();
+  const row = await db.getFirstAsync<{ recipe_id: string; step_index: number; updated_at: number }>(
+    `SELECT recipe_id, step_index, updated_at FROM cook_progress WHERE recipe_id = ?`,
+    [recipeId],
+  );
+  return row ? { recipeId: row.recipe_id, stepIndex: row.step_index, updatedAt: row.updated_at } : null;
+}
+
+/** Remember which step the cook is on. Called on every step change. */
+export async function saveProgress(recipeId: string, stepIndex: number): Promise<void> {
+  const db = await open();
+  await db.runAsync(
+    `INSERT INTO cook_progress (recipe_id, step_index, updated_at) VALUES (?, ?, ?)
+     ON CONFLICT(recipe_id) DO UPDATE SET step_index = excluded.step_index, updated_at = excluded.updated_at`,
+    [recipeId, stepIndex, Date.now()],
+  );
+}
+
+export async function clearProgress(recipeId: string): Promise<void> {
+  const db = await open();
+  await db.runAsync(`DELETE FROM cook_progress WHERE recipe_id = ?`, [recipeId]);
+}
+
+/** Sessions left part-way through, most recent first. Home reads this. */
+export async function activeSessions(limit = 3): Promise<CookProgress[]> {
+  const db = await open();
+  const rows = await db.getAllAsync<{ recipe_id: string; step_index: number; updated_at: number }>(
+    `SELECT recipe_id, step_index, updated_at FROM cook_progress ORDER BY updated_at DESC LIMIT ?`,
+    [limit],
+  );
+  return rows.map((r) => ({ recipeId: r.recipe_id, stepIndex: r.step_index, updatedAt: r.updated_at }));
+}
+
+/** Test and development helper. Not reachable from the UI. */
+export async function resetForTesting(): Promise<void> {
+  const db = await open();
+  await db.execAsync(`DELETE FROM recipes; DELETE FROM cook_progress; DELETE FROM meta;`);
+  handle = null;
+}
