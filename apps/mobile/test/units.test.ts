@@ -111,6 +111,8 @@ test("every unit in a table is reachable through canonicalUnit", () => {
 test("counted units take a plural only when there is more than one", () => {
   assert.equal(displayUnit("clove", 1), "clove");
   assert.equal(displayUnit("clove", 3), "cloves");
+  assert.equal(displayUnit("cup", 0.5), "cup", "a recipe writes 1/2 cup, not 1/2 cups");
+  assert.equal(displayUnit("cup", 1.5), "cups");
   assert.equal(displayUnit("pinch", 2), "pinches");
   assert.equal(displayUnit("g", 5), "g", "measurement units are not pluralised");
 });

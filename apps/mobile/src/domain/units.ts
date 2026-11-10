@@ -73,6 +73,12 @@ export const DESCRIPTIVE_UNITS: ReadonlySet<string> = new Set([
 ]);
 
 const US_VOLUME = new Set(["tsp", "tbsp", "fl oz", "cup", "pint", "quart", "gallon"]);
+
+/** Units that are US customary for conversion, but say nothing about which
+ *  system a recipe was WRITTEN in: metric recipes use teaspoons and
+ *  tablespoons as freely as US ones, so letting them vote made a 600ml/150g
+ *  recipe with one tablespoon in it read as "mixed". */
+export const SYSTEM_AMBIGUOUS: ReadonlySet<string> = new Set(["tsp", "tbsp"]);
 const US_WEIGHT = new Set(["oz", "lb"]);
 
 /** Singular, lower case, no full stops: "Tablespoons." -> "tbsp".
@@ -158,12 +164,13 @@ export function displayUnit(unit: string | undefined | null, amount: number | nu
     ml: "ml", cl: "cl", dl: "dl", L: "L",
     g: "g", kg: "kg", oz: "oz", lb: "lb",
   };
+  // An abbreviation is never pluralised: "250 g", not "250 gs".
   if (fixed[u]) return fixed[u];
-  // Counted and descriptive units take an English plural.
-  if (COUNT_UNITS.has(u) || DESCRIPTIVE_UNITS.has(u)) {
-    const plural = amount !== null && Math.abs(amount) !== 1;
-    if (!plural) return u;
-    return /(?:ch|sh|s|x|z)$/.test(u) ? `${u}es` : `${u}s`;
-  }
-  return u;
+  // Everything written out in full takes an English plural -- spelled-out
+  // volumes ("cups", "quarts") as much as counted and descriptive units.
+  // More than one, not merely different from one: a recipe writes "1/2 cup"
+  // and "3/4 cup", never "1/2 cups".
+  const plural = amount !== null && Math.abs(amount) > 1;
+  if (!plural) return u;
+  return /(?:ch|sh|s|x|z)$/.test(u) ? `${u}es` : `${u}s`;
 }
