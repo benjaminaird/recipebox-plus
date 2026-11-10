@@ -7,13 +7,15 @@
 // beside it exist only to make listing and searching cheap.
 import * as SQLite from "expo-sqlite";
 import type { CookProgress, Recipe } from "./types";
+import type { Measurement } from "../domain/convert";
+import type { Scale } from "../domain/present";
 import { buildSearchText, byNewest, type LibraryFilters } from "./query";
 import { SAMPLE_RECIPES } from "./sampleRecipes";
 
 const DB_NAME = "recipebox.db";
 
 /** Bump when the table shape changes; `migrate` is additive and idempotent. */
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 let handle: Promise<SQLite.SQLiteDatabase> | null = null;
 
@@ -48,6 +50,16 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
     CREATE TABLE IF NOT EXISTS meta (
       key   TEXT PRIMARY KEY NOT NULL,
       value TEXT NOT NULL
+    );
+    -- Added in schema 2. How the cook chose to VIEW a recipe: the batch scale
+    -- and the measurement system. Stored, not derived, because resuming a
+    -- cooking session at 1x after someone set 2x would hand them the wrong
+    -- quantities for a dish already in the oven.
+    CREATE TABLE IF NOT EXISTS recipe_view (
+      recipe_id   TEXT PRIMARY KEY NOT NULL,
+      scale       REAL NOT NULL,
+      measurement TEXT NOT NULL,
+      updated_at  INTEGER NOT NULL
     );
   `);
   await db.runAsync(
@@ -219,9 +231,45 @@ export async function activeSessions(limit = 3): Promise<CookProgress[]> {
   return rows.map((r) => ({ recipeId: r.recipe_id, stepIndex: r.step_index, updatedAt: r.updated_at }));
 }
 
+/** How a recipe is currently being viewed. Display only: it never changes
+ *  the stored recipe, so forgetting it loses a preference, not data. */
+export type RecipeView = { scale: Scale; measurement: Measurement };
+
+export const DEFAULT_VIEW: RecipeView = { scale: 1, measurement: "original" };
+
+const VALID_SCALES = new Set([0.5, 1, 2, 3, 4]);
+const VALID_MEASUREMENTS = new Set(["original", "us", "metric"]);
+
+export async function getRecipeView(recipeId: string): Promise<RecipeView> {
+  const db = await open();
+  const row = await db.getFirstAsync<{ scale: number; measurement: string }>(
+    `SELECT scale, measurement FROM recipe_view WHERE recipe_id = ?`,
+    [recipeId],
+  );
+  if (!row) return DEFAULT_VIEW;
+  // Validate on read: a stored value from a later version, or a corrupted
+  // row, must not put the interface into a state it cannot represent.
+  const scale = VALID_SCALES.has(row.scale) ? (row.scale as Scale) : DEFAULT_VIEW.scale;
+  const measurement = VALID_MEASUREMENTS.has(row.measurement)
+    ? (row.measurement as Measurement)
+    : DEFAULT_VIEW.measurement;
+  return { scale, measurement };
+}
+
+export async function saveRecipeView(recipeId: string, view: RecipeView): Promise<void> {
+  const db = await open();
+  await db.runAsync(
+    `INSERT INTO recipe_view (recipe_id, scale, measurement, updated_at)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT(recipe_id) DO UPDATE SET
+       scale = excluded.scale, measurement = excluded.measurement, updated_at = excluded.updated_at`,
+    [recipeId, view.scale, view.measurement, Date.now()],
+  );
+}
+
 /** Test and development helper. Not reachable from the UI. */
 export async function resetForTesting(): Promise<void> {
   const db = await open();
-  await db.execAsync(`DELETE FROM recipes; DELETE FROM cook_progress; DELETE FROM meta;`);
+  await db.execAsync(`DELETE FROM recipes; DELETE FROM cook_progress; DELETE FROM recipe_view; DELETE FROM meta;`);
   handle = null;
 }

@@ -192,6 +192,11 @@ export type ResolvedUse = {
   quantity: string;
   /** True when `quantity` is the recipe total, not this step's share. */
   isTotal: boolean;
+  /** The raw amount and unit behind `quantity`, so a display layer can scale
+   *  or convert this step's share instead of re-parsing a formatted string.
+   *  Absent when the share is words rather than a number ("the rest"). */
+  amount?: string;
+  unit?: string;
 };
 
 /** How many of the recipe's steps reference this ingredient id. */
@@ -233,10 +238,18 @@ export function stepIngredientUses(recipe: Recipe, step: Step): ResolvedUse[] {
 
     const use = uses.find((u) => u.id === id);
     if (use && (use.note || use.amount)) {
+      const unit = use.unit ?? ingredient.unit;
       const quantity = use.note
         ? use.note
-        : [use.amount, use.unit ?? ingredient.unit].filter(Boolean).join(" ").trim();
-      out.push({ ingredient, basis: "portion", quantity, isTotal: false });
+        : [use.amount, unit].filter(Boolean).join(" ").trim();
+      out.push({
+        ingredient,
+        basis: "portion",
+        quantity,
+        isTotal: false,
+        // A note is prose, so it carries no scalable amount.
+        ...(use.note ? {} : { amount: use.amount, unit }),
+      });
       continue;
     }
 
@@ -246,6 +259,8 @@ export function stepIngredientUses(recipe: Recipe, step: Step): ResolvedUse[] {
       basis: shared ? "unspecified" : "all",
       quantity: formatQuantity(ingredient),
       isTotal: shared,
+      amount: ingredient.amount,
+      unit: ingredient.unit,
     });
   }
   return out;

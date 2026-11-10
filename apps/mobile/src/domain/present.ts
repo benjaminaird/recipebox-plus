@@ -94,9 +94,15 @@ export function presentAmount(
   }
 
   const amountText = formatQuantity(q);
-  const numeric =
-    q.kind === "exact" ? q.value : q.kind === "range" ? q.max : null;
-  const unitText = displayUnit(finalUnit, numeric);
+  // Pluralise from the number actually shown, not the one behind it. A
+  // conversion landing on 1.013 displays as "1" and must read "1 cup", not
+  // "1 cups".
+  const shownNumber = (() => {
+    if (q.kind === "range") return q.max;
+    const reparsed = parseQuantity(amountText);
+    return reparsed.kind === "exact" ? reparsed.value : null;
+  })();
+  const unitText = displayUnit(finalUnit, shownNumber);
   const text = [amountText, unitText].filter(Boolean).join(" ").trim();
 
   return {

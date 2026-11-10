@@ -157,3 +157,13 @@ test("a conversion is only offered when it would say something", () => {
   assert.equal(conversionIsUseful("unknown", "metric"), false);
   assert.equal(conversionIsUseful("metric", "original"), true);
 });
+
+test("the plural follows the number shown, not the one behind it", () => {
+  // 230 g of butter is 1.013 cups, which displays as "1" and must read
+  // "1 cup". Pluralising from the raw value gave "1 cups".
+  const butter = presentAmount("230", "g", "unsalted butter", { scale: 1, measurement: "us" });
+  assert.equal(butter.text, "1 cup", butter.text);
+
+  const sugar = presentAmount("400", "g", "light brown sugar", { scale: 1, measurement: "us" });
+  assert.equal(sugar.text, "1 7/8 cups", sugar.text);
+});

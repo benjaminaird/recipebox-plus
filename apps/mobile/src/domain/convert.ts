@@ -73,6 +73,22 @@ export function convertIngredient(
 
   if (kind === "weight") {
     const grams = representative * WEIGHT_G[from];
+
+    // US recipes measure dry goods by volume, so grams become cups where the
+    // ingredient is known. Converting 400 g of brown sugar to "14.1 oz" is
+    // arithmetically correct and useless: no US kitchen has a scale out for
+    // sugar, and nobody writes a recipe that way. This is the mirror of the
+    // metric rule below -- each system gets its own idiom.
+    if (system === "us") {
+      const density = densityFor(ingredientName);
+      if (density) {
+        const ml = grams / density.gPerMl;
+        const to = targetVolume("us", ml);
+        const factor = WEIGHT_G[from] / (density.gPerMl * VOLUME_ML[to]);
+        return { ok: true, quantity: scaleBy(q, factor), unit: to, via: density };
+      }
+    }
+
     const to = targetWeight(system, grams);
     if (to === from) return { ok: false, reason: "already" };
     const factor = WEIGHT_G[from] / WEIGHT_G[to];

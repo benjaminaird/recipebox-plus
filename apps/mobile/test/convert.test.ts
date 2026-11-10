@@ -94,13 +94,15 @@ test("an amount with no number does not convert", () => {
   assert.equal(convertIngredient("", "cup", "flour", "metric").ok, false);
 });
 
-test("weight converts within its own kind in both directions", () => {
-  const toUs = convertIngredient("500", "g", "butter", "us");
+test("weight converts within its own kind when no density is known", () => {
+  // An ingredient with a density goes to cups for US instead; see the
+  // dry-goods test below. This is the fallback path.
+  const toUs = convertIngredient("500", "g", "gochujang", "us");
   assert.ok(toUs.ok);
   assert.equal((toUs as { unit: string }).unit, "lb");
   assert.ok(Math.abs(value(toUs) - 1.1023) < 0.001, `got ${value(toUs)}`);
 
-  const toMetric = convertIngredient("1", "lb", "butter", "metric");
+  const toMetric = convertIngredient("1", "lb", "gochujang", "metric");
   assert.ok(toMetric.ok);
   assert.equal((toMetric as { unit: string }).unit, "g");
   assert.ok(Math.abs(value(toMetric) - 453.592) < 0.01);
@@ -145,4 +147,44 @@ test("the known-ingredient list is real and inspectable", () => {
   const known = knownIngredients();
   assert.ok(known.length > 40, `only ${known.length} ingredients known`);
   for (const name of known) assert.ok(densityFor(name), `${name} should resolve`);
+});
+
+test("US measures dry goods by volume, not by the ounce", () => {
+  // 400 g of brown sugar is about two cups. "14.1 oz" is arithmetically
+  // correct and useless: no US recipe is written that way.
+  const sugar = convertIngredient("400", "g", "light brown sugar", "us");
+  assert.ok(sugar.ok);
+  assert.equal((sugar as { unit: string }).unit, "cup");
+  assert.ok(Math.abs(value(sugar) - 400 / 213) < 0.02, `got ${value(sugar)}`);
+
+  const butter = convertIngredient("230", "g", "unsalted butter", "us");
+  assert.equal((butter as { unit: string }).unit, "cup");
+  assert.ok(Math.abs(value(butter) - 230 / 227) < 0.02);
+
+  // Small amounts land on spoons rather than a fraction of a cup.
+  const salt = convertIngredient("5", "g", "table salt", "us");
+  assert.ok(["tsp", "tbsp"].includes((salt as { unit: string }).unit), (salt as { unit: string }).unit);
+});
+
+test("an unknown ingredient still falls back to weight, honestly", () => {
+  const c = convertIngredient("400", "g", "gochujang", "us");
+  assert.ok(c.ok);
+  assert.equal((c as { unit: string }).unit, "oz", "no density, so no invented cup measure");
+  assert.equal((c as { via?: unknown }).via, undefined);
+});
+
+test("round-tripping a conversion returns near the original", () => {
+  for (const [grams, name] of [["400", "light brown sugar"], ["230", "butter"], ["280", "plain flour"]] as const) {
+    const toUs = convertIngredient(grams, "g", name, "us");
+    assert.ok(toUs.ok);
+    const back = convertIngredient(
+      String(value(toUs)),
+      (toUs as { unit: string }).unit,
+      name,
+      "metric",
+    );
+    assert.ok(back.ok);
+    const delta = Math.abs(value(back) - Number(grams));
+    assert.ok(delta < 1, `${grams} g ${name} round-tripped to ${value(back)}`);
+  }
 });

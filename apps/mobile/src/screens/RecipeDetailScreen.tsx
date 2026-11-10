@@ -10,15 +10,18 @@
 // across steps, the step's own share is shown; where it divides one without
 // saying how, the chip says "total" rather than implying the whole amount
 // belongs to that step. The list above keeps the undivided total either way.
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme/ThemeProvider";
 import { maxScale, textStyle } from "../theme/fonts";
-import { getRecipe } from "../data/db";
-import { formatQuantity, stepIngredientUses, useChipLabel, type Recipe, type Source } from "../data/types";
+import { DEFAULT_VIEW, getRecipe, getRecipeView, saveRecipeView, type RecipeView } from "../data/db";
+import { stepIngredientUses, type Recipe, type Source } from "../data/types";
+import { ServingControls } from "../components/ServingControls";
+import { detectSystem, presentAmount } from "../domain/present";
+import { batchAdvisories } from "../domain/timing";
 import type { RootStackParamList } from "../navigation/types";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -41,14 +44,35 @@ export function RecipeDetailScreen() {
   const { params } = useRoute<Route>();
 
   const [recipe, setRecipe] = useState<Recipe | null | undefined>(undefined);
+  const [view, setView] = useState<RecipeView>(DEFAULT_VIEW);
 
   useEffect(() => {
     let live = true;
-    getRecipe(params.recipeId)
-      .then((r) => { if (live) setRecipe(r); })
+    Promise.all([getRecipe(params.recipeId), getRecipeView(params.recipeId)])
+      .then(([r, v]) => { if (live) { setRecipe(r); setView(v); } })
       .catch(() => { if (live) setRecipe(null); });
     return () => { live = false; };
   }, [params.recipeId]);
+
+  // Persisted, so Cook Mode opens on the batch the cook actually chose --
+  // including after a restart, when resuming at 1x would hand them the wrong
+  // quantities for a dish already in the oven.
+  const update = useCallback((next: RecipeView) => {
+    setView(next);
+    saveRecipeView(params.recipeId, next).catch(() => {});
+  }, [params.recipeId]);
+
+  const originalSystem = useMemo(
+    () => detectSystem((recipe?.sections ?? []).flatMap((s) => s.ingredients.map((i) => i.unit))),
+    [recipe],
+  );
+  const advisories = useMemo(
+    () => batchAdvisories(
+      (recipe?.sections ?? []).flatMap((s) => s.steps.map((st) => st.text)),
+      view.scale,
+    ),
+    [recipe, view.scale],
+  );
 
   if (recipe === undefined) {
     return (
@@ -98,6 +122,15 @@ export function RecipeDetailScreen() {
         ) : null}
       </View>
 
+      <ServingControls
+        scale={view.scale}
+        measurement={view.measurement}
+        originalSystem={originalSystem}
+        servings={recipe.servings}
+        onChangeScale={(scale) => update({ ...view, scale })}
+        onChangeMeasurement={(measurement) => update({ ...view, measurement })}
+      />
+
       <Pressable
         onPress={() => navigation.navigate("CookMode", { recipeId: recipe.id })}
         accessibilityRole="button"
@@ -109,6 +142,23 @@ export function RecipeDetailScreen() {
       >
         <Text style={[textStyle("headline"), { color: c.onAccent }]}>Start Cook Mode</Text>
       </Pressable>
+
+      {advisories.length > 0 ? (
+        <View style={{ gap: t.space.sm }}>
+          {advisories.map((a) => (
+            <View
+              key={a.title}
+              style={[styles.advisory, { backgroundColor: c.attentionSoft, borderRadius: t.radius.md }]}
+            >
+              <Text style={[textStyle("footnote"), { color: c.attention, fontWeight: "600" }]}>
+                {a.title}
+              </Text>
+              <Text style={[textStyle("footnote"), { color: c.textSecondary }]}>{a.detail}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
 
       {recipe.sections.map((section, si) => (
         <View key={`ing-${si}`} style={{ gap: t.space.md }}>
@@ -130,15 +180,30 @@ export function RecipeDetailScreen() {
                     <Text style={{ color: c.textTertiary }}>  optional</Text>
                   ) : null}
                 </Text>
-                <Text
-                  style={[
-                    textStyle("body"),
-                    { color: c.textSecondary, fontVariant: ["tabular-nums"], textAlign: "right" },
-                  ]}
-                >
-                  {formatQuantity(ing)}
-                  {ing.weightAmount ? ` (${ing.weightAmount}${ing.weightUnit ?? ""})` : ""}
-                </Text>
+                {(() => {
+                  const shown = presentAmount(ing.amount, ing.unit, ing.name, view);
+                  return (
+                    <View style={{ alignItems: "flex-end", flexShrink: 0 }}>
+                      <Text
+                        style={[
+                          textStyle("body"),
+                          {
+                            color: shown.converted ? c.accentText : c.textSecondary,
+                            fontVariant: ["tabular-nums"],
+                            textAlign: "right",
+                          },
+                        ]}
+                      >
+                        {shown.text}
+                      </Text>
+                      {view.measurement === "original" && ing.weightAmount ? (
+                        <Text style={[textStyle("footnote"), { color: c.textTertiary }]}>
+                          {`${ing.weightAmount}${ing.weightUnit ?? ""}`}
+                        </Text>
+                      ) : null}
+                    </View>
+                  );
+                })()}
               </View>
             ))}
           </View>
@@ -182,7 +247,16 @@ export function RecipeDetailScreen() {
                           style={[textStyle("footnote"), { color: use.isTotal ? c.textSecondary : c.accentText }]}
                           numberOfLines={1}
                         >
-                          {useChipLabel(use)}
+                          {(() => {
+                            const shown = presentAmount(use.amount, use.unit, use.ingredient.name, view);
+                            // A share given as words ("the rest") has no
+                            // amount to scale, so its own text stands.
+                            const amount = use.amount ? shown.text : use.quantity;
+                            if (!amount) return use.ingredient.name;
+                            return use.isTotal
+                              ? `${use.ingredient.name} · ${amount} total`
+                              : `${amount} ${use.ingredient.name}`;
+                          })()}
                         </Text>
                       </View>
                     ))}
@@ -231,4 +305,5 @@ const styles = StyleSheet.create({
   stepHead: { flexDirection: "row", gap: 10, alignItems: "flex-start" },
   refs: { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingLeft: 38 },
   refChip: { paddingHorizontal: 10, paddingVertical: 4, maxWidth: "100%" },
+  advisory: { padding: 12, gap: 4 },
 });

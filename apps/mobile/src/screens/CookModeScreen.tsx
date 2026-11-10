@@ -22,8 +22,9 @@ import { useNavigation, useRoute, type RouteProp } from "@react-navigation/nativ
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme/ThemeProvider";
 import { maxScale, textStyle } from "../theme/fonts";
-import { clearProgress, getProgress, getRecipe, saveProgress } from "../data/db";
-import { flattenSteps, formatQuantity, stepIngredientUses, useQuantityLabel, type Recipe } from "../data/types";
+import { clearProgress, DEFAULT_VIEW, getProgress, getRecipe, getRecipeView, saveProgress, type RecipeView } from "../data/db";
+import { flattenSteps, stepIngredientUses, type Recipe } from "../data/types";
+import { presentAmount, scaleLabel } from "../domain/present";
 import type { RootStackParamList } from "../navigation/types";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -39,15 +40,23 @@ export function CookModeScreen() {
   const [recipe, setRecipe] = useState<Recipe | null | undefined>(undefined);
   const [index, setIndex] = useState(0);
   const [showAll, setShowAll] = useState(false);
+  // Read, never chosen here: Cook Mode must show the batch the cook set on
+  // the recipe, including after a restart mid-dish.
+  const [view, setView] = useState<RecipeView>(DEFAULT_VIEW);
 
   // Load the recipe and the saved place together, so the first frame is
   // already on the right step rather than flashing step one.
   useEffect(() => {
     let live = true;
-    Promise.all([getRecipe(params.recipeId), getProgress(params.recipeId)])
-      .then(([r, p]) => {
+    Promise.all([
+      getRecipe(params.recipeId),
+      getProgress(params.recipeId),
+      getRecipeView(params.recipeId),
+    ])
+      .then(([r, p, v]) => {
         if (!live) return;
         setRecipe(r);
+        setView(v);
         if (r && p) {
           const total = flattenSteps(r).length;
           setIndex(Math.min(Math.max(p.stepIndex, 0), Math.max(total - 1, 0)));
@@ -103,6 +112,15 @@ export function CookModeScreen() {
         <Text style={[textStyle("eyebrow"), { color: c.textTertiary, flex: 1 }]} numberOfLines={1}>
           {recipe.title}
         </Text>
+        {view.scale !== 1 ? (
+          // Stated, not implied: the quantities below are not the ones the
+          // recipe was written with.
+          <View style={[styles.batch, { backgroundColor: c.accentSoft, borderRadius: 999 }]}>
+            <Text style={[textStyle("footnote"), { color: c.accentText, fontWeight: "600" }]}>
+              {scaleLabel(view.scale)}
+            </Text>
+          </View>
+        ) : null}
         <Pressable
           onPress={() => navigation.goBack()}
           accessibilityRole="button"
@@ -168,7 +186,13 @@ export function CookModeScreen() {
                       },
                     ]}
                   >
-                    {useQuantityLabel(use)}
+                    {(() => {
+                      const shown = use.amount
+                        ? presentAmount(use.amount, use.unit, use.ingredient.name, view).text
+                        : use.quantity;
+                      if (!shown) return "";
+                      return use.isTotal ? `${shown} total` : shown;
+                    })()}
                   </Text>
                 </View>
               ))}
@@ -204,7 +228,7 @@ export function CookModeScreen() {
                       >
                         <Text style={[textStyle("body"), { color: c.text, flex: 1, minWidth: 0 }]}>{ing.name}</Text>
                         <Text style={[textStyle("body"), { color: c.textSecondary, fontVariant: ["tabular-nums"] }]}>
-                          {formatQuantity(ing)}
+                          {presentAmount(ing.amount, ing.unit, ing.name, view).text}
                         </Text>
                       </View>
                     ))}
@@ -281,6 +305,7 @@ const styles = StyleSheet.create({
   centre: { flex: 1, alignItems: "center", justifyContent: "center" },
   bar: { flexDirection: "row", alignItems: "center", paddingVertical: 10 },
   track: { height: 4, borderRadius: 999, overflow: "hidden" },
+  batch: { paddingHorizontal: 9, paddingVertical: 2, marginRight: 8 },
   card: { overflow: "hidden" },
   row: { flexDirection: "row", gap: 16, alignItems: "baseline", paddingVertical: 11, paddingHorizontal: 16 },
   footer: { flexDirection: "row", gap: 12, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },

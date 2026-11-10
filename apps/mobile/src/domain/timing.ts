@@ -132,13 +132,15 @@ const BATCH_RULES: ReadonlyArray<{
 export function batchAdvisories(stepTexts: ReadonlyArray<string>, scale: number): Advisory[] {
   if (!Number.isFinite(scale) || scale === 1) return [];
   const haystack = stepTexts.join(" ");
-  const out: Advisory[] = [];
-  for (const rule of BATCH_RULES) {
-    if (rule.cue.test(haystack) && !out.some((a) => a.title === rule.title)) {
-      out.push({ title: rule.title, detail: rule.detail });
-    }
-  }
-  if (out.length === 0) return [];
+
+  // At most one. A tray bake also mentions a pan and an oven, and showing all
+  // three turned the screen into a wall of warnings that pushed the recipe
+  // itself below the fold -- which is how a cook learns to scroll past
+  // advice without reading it. BATCH_RULES is ordered most specific first,
+  // so the first match is the one actually worth saying.
+  const matched = BATCH_RULES.find((rule) => rule.cue.test(haystack));
+  if (!matched) return [];
+  const out: Advisory[] = [{ title: matched.title, detail: matched.detail }];
 
   out.unshift({
     title: scale < 1 ? "Times are unchanged for a smaller batch" : "Times are unchanged for a larger batch",
