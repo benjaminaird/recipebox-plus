@@ -22,6 +22,9 @@ import { stepIngredientUses, type Recipe, type Source } from "../data/types";
 import { ServingControls } from "../components/ServingControls";
 import { detectSystem, presentAmount } from "../domain/present";
 import { batchAdvisories } from "../domain/timing";
+import { durationsInText } from "../domain/timer";
+import { TimerButton } from "../timers/TimerButton";
+import { TimerSheet } from "../timers/TimerSheet";
 import type { RootStackParamList } from "../navigation/types";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -45,6 +48,7 @@ export function RecipeDetailScreen() {
 
   const [recipe, setRecipe] = useState<Recipe | null | undefined>(undefined);
   const [view, setView] = useState<RecipeView>(DEFAULT_VIEW);
+  const [timersOpen, setTimersOpen] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -131,6 +135,8 @@ export function RecipeDetailScreen() {
         onChangeMeasurement={(measurement) => update({ ...view, measurement })}
       />
 
+      <View style={styles.ctaRow}>
+        <View style={{ flex: 1 }}>
       <Pressable
         onPress={() => navigation.navigate("CookMode", { recipeId: recipe.id })}
         accessibilityRole="button"
@@ -142,6 +148,9 @@ export function RecipeDetailScreen() {
       >
         <Text style={[textStyle("headline"), { color: c.onAccent }]}>Start Cook Mode</Text>
       </Pressable>
+        </View>
+        <TimerButton onPress={() => setTimersOpen(true)} />
+      </View>
 
       {advisories.length > 0 ? (
         <View style={{ gap: t.space.sm }}>
@@ -293,6 +302,16 @@ export function RecipeDetailScreen() {
           </View>
         </View>
       ) : null}
+
+      <TimerSheet
+        visible={timersOpen}
+        onClose={() => setTimersOpen(false)}
+        recipeId={recipe.id}
+        suggestions={Array.from(
+          new Set(recipe.sections.flatMap((sec) => sec.steps.flatMap((st) => durationsInText(st.text)))),
+        ).sort((a, b) => a - b)}
+        defaultLabel={recipe.title}
+      />
     </ScrollView>
   );
 }
@@ -306,4 +325,5 @@ const styles = StyleSheet.create({
   refs: { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingLeft: 38 },
   refChip: { paddingHorizontal: 10, paddingVertical: 4, maxWidth: "100%" },
   advisory: { padding: 12, gap: 4 },
+  ctaRow: { flexDirection: "row", alignItems: "center", gap: 10 },
 });

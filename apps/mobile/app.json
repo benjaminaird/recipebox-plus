@@ -41,7 +41,14 @@
         }
       ],
       "expo-sqlite",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "color": "#2B5B45",
+          "defaultChannel": "timers"
+        }
+      ]
     ],
     "extra": {
       "notes": "Design-system test build. Provisional identifiers (.dev); the permanent bundle identifier is not yet chosen. No auth, database, AI or sync.",

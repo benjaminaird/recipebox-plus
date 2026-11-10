@@ -25,6 +25,9 @@ import { maxScale, textStyle } from "../theme/fonts";
 import { clearProgress, DEFAULT_VIEW, getProgress, getRecipe, getRecipeView, saveProgress, type RecipeView } from "../data/db";
 import { flattenSteps, stepIngredientUses, type Recipe } from "../data/types";
 import { presentAmount, scaleLabel } from "../domain/present";
+import { durationsInText } from "../domain/timer";
+import { TimerButton } from "../timers/TimerButton";
+import { TimerSheet } from "../timers/TimerSheet";
 import type { RootStackParamList } from "../navigation/types";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -43,6 +46,7 @@ export function CookModeScreen() {
   // Read, never chosen here: Cook Mode must show the batch the cook set on
   // the recipe, including after a restart mid-dish.
   const [view, setView] = useState<RecipeView>(DEFAULT_VIEW);
+  const [timersOpen, setTimersOpen] = useState(false);
 
   // Load the recipe and the saved place together, so the first frame is
   // already on the right step rather than flashing step one.
@@ -121,6 +125,7 @@ export function CookModeScreen() {
             </Text>
           </View>
         ) : null}
+        <TimerButton compact onPress={() => setTimersOpen(true)} />
         <Pressable
           onPress={() => navigation.goBack()}
           accessibilityRole="button"
@@ -297,6 +302,15 @@ export function CookModeScreen() {
           </Text>
         </Pressable>
       </View>
+
+      <TimerSheet
+        visible={timersOpen}
+        onClose={() => setTimersOpen(false)}
+        recipeId={recipe.id}
+        // Offered first: the durations this step actually names.
+        suggestions={durationsInText(step.text)}
+        defaultLabel={`${recipe.title} · Step ${index + 1}`}
+      />
     </View>
   );
 }

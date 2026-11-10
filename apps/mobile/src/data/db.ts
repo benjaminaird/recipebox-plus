@@ -9,13 +9,14 @@ import * as SQLite from "expo-sqlite";
 import type { CookProgress, Recipe } from "./types";
 import type { Measurement } from "../domain/convert";
 import type { Scale } from "../domain/present";
+import type { Timer } from "../domain/timer";
 import { buildSearchText, byNewest, type LibraryFilters } from "./query";
 import { SAMPLE_RECIPES } from "./sampleRecipes";
 
 const DB_NAME = "recipebox.db";
 
 /** Bump when the table shape changes; `migrate` is additive and idempotent. */
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 let handle: Promise<SQLite.SQLiteDatabase> | null = null;
 
@@ -55,6 +56,21 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
     -- and the measurement system. Stored, not derived, because resuming a
     -- cooking session at 1x after someone set 2x would hand them the wrong
     -- quantities for a dish already in the oven.
+    -- Added in schema 3. Timers outlive the app: a deadline is absolute, so
+    -- a row written before a force-quit is still correct when it is read back,
+    -- with no catching up to do.
+    CREATE TABLE IF NOT EXISTS timers (
+      id           TEXT PRIMARY KEY NOT NULL,
+      label        TEXT NOT NULL,
+      duration_ms  INTEGER NOT NULL,
+      ends_at      INTEGER,
+      remaining_ms INTEGER,
+      status       TEXT NOT NULL,
+      recipe_id    TEXT,
+      step_index   INTEGER,
+      created_at   INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS timers_created_at ON timers (created_at);
     CREATE TABLE IF NOT EXISTS recipe_view (
       recipe_id   TEXT PRIMARY KEY NOT NULL,
       scale       REAL NOT NULL,
@@ -267,9 +283,69 @@ export async function saveRecipeView(recipeId: string, view: RecipeView): Promis
   );
 }
 
+type TimerRow = {
+  id: string; label: string; duration_ms: number;
+  ends_at: number | null; remaining_ms: number | null;
+  status: string; recipe_id: string | null; step_index: number | null;
+  created_at: number;
+};
+
+const TIMER_STATUSES = new Set(["running", "paused", "done"]);
+
+function rowToTimer(r: TimerRow): Timer {
+  return {
+    id: r.id,
+    label: r.label,
+    durationMs: r.duration_ms,
+    endsAt: r.ends_at,
+    remainingMs: r.remaining_ms,
+    // A row with an unrecognised status is treated as finished rather than
+    // dropped: losing a timer silently is worse than showing a spent one.
+    status: (TIMER_STATUSES.has(r.status) ? r.status : "done") as Timer["status"],
+    ...(r.recipe_id ? { recipeId: r.recipe_id } : {}),
+    ...(r.step_index !== null ? { stepIndex: r.step_index } : {}),
+    createdAt: r.created_at,
+  };
+}
+
+export async function listTimers(): Promise<Timer[]> {
+  const db = await open();
+  const rows = await db.getAllAsync<TimerRow>(`SELECT * FROM timers ORDER BY created_at ASC`);
+  return rows.map(rowToTimer);
+}
+
+export async function saveTimer(timer: Timer): Promise<void> {
+  const db = await open();
+  await db.runAsync(
+    `INSERT INTO timers (id, label, duration_ms, ends_at, remaining_ms, status, recipe_id, step_index, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       label = excluded.label, duration_ms = excluded.duration_ms,
+       ends_at = excluded.ends_at, remaining_ms = excluded.remaining_ms,
+       status = excluded.status, recipe_id = excluded.recipe_id,
+       step_index = excluded.step_index`,
+    [
+      timer.id, timer.label, timer.durationMs,
+      timer.endsAt ?? null, timer.remainingMs ?? null, timer.status,
+      timer.recipeId ?? null, timer.stepIndex ?? null, timer.createdAt,
+    ],
+  );
+}
+
+export async function deleteTimer(id: string): Promise<void> {
+  const db = await open();
+  await db.runAsync(`DELETE FROM timers WHERE id = ?`, [id]);
+}
+
+/** Clear finished timers. Running and paused ones are left alone. */
+export async function clearFinishedTimers(): Promise<void> {
+  const db = await open();
+  await db.runAsync(`DELETE FROM timers WHERE status = 'done'`);
+}
+
 /** Test and development helper. Not reachable from the UI. */
 export async function resetForTesting(): Promise<void> {
   const db = await open();
-  await db.execAsync(`DELETE FROM recipes; DELETE FROM cook_progress; DELETE FROM recipe_view; DELETE FROM meta;`);
+  await db.execAsync(`DELETE FROM recipes; DELETE FROM cook_progress; DELETE FROM recipe_view; DELETE FROM timers; DELETE FROM meta;`);
   handle = null;
 }
