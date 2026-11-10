@@ -44,9 +44,32 @@ echo "==> Locale  : LANG=$LANG LC_ALL=$LC_ALL"
 echo "==> Device  : $DEVICE"
 echo "==> Build log: $BUILD_LOG"
 
+# Metro has to run, but it must not run *here*. `expo run:ios` starts the
+# bundler in the foreground and never returns, so everything below it --
+# including the exit-status check and the launch verification -- is
+# unreachable. (That is not hypothetical: the first version of this script
+# did exactly that and silently verified nothing.) So the bundler is started
+# separately and the build is told not to start one.
+METRO_LOG="$LOG_DIR/metro.log"
+if curl -s -o /dev/null --max-time 3 "http://localhost:8081/status"; then
+  echo "==> Metro  : already serving on :8081"
+else
+  echo "==> Metro  : starting (log: $METRO_LOG)"
+  npx expo start --dev-client --port 8081 >"$METRO_LOG" 2>&1 &
+  for _ in $(seq 1 60); do
+    curl -s -o /dev/null --max-time 2 "http://localhost:8081/status" && break
+    sleep 1
+  done
+  if ! curl -s -o /dev/null --max-time 3 "http://localhost:8081/status"; then
+    echo "FAILED: Metro did not come up on :8081. Last lines of $METRO_LOG:"
+    tail -20 "$METRO_LOG"
+    exit 1
+  fi
+fi
+
 # (2) tee for a readable log, PIPESTATUS for the truth about the exit status.
 set +e
-npx expo run:ios --device "$DEVICE" 2>&1 | tee "$BUILD_LOG"
+npx expo run:ios --device "$DEVICE" --no-bundler 2>&1 | tee "$BUILD_LOG"
 STATUS="${PIPESTATUS[0]}"
 set -e
 
