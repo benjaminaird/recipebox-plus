@@ -118,3 +118,40 @@ publishes "RecipeBox - Save Your Recipes!", and "RecipeBox: My Recipe Book" also
 exists. The on-device display name "RecipeBox" is fine for testing. The App
 Store listing name, and any trademark question, should be settled before a
 public release. That's a product and legal decision, not a technical one.
+
+## Running on a simulator reliably
+
+Use `npm run ios:sim` (from `apps/mobile`) rather than `npx expo run:ios`
+directly. The script exists because three things went wrong repeatedly, and
+each one wasted a build cycle:
+
+**The locale.** `expo run:ios` runs `pod install` itself, and CocoaPods calls
+`String#unicode_normalize` on the project path. Under a non-UTF-8 locale that
+raises `Unicode Normalization not appropriate for ASCII-8BIT
+(Encoding::CompatibilityError)` and the build dies before compiling anything.
+Exporting `LANG` in one terminal does not fix it for the next invocation, so
+the script sets `LANG`/`LC_ALL` itself. `npm run pods` does the same for a
+direct `pod install`.
+
+**Masked exit status.** `xcodebuild ... | tail` exits with *tail's* status. A
+build that failed with error code 65 reports 0, and the failure is only
+visible by reading the log. Never pipe a build command whose status you intend
+to check. The script runs under `set -o pipefail` and reads `PIPESTATUS[0]`.
+
+**"The simulator looks fine."** A screenshot is not evidence that RecipeBox
+started. The simulator may be showing springboard, a different app, or
+RecipeBox's own splash while the JS bundle fails to load — all three have
+happened here. The script launches by bundle id, captures the pid, waits, and
+re-checks the pid, so an app that starts and immediately dies is caught.
+
+It still cannot prove the bundle loaded or that the right screen is up; it
+says so when it finishes, and writes a screenshot to look at. For a dev build,
+the Expo launcher satisfies every automated check while showing no RecipeBox
+UI at all.
+
+### `expo prebuild` rewrites package.json
+
+`expo prebuild` has twice rewritten `"ios": "expo start --ios"` to
+`"expo run:ios"`, baking in a bare-workflow assumption against this project's
+deliberate CNG setup (`ios/` and `android/` are gitignored and regenerated).
+Check `git diff package.json` after any prebuild and revert that line.
