@@ -309,6 +309,7 @@ export function CookModeScreen() {
         recipeId={recipe.id}
         // Offered first: the durations this step actually names.
         suggestions={durationsInText(step.text)}
+        suggestionsFrom="this step"
         defaultLabel={`${recipe.title} · Step ${index + 1}`}
       />
     </View>

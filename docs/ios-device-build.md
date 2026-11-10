@@ -151,7 +151,29 @@ UI at all.
 
 ### `expo prebuild` rewrites package.json
 
-`expo prebuild` has twice rewritten `"ios": "expo start --ios"` to
-`"expo run:ios"`, baking in a bare-workflow assumption against this project's
-deliberate CNG setup (`ios/` and `android/` are gitignored and regenerated).
-Check `git diff package.json` after any prebuild and revert that line.
+`expo prebuild` rewrites `"ios": "expo start --ios"` to `"expo run:ios"` and
+`"android"` likewise, baking in a bare-workflow assumption against this
+project's deliberate CNG setup (`ios/` and `android/` are gitignored and
+regenerated). Check `git diff package.json` after any prebuild.
+
+**Revert only those two lines. Do not run `git checkout package.json`.**
+
+That shortcut cost a build cycle and was hard to see: a prebuild usually
+follows adding a native dependency, and the dependency is not committed yet,
+so checking the file out discards it along with the script rewrite.
+`node_modules` still holds the package and `expo config` still reports it, but
+Expo autolinking reads `package.json`, so the pod is silently never installed
+and the app builds and launches cleanly — then dies at runtime with
+`Cannot find native module '...'`.
+
+Revert the two lines in place instead:
+
+```bash
+sed -i '' 's/"android": "expo run:android"/"android": "expo start --android"/; s/"ios": "expo run:ios"/"ios": "expo start --ios"/' apps/mobile/package.json
+```
+
+Then confirm the dependency survived before building:
+
+```bash
+grep -c ExpoNotifications apps/mobile/ios/Podfile.lock
+```

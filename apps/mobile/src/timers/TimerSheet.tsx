@@ -88,13 +88,16 @@ function Action({ label, onPress, primary = false }: { label: string; onPress: (
 }
 
 export function TimerSheet({
-  visible, onClose, recipeId, suggestions = [], defaultLabel = "Timer",
+  visible, onClose, recipeId, suggestions = [], suggestionsFrom = "this recipe", defaultLabel = "Timer",
 }: {
   visible: boolean;
   onClose: () => void;
   recipeId?: string;
-  /** Durations read out of the current step, offered first. */
+  /** Durations read out of the recipe, offered first. */
   suggestions?: number[];
+  /** What the suggestions were read from, so the heading is truthful:
+   *  Cook Mode offers one step's durations, Recipe Detail offers them all. */
+  suggestionsFrom?: string;
   defaultLabel?: string;
 }) {
   const t = useTheme();
@@ -131,7 +134,7 @@ export function TimerSheet({
         >
           {suggestions.length > 0 ? (
             <View style={{ gap: t.space.sm }}>
-              <Text style={[textStyle("eyebrow"), { color: c.textTertiary }]}>From this step</Text>
+              <Text style={[textStyle("eyebrow"), { color: c.textTertiary }]}>{`From ${suggestionsFrom}`}</Text>
               <View style={styles.chips}>
                 {suggestions.map((ms) => (
                   <Action key={ms} label={durationLabel(ms)} primary onPress={() => start({ label: defaultLabel, durationMs: ms, recipeId })} />

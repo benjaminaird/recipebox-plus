@@ -24,6 +24,7 @@ export function TimerButton({ onPress, compact = false }: { onPress: () => void;
       ? formatRemaining(remainingMs(running, now))
       : "Timers";
 
+  const countingDown = Boolean(running) && !finished;
   const tone = finished ? c.attention : running ? c.accentText : c.textSecondary;
   const ground = finished ? c.attentionSoft : running ? c.accentSoft : c.surface;
 
@@ -54,7 +55,12 @@ export function TimerButton({ onPress, compact = false }: { onPress: () => void;
         maxFontSizeMultiplier={1.4}
         style={[
           textStyle("footnote"),
-          { color: tone, fontWeight: "600", fontVariant: running && !finished ? ["tabular-nums"] : undefined },
+          { color: tone, fontWeight: "600" },
+          // Included only when there is a countdown to align. Passing
+          // `fontVariant: undefined` conditionally is not equivalent: style
+          // flattening can turn it into null, and React Native then calls
+          // .split() on it and the whole screen fails to render.
+          countingDown ? styles.tabular : null,
         ]}
       >
         {label}
@@ -69,4 +75,5 @@ export function TimerButton({ onPress, compact = false }: { onPress: () => void;
 const styles = StyleSheet.create({
   button: { flexDirection: "row", alignItems: "center", gap: 7, borderWidth: StyleSheet.hairlineWidth },
   dot: { width: 7, height: 7, borderRadius: 3.5 },
+  tabular: { fontVariant: ["tabular-nums"] },
 });
