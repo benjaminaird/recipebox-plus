@@ -15,4 +15,5 @@ export type RootStackParamList = {
   Tabs: NavigatorScreenParams<TabParamList>;
   RecipeDetail: { recipeId: string };
   CookMode: { recipeId: string };
+  Settings: undefined;
 };

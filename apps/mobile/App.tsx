@@ -10,6 +10,7 @@ import { ThemeProvider } from "./src/theme/ThemeProvider";
 import { serifFonts } from "./src/theme/fonts";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { TimerProvider } from "./src/timers/TimerProvider";
+import { SettingsProvider } from "./src/settings/SettingsProvider";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -25,12 +26,15 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        {/* Above the navigator: a timer belongs to the session, not to the
-            screen that started it, and has to survive moving between them. */}
-        <TimerProvider>
-          <StatusBar style="auto" />
-          <RootNavigator />
-        </TimerProvider>
+        {/* Settings sits above the timers, which read the chosen alert sound. */}
+        <SettingsProvider>
+          {/* Above the navigator: a timer belongs to the session, not to the
+              screen that started it, and has to survive moving between them. */}
+          <TimerProvider>
+            <StatusBar style="auto" />
+            <RootNavigator />
+          </TimerProvider>
+        </SettingsProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

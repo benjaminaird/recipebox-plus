@@ -15,10 +15,11 @@ import {
 import { AppState, type AppStateStatus } from "react-native";
 import { clearFinishedTimers, deleteTimer, listTimers, saveTimer } from "../data/db";
 import {
-  cancelTimerNotification, configureNotifications, ensureAndroidChannel,
+  cancelTimerNotification, configureNotifications, ensureTimerChannels,
   getPermission, requestPermission, scheduleTimerNotification,
   type PermissionState,
 } from "../data/notifications";
+import { useSettings } from "../settings/SettingsProvider";
 import {
   adjustTimer, byUrgency, createTimer, formatRemaining, pauseTimer,
   remainingMs, restartTimer, resumeTimer, settle, type Timer,
@@ -53,6 +54,12 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const [now, setNow] = useState(() => Date.now());
   const [permission, setPermission] = useState<PermissionState>("undetermined");
   const [ready, setReady] = useState(false);
+  // The chosen alert, read live: changing it in Settings must affect the next
+  // timer without a restart. Timers already scheduled keep the sound they were
+  // scheduled with, because the OS holds that and we do not rewrite it.
+  const { timerSound } = useSettings();
+  const soundRef = useRef(timerSound);
+  soundRef.current = timerSound;
   const timersRef = useRef<Timer[]>([]);
   timersRef.current = timers;
 
@@ -65,7 +72,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let live = true;
     configureNotifications();
-    ensureAndroidChannel();
+    ensureTimerChannels();
     (async () => {
       const [stored, perm] = await Promise.all([listTimers(), getPermission()]);
       if (!live) return;
@@ -129,7 +136,8 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const reschedule = useCallback(async (timer: Timer) => {
     if (permission !== "granted" || !timer.endsAt) return;
     await scheduleTimerNotification({
-      id: timer.id, title: timer.label, body: "Timer finished", endsAt: timer.endsAt,
+      id: timer.id, title: timer.label, body: "Timer finished",
+      endsAt: timer.endsAt, sound: soundRef.current,
     });
   }, [permission]);
 
@@ -144,7 +152,8 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     if (perm === "undetermined") perm = await askPermission();
     if (perm === "granted" && timer.endsAt) {
       await scheduleTimerNotification({
-        id: timer.id, title: timer.label, body: "Timer finished", endsAt: timer.endsAt,
+        id: timer.id, title: timer.label, body: "Timer finished",
+        endsAt: timer.endsAt, sound: soundRef.current,
       });
     }
   }, [permission, askPermission]);

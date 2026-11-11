@@ -8,6 +8,7 @@
 // look broken, Home says what is coming in one honest strip at the bottom.
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -77,7 +78,29 @@ export function HomeScreen() {
         gap: t.space.xxl,
       }}
     >
-      <BrandHeader />
+      {/* The lockup, with settings at the far end of the same line. A gear in
+          the header is where every iOS app puts it, and it keeps the five tabs
+          for the five things a cook actually does. */}
+      <View style={styles.header}>
+        <BrandHeader />
+        <Pressable
+          onPress={() => navigation.navigate("Settings")}
+          accessibilityRole="button"
+          accessibilityLabel="Settings"
+          hitSlop={12}
+          style={({ pressed }) => [
+            styles.gear,
+            {
+              width: t.minTouch,
+              height: t.minTouch,
+              borderRadius: t.radius.pill,
+              backgroundColor: pressed ? c.sunken : "transparent",
+            },
+          ]}
+        >
+          <Ionicons name="settings-outline" size={22} color={c.textSecondary} />
+        </Pressable>
+      </View>
 
       {data.cooking.length > 0 ? (
         <View style={{ gap: t.space.md }}>
@@ -196,6 +219,10 @@ export function HomeScreen() {
 
 const styles = StyleSheet.create({
   centre: { flex: 1, alignItems: "center", justifyContent: "center" },
+  // The gear is pulled out into the gutter so the icon's optical edge lines up
+  // with the text below it rather than its touch target's edge.
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginRight: -10 },
+  gear: { alignItems: "center", justifyContent: "center" },
   card: { overflow: "hidden" },
   sectionHead: { flexDirection: "row", alignItems: "center", gap: 12 },
   resume: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },

@@ -46,7 +46,12 @@
         "expo-notifications",
         {
           "color": "#2B5B45",
-          "defaultChannel": "timers"
+          "sounds": [
+            "./assets/sounds/chime.wav",
+            "./assets/sounds/bell.wav",
+            "./assets/sounds/ring.wav"
+          ],
+          "defaultChannel": "timers-chime"
         }
       ]
     ],

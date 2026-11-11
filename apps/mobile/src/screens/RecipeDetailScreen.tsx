@@ -18,6 +18,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme/ThemeProvider";
 import { maxScale, textStyle } from "../theme/fonts";
 import { DEFAULT_VIEW, getRecipe, getRecipeView, saveRecipeView, type RecipeView } from "../data/db";
+import { useSettings } from "../settings/SettingsProvider";
 import { stepIngredientUses, type Recipe, type Source } from "../data/types";
 import { ServingControls } from "../components/ServingControls";
 import { detectSystem, presentAmount } from "../domain/present";
@@ -46,17 +47,19 @@ export function RecipeDetailScreen() {
   const navigation = useNavigation<Nav>();
   const { params } = useRoute<Route>();
 
+  // The Settings default applies to a recipe with no saved view of its own.
+  const { measurement: preferred } = useSettings();
   const [recipe, setRecipe] = useState<Recipe | null | undefined>(undefined);
-  const [view, setView] = useState<RecipeView>(DEFAULT_VIEW);
+  const [view, setView] = useState<RecipeView>({ ...DEFAULT_VIEW, measurement: preferred });
   const [timersOpen, setTimersOpen] = useState(false);
 
   useEffect(() => {
     let live = true;
-    Promise.all([getRecipe(params.recipeId), getRecipeView(params.recipeId)])
+    Promise.all([getRecipe(params.recipeId), getRecipeView(params.recipeId, preferred)])
       .then(([r, v]) => { if (live) { setRecipe(r); setView(v); } })
       .catch(() => { if (live) setRecipe(null); });
     return () => { live = false; };
-  }, [params.recipeId]);
+  }, [params.recipeId, preferred]);
 
   // Persisted, so Cook Mode opens on the batch the cook actually chose --
   // including after a restart, when resuming at 1x would hand them the wrong

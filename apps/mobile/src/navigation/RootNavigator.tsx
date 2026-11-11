@@ -12,6 +12,7 @@ import { HomeScreen } from "../screens/HomeScreen";
 import { RecipesScreen } from "../screens/RecipesScreen";
 import { RecipeDetailScreen } from "../screens/RecipeDetailScreen";
 import { CookModeScreen } from "../screens/CookModeScreen";
+import { SettingsScreen } from "../screens/SettingsScreen";
 import { Placeholder } from "../components/Placeholder";
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -139,6 +140,21 @@ export function RootNavigator() {
             title: "",
             headerBackTitle: "Recipes",
             headerTransparent: false,
+            headerStyle: { backgroundColor: c.canvas },
+            headerShadowVisible: false,
+            headerTintColor: c.accentText,
+          }}
+        />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{
+            // Pushed, not a modal: the system back chevron and the swipe-back
+            // gesture come free, and Settings is somewhere you leave by going
+            // back rather than by dismissing.
+            headerShown: true,
+            title: "",
+            headerBackTitle: "Home",
             headerStyle: { backgroundColor: c.canvas },
             headerShadowVisible: false,
             headerTintColor: c.accentText,

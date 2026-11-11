@@ -256,13 +256,24 @@ export const DEFAULT_VIEW: RecipeView = { scale: 1, measurement: "original" };
 const VALID_SCALES = new Set([0.5, 1, 2, 3, 4]);
 const VALID_MEASUREMENTS = new Set(["original", "us", "metric"]);
 
-export async function getRecipeView(recipeId: string): Promise<RecipeView> {
+/**
+ * How a recipe should open.
+ *
+ * `preferred` is the cook's default measurement system from Settings, used only
+ * when this recipe has no saved view of its own. A recipe they have already
+ * switched keeps what they chose: a per-recipe decision is more specific than a
+ * global default and must outrank it.
+ */
+export async function getRecipeView(
+  recipeId: string,
+  preferred: Measurement = DEFAULT_VIEW.measurement,
+): Promise<RecipeView> {
   const db = await open();
   const row = await db.getFirstAsync<{ scale: number; measurement: string }>(
     `SELECT scale, measurement FROM recipe_view WHERE recipe_id = ?`,
     [recipeId],
   );
-  if (!row) return DEFAULT_VIEW;
+  if (!row) return { scale: DEFAULT_VIEW.scale, measurement: preferred };
   // Validate on read: a stored value from a later version, or a corrupted
   // row, must not put the interface into a state it cannot represent.
   const scale = VALID_SCALES.has(row.scale) ? (row.scale as Scale) : DEFAULT_VIEW.scale;

@@ -23,6 +23,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme/ThemeProvider";
 import { maxScale, textStyle } from "../theme/fonts";
 import { clearProgress, DEFAULT_VIEW, getProgress, getRecipe, getRecipeView, saveProgress, type RecipeView } from "../data/db";
+import { useSettings } from "../settings/SettingsProvider";
 import { flattenSteps, stepIngredientUses, type Recipe } from "../data/types";
 import { presentAmount, scaleLabel } from "../domain/present";
 import { durationsInText } from "../domain/timer";
@@ -45,7 +46,8 @@ export function CookModeScreen() {
   const [showAll, setShowAll] = useState(false);
   // Read, never chosen here: Cook Mode must show the batch the cook set on
   // the recipe, including after a restart mid-dish.
-  const [view, setView] = useState<RecipeView>(DEFAULT_VIEW);
+  const { measurement: preferred } = useSettings();
+  const [view, setView] = useState<RecipeView>({ ...DEFAULT_VIEW, measurement: preferred });
   const [timersOpen, setTimersOpen] = useState(false);
 
   // Load the recipe and the saved place together, so the first frame is
@@ -55,7 +57,7 @@ export function CookModeScreen() {
     Promise.all([
       getRecipe(params.recipeId),
       getProgress(params.recipeId),
-      getRecipeView(params.recipeId),
+      getRecipeView(params.recipeId, preferred),
     ])
       .then(([r, p, v]) => {
         if (!live) return;
@@ -68,7 +70,7 @@ export function CookModeScreen() {
       })
       .catch(() => { if (live) setRecipe(null); });
     return () => { live = false; };
-  }, [params.recipeId]);
+  }, [params.recipeId, preferred]);
 
   const steps = useMemo(() => (recipe ? flattenSteps(recipe) : []), [recipe]);
 

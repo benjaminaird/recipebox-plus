@@ -26,6 +26,9 @@
 // on top, never the source of truth.
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
+import {
+  TIMER_SOUND_CHOICES, timerChannelId, timerSoundFile, type TimerSound,
+} from "../settings/settings";
 
 export type PermissionState = "granted" | "denied" | "undetermined";
 
@@ -75,8 +78,9 @@ export type ScheduleOptions = {
   body: string;
   /** Absolute epoch ms. A deadline in the past is not scheduled. */
   endsAt: number;
-  /** A bundled sound file name, or null for the system default. */
-  sound?: string | null;
+  /** Which alert to use. The bundle filename and Android channel are derived
+   *  from it, so a caller never has to know either. */
+  sound?: TimerSound;
 };
 
 /**
@@ -99,9 +103,11 @@ export async function scheduleTimerNotification(
       content: {
         title,
         body,
-        sound: sound ?? "default",
-        // Android needs a channel for sound; iOS ignores this field.
-        ...(Platform.OS === "android" ? { channelId: "timers" } : {}),
+        // iOS takes the bundled filename directly; "default" is the system
+        // sound. On Android the filename is ignored and the channel decides,
+        // which is why there is a channel per sound.
+        sound: soundValue(sound),
+        ...(Platform.OS === "android" ? { channelId: timerChannelId(sound ?? "chime") } : {}),
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
@@ -122,19 +128,66 @@ export async function cancelTimerNotification(id: string): Promise<void> {
   }
 }
 
-/** Android requires a channel before any sound plays. Harmless on iOS. */
-export async function ensureAndroidChannel(): Promise<void> {
+/** The value iOS wants for a sound: a bundled filename, or the system sound. */
+function soundValue(sound: TimerSound | undefined): string {
+  return timerSoundFile(sound ?? "chime") ?? "default";
+}
+
+/**
+ * Android requires a channel before any sound plays, and a channel's sound is
+ * fixed when it is created -- Android will not let an app change it afterwards,
+ * so that a choice made in system settings sticks. Offering a choice therefore
+ * means one channel per sound, created up front. Harmless on iOS.
+ */
+export async function ensureTimerChannels(): Promise<void> {
   if (Platform.OS !== "android") return;
+  for (const choice of TIMER_SOUND_CHOICES) {
+    try {
+      await Notifications.setNotificationChannelAsync(timerChannelId(choice.value), {
+        name: `Kitchen timers (${choice.label})`,
+        importance: Notifications.AndroidImportance.HIGH,
+        sound: choice.file ?? "default",
+        vibrationPattern: [0, 300, 200, 300],
+        enableVibrate: true,
+      });
+    } catch {
+      // A failed channel costs the sound, not the timer.
+    }
+  }
+}
+
+/**
+ * Play a sound the way a timer actually will.
+ *
+ * This deliberately goes through the notification system rather than playing
+ * the file as media. Media playback would ignore the ringer switch and Focus
+ * modes and so would tell the cook their timer is audible when it is not; a
+ * real notification is silent in exactly the cases a real timer would be. The
+ * banner it produces is the point, not a side effect.
+ *
+ * Returns false when nothing was scheduled, which the caller must explain
+ * rather than swallow -- almost always because permission has not been granted.
+ */
+export async function previewTimerSound(sound: TimerSound): Promise<boolean> {
+  if ((await getPermission()) !== "granted") return false;
   try {
-    await Notifications.setNotificationChannelAsync("timers", {
-      name: "Kitchen timers",
-      importance: Notifications.AndroidImportance.HIGH,
-      sound: "default",
-      vibrationPattern: [0, 300, 200, 300],
-      enableVibrate: true,
+    await Notifications.scheduleNotificationAsync({
+      identifier: "timer-sound-preview",
+      content: {
+        title: "Timer sound",
+        body: "This is how a finished timer will sound.",
+        sound: soundValue(sound),
+        ...(Platform.OS === "android" ? { channelId: timerChannelId(sound) } : {}),
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: 1,
+        repeats: false,
+      },
     });
+    return true;
   } catch {
-    // A failed channel costs the sound, not the timer.
+    return false;
   }
 }
 
