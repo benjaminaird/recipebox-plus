@@ -10,6 +10,8 @@
 // modelled; the rest of that ADR's fields are additive and can be filled in
 // without changing what is here.
 
+import { displayTag, normalizeTagKey } from "../domain/tags.ts";
+
 export type Ingredient = {
   /** Stable id (`i1`, `i2`) that steps reference. Never renumber on edit. */
   id: string;
@@ -266,18 +268,38 @@ export function stepIngredientUses(recipe: Recipe, step: Step): ResolvedUse[] {
   return out;
 }
 
-/** Every distinct tag across a set of recipes, in first-seen order. */
+/**
+ * Every distinct tag across a set of recipes, in first-seen order.
+ *
+ * Grouped by meaning, not by spelling, and shown in the canonical form. A
+ * library holds recipes from many sources and many dates, so "Gluten free"
+ * and "Gluten-Free" will both be in it -- and listing them as two filters that
+ * each find half the matching recipes is worse than useless, because nothing
+ * on screen says they are the same thing.
+ *
+ * This normalises what is *displayed and matched*, never what is stored. The
+ * recipe keeps the words it was saved with.
+ */
 export function collectTags(recipes: Recipe[]): string[] {
-  const seen: string[] = [];
-  for (const r of recipes) for (const tag of r.tags ?? []) if (!seen.includes(tag)) seen.push(tag);
-  return seen;
+  const byKey = new Map<string, string>();
+  for (const r of recipes) {
+    for (const tag of r.tags ?? []) {
+      const key = normalizeTagKey(tag);
+      if (key && !byKey.has(key)) byKey.set(key, displayTag(tag));
+    }
+  }
+  return [...byKey.values()];
 }
 
-/** Every distinct category, in first-seen order. */
+/** Every distinct category, in first-seen order, grouped the same way. */
 export function collectCategories(recipes: Recipe[]): string[] {
-  const seen: string[] = [];
-  for (const r of recipes) if (r.category && !seen.includes(r.category)) seen.push(r.category);
-  return seen;
+  const byKey = new Map<string, string>();
+  for (const r of recipes) {
+    if (!r.category) continue;
+    const key = normalizeTagKey(r.category);
+    if (key && !byKey.has(key)) byKey.set(key, r.category);
+  }
+  return [...byKey.values()];
 }
 
 /**

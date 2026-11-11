@@ -404,3 +404,37 @@ test("a default measurement a recipe cannot offer falls back to its own units", 
     assert.equal(openingView(usRecipe, pref).scale, 1);
   }
 });
+
+test("a tag filter finds every spelling of that tag", () => {
+  // The bug this prevents appeared the moment the first recipe was edited:
+  // saving canonicalised its tags, so the library held "Gluten-Free" on one
+  // recipe and "Gluten free" on another, and the filter listed them as two
+  // pills that each found half the matching recipes, with nothing on screen
+  // to say they were the same thing.
+  const mk = (id: string, tags: string[], category?: string) => ({
+    id, title: id, createdAt: 0, updatedAt: 0, category, tags, sections: [],
+  }) as unknown as Recipe;
+
+  const library = [
+    mk("a", ["Gluten-Free", "One-Pot"], "Baked Goods"),
+    mk("b", ["gluten free"], "baked goods"),
+    mk("c", ["Vegan"], "Desserts"),
+  ];
+
+  // One pill, not two.
+  const tags = collectTags(library);
+  assert.equal(tags.filter((t) => t.toLowerCase().replace(/-/g, " ") === "gluten free").length, 1);
+  assert.deepEqual(collectCategories(library), ["Baked Goods", "Desserts"]);
+
+  // And it finds both recipes whichever spelling is asked for.
+  for (const spelling of ["Gluten-Free", "gluten free", "GLUTEN FREE"]) {
+    const found = library.filter((r) => matches(r, { tags: [spelling] }));
+    assert.deepEqual(found.map((r) => r.id), ["a", "b"], `spelling: ${spelling}`);
+  }
+
+  // Categories too.
+  for (const spelling of ["Baked Goods", "baked goods", "BAKED-GOODS"]) {
+    const found = library.filter((r) => matches(r, { category: spelling }));
+    assert.deepEqual(found.map((r) => r.id), ["a", "b"], `spelling: ${spelling}`);
+  }
+});

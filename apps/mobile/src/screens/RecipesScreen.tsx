@@ -22,6 +22,8 @@ import { inputStyle, maxScale, textStyle } from "../theme/fonts";
 import { RecipeTile } from "../components/RecipeTile";
 import { listRecipes } from "../data/db";
 import { collectCategories, collectTags, type Recipe } from "../data/types";
+import { matches } from "../data/query";
+import { displayTag } from "../domain/tags";
 import type { RootStackParamList } from "../navigation/types";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -58,20 +60,14 @@ export function RecipesScreen() {
   const categories = useMemo(() => collectCategories(all ?? []), [all]);
   const tags = useMemo(() => collectTags(all ?? []), [all]);
 
+  // One implementation of "does this recipe match", shared with the database
+  // path. It had two, and they disagreed: this screen compared tag strings
+  // exactly, so a pill reading "Make-Ahead" found nothing on a recipe saved as
+  // "Make ahead" -- a filter that silently returns an empty library.
   const visible = useMemo(() => {
     if (!all) return [];
-    const q = query.trim().toLowerCase();
-    return all.filter((r) => {
-      if (category && r.category !== category) return false;
-      if (tag && !(r.tags ?? []).includes(tag)) return false;
-      if (!q) return true;
-      const hay = [
-        r.title, r.description ?? "", r.category ?? "",
-        ...(r.tags ?? []),
-        ...r.sections.flatMap((s) => s.ingredients.map((i) => i.name)),
-      ].join(" ").toLowerCase();
-      return q.split(/\s+/).every((term) => hay.includes(term));
-    });
+    const filters = { query, category, tags: tag ? [tag] : [] };
+    return all.filter((r) => matches(r, filters));
   }, [all, query, category, tag]);
 
   const open = useCallback(
@@ -226,7 +222,7 @@ export function RecipesScreen() {
                   style={[textStyle("footnote"), { color: c.textTertiary }]}
                   numberOfLines={t.largeText ? undefined : 1}
                 >
-                  {item.tags.join(" · ")}
+                  {item.tags.map(displayTag).join(" · ")}
                 </Text>
               ) : null}
             </View>

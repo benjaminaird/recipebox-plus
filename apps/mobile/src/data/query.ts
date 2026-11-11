@@ -9,6 +9,7 @@
 // erased before that matters, but flattenSteps is a real value.
 import { flattenSteps, type CookProgress, type Recipe } from "./types.ts";
 import { detectSystem, openingMeasurement } from "../domain/present.ts";
+import { hasTag, sameCategory } from "../domain/tags.ts";
 import type { Measurement } from "../domain/convert.ts";
 
 /**
@@ -47,10 +48,14 @@ export function matches(recipe: Recipe, filters: LibraryFilters, search?: string
     for (const term of q.split(/\s+/)) if (!haystack.includes(term)) return false;
   }
 
-  if (filters.category && recipe.category !== filters.category) return false;
+  // Same rule as tags: "Baked Goods" and "baked goods" are one shelf.
+  if (filters.category && !sameCategory(recipe.category, filters.category)) return false;
 
+  // By meaning, not by spelling: the filter pill a cook tapped says
+  // "Gluten-Free", and a recipe saved years ago as "gluten free" is one of the
+  // things they meant. collectTags() groups the pills the same way.
   for (const tag of filters.tags ?? []) {
-    if (!(recipe.tags ?? []).includes(tag)) return false;
+    if (!hasTag(recipe.tags, tag)) return false;
   }
   return true;
 }

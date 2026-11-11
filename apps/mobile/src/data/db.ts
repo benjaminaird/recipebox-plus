@@ -8,6 +8,7 @@
 import * as SQLite from "expo-sqlite";
 import type { CookProgress, Recipe } from "./types";
 import type { Measurement } from "../domain/convert";
+import { hasTag, normalizeCategory, normalizeRecipeTags, sameCategory } from "../domain/tags";
 import type { Scale } from "../domain/present";
 import type { Timer } from "../domain/timer";
 import { buildSearchText, byNewest, type LibraryFilters } from "./query";
@@ -163,14 +164,46 @@ async function upsert(db: SQLite.SQLiteDatabase, recipe: Recipe): Promise<void> 
   );
 }
 
+/**
+ * Save a recipe the cook has changed.
+ *
+ * The first write path for recipe content rather than for a view preference,
+ * so it is deliberately narrow: it takes a whole recipe and replaces that one
+ * row. It never merges, never deletes, and never touches another record.
+ *
+ * Tags and the category are normalised here rather than trusted from the
+ * caller. Storage is the last place both surfaces pass through, so it is the
+ * right place to guarantee that "copycat" and "CopyCat" are one tag however a
+ * screen chose to ask for it.
+ *
+ * `search` is rebuilt from the saved recipe by upsert(), so a recipe stays
+ * findable by a tag the moment it is given one.
+ */
+export async function saveRecipe(recipe: Recipe): Promise<void> {
+  const db = await open();
+  await upsert(db, {
+    ...recipe,
+    category: normalizeCategory(recipe.category),
+    tags: normalizeRecipeTags(recipe.tags),
+    updatedAt: recipe.updatedAt || Date.now(),
+  });
+}
+
 // --- reads -----------------------------------------------------------------
 
 /**
  * The library, newest first, narrowed by filters.
  *
- * Text and category are narrowed in SQL; tags are checked in JS because they
- * are stored as a JSON array and the set is small. If the library ever grows
- * past a few thousand rows this wants a join table, not a bigger LIKE.
+ * Text is narrowed in SQL against the prebuilt search column. Tags and the
+ * category are matched in JS, because both are matched by MEANING rather than
+ * by exact string -- "Gluten free" and "Gluten-Free" are one tag, "baked
+ * goods" and "Baked Goods" one shelf -- and SQL cannot express that without
+ * either a collation that only covers case or a second stored column. Doing
+ * it in one place in JS keeps every path answering the same question; two
+ * paths disagreeing about what matches is the bug this avoids.
+ *
+ * If the library ever grows past a few thousand rows this wants a join table
+ * on the normalised key, not a bigger LIKE.
  */
 export async function listRecipes(filters: LibraryFilters = {}): Promise<Recipe[]> {
   const db = await open();
@@ -181,10 +214,6 @@ export async function listRecipes(filters: LibraryFilters = {}): Promise<Recipe[
     where.push("search LIKE ?");
     args.push(`%${term}%`);
   }
-  if (filters.category) {
-    where.push("category = ?");
-    args.push(filters.category);
-  }
 
   const rows = await db.getAllAsync<{ json: string }>(
     `SELECT json FROM recipes ${where.length ? "WHERE " + where.join(" AND ") : ""}
@@ -193,9 +222,11 @@ export async function listRecipes(filters: LibraryFilters = {}): Promise<Recipe[
   );
   const recipes = rows.map((r) => JSON.parse(r.json) as Recipe);
   const wanted = filters.tags ?? [];
-  const filtered = wanted.length
-    ? recipes.filter((r) => wanted.every((t) => (r.tags ?? []).includes(t)))
-    : recipes;
+  const filtered = recipes.filter(
+    (r) =>
+      (!filters.category || sameCategory(r.category, filters.category)) &&
+      wanted.every((t) => hasTag(r.tags, t)),
+  );
   return filtered.sort(byNewest);
 }
 

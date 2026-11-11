@@ -20,6 +20,10 @@ import { maxScale, textStyle } from "../theme/fonts";
 import { DEFAULT_VIEW, getRecipe, getRecipeView, saveRecipeView, type RecipeView } from "../data/db";
 import { useSettings } from "../settings/SettingsProvider";
 import { openingView } from "../data/query";
+import { OrganiseSheet } from "../components/OrganiseSheet";
+import { displayTag } from "../domain/tags";
+import { collectCategories, collectTags } from "../data/types";
+import { listRecipes, saveRecipe } from "../data/db";
 import { stepIngredientUses, type Recipe, type Source } from "../data/types";
 import { ServingControls } from "../components/ServingControls";
 import { detectSystem, measuresAgree, presentAmount } from "../domain/present";
@@ -53,9 +57,14 @@ export function RecipeDetailScreen() {
   const [recipe, setRecipe] = useState<Recipe | null | undefined>(undefined);
   const [view, setView] = useState<RecipeView>(DEFAULT_VIEW);
   const [timersOpen, setTimersOpen] = useState(false);
+  const [organiseOpen, setOrganiseOpen] = useState(false);
+  // The library's own vocabulary, so the common case is tapping a name that
+  // already exists rather than retyping it slightly differently.
+  const [library, setLibrary] = useState<Recipe[]>([]);
 
   useEffect(() => {
     let live = true;
+    listRecipes().then((all) => { if (live) setLibrary(all); }).catch(() => {});
     Promise.all([getRecipe(params.recipeId), getRecipeView(params.recipeId)])
       .then(([r, saved]) => {
         if (!live) return;
@@ -134,6 +143,35 @@ export function RecipeDetailScreen() {
             {recipe.description}
           </Text>
         ) : null}
+
+        {/* Tags, and the way in to changing any of this. Shown as the plain
+            truth about the recipe rather than as controls: tapping one does
+            not filter from here, because the cook came to this screen to
+            cook, not to browse. */}
+        <Pressable
+          onPress={() => setOrganiseOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel={
+            (recipe.tags ?? []).length > 0
+              ? `Category and tags: ${[recipe.category, ...(recipe.tags ?? [])].filter(Boolean).join(", ")}. Edit`
+              : "Add a category or tags"
+          }
+          style={({ pressed }) => [styles.organise, { marginTop: t.space.xs, opacity: pressed ? 0.6 : 1 }]}
+        >
+          {(recipe.tags ?? []).map((tag) => (
+            <View
+              key={tag}
+              style={[styles.tag, { backgroundColor: c.sunken, borderRadius: t.radius.pill }]}
+            >
+              <Text style={[textStyle("footnote"), { color: c.textSecondary }]}>{displayTag(tag)}</Text>
+            </View>
+          ))}
+          <View style={[styles.tag, { borderRadius: t.radius.pill, borderWidth: StyleSheet.hairlineWidth, borderColor: c.separatorStrong }]}>
+            <Text style={[textStyle("footnote"), { color: c.accentText, fontWeight: "600" }]}>
+              {(recipe.tags ?? []).length > 0 || recipe.category ? "Edit" : "Add a category or tags"}
+            </Text>
+          </View>
+        </Pressable>
       </View>
 
       <ServingControls
@@ -336,6 +374,31 @@ export function RecipeDetailScreen() {
         ).sort((a, b) => a - b)}
         defaultLabel={recipe.title}
       />
+
+      <OrganiseSheet
+        visible={organiseOpen}
+        onClose={() => setOrganiseOpen(false)}
+        title={recipe.title}
+        category={recipe.category}
+        tags={recipe.tags}
+        allCategories={collectCategories(library)}
+        allTags={collectTags(library)}
+        onSave={(next) => {
+          // Write the whole recipe back: category and tags live on the record
+          // itself and in the search index, and saveRecipe rebuilds both.
+          const updated = {
+            ...recipe,
+            category: next.category,
+            tags: next.tags,
+            updatedAt: Date.now(),
+          };
+          setRecipe(updated);
+          saveRecipe(updated)
+            .then(() => listRecipes())
+            .then(setLibrary)
+            .catch(() => {});
+        }}
+      />
     </ScrollView>
   );
 }
@@ -343,6 +406,8 @@ export function RecipeDetailScreen() {
 const styles = StyleSheet.create({
   centre: { flex: 1, alignItems: "center", justifyContent: "center" },
   card: { overflow: "hidden" },
+  organise: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6 },
+  tag: { paddingHorizontal: 11, paddingVertical: 5 },
   ingredientRow: { flexDirection: "row", gap: 16, alignItems: "baseline", paddingVertical: 11, paddingHorizontal: 16 },
   cta: { alignItems: "center", justifyContent: "center", paddingHorizontal: 20 },
   stepHead: { flexDirection: "row", gap: 10, alignItems: "flex-start" },
