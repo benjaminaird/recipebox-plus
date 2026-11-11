@@ -11,6 +11,9 @@ import type { Measurement } from "../domain/convert";
 import {
   isDateKey, parseScale, parseSlot, toDateKey, type PlannedMeal,
 } from "../domain/plan";
+import type {
+  ShoppingItem, ShoppingList, ShoppingListSource,
+} from "../domain/shoppingList";
 import { hasTag, normalizeCategory, normalizeRecipeTags, sameCategory } from "../domain/tags";
 import type { Scale } from "../domain/present";
 import type { Timer } from "../domain/timer";
@@ -29,8 +32,9 @@ const DB_NAME = "recipebox.db";
  * with a test that proves the old rows arrived, not an ALTER in the dark.
  *
  * 4 — planned_meals (meal planning).
+ * 5 — shopping_lists, shopping_items.
  */
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 let handle: Promise<SQLite.SQLiteDatabase> | null = null;
 
@@ -109,6 +113,43 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
       deleted_at  INTEGER
     );
     CREATE INDEX IF NOT EXISTS planned_meals_date ON planned_meals (date);
+    /* Shopping lists.
+     *
+     * Same sync-ready shape as planned_meals, for the same reason: ADR 0006
+     * merges a shopping list as a UNION OF ITEMS, with checked state resolved
+     * last-write-wins per item and a deletion that loses to a concurrent edit.
+     * All three need per-item identity and per-item timestamps, so items are
+     * rows with their own ids and their own updated_at, and nothing is hard
+     * deleted.
+     *
+     * A list keeps its sources as JSON so the generated portion can be rebuilt
+     * when a recipe is added. Items record whether they are generated or the
+     * cook's own; see ItemOrigin in domain/shoppingList.ts for why editing a
+     * generated line adopts it. */
+    CREATE TABLE IF NOT EXISTS shopping_lists (
+      id          TEXT PRIMARY KEY NOT NULL,
+      title       TEXT NOT NULL,
+      sources     TEXT NOT NULL DEFAULT '[]',
+      created_at  INTEGER NOT NULL,
+      updated_at  INTEGER NOT NULL,
+      deleted_at  INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS shopping_items (
+      id          TEXT PRIMARY KEY NOT NULL,
+      list_id     TEXT NOT NULL,
+      text        TEXT NOT NULL,
+      category    TEXT NOT NULL DEFAULT 'Uncategorized',
+      checked     INTEGER NOT NULL DEFAULT 0,
+      origin      TEXT NOT NULL DEFAULT 'generated',
+      optional    INTEGER NOT NULL DEFAULT 0,
+      warning     TEXT,
+      sources     TEXT NOT NULL DEFAULT '[]',
+      position    INTEGER NOT NULL DEFAULT 0,
+      created_at  INTEGER NOT NULL,
+      updated_at  INTEGER NOT NULL,
+      deleted_at  INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS shopping_items_list ON shopping_items (list_id);
     CREATE TABLE IF NOT EXISTS recipe_view (
       recipe_id   TEXT PRIMARY KEY NOT NULL,
       scale       REAL NOT NULL,
@@ -360,6 +401,188 @@ export async function saveRecipeView(recipeId: string, view: RecipeView): Promis
   );
 }
 
+// --- shopping lists ----------------------------------------------------------
+
+type ShoppingListRow = {
+  id: string; title: string; sources: string; created_at: number; updated_at: number;
+};
+type ShoppingItemRow = {
+  id: string; list_id: string; text: string; category: string; checked: number;
+  origin: string; optional: number; warning: string | null; sources: string;
+  position: number; created_at: number; updated_at: number;
+};
+
+function parseJsonArray(value: string): unknown[] {
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function rowToList(r: ShoppingListRow): ShoppingList {
+  const sources = parseJsonArray(r.sources).filter(
+    (s): s is ShoppingListSource =>
+      typeof s === "object" && s !== null && typeof (s as ShoppingListSource).recipeId === "string",
+  );
+  return {
+    id: r.id,
+    title: r.title,
+    sources: sources.map((s) => ({ ...s, scale: parseScale(s.scale) })),
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
+
+function rowToItem(r: ShoppingItemRow): ShoppingItem {
+  return {
+    id: r.id,
+    listId: r.list_id,
+    text: r.text,
+    category: r.category || "Uncategorized",
+    checked: r.checked === 1,
+    origin: r.origin === "manual" ? "manual" : "generated",
+    optional: r.optional === 1,
+    ...(r.warning ? { warning: r.warning } : {}),
+    sources: parseJsonArray(r.sources).filter((x): x is string => typeof x === "string"),
+    position: Number.isFinite(r.position) ? r.position : 0,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
+
+export async function listShoppingLists(): Promise<ShoppingList[]> {
+  const db = await open();
+  const rows = await db.getAllAsync<ShoppingListRow>(
+    `SELECT id, title, sources, created_at, updated_at FROM shopping_lists
+      WHERE deleted_at IS NULL ORDER BY updated_at DESC`,
+  );
+  return rows.map(rowToList);
+}
+
+export async function getShoppingList(id: string): Promise<ShoppingList | null> {
+  const db = await open();
+  const row = await db.getFirstAsync<ShoppingListRow>(
+    `SELECT id, title, sources, created_at, updated_at FROM shopping_lists
+      WHERE id = ? AND deleted_at IS NULL`,
+    [id],
+  );
+  return row ? rowToList(row) : null;
+}
+
+export async function saveShoppingList(list: ShoppingList): Promise<void> {
+  const db = await open();
+  await db.runAsync(
+    `INSERT INTO shopping_lists (id, title, sources, created_at, updated_at, deleted_at)
+     VALUES (?, ?, ?, ?, ?, NULL)
+     ON CONFLICT(id) DO UPDATE SET
+       title = excluded.title, sources = excluded.sources, updated_at = excluded.updated_at,
+       deleted_at = NULL`,
+    [list.id, list.title, JSON.stringify(list.sources), list.createdAt, list.updatedAt],
+  );
+}
+
+export async function deleteShoppingList(id: string, now = Date.now()): Promise<void> {
+  const db = await open();
+  // The list goes; its items go with it. Both soft, both recoverable.
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(`UPDATE shopping_lists SET deleted_at = ?, updated_at = ? WHERE id = ?`, [now, now, id]);
+    await db.runAsync(`UPDATE shopping_items SET deleted_at = ?, updated_at = ? WHERE list_id = ?`, [now, now, id]);
+  });
+}
+
+export async function listShoppingItems(listId: string): Promise<ShoppingItem[]> {
+  const db = await open();
+  const rows = await db.getAllAsync<ShoppingItemRow>(
+    `SELECT id, list_id, text, category, checked, origin, optional, warning, sources,
+            position, created_at, updated_at
+       FROM shopping_items
+      WHERE list_id = ? AND deleted_at IS NULL
+      ORDER BY position ASC`,
+    [listId],
+  );
+  return rows.map(rowToItem);
+}
+
+/** How many items each list holds, and how many are ticked. One query rather
+ *  than one per list, because the index screen shows every list. */
+export async function shoppingListCounts(): Promise<Record<string, { done: number; total: number }>> {
+  const db = await open();
+  const rows = await db.getAllAsync<{ list_id: string; total: number; done: number }>(
+    `SELECT list_id, COUNT(*) AS total, SUM(checked) AS done
+       FROM shopping_items WHERE deleted_at IS NULL GROUP BY list_id`,
+  );
+  const out: Record<string, { done: number; total: number }> = {};
+  for (const r of rows) out[r.list_id] = { done: r.done ?? 0, total: r.total ?? 0 };
+  return out;
+}
+
+export async function saveShoppingItem(item: ShoppingItem): Promise<void> {
+  const db = await open();
+  await db.runAsync(
+    `INSERT INTO shopping_items
+       (id, list_id, text, category, checked, origin, optional, warning, sources, position, created_at, updated_at, deleted_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+     ON CONFLICT(id) DO UPDATE SET
+       text = excluded.text, category = excluded.category, checked = excluded.checked,
+       origin = excluded.origin, optional = excluded.optional, warning = excluded.warning,
+       sources = excluded.sources, position = excluded.position,
+       updated_at = excluded.updated_at, deleted_at = NULL`,
+    [
+      item.id, item.listId, item.text, item.category, item.checked ? 1 : 0,
+      item.origin, item.optional ? 1 : 0, item.warning ?? null,
+      JSON.stringify(item.sources), item.position, item.createdAt, item.updatedAt,
+    ],
+  );
+}
+
+export async function deleteShoppingItem(id: string, now = Date.now()): Promise<void> {
+  const db = await open();
+  await db.runAsync(
+    `UPDATE shopping_items SET deleted_at = ?, updated_at = ? WHERE id = ?`,
+    [now, now, id],
+  );
+}
+
+/**
+ * Replace a list's generated items, keeping the cook's own.
+ *
+ * One transaction: a half-rebuilt list -- old items gone, new ones not yet
+ * written -- is a list someone could be looking at in a shop.
+ */
+export async function replaceGeneratedItems(
+  listId: string,
+  items: readonly ShoppingItem[],
+  now = Date.now(),
+): Promise<void> {
+  const db = await open();
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      `UPDATE shopping_items SET deleted_at = ?, updated_at = ?
+        WHERE list_id = ? AND origin = 'generated' AND deleted_at IS NULL`,
+      [now, now, listId],
+    );
+    for (const item of items) {
+      await db.runAsync(
+        `INSERT INTO shopping_items
+           (id, list_id, text, category, checked, origin, optional, warning, sources, position, created_at, updated_at, deleted_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+         ON CONFLICT(id) DO UPDATE SET
+           text = excluded.text, category = excluded.category, checked = excluded.checked,
+           origin = excluded.origin, optional = excluded.optional, warning = excluded.warning,
+           sources = excluded.sources, position = excluded.position,
+           updated_at = excluded.updated_at, deleted_at = NULL`,
+        [
+          item.id, item.listId, item.text, item.category, item.checked ? 1 : 0,
+          item.origin, item.optional ? 1 : 0, item.warning ?? null,
+          JSON.stringify(item.sources), item.position, item.createdAt, item.updatedAt,
+        ],
+      );
+    }
+  });
+}
+
 // --- meal plan ---------------------------------------------------------------
 
 type PlannedMealRow = {
@@ -497,6 +720,6 @@ export async function clearFinishedTimers(): Promise<void> {
 /** Test and development helper. Not reachable from the UI. */
 export async function resetForTesting(): Promise<void> {
   const db = await open();
-  await db.execAsync(`DELETE FROM recipes; DELETE FROM cook_progress; DELETE FROM recipe_view; DELETE FROM timers; DELETE FROM planned_meals; DELETE FROM meta;`);
+  await db.execAsync(`DELETE FROM recipes; DELETE FROM cook_progress; DELETE FROM recipe_view; DELETE FROM timers; DELETE FROM planned_meals; DELETE FROM shopping_lists; DELETE FROM shopping_items; DELETE FROM meta;`);
   handle = null;
 }

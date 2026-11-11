@@ -16,6 +16,8 @@ import { RecipeDetailScreen } from "../screens/RecipeDetailScreen";
 import { CookModeScreen } from "../screens/CookModeScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { PlanScreen } from "../screens/PlanScreen";
+import { ListsScreen } from "../screens/ListsScreen";
+import { ShoppingListScreen } from "../screens/ShoppingListScreen";
 import { Placeholder } from "../components/Placeholder";
 import { AddTabButton } from "./AddTabButton";
 
@@ -59,20 +61,6 @@ function AddScreen() {
         "Import from a link, a photo of a recipe card, or a PDF",
         "Review what was understood in context, with anything uncertain flagged (ADR 0014)",
         "Save a recipe even while some of it is still unresolved",
-      ]}
-    />
-  );
-}
-
-function ListsScreen() {
-  return (
-    <Placeholder
-      title="Lists"
-      summary="Shopping lists already exist as portable domain logic in the web app; the native screen will consume that same module rather than a reimplementation."
-      planned={[
-        "A shopping list built from planned meals",
-        "Quantities combined across recipes",
-        "Pantry staples kept out of the list",
       ]}
     />
   );
@@ -162,6 +150,18 @@ export function RootNavigator() {
             title: "",
             headerBackTitle: "Recipes",
             headerTransparent: false,
+            headerStyle: { backgroundColor: c.canvas },
+            headerShadowVisible: false,
+            headerTintColor: c.accentText,
+          }}
+        />
+        <Stack.Screen
+          name="ShoppingList"
+          component={ShoppingListScreen}
+          options={{
+            headerShown: true,
+            title: "",
+            headerBackTitle: "Lists",
             headerStyle: { backgroundColor: c.canvas },
             headerShadowVisible: false,
             headerTintColor: c.accentText,

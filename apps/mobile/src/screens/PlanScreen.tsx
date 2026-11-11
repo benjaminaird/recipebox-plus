@@ -28,13 +28,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme/ThemeProvider";
 import { maxScale, textStyle } from "../theme/fonts";
 import { RecipePicker } from "../components/RecipePicker";
+import { AddToListSheet } from "../components/AddToListSheet";
 import {
   deletePlannedMeal, listPlannedMeals, listRecipes, savePlannedMeal,
 } from "../data/db";
 import type { Recipe } from "../data/types";
 import {
   MEAL_SLOTS, PLAN_SCALES, SLOT_LABELS, addDays, dayLabel, dayOfMonth, mealCounts,
-  mealsBySlot, monthLabel, nextPosition, toDateKey, weekOf, weekdayInitial,
+  mealsBySlot, mealsInRange, monthLabel, nextPosition, toDateKey, weekOf, weekdayInitial,
   type DateKey, type MealSlot, type PlannedMeal,
 } from "../domain/plan";
 import { scaleLabel } from "../domain/present";
@@ -58,6 +59,7 @@ export function PlanScreen() {
   const [recipes, setRecipes] = useState<Map<string, Recipe>>(new Map());
   const [picking, setPicking] = useState<MealSlot | null>(null);
   const [editing, setEditing] = useState<PlannedMeal | null>(null);
+  const [shopping, setShopping] = useState<"day" | "week" | null>(null);
 
   const load = useCallback(() => {
     let live = true;
@@ -107,6 +109,25 @@ export function PlanScreen() {
       updatedAt: now,
     });
   }, [selected, meals, write]);
+
+  // What a "shop this" button would put on a list: every planned meal in the
+  // range, each at the batch it is planned at. A recipe planned twice appears
+  // twice, so the scales add and two dinners buy two dinners' worth.
+  const shoppingSources = useMemo(() => {
+    if (!shopping || !meals) return [];
+    const range = shopping === "day"
+      ? mealsInRange(meals, selected, selected)
+      : mealsInRange(meals, week[0], week[6]);
+    return range.flatMap((m) => {
+      const recipe = recipes.get(m.recipeId);
+      return recipe ? [{ recipeId: recipe.id, title: recipe.title, scale: m.scale }] : [];
+    });
+  }, [shopping, meals, selected, week, recipes]);
+
+  const weekCount = useMemo(
+    () => (meals ? mealsInRange(meals, week[0], week[6]).length : 0),
+    [meals, week],
+  );
 
   if (!meals) {
     return (
@@ -227,6 +248,43 @@ export function PlanScreen() {
             </Text>
           ) : null}
 
+          {dayTotal > 0 || weekCount > 0 ? (
+            <View style={styles.shopRow}>
+              {dayTotal > 0 ? (
+                <Pressable
+                  onPress={() => setShopping("day")}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Shop for ${dayLabel(selected, today).toLowerCase()}`}
+                  style={({ pressed }) => [
+                    styles.shopBtn,
+                    { backgroundColor: c.accentSoft, borderRadius: t.radius.md, minHeight: t.minTouch, opacity: pressed ? 0.7 : 1 },
+                  ]}
+                >
+                  <Ionicons name="cart-outline" size={16} color={c.accentText} />
+                  <Text style={[textStyle("footnote"), { color: c.accentText, fontWeight: "600" }]}>
+                    Shop this day
+                  </Text>
+                </Pressable>
+              ) : null}
+              {weekCount > 0 ? (
+                <Pressable
+                  onPress={() => setShopping("week")}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Shop for the whole week, ${weekCount} meals`}
+                  style={({ pressed }) => [
+                    styles.shopBtn,
+                    { backgroundColor: c.accentSoft, borderRadius: t.radius.md, minHeight: t.minTouch, opacity: pressed ? 0.7 : 1 },
+                  ]}
+                >
+                  <Ionicons name="cart-outline" size={16} color={c.accentText} />
+                  <Text style={[textStyle("footnote"), { color: c.accentText, fontWeight: "600" }]}>
+                    Shop this week ({weekCount})
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
+
           {MEAL_SLOTS.map((slot) => (
             <View key={slot} style={{ gap: t.space.sm }}>
               <Text style={[textStyle("eyebrow"), { color: c.textTertiary }]} maxFontSizeMultiplier={1.4}>
@@ -308,6 +366,18 @@ export function PlanScreen() {
         title={picking ? `Add to ${SLOT_LABELS[picking].toLowerCase()}` : "Add a meal"}
         subtitle={dayLabel(selected, today)}
         onPick={(recipe) => { if (picking) add(picking, recipe); }}
+      />
+
+      <AddToListSheet
+        visible={shopping !== null}
+        onClose={() => setShopping(null)}
+        sources={shoppingSources}
+        summary={
+          shopping === "week"
+            ? `${weekCount} meal${weekCount === 1 ? "" : "s"} from ${monthLabel(week[0], week[6])}`
+            : `${dayTotal} meal${dayTotal === 1 ? "" : "s"} on ${dayLabel(selected, today).toLowerCase()}`
+        }
+        onDone={(listId) => navigation.navigate("ShoppingList", { listId })}
       />
 
       <MealOptions
@@ -488,6 +558,8 @@ const styles = StyleSheet.create({
   day: { width: 48, paddingVertical: 10, alignItems: "center", justifyContent: "center", gap: 2 },
   dot: { width: 5, height: 5, borderRadius: 2.5, marginTop: 2 },
   dayHead: { flexDirection: "row", alignItems: "center", gap: 12 },
+  shopRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  shopBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14 },
   meal: { flexDirection: "row", alignItems: "center", overflow: "hidden" },
   mealMain: { flex: 1, minWidth: 0, paddingVertical: 12, paddingLeft: 14, gap: 2 },
   mealMore: { paddingHorizontal: 14, justifyContent: "center" },

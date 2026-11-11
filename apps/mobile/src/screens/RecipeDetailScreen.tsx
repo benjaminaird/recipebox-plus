@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme/ThemeProvider";
@@ -21,12 +22,13 @@ import { DEFAULT_VIEW, getRecipe, getRecipeView, saveRecipeView, type RecipeView
 import { useSettings } from "../settings/SettingsProvider";
 import { openingView } from "../data/query";
 import { OrganiseSheet } from "../components/OrganiseSheet";
+import { AddToListSheet } from "../components/AddToListSheet";
 import { displayTag } from "../domain/tags";
 import { collectCategories, collectTags } from "../data/types";
 import { listRecipes, saveRecipe } from "../data/db";
 import { stepIngredientUses, type Recipe, type Source } from "../data/types";
 import { ServingControls } from "../components/ServingControls";
-import { detectSystem, measuresAgree, presentAmount } from "../domain/present";
+import { detectSystem, measuresAgree, presentAmount, scaleLabel } from "../domain/present";
 import { batchAdvisories } from "../domain/timing";
 import { durationsInText } from "../domain/timer";
 import { TimerButton } from "../timers/TimerButton";
@@ -58,6 +60,7 @@ export function RecipeDetailScreen() {
   const [view, setView] = useState<RecipeView>(DEFAULT_VIEW);
   const [timersOpen, setTimersOpen] = useState(false);
   const [organiseOpen, setOrganiseOpen] = useState(false);
+  const [listOpen, setListOpen] = useState(false);
   // The library's own vocabulary, so the common case is tapping a name that
   // already exists rather than retyping it slightly differently.
   const [library, setLibrary] = useState<Recipe[]>([]);
@@ -203,6 +206,28 @@ export function RecipeDetailScreen() {
         </View>
         <TimerButton onPress={() => setTimersOpen(true)} />
       </View>
+
+      {/* Shopping, from here, at the batch currently on screen. A cook looking
+          at a doubled recipe wants a doubled list, and asking them to set the
+          batch again somewhere else would be asking twice. */}
+      <Pressable
+        onPress={() => setListOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel={
+          view.scale === 1
+            ? "Add these ingredients to a shopping list"
+            : `Add these ingredients to a shopping list, at ${scaleLabel(view.scale)}`
+        }
+        style={({ pressed }) => [
+          styles.listCta,
+          { borderColor: c.separatorStrong, borderRadius: t.radius.md, minHeight: t.minTouch, opacity: pressed ? 0.6 : 1 },
+        ]}
+      >
+        <Ionicons name="cart-outline" size={18} color={c.accentText} />
+        <Text style={[textStyle("footnote"), { color: c.accentText, fontWeight: "600" }]}>
+          {view.scale === 1 ? "Add to a shopping list" : `Add to a shopping list (${scaleLabel(view.scale)})`}
+        </Text>
+      </Pressable>
 
       {advisories.length > 0 ? (
         <View style={{ gap: t.space.sm }}>
@@ -379,6 +404,14 @@ export function RecipeDetailScreen() {
         defaultLabel={recipe.title}
       />
 
+      <AddToListSheet
+        visible={listOpen}
+        onClose={() => setListOpen(false)}
+        sources={[{ recipeId: recipe.id, title: recipe.title, scale: view.scale }]}
+        summary={`${recipe.title}${view.scale === 1 ? "" : ` at ${scaleLabel(view.scale)}`}`}
+        onDone={(listId) => navigation.navigate("ShoppingList", { listId })}
+      />
+
       <OrganiseSheet
         visible={organiseOpen}
         onClose={() => setOrganiseOpen(false)}
@@ -420,4 +453,5 @@ const styles = StyleSheet.create({
   advisory: { padding: 12, gap: 4 },
   ctaRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   ctaRowStacked: { flexDirection: "column", alignItems: "stretch", gap: 12 },
+  listCta: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: StyleSheet.hairlineWidth, paddingVertical: 12 },
 });
