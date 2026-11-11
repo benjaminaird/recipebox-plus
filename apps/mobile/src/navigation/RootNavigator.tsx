@@ -20,7 +20,6 @@ import { ListsScreen } from "../screens/ListsScreen";
 import { ShoppingListScreen } from "../screens/ShoppingListScreen";
 import { RecipeEditorScreen } from "../screens/RecipeEditorScreen";
 import { ImportReviewScreen } from "../screens/ImportReviewScreen";
-import { Placeholder } from "../components/Placeholder";
 import { AddTabButton } from "./AddTabButton";
 
 function EditRecipeButton({ recipeId }: { recipeId: string }) {
