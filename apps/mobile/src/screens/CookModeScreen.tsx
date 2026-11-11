@@ -166,9 +166,17 @@ export function CookModeScreen() {
     <GestureDetector gesture={swipeSteps}>
     <View style={{ flex: 1, backgroundColor: c.canvas, paddingTop: insets.top }}>
       <View style={[styles.bar, { paddingHorizontal: t.space.screenGutter }]}>
-        <Text style={[textStyle("eyebrow"), { color: c.textTertiary, flex: 1 }]} numberOfLines={1}>
-          {recipe.title}
-        </Text>
+        {/* The title gives way before the timer and Close do. At accessibility
+            text sizes it had been squeezed to "WE…", which is not a title --
+            it is two letters taking up room. The cook knows what they are
+            cooking, and the step below still names its section. */}
+        {t.largeText ? (
+          <View style={{ flex: 1 }} />
+        ) : (
+          <Text style={[textStyle("eyebrow"), { color: c.textTertiary, flex: 1 }]} numberOfLines={1}>
+            {recipe.title}
+          </Text>
+        )}
         {view.scale !== 1 ? (
           // Stated, not implied: the quantities below are not the ones the
           // recipe was written with.

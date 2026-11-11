@@ -129,7 +129,10 @@ export function HomeScreen() {
               },
             ]}
           >
-            <Text style={[textStyle("eyebrow"), { color: c.accentText }]}>
+            {/* A label, not content, so it is capped like the other display
+                roles: uncapped it wrapped to two lines of tracked capitals and
+                shouted down the recipe title underneath it. */}
+            <Text maxFontSizeMultiplier={1.5} style={[textStyle("eyebrow"), { color: c.accentText }]}>
               Still cooking · {whenLabel(cook.updatedAt, now)}
             </Text>
 
@@ -225,14 +228,27 @@ export function HomeScreen() {
             </Text>
           </Pressable>
         ) : (
-          recent.map((recipe) => (
+          recent.map((recipe, i) => (
             <Pressable
               key={recipe.id}
               onPress={() => navigation.navigate("RecipeDetail", { recipeId: recipe.id })}
               accessibilityRole="button"
               accessibilityLabel={`${recipe.title}${recipe.category ? `, ${recipe.category}` : ""}`}
               accessibilityHint="Opens the recipe"
-              style={({ pressed }) => [styles.row, { opacity: pressed ? 0.6 : 1 }]}
+              // At accessibility text sizes the tile is dropped (it starves
+              // the title), and with it goes the only thing separating one
+              // recipe from the next -- four rows ran together as one block of
+              // text. A rule and some air put the entries back.
+              style={({ pressed }) => [
+                styles.row,
+                t.largeText && i > 0 && {
+                  borderTopWidth: StyleSheet.hairlineWidth,
+                  borderTopColor: c.separator,
+                  paddingTop: t.space.lg,
+                  marginTop: t.space.xs,
+                },
+                { opacity: pressed ? 0.6 : 1 },
+              ]}
             >
               {/* The tile is a fixed-size graphic. At accessibility text sizes
                   it starves the title, which then truncates mid-word; the text

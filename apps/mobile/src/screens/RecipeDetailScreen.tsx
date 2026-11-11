@@ -183,8 +183,12 @@ export function RecipeDetailScreen() {
         onChangeMeasurement={(measurement) => update({ ...view, measurement })}
       />
 
-      <View style={styles.ctaRow}>
-        <View style={{ flex: 1 }}>
+      {/* Side by side the button takes whatever width the timer chip leaves
+          it, which at accessibility text sizes is three words stacked inside a
+          tall green block. Above the threshold they go one above the other and
+          each gets the full width. */}
+      <View style={[styles.ctaRow, t.largeText && styles.ctaRowStacked]}>
+        <View style={t.largeText ? { alignSelf: "stretch" } : { flex: 1 }}>
       <Pressable
         onPress={() => navigation.navigate("CookMode", { recipeId: recipe.id })}
         accessibilityRole="button"
@@ -415,4 +419,5 @@ const styles = StyleSheet.create({
   refChip: { paddingHorizontal: 10, paddingVertical: 4, maxWidth: "100%" },
   advisory: { padding: 12, gap: 4 },
   ctaRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  ctaRowStacked: { flexDirection: "column", alignItems: "stretch", gap: 12 },
 });

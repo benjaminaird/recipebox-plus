@@ -143,7 +143,11 @@ export function OrganiseSheet({
           </Pressable>
           <Text
             accessibilityRole="header"
-            maxFontSizeMultiplier={maxScale("sectionTitle")}
+            // Capped harder than the usual section title: it shares a row
+            // with Cancel and Save, both of which grow, and at accessibility
+            // sizes "Organise" became "Orga…". The sheet's own content says
+            // what it is; the title is a label, so it gives way first.
+            maxFontSizeMultiplier={1.25}
             numberOfLines={1}
             style={[textStyle("sectionTitle"), { color: c.text, flex: 1, textAlign: "center" }]}
           >
