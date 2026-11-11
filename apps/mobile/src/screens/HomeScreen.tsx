@@ -16,14 +16,26 @@ import { useTheme } from "../theme/ThemeProvider";
 import { maxScale, textStyle } from "../theme/fonts";
 import { BrandHeader } from "../components/BrandHeader";
 import { RecipeTile } from "../components/RecipeTile";
-import { activeSessions, listRecipes } from "../data/db";
+import {
+  activeSessions, listPlannedMeals, listRecipes, listShoppingLists, shoppingListCounts,
+} from "../data/db";
+import { MEAL_SLOTS, SLOT_LABELS, mealsBySlot, toDateKey, type PlannedMeal } from "../domain/plan";
+import { scaleLabel } from "../domain/present";
+import type { ShoppingList } from "../domain/shoppingList";
 import { recentlyAdded, resumableCooks, type ResumableCook } from "../data/query";
 import { flattenSteps, type Recipe } from "../data/types";
 import type { RootStackParamList } from "../navigation/types";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-type Dashboard = { recipes: Recipe[]; cooking: ResumableCook[] };
+type ActiveList = { list: ShoppingList; left: number };
+
+type Dashboard = {
+  recipes: Recipe[];
+  cooking: ResumableCook[];
+  today: PlannedMeal[];
+  lists: ActiveList[];
+};
 
 /** "2 days ago" at the resolution a dashboard needs, and no finer. */
 function whenLabel(ts: number, now: number): string {
@@ -48,11 +60,29 @@ export function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       let live = true;
-      Promise.all([listRecipes(), activeSessions(3)])
-        .then(([recipes, sessions]) => {
-          if (live) setData({ recipes, cooking: resumableCooks(recipes, sessions) });
+      const todayKey = toDateKey(new Date());
+      Promise.all([
+        listRecipes(),
+        activeSessions(3),
+        listPlannedMeals(),
+        listShoppingLists(),
+        shoppingListCounts(),
+      ])
+        .then(([recipes, sessions, planned, lists, counts]) => {
+          if (!live) return;
+          const byDate = mealsBySlot(planned, todayKey);
+          setData({
+            recipes,
+            cooking: resumableCooks(recipes, sessions),
+            today: MEAL_SLOTS.flatMap((slot) => byDate[slot]),
+            // Only lists with something still to get. A finished list is not
+            // news, and showing it would make Home a list of lists.
+            lists: lists
+              .map((list) => ({ list, left: (counts[list.id]?.total ?? 0) - (counts[list.id]?.done ?? 0) }))
+              .filter((x) => x.left > 0),
+          });
         })
-        .catch(() => { if (live) setData({ recipes: [], cooking: [] }); });
+        .catch(() => { if (live) setData({ recipes: [], cooking: [], today: [], lists: [] }); });
       return () => { live = false; };
     }, []),
   );
@@ -176,6 +206,103 @@ export function HomeScreen() {
         );
       })}
 
+      {/* What is planned for today. Below a cook in progress, because if one
+          is running that is what they came back for -- and above the library,
+          because tonight is more pressing than what was added last week. */}
+      {data.today.length > 0 ? (
+        <View style={{ gap: t.space.md }}>
+          <View style={styles.sectionHead}>
+            <Text accessibilityRole="header" maxFontSizeMultiplier={maxScale("sectionTitle")} style={[textStyle("sectionTitle"), { color: c.text, flex: 1 }]}>
+              Today
+            </Text>
+            <Pressable
+              onPress={() => navigation.navigate("Tabs", { screen: "Plan" })}
+              accessibilityRole="button"
+              accessibilityLabel="Open the planner"
+              hitSlop={10}
+              style={{ minHeight: t.minTouch, justifyContent: "center" }}
+            >
+              <Text style={[textStyle("footnote"), { color: c.accentText, fontWeight: "600" }]}>Plan</Text>
+            </Pressable>
+          </View>
+          {data.today.map((meal) => {
+            const recipe = data.recipes.find((r) => r.id === meal.recipeId);
+            return (
+              <Pressable
+                key={meal.id}
+                onPress={() => recipe && navigation.navigate("RecipeDetail", { recipeId: meal.recipeId })}
+                disabled={!recipe}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  recipe
+                    ? `${SLOT_LABELS[meal.slot]}: ${recipe.title}${meal.scale !== 1 ? `, ${scaleLabel(meal.scale as never)}` : ""}`
+                    : "A planned recipe that is no longer in your library"
+                }
+                style={({ pressed }) => [styles.row, { opacity: pressed ? 0.6 : 1 }]}
+              >
+                {/* The slot reads under the title, not in a column beside it.
+                    A fixed column for one short word left a table-shaped hole
+                    across every row. */}
+                <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                  <Text style={[textStyle("cardTitle"), { color: recipe ? c.text : c.textTertiary }]} numberOfLines={2}>
+                    {recipe?.title ?? "No longer in your library"}
+                  </Text>
+                  <Text style={[textStyle("footnote"), { color: c.textSecondary }]}>
+                    {[SLOT_LABELS[meal.slot], meal.scale !== 1 ? `${scaleLabel(meal.scale as never)} batch` : null]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
+
+      {/* A shop in progress. One quiet line per list, because the useful fact
+          is just how much is left -- and only while there IS something left.
+          It carries a heading like the sections either side of it; without one
+          a white card floating between two titled sections has to be guessed
+          at. */}
+      {data.lists.length > 0 ? (
+        <View style={{ gap: t.space.md }}>
+          <View style={styles.sectionHead}>
+            <Text accessibilityRole="header" maxFontSizeMultiplier={maxScale("sectionTitle")} style={[textStyle("sectionTitle"), { color: c.text, flex: 1 }]}>
+              Shopping
+            </Text>
+            <Pressable
+              onPress={() => navigation.navigate("Tabs", { screen: "Lists" })}
+              accessibilityRole="button"
+              accessibilityLabel="See all shopping lists"
+              hitSlop={10}
+              style={{ minHeight: t.minTouch, justifyContent: "center" }}
+            >
+              <Text style={[textStyle("footnote"), { color: c.accentText, fontWeight: "600" }]}>All</Text>
+            </Pressable>
+          </View>
+          {data.lists.map(({ list, left }) => (
+        <Pressable
+          key={list.id}
+          onPress={() => navigation.navigate("ShoppingList", { listId: list.id })}
+          accessibilityRole="button"
+          accessibilityLabel={`${list.title}, ${left} still to get`}
+          style={({ pressed }) => [
+            styles.listRow,
+            { backgroundColor: c.surface, borderRadius: t.radius.md, minHeight: t.minTouch, opacity: pressed ? 0.75 : 1 },
+          ]}
+        >
+          <Ionicons name="cart-outline" size={18} color={c.textSecondary} />
+          <Text style={[textStyle("body"), { color: c.text, flex: 1 }]} numberOfLines={1}>
+            {list.title}
+          </Text>
+          <Text style={[textStyle("footnote"), { color: c.textSecondary }]}>
+            {left} left
+          </Text>
+        </Pressable>
+          ))}
+        </View>
+      ) : null}
+
       <View style={{ gap: t.space.md }}>
         <View style={styles.sectionHead}>
           <Text accessibilityRole="header" maxFontSizeMultiplier={maxScale("sectionTitle")} style={[textStyle("sectionTitle"), { color: c.text, flex: 1 }]}>
@@ -277,15 +404,9 @@ export function HomeScreen() {
         )}
       </View>
 
-      {/* Still true, still said -- but said quietly and last. An amber badge
-          at the foot of Home made the thing that does NOT work the loudest
-          element on the page. The honesty was right; the weight was not. */}
-      <View style={[styles.footnote, { borderTopColor: c.separator }]}>
-        <Text style={[textStyle("footnote"), { color: c.textTertiary }]}>
-          Planned meals and imports waiting for review will appear here once Plan and Add are
-          built.
-        </Text>
-      </View>
+      {/* The "once Plan and Add are built" footnote has gone, because they
+          are. Home does not need to apologise for itself any more, and a
+          standing disclaimer that is no longer true is worse than none. */}
     </ScrollView>
   );
 }
@@ -307,5 +428,5 @@ const styles = StyleSheet.create({
   resumeFootStacked: { flexDirection: "column", alignItems: "flex-start" },
   resumeCta: { alignItems: "center", justifyContent: "center", paddingHorizontal: 22 },
   row: { flexDirection: "row", gap: 14, alignItems: "center" },
-  footnote: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 14 },
+  listRow: { flexDirection: "row", alignItems: "center", gap: 10, padding: 14 },
 });
