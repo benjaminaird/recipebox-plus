@@ -69,12 +69,12 @@ milestone.
 | --- | --- | --- | --- |
 | 1 | Functional meal planning | **done** | `2b8aad1` |
 | 2 | Functional shopping lists | **done** | `2a61255` |
-| 3 | Manual recipe create and edit | in progress | — |
-| 3b | Safe import-review architecture | not started | — |
-| 4 | Home integration | not started | — |
-| 5 | Cross-feature correctness | not started | — |
-| 6 | Visual and interaction review | not started | — |
-| 7 | Documentation and final verification | not started | — |
+| 3 | Manual recipe create and edit | **done** | `23f95d0` |
+| 3b | Safe import-review architecture | **done** | `23f95d0` |
+| 4 | Home integration | **done** | `bc5876a` |
+| 5 | Cross-feature correctness | **done** | `8ccb50f` |
+| 6 | Visual and interaction review | **done** | `318b879` |
+| 7 | Documentation and final verification | **done** | (this commit) |
 
 ## Baseline at session start
 
@@ -155,12 +155,77 @@ ADR 0003 extraction, where one corrected copy would serve both surfaces.
 - **No household sync.** Out of scope by instruction; the storage shape is
   ready for it.
 
-## Open issues
+## Open issues, for your decision
 
-- The three production-module metric defects above. Worked around natively,
-  not fixed at source.
+1. **Three metric defects in `public/shopping-list.js`**, which the web app
+   presumably shows too: no metric volume units at all, metric weights
+   displayed in ounces, and vulgar fractions on kilos. Worked around natively;
+   **not fixed at source**, because that is a production change. Fixing them
+   properly belongs with the ADR 0003 extraction.
+2. **The import fetch endpoint.** Contract written, not built. It needs
+   decisions on rate limiting, SSRF and response size that are not mine, and
+   it is a production change.
+3. **A sample recipe was edited during testing.** Weeknight Tarka Dal lost its
+   ground turmeric while I was proving that deleting a referenced ingredient
+   leaves no dangling step references. It is a legitimate edit and the recipe
+   still works; restore it from the editor if you want the sample faithful.
+4. **No pantry.** ADR 0011 keeps it in v1. Excluding staples a cook already
+   owns needs a pantry first, and the brief did not ask for one here.
+
+## Milestones 3 and 3b — writing, editing, and import review (done)
+
+Writing and editing share one screen. Ingredients split into amount / unit /
+name, named parts, and per-step ingredient assignment (ADR 0012). Only a
+missing name blocks a save, for the same reason ADR 0014 lets an unresolved
+import be saved.
+
+Ingredient ids are **monotonic**. A test caught that they were not: the code
+took the highest id currently present, so deleting the last ingredient and
+adding another reissued the id just freed. Nothing inside the recipe breaks,
+but ADR 0015 keeps every prior version and a restored one would bind to a
+different ingredient.
+
+Import review runs the **production** extractor —
+`public/recipe-extract.js` and `recipe-grounding.js`, loaded through the same
+Metro route as the shopping module. Tests run the real extractor over stored
+HTML fixtures. Fetching a page still needs a server endpoint; the contract is
+in [native-import-contract.md](./native-import-contract.md) and is **not
+built**.
+
+## Milestone 4 — Home integration (done)
+
+Today's planned meals and any unfinished shopping list, each only when it has
+something to say. The focal point stays contextual. The "once Plan and Add are
+built" footnote is gone, because they are.
+
+## Milestone 5 — cross-feature correctness (done)
+
+Tests for the seams between features, plus two structural guards: the
+migration may only ever add (no DROP / ALTER / DELETE / UPDATE, every CREATE
+guarded), and every new table carries the stable id, per-row `updated_at` and
+tombstone that ADR 0006 will need to merge it.
+
+Verified on the simulator end to end — wrote a recipe by hand, found it by
+search, scaled it, shopped it at that batch, and read the result back from
+SQLite. The water line came out as **1.8 L**: 1 L from one recipe plus 800 ml
+from another at 2x, combined across recipes by code the shared module does not
+have.
+
+## Milestone 6 — visual and interaction review (done)
+
+Reviewed in light and dark, at normal and accessibility-extra-large text. One
+real defect fixed: the editor's amount field rendered "500" as a single
+ellipsis at large text.
+
+## Milestone 7 — final verification (done)
+
+Full gate set green: tokens, sounds, typecheck, 227 mobile tests, Hermes
+bundles for both platforms, all seven domain regression scripts. Production web
+files byte-identical to `main`.
 
 ## Next action
 
-Milestone 3: manual recipe creation and editing, then the import-review
-architecture.
+Nothing queued. The open issues below need your decisions; the largest is
+whether to extract `packages/recipe-core` (ADR 0003), which would let one
+corrected copy of the shopping-list module serve both surfaces and fix the
+three metric defects at source.
