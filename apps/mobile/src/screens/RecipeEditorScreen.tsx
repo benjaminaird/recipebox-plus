@@ -299,8 +299,14 @@ export function RecipeEditorScreen() {
                 Ingredients
               </Text>
               {section.ingredients.map((ingredient, i) => (
-                <View key={ingredient.id} style={styles.ingredientRow}>
-                  <View style={[styles.field, styles.amount, { backgroundColor: c.surface, borderRadius: t.radius.sm, borderColor: c.separatorStrong, minHeight: t.minTouch }]}>
+                // At accessibility text sizes a 68-point amount box renders
+                // "500" as a single ellipsis -- the cook cannot see the number
+                // they typed, in the field that matters most. Above the
+                // threshold the row becomes two: amount and unit side by side
+                // with room to grow, then the name on its own line.
+                <View key={ingredient.id} style={t.largeText ? styles.ingredientStack : styles.ingredientRow}>
+                  <View style={t.largeText ? styles.stackTop : styles.inlineGroup}>
+                  <View style={[styles.field, t.largeText ? styles.amountLarge : styles.amount, { backgroundColor: c.surface, borderRadius: t.radius.sm, borderColor: c.separatorStrong, minHeight: t.minTouch }]}>
                     <TextInput
                       value={ingredient.amount ?? ""}
                       onChangeText={(amount) =>
@@ -314,7 +320,7 @@ export function RecipeEditorScreen() {
                       style={[inputStyle("body"), { color: c.text, flex: 1 }]}
                     />
                   </View>
-                  <View style={[styles.field, styles.unit, { backgroundColor: c.surface, borderRadius: t.radius.sm, borderColor: c.separatorStrong, minHeight: t.minTouch }]}>
+                  <View style={[styles.field, t.largeText ? styles.unitLarge : styles.unit, { backgroundColor: c.surface, borderRadius: t.radius.sm, borderColor: c.separatorStrong, minHeight: t.minTouch }]}>
                     <TextInput
                       value={ingredient.unit ?? ""}
                       onChangeText={(unit) =>
@@ -329,7 +335,19 @@ export function RecipeEditorScreen() {
                       style={[inputStyle("body"), { color: c.text, flex: 1 }]}
                     />
                   </View>
-                  <View style={[styles.field, { flex: 1, backgroundColor: c.surface, borderRadius: t.radius.sm, borderColor: c.separatorStrong, minHeight: t.minTouch }]}>
+                  {t.largeText ? (
+                    <Pressable
+                      onPress={() => setDraft(removeIngredient(draft, ingredient.id))}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remove ingredient ${i + 1}`}
+                      hitSlop={8}
+                      style={({ pressed }) => ({ padding: 4, opacity: pressed ? 0.5 : 1 })}
+                    >
+                      <Ionicons name="close-circle" size={22} color={c.textTertiary} />
+                    </Pressable>
+                  ) : null}
+                  </View>
+                  <View style={[styles.field, { flex: t.largeText ? undefined : 1, alignSelf: t.largeText ? "stretch" : undefined, backgroundColor: c.surface, borderRadius: t.radius.sm, borderColor: c.separatorStrong, minHeight: t.minTouch }]}>
                     <TextInput
                       value={ingredient.name}
                       onChangeText={(name) =>
@@ -343,15 +361,17 @@ export function RecipeEditorScreen() {
                       style={[inputStyle("body"), { color: c.text, flex: 1 }]}
                     />
                   </View>
-                  <Pressable
-                    onPress={() => setDraft(removeIngredient(draft, ingredient.id))}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Remove ingredient ${i + 1}`}
-                    hitSlop={8}
-                    style={({ pressed }) => ({ padding: 4, opacity: pressed ? 0.5 : 1 })}
-                  >
-                    <Ionicons name="close-circle" size={22} color={c.textTertiary} />
-                  </Pressable>
+                  {t.largeText ? null : (
+                    <Pressable
+                      onPress={() => setDraft(removeIngredient(draft, ingredient.id))}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remove ingredient ${i + 1}`}
+                      hitSlop={8}
+                      style={({ pressed }) => ({ padding: 4, opacity: pressed ? 0.5 : 1 })}
+                    >
+                      <Ionicons name="close-circle" size={22} color={c.textTertiary} />
+                    </Pressable>
+                  )}
                 </View>
               ))}
               <Pressable
@@ -557,6 +577,13 @@ const styles = StyleSheet.create({
   ingredientRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   amount: { width: 68 },
   unit: { width: 60 },
+  // Stacked variant: the two measure fields share the width and the name
+  // takes a line of its own, so nothing has to fit a number into 68 points.
+  ingredientStack: { gap: 6 },
+  stackTop: { flexDirection: "row", alignItems: "center", gap: 6 },
+  inlineGroup: { flexDirection: "row", alignItems: "center", gap: 6 },
+  amountLarge: { flex: 1 },
+  unitLarge: { flex: 1 },
   stepRow: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
   refRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingLeft: 26 },
   refChip: { paddingHorizontal: 10, paddingVertical: 5, borderWidth: StyleSheet.hairlineWidth, maxWidth: "100%" },
