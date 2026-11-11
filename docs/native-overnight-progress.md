@@ -67,9 +67,9 @@ milestone.
 
 | # | Milestone | State | Commit |
 | --- | --- | --- | --- |
-| 1 | Functional meal planning | **done** | (below) |
-| 2 | Functional shopping lists | not started | — |
-| 3 | Manual recipe create and edit | not started | — |
+| 1 | Functional meal planning | **done** | `2b8aad1` |
+| 2 | Functional shopping lists | **done** | `2a61255` |
+| 3 | Manual recipe create and edit | in progress | — |
 | 3b | Safe import-review architecture | not started | — |
 | 4 | Home integration | not started | — |
 | 5 | Cross-feature correctness | not started | — |
@@ -110,12 +110,57 @@ cook untouched.
 - **Measurement preference is not yet reflected** in Plan, because Plan shows
   no quantities. The shopping list is where it becomes visible.
 
+## Milestone 2 — functional shopping lists (done)
+
+Working: name a list; build one from a recipe at the batch on screen, or from
+a day or a week of planned meals at each meal's own batch; add more recipes
+later; tick and untick; edit a line; add and remove your own items; delete a
+list. Aisle ordering and per-item provenance come from the shared module.
+
+**Architectural note — the shared module is loaded, not copied.**
+`metro.config.js` adds `../../public` to `watchFolders` and
+`src/domain/webShoppingList.ts` is the single typed boundary. A static
+`import` (not `require`) is what makes the same file work under both Metro and
+`node --test`.
+
+### What the production module could not do
+
+Found by reading its unit tables, and all three are **production web behaviour
+this session must not change**:
+
+1. **No metric volumes.** `VOLUME_TO_TSP` runs tsp → gallons and has no ml or
+   litre. An unknown unit gets folded into the ingredient NAME, so "200 ml
+   double cream" becomes an item called "Ml Double Cream", and "1 L stock" and
+   "500 ml stock" never combine.
+2. **Metric weights are shown in ounces.** 1.8 kg + 1.2 kg of beef →
+   `105.82 oz Beef`.
+3. **Vulgar fractions on metric units.** 3.6 kg → `3 5/8 kg`.
+
+The native app works around all three without touching `public/`: metric
+volumes are held out and totalled natively, and metric weights are re-rendered
+with this app's own formatting rules.
+
+**This is worth raising with you** — the web app presumably shows the same
+things to anyone with a metric library. Fixing it properly belongs with the
+ADR 0003 extraction, where one corrected copy would serve both surfaces.
+
+### Deliberately not implemented
+
+- **No pantry.** ADR 0011 keeps it in v1 and the brief did not ask for it in
+  this milestone. Excluding staples a cook already owns needs a pantry first.
+- **Items store a rendered line, not a structured quantity.** An aggregated
+  line can be "1 cup + 2 Tbsp sugar"; re-deriving structure would mean parsing
+  our own formatting. Editing is therefore editing the text, which is also what
+  makes "editing adopts the line" simple to explain.
+- **No household sync.** Out of scope by instruction; the storage shape is
+  ready for it.
+
 ## Open issues
 
-None blocking.
+- The three production-module metric defects above. Worked around natively,
+  not fixed at source.
 
 ## Next action
 
-Milestone 2, shopping lists: Metro `watchFolders` so the native app can consume
-`public/shopping-list.js` unmodified, then the schema, then generation from
-recipes and planned meals.
+Milestone 3: manual recipe creation and editing, then the import-review
+architecture.
