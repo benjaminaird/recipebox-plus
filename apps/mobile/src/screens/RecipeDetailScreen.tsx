@@ -14,7 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme/ThemeProvider";
 import { maxScale, textStyle } from "../theme/fonts";
@@ -65,20 +65,26 @@ export function RecipeDetailScreen() {
   // already exists rather than retyping it slightly differently.
   const [library, setLibrary] = useState<Recipe[]>([]);
 
-  useEffect(() => {
-    let live = true;
-    listRecipes().then((all) => { if (live) setLibrary(all); }).catch(() => {});
-    Promise.all([getRecipe(params.recipeId), getRecipeView(params.recipeId)])
-      .then(([r, saved]) => {
-        if (!live) return;
-        setRecipe(r);
-        // A saved view wins. Otherwise open on the Settings default, but only
-        // where this recipe can actually offer it.
-        setView(saved ?? openingView(r, preferred));
-      })
-      .catch(() => { if (live) setRecipe(null); });
-    return () => { live = false; };
-  }, [params.recipeId, preferred]);
+  // On focus, not on mount. The editor is a modal over this screen, so
+  // returning from it does not remount: loading once meant a saved edit was
+  // invisible here until the recipe was closed and reopened, which reads as
+  // the edit having silently failed.
+  useFocusEffect(
+    useCallback(() => {
+      let live = true;
+      listRecipes().then((all) => { if (live) setLibrary(all); }).catch(() => {});
+      Promise.all([getRecipe(params.recipeId), getRecipeView(params.recipeId)])
+        .then(([r, saved]) => {
+          if (!live) return;
+          setRecipe(r);
+          // A saved view wins. Otherwise open on the Settings default, but
+          // only where this recipe can actually offer it.
+          setView(saved ?? openingView(r, preferred));
+        })
+        .catch(() => { if (live) setRecipe(null); });
+      return () => { live = false; };
+    }, [params.recipeId, preferred]),
+  );
 
   // Persisted, so Cook Mode opens on the batch the cook actually chose --
   // including after a restart, when resuming at 1x would hand them the wrong
@@ -171,7 +177,9 @@ export function RecipeDetailScreen() {
           ))}
           <View style={[styles.tag, { borderRadius: t.radius.pill, borderWidth: StyleSheet.hairlineWidth, borderColor: c.separatorStrong }]}>
             <Text style={[textStyle("footnote"), { color: c.accentText, fontWeight: "600" }]}>
-              {(recipe.tags ?? []).length > 0 || recipe.category ? "Edit" : "Add a category or tags"}
+              {/* Not "Edit": the header button is Edit, and two controls with
+                  one word between them is a guess the cook has to make. */}
+              {(recipe.tags ?? []).length > 0 || recipe.category ? "Tags & category" : "Add a category or tags"}
             </Text>
           </View>
         </Pressable>

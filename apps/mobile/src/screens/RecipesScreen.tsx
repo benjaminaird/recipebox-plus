@@ -15,7 +15,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme/ThemeProvider";
 import { inputStyle, maxScale, textStyle } from "../theme/fonts";
@@ -49,13 +49,19 @@ export function RecipesScreen() {
   // The unfiltered library, loaded once. Filtering a handful of recipes in
   // memory is instant and avoids a round trip on every keystroke; the SQL
   // filters in db.ts are there for when the library outgrows that.
-  useEffect(() => {
-    let live = true;
-    listRecipes()
-      .then((rows) => { if (live) setAll(rows); })
-      .catch(() => { if (live) setAll([]); });
-    return () => { live = false; };
-  }, []);
+  // On focus, not on mount. A recipe edited or created elsewhere has to be
+  // here when the cook comes back; loading once meant the library showed the
+  // state it had when the tab was first opened, which could be hours old and
+  // was wrong the moment anything was saved.
+  useFocusEffect(
+    useCallback(() => {
+      let live = true;
+      listRecipes()
+        .then((rows) => { if (live) setAll(rows); })
+        .catch(() => { if (live) setAll([]); });
+      return () => { live = false; };
+    }, []),
+  );
 
   const categories = useMemo(() => collectCategories(all ?? []), [all]);
   const tags = useMemo(() => collectTags(all ?? []), [all]);

@@ -18,4 +18,6 @@ export type RootStackParamList = {
   Settings: undefined;
   AddRecipe: undefined;
   ShoppingList: { listId: string };
+  RecipeEditor: { recipeId?: string } | undefined;
+  ImportReview: { sampleId?: string } | undefined;
 };

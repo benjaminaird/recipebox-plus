@@ -1,0 +1,24 @@
+<!doctype html>
+<!-- TEST FIXTURE. Not a real page. A deliberately poor one: microdata rather
+     than JSON-LD, no yield, no times, vague amounts, and a distinctive
+     ingredient mentioned in the prose that is missing from the marked-up
+     list. It exists to exercise the uncertain path. -->
+<html lang="en">
+<head><title>Nan's Tomato Soup</title></head>
+<body>
+  <div itemscope itemtype="https://schema.org/Recipe">
+    <h1 itemprop="name">Nan's Tomato Soup</h1>
+    <p>She always finished it with a spoonful of harissa, which is the whole point.</p>
+    <ul>
+      <li itemprop="recipeIngredient">a tin of plum tomatoes</li>
+      <li itemprop="recipeIngredient">1 onion</li>
+      <li itemprop="recipeIngredient">some stock</li>
+      <li itemprop="recipeIngredient">olive oil</li>
+    </ul>
+    <div itemprop="recipeInstructions">
+      <p>Soften the onion in the oil.</p>
+      <p>Add the tomatoes and the stock and simmer until it tastes like something.</p>
+    </div>
+  </div>
+</body>
+</html>

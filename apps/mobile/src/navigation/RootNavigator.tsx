@@ -3,12 +3,12 @@
 // bars follow the appearance setting like everything else (ADR 0019).
 import { Ionicons } from "@expo/vector-icons";
 import { NavigationContainer, useNavigation, type Theme as NavTheme, DefaultTheme } from "@react-navigation/native";
-import { Pressable, Text } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { createNativeStackNavigator, type NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useMemo } from "react";
 import { useTheme } from "../theme/ThemeProvider";
-import { textStyle } from "../theme/fonts";
+import { maxScale, textStyle } from "../theme/fonts";
 import type { RootStackParamList, TabParamList } from "./types";
 import { HomeScreen } from "../screens/HomeScreen";
 import { RecipesScreen } from "../screens/RecipesScreen";
@@ -18,8 +18,26 @@ import { SettingsScreen } from "../screens/SettingsScreen";
 import { PlanScreen } from "../screens/PlanScreen";
 import { ListsScreen } from "../screens/ListsScreen";
 import { ShoppingListScreen } from "../screens/ShoppingListScreen";
+import { RecipeEditorScreen } from "../screens/RecipeEditorScreen";
+import { ImportReviewScreen } from "../screens/ImportReviewScreen";
 import { Placeholder } from "../components/Placeholder";
 import { AddTabButton } from "./AddTabButton";
+
+function EditRecipeButton({ recipeId }: { recipeId: string }) {
+  const t = useTheme();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  return (
+    <Pressable
+      onPress={() => navigation.navigate("RecipeEditor", { recipeId })}
+      accessibilityRole="button"
+      accessibilityLabel="Edit this recipe"
+      hitSlop={12}
+      style={({ pressed }) => ({ minHeight: t.minTouch, justifyContent: "center", opacity: pressed ? 0.6 : 1 })}
+    >
+      <Text style={[textStyle("body"), { color: t.colors.accentText, fontWeight: "600" }]}>Edit</Text>
+    </Pressable>
+  );
+}
 
 function CloseButton() {
   const t = useTheme();
@@ -50,21 +68,90 @@ const ICONS: Record<keyof TabParamList, [IoniconName, IoniconName]> = {
   Lists: ["cart", "cart-outline"],
 };
 
+/**
+ * What the centre button opens.
+ *
+ * Two routes in, with very different readiness. Writing a recipe works now, so
+ * it leads. Importing does not, and says so rather than offering a field that
+ * goes nowhere -- the one thing worse than a missing feature is a control that
+ * looks finished and is not.
+ */
 function AddScreen() {
+  const t = useTheme();
+  const c = t.colors;
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
   return (
-    <Placeholder
-      underHeader
-      title="Add a recipe"
-      summary="Import is the product's core promise, so it is being built against the real reliability suite rather than mocked up here."
-      planned={[
-        "Paste text, and have it parsed on the device first (ADR 0007)",
-        "Import from a link, a photo of a recipe card, or a PDF",
-        "Review what was understood in context, with anything uncertain flagged (ADR 0014)",
-        "Save a recipe even while some of it is still unresolved",
-      ]}
-    />
+    <ScrollView
+      style={{ backgroundColor: c.canvas }}
+      contentContainerStyle={{
+        padding: t.space.screenGutter,
+        gap: t.space.lg,
+      }}
+    >
+      <Text
+        accessibilityRole="header"
+        maxFontSizeMultiplier={maxScale("largeTitle")}
+        style={[textStyle("largeTitle"), { color: c.text }]}
+      >
+        Add a recipe
+      </Text>
+
+      <Pressable
+        onPress={() => {
+          navigation.goBack();
+          navigation.navigate("RecipeEditor", {});
+        }}
+        accessibilityRole="button"
+        accessibilityLabel="Write a recipe yourself"
+        style={({ pressed }) => [
+          addStyles.card,
+          { backgroundColor: c.accentSoft, borderRadius: t.radius.md, opacity: pressed ? 0.8 : 1 },
+        ]}
+      >
+        <Ionicons name="create-outline" size={24} color={c.accentText} />
+        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <Text style={[textStyle("cardTitle"), { color: c.text }]}>Write it out</Text>
+          <Text style={[textStyle("footnote"), { color: c.textSecondary }]}>
+            Type a recipe in: ingredients, method, the lot. Good for a card, a book, or something
+            of your own.
+          </Text>
+        </View>
+      </Pressable>
+
+      <Pressable
+        onPress={() => {
+          navigation.goBack();
+          navigation.navigate("ImportReview", {});
+        }}
+        accessibilityRole="button"
+        accessibilityLabel="Import from a link, and see what import review will look like"
+        style={({ pressed }) => [
+          addStyles.card,
+          { backgroundColor: c.surface, borderRadius: t.radius.md, opacity: pressed ? 0.8 : 1 },
+        ]}
+      >
+        <Ionicons name="link-outline" size={24} color={c.textSecondary} />
+        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <Text style={[textStyle("cardTitle"), { color: c.text }]}>Import from a link</Text>
+          <Text style={[textStyle("footnote"), { color: c.textSecondary }]}>
+            Not connected yet. You can see exactly how a reviewed import will look, on a stored
+            example.
+          </Text>
+        </View>
+      </Pressable>
+
+      <Text style={[textStyle("footnote"), { color: c.textTertiary }]}>
+        Photos, PDFs and pasted text are planned and not built. They will appear here as they
+        arrive, not before.
+      </Text>
+    </ScrollView>
   );
 }
+
+const addStyles = StyleSheet.create({
+  card: { flexDirection: "row", alignItems: "flex-start", gap: 14, padding: 16 },
+});
 
 function Tabs() {
   const t = useTheme();
@@ -142,7 +229,7 @@ export function RootNavigator() {
         <Stack.Screen
           name="RecipeDetail"
           component={RecipeDetailScreen}
-          options={{
+          options={({ route }) => ({
             // A native header, for the system back chevron and swipe-back.
             // The title stays empty: the screen sets the recipe title in the
             // serif at full size, and repeating it in the bar is noise.
@@ -153,6 +240,32 @@ export function RootNavigator() {
             headerStyle: { backgroundColor: c.canvas },
             headerShadowVisible: false,
             headerTintColor: c.accentText,
+            headerRight: () => <EditRecipeButton recipeId={route.params.recipeId} />,
+          })}
+        />
+        <Stack.Screen
+          name="ImportReview"
+          component={ImportReviewScreen}
+          options={{
+            presentation: "modal",
+            headerShown: true,
+            title: "",
+            headerStyle: { backgroundColor: c.canvas },
+            headerShadowVisible: false,
+            headerTintColor: c.accentText,
+          }}
+        />
+        <Stack.Screen
+          name="RecipeEditor"
+          component={RecipeEditorScreen}
+          options={{
+            presentation: "modal",
+            headerShown: true,
+            title: "",
+            headerStyle: { backgroundColor: c.canvas },
+            headerShadowVisible: false,
+            headerTintColor: c.accentText,
+            headerLeft: () => null,
           }}
         />
         <Stack.Screen
