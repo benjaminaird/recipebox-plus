@@ -8,6 +8,8 @@
 // where an extensionless specifier does not resolve. A type-only import is
 // erased before that matters, but flattenSteps is a real value.
 import { flattenSteps, type CookProgress, type Recipe } from "./types.ts";
+import { detectSystem, openingMeasurement } from "../domain/present.ts";
+import type { Measurement } from "../domain/convert.ts";
 
 /**
  * The text a recipe is searchable by: its title, description, category, tags
@@ -111,4 +113,27 @@ export function resumableCooks(recipes: Recipe[], sessions: CookProgress[]): Res
 /** The n most recently added recipes. */
 export function recentlyAdded(recipes: Recipe[], limit = 4): Recipe[] {
   return [...recipes].sort(byNewest).slice(0, limit);
+}
+
+/** The scale and measurement a recipe with no saved view should open on. */
+export type OpeningView = { scale: 0.5 | 1 | 2 | 3 | 4; measurement: Measurement };
+
+/**
+ * How to open a recipe the cook has never adjusted.
+ *
+ * Always batch 1: a scale is a decision about this cooking, not a standing
+ * preference, and starting someone at 3x because they once tripled something
+ * else would be worse than useless.
+ *
+ * The measurement is the Settings default, but only where this recipe can
+ * offer it -- openingMeasurement() explains why, and what it looked like when
+ * it did not.
+ */
+export function openingView(
+  recipe: Recipe | null | undefined,
+  preferred: Measurement,
+): OpeningView {
+  if (!recipe) return { scale: 1, measurement: "original" };
+  const units = (recipe.sections ?? []).flatMap((s) => s.ingredients.map((i) => i.unit));
+  return { scale: 1, measurement: openingMeasurement(preferred, detectSystem(units)) };
 }

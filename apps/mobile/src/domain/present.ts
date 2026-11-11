@@ -11,7 +11,8 @@
 
 import { convertIngredient, type Measurement } from "./convert.ts";
 import {
-  formatQuantity, parseQuantity, roundDiscrete, scaleQuantity, type Quantity,
+  formatDecimalQuantity, formatQuantity, parseQuantity, roundDiscrete, roundForUnit,
+  roundMetricMeasure, scaleQuantity, type Quantity,
 } from "./quantity.ts";
 import { canonicalUnit, displayUnit, SYSTEM_AMBIGUOUS, unitKind, unitSystem } from "./units.ts";
 
@@ -79,7 +80,9 @@ export function presentAmount(
     } else {
       const result = convertIngredient(formatQuantity(q), original, ingredientName, target);
       if (result.ok) {
-        q = result.quantity;
+        // Snap before display. The arithmetic is exact; the kitchen is not,
+        // and a converted 56.749999 must not reach the screen as "56.75".
+        q = roundMetricMeasure(roundForUnit(result.quantity, result.unit), result.unit);
         finalUnit = result.unit;
         converted = true;
         if (result.via) {
@@ -93,7 +96,12 @@ export function presentAmount(
     }
   }
 
-  const amountText = formatQuantity(q);
+  // Fractions for the units that are measured with cups and spoons; decimals
+  // for the units that are weighed. "1 1/2 kg" is not how anyone writes a kilo
+  // and a half.
+  const amountText = unitSystem(finalUnit) === "metric"
+    ? formatDecimalQuantity(q)
+    : formatQuantity(q);
   // Pluralise from the number actually shown, not the one behind it. A
   // conversion landing on 1.013 displays as "1" and must read "1 cup", not
   // "1 cups".
@@ -112,6 +120,20 @@ export function presentAmount(
     converted: converted || (scaled && q.kind !== "opaque" && q.kind !== "none"),
     ...(note ? { note } : {}),
   };
+}
+
+/**
+ * Whether two rendered measures say the same thing.
+ *
+ * For deciding whether a second line is worth drawing. A source that writes
+ * "175g unsalted butter" and also tags a 175 g weight is repeating itself, and
+ * printing both reads as a bug rather than as extra information. Comparison
+ * ignores spacing and case only -- "175 g" and "175g" agree; 175 g and 180 g
+ * do not, and the cook should see both.
+ */
+export function measuresAgree(a: string, b: string): boolean {
+  const norm = (s: string) => s.replace(/\s+/g, "").toLowerCase();
+  return norm(a) === norm(b);
 }
 
 /** Which system a recipe was written in, by counting the units it uses. */
@@ -140,6 +162,21 @@ export function detectSystem(units: ReadonlyArray<string | undefined | null>): O
 }
 
 /** Whether offering a conversion to `target` would tell the cook anything. */
+/**
+ * Which system a recipe should OPEN in, given the cook's default.
+ *
+ * A default that is not offered for this recipe must not be applied to it.
+ * Setting Metric and then opening a recipe already written in grams asked for
+ * a conversion that does not exist, and the measurement selector -- which
+ * hides options that would say nothing -- was left with no option selected at
+ * all: three pills, none of them lit, and no way to tell what the screen was
+ * showing. Fall back to the recipe's own units, which is what it was going to
+ * show anyway.
+ */
+export function openingMeasurement(preferred: Measurement, original: OriginalSystem): Measurement {
+  return conversionIsUseful(original, preferred) ? preferred : "original";
+}
+
 export function conversionIsUseful(original: OriginalSystem, target: Measurement): boolean {
   if (target === "original") return true;
   if (original === "unknown") return false;

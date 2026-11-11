@@ -2,7 +2,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import {
-  conversionIsUseful, detectSystem, presentAmount, scaleLabel, SCALES,
+  conversionIsUseful, detectSystem, measuresAgree, presentAmount, scaleLabel, SCALES,
 } from "../src/domain/present.ts";
 import { SAMPLE_RECIPES } from "../src/data/sampleRecipes.ts";
 import { flattenSteps, findIngredient } from "../src/data/types.ts";
@@ -166,4 +166,92 @@ test("the plural follows the number shown, not the one behind it", () => {
 
   const sugar = presentAmount("400", "g", "light brown sugar", { scale: 1, measurement: "us" });
   assert.equal(sugar.text, "1 7/8 cups", sugar.text);
+});
+
+test("a spoon measure is never converted into a weight", () => {
+  // The bug this prevents reached the screen: 1/4 tsp of fine sea salt,
+  // shown in metric, read "1.42 g". No kitchen scale resolves that, no cook
+  // would write it, and the original was perfectly good in both systems.
+  const salt = presentAmount("1/4", "tsp", "fine sea salt", { scale: 1, measurement: "metric" });
+  assert.equal(salt.text, "1/4 tsp");
+  assert.equal(salt.converted, false);
+
+  // Both directions, and tablespoons too.
+  // "Tbsp" keeps shopping-list.js's capital, deliberately; see displayUnit.
+  assert.equal(presentAmount("1", "tbsp", "flaky sea salt", { scale: 1, measurement: "us" }).text, "1 Tbsp");
+  assert.equal(presentAmount("2", "tsp", "vanilla extract", { scale: 1, measurement: "metric" }).text, "2 tsp");
+
+  // Scaling a spoon still works -- it is conversion we are declining, not
+  // arithmetic.
+  assert.equal(presentAmount("1/4", "tsp", "fine sea salt", { scale: 4, measurement: "metric" }).text, "1 tsp");
+});
+
+test("a cup still converts; it is spoons that are shared, not all volume", () => {
+  const flour = presentAmount("1", "cup", "plain flour", { scale: 1, measurement: "metric" });
+  assert.equal(flour.unit, "g");
+  assert.equal(flour.converted, true);
+});
+
+test("a converted weight is rounded to something a kitchen can hit", () => {
+  // A quarter cup of butter is 56.749999... g. The old formatter showed
+  // "56.75", which claims a precision no scale has and reads as a bug.
+  const butter = presentAmount("1/4", "cup", "unsalted butter", { scale: 1, measurement: "metric" });
+  assert.match(butter.amount, /^\d+$/, `expected a whole number of grams, got "${butter.amount}"`);
+  const grams = Number(butter.amount);
+  assert.ok(grams >= 50 && grams <= 60, `a quarter cup of butter should be 50-60 g, got ${grams}`);
+  assert.equal(grams % 5, 0, "above 50 g, steps of 5 are what recipes are written in");
+
+  // No converted metric amount should ever show two decimal places.
+  const names = ["plain flour", "caster sugar", "unsalted butter", "whole milk", "chopped nuts"];
+  const amounts = ["1/3", "1/2", "2/3", "1", "1 1/2", "2", "3"];
+  for (const name of names) {
+    for (const a of amounts) {
+      for (const scale of [0.5, 1, 2, 3, 4] as const) {
+        const out = presentAmount(a, "cup", name, { scale, measurement: "metric" });
+        if (!out.converted) continue;
+        if (out.unit === "g" || out.unit === "ml") {
+          // A gram is the finest thing a kitchen scale reads, so a decimal
+          // here is always noise.
+          assert.doesNotMatch(
+            out.amount, /\./,
+            `${scale}x ${a} cup ${name} -> "${out.text}" claims sub-gram precision`,
+          );
+        } else {
+          // Kilograms and litres carry a decimal legitimately -- 1.15 kg is
+          // 1150 g -- but only on a step a recipe would write.
+          const v = Number(out.amount);
+          assert.ok(Number.isFinite(v), `"${out.text}" is not a number`);
+          assert.ok(
+            Math.abs(v / 0.05 - Math.round(v / 0.05)) < 1e-9,
+            `${scale}x ${a} cup ${name} -> "${out.text}" is off any sensible step`,
+          );
+        }
+      }
+    }
+  }
+});
+
+test("metric amounts use decimals; cups and spoons keep their fractions", () => {
+  // A system built on tens does not need vulgar fractions, and nobody writes
+  // "1 1/2 kg". Fractions belong to the units measured with cups and spoons.
+  const kilo = presentAmount("3", "cup", "plain flour", { scale: 3, measurement: "metric" });
+  assert.equal(kilo.unit, "kg");
+  assert.doesNotMatch(kilo.amount, /\//, `"${kilo.text}" uses a fraction for a metric unit`);
+
+  assert.equal(presentAmount("1.5", "kg", "whole chicken", { scale: 1, measurement: "original" }).text, "1.5 kg");
+  assert.equal(presentAmount("1/2", "kg", "beef shin", { scale: 1, measurement: "original" }).text, "0.5 kg");
+
+  // And the other way: a cup is still halved into a fraction.
+  assert.equal(presentAmount("1", "cup", "double cream", { scale: 0.5, measurement: "original" }).text, "1/2 cup");
+});
+
+test("a weight hint that only repeats the line above is not a second line", () => {
+  // "175 g unsalted butter" with a tagged 175 g weight printed both, one under
+  // the other, which reads as a rendering fault rather than as information.
+  assert.equal(measuresAgree("175 g", "175g"), true);
+  assert.equal(measuresAgree("1 1/2 cups", "1 1/2 Cups"), true);
+  // A genuine second measure must survive: a source that says "1 cup (227 g)"
+  // is telling the cook something the cup measure does not.
+  assert.equal(measuresAgree("1 cup", "227 g"), false);
+  assert.equal(measuresAgree("175 g", "180 g"), false);
 });

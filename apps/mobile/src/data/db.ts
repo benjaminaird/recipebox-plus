@@ -257,23 +257,21 @@ const VALID_SCALES = new Set([0.5, 1, 2, 3, 4]);
 const VALID_MEASUREMENTS = new Set(["original", "us", "metric"]);
 
 /**
- * How a recipe should open.
+ * The view saved for this recipe, or null when the cook has never set one.
  *
- * `preferred` is the cook's default measurement system from Settings, used only
- * when this recipe has no saved view of its own. A recipe they have already
- * switched keeps what they chose: a per-recipe decision is more specific than a
- * global default and must outrank it.
+ * Null is the honest answer and the caller needs it: a recipe with a saved view
+ * keeps it (a per-recipe decision outranks a global default), and a recipe
+ * without one opens on the Settings default -- but only once that default has
+ * been checked against what this particular recipe can offer. That check needs
+ * the recipe, which this layer does not have. See openingMeasurement().
  */
-export async function getRecipeView(
-  recipeId: string,
-  preferred: Measurement = DEFAULT_VIEW.measurement,
-): Promise<RecipeView> {
+export async function getRecipeView(recipeId: string): Promise<RecipeView | null> {
   const db = await open();
   const row = await db.getFirstAsync<{ scale: number; measurement: string }>(
     `SELECT scale, measurement FROM recipe_view WHERE recipe_id = ?`,
     [recipeId],
   );
-  if (!row) return { scale: DEFAULT_VIEW.scale, measurement: preferred };
+  if (!row) return null;
   // Validate on read: a stored value from a later version, or a corrupted
   // row, must not put the interface into a state it cannot represent.
   const scale = VALID_SCALES.has(row.scale) ? (row.scale as Scale) : DEFAULT_VIEW.scale;

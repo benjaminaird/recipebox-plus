@@ -16,7 +16,7 @@
 // states the real permission and the real caveat about silent delivery, and the
 // sound preview goes through the notification system so that a cook with their
 // ringer off hears exactly what a finished timer would give them: nothing.
-import { useCallback, useState } from "react";
+import { Children, useCallback, useState } from "react";
 import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
@@ -48,10 +48,17 @@ function Eyebrow({ children }: { children: string }) {
 }
 
 /** A card of hairline-separated rows. Children are rows; the separators are
- *  drawn here so no row has to know whether it is first. */
+ *  drawn here so no row has to know whether it is first.
+ *
+ *  Children.toArray, not Array.isArray. A group written as
+ *  `<Group>{list.map(...)}<Row/></Group>` hands React an array whose FIRST
+ *  element is itself the mapped array, so counting the top level sees two rows
+ *  and draws one separator -- the mapped rows run together with no rule between
+ *  them while the last one is divided off. It looks like a styling slip and is
+ *  really a flattening bug. Children.toArray flattens and keys properly. */
 function Group({ children, dimmed = false }: { children: React.ReactNode; dimmed?: boolean }) {
   const t = useTheme();
-  const rows = (Array.isArray(children) ? children : [children]).filter(Boolean);
+  const rows = Children.toArray(children);
   return (
     <View
       style={[

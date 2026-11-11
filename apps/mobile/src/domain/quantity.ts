@@ -165,3 +165,87 @@ export function roundDiscrete(q: Quantity): Quantity {
     default: return q;
   }
 }
+
+/**
+ * Snap a converted amount to a precision the kitchen can actually hit.
+ *
+ * Only for values we produced by converting. An amount the recipe itself wrote
+ * is left exactly as written -- if it says 237 ml, it says 237 ml.
+ *
+ * Arithmetic gives 56.749999 g for a quarter cup of butter. A scale gives
+ * grams, a recipe writer gives 55, and nobody gives 56.75. Showing the raw
+ * figure claims a precision that does not exist and reads as a bug even when
+ * the number is right. The steps widen with magnitude for the same reason a
+ * recipe does: 5 g matters at 20 g and does not at 500 g.
+ *
+ * Units both systems share (cups, spoons) are left to the fraction formatter,
+ * which is what a cook measuring by volume actually wants.
+ */
+export function roundForUnit(q: Quantity, unit: string): Quantity {
+  const step = precisionFor(unit);
+  if (step === null) return q;
+  const snap = (v: number) => Math.round(v / step) * step;
+  switch (q.kind) {
+    case "exact": return { kind: "exact", value: snap(q.value) };
+    case "range": return { kind: "range", min: snap(q.min), max: snap(q.max) };
+    default: return q;
+  }
+}
+
+/** The step a unit should be rounded to, or null to leave it to fractions. */
+function precisionFor(unit: string): number | null {
+  switch (unit) {
+    case "g":
+    case "ml":
+      return null; // decided per magnitude below
+    case "kg":
+    case "L":
+      return 0.05;
+    case "oz":
+    case "lb":
+      return 0.25;
+    default:
+      return null;
+  }
+}
+
+/** Grams and millilitres need the magnitude to choose a step, so they take
+ *  their own path rather than a fixed one. */
+export function roundMetricMeasure(q: Quantity, unit: string): Quantity {
+  if (unit !== "g" && unit !== "ml") return q;
+  const step = (v: number) => (Math.abs(v) >= 50 ? 5 : Math.abs(v) >= 10 ? 1 : 0.5);
+  const snap = (v: number) => {
+    const s = step(v);
+    return Math.round(v / s) * s;
+  };
+  switch (q.kind) {
+    case "exact": return { kind: "exact", value: snap(q.value) };
+    case "range": return { kind: "range", min: snap(q.min), max: snap(q.max) };
+    default: return q;
+  }
+}
+
+/**
+ * Render a quantity in decimals rather than vulgar fractions.
+ *
+ * For metric units. "1 1/2 kg" is not how anyone writes a kilo and a half --
+ * fractions are an imperial idiom, inherited from measuring by cup and spoon,
+ * and a system built on tens does not need them. Cups and spoons keep the
+ * fractions; grams, millilitres, kilos and litres get a decimal point.
+ *
+ * Trailing zeroes are dropped, so 1.50 reads 1.5 and 250.0 reads 250.
+ */
+export function formatDecimalNumber(n: number): string {
+  if (!Number.isFinite(n)) return "";
+  const rounded = Math.round(n * 100) / 100;
+  return String(Number(rounded.toFixed(2)));
+}
+
+export function formatDecimalQuantity(q: Quantity): string {
+  switch (q.kind) {
+    case "exact": return formatDecimalNumber(q.value);
+    case "range": return `${formatDecimalNumber(q.min)}-${formatDecimalNumber(q.max)}`;
+    case "opaque": return q.text;
+    case "none": return "";
+  }
+}

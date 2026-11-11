@@ -8,7 +8,9 @@
 
 import { densityFor, type Density } from "./density.ts";
 import { parseQuantity, type Quantity } from "./quantity.ts";
-import { canonicalUnit, convert as convertUnits, unitKind, VOLUME_ML, WEIGHT_G } from "./units.ts";
+import {
+  canonicalUnit, convert as convertUnits, SYSTEM_AMBIGUOUS, unitKind, VOLUME_ML, WEIGHT_G,
+} from "./units.ts";
 
 /** Which way the cook asked to see the recipe. */
 export type Measurement = "original" | "us" | "metric";
@@ -19,7 +21,9 @@ export type ConversionFailure =
   /** Counted or descriptive: "2 eggs", "a pinch" belong to no system. */
   | "not-measurable"
   /** Already in the requested system. */
-  | "already";
+  | "already"
+  /** Measured in a unit both systems use, so there is nothing to translate. */
+  | "shared-unit";
 
 export type Converted =
   | { ok: true; quantity: Quantity; unit: string; via?: Density }
@@ -96,6 +100,15 @@ export function convertIngredient(
   }
 
   // Volume.
+  //
+  // Spoons first: a teaspoon belongs to no one system. A metric recipe writes
+  // "1/4 tsp fine sea salt" exactly as a US one does, so converting it is not
+  // a translation, it is noise -- and the noise is loud, because a quarter
+  // teaspoon of salt becomes "1.42 g", a number no kitchen scale will resolve
+  // and no cook would ever write. Leaving spoons alone is the same judgement
+  // detectSystem() already makes with SYSTEM_AMBIGUOUS, applied here.
+  if (SYSTEM_AMBIGUOUS.has(from)) return { ok: false, reason: "shared-unit" };
+
   const ml = representative * VOLUME_ML[from];
 
   if (system === "us") {

@@ -24,6 +24,7 @@ import { useTheme } from "../theme/ThemeProvider";
 import { maxScale, textStyle } from "../theme/fonts";
 import { clearProgress, DEFAULT_VIEW, getProgress, getRecipe, getRecipeView, saveProgress, type RecipeView } from "../data/db";
 import { useSettings } from "../settings/SettingsProvider";
+import { openingView } from "../data/query";
 import { flattenSteps, stepIngredientUses, type Recipe } from "../data/types";
 import { presentAmount, scaleLabel } from "../domain/present";
 import { durationsInText } from "../domain/timer";
@@ -47,7 +48,7 @@ export function CookModeScreen() {
   // Read, never chosen here: Cook Mode must show the batch the cook set on
   // the recipe, including after a restart mid-dish.
   const { measurement: preferred } = useSettings();
-  const [view, setView] = useState<RecipeView>({ ...DEFAULT_VIEW, measurement: preferred });
+  const [view, setView] = useState<RecipeView>(DEFAULT_VIEW);
   const [timersOpen, setTimersOpen] = useState(false);
 
   // Load the recipe and the saved place together, so the first frame is
@@ -57,12 +58,12 @@ export function CookModeScreen() {
     Promise.all([
       getRecipe(params.recipeId),
       getProgress(params.recipeId),
-      getRecipeView(params.recipeId, preferred),
+      getRecipeView(params.recipeId),
     ])
-      .then(([r, p, v]) => {
+      .then(([r, p, saved]) => {
         if (!live) return;
         setRecipe(r);
-        setView(v);
+        setView(saved ?? openingView(r, preferred));
         if (r && p) {
           const total = flattenSteps(r).length;
           setIndex(Math.min(Math.max(p.stepIndex, 0), Math.max(total - 1, 0)));

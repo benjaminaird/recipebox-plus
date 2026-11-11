@@ -19,9 +19,10 @@ import { useTheme } from "../theme/ThemeProvider";
 import { maxScale, textStyle } from "../theme/fonts";
 import { DEFAULT_VIEW, getRecipe, getRecipeView, saveRecipeView, type RecipeView } from "../data/db";
 import { useSettings } from "../settings/SettingsProvider";
+import { openingView } from "../data/query";
 import { stepIngredientUses, type Recipe, type Source } from "../data/types";
 import { ServingControls } from "../components/ServingControls";
-import { detectSystem, presentAmount } from "../domain/present";
+import { detectSystem, measuresAgree, presentAmount } from "../domain/present";
 import { batchAdvisories } from "../domain/timing";
 import { durationsInText } from "../domain/timer";
 import { TimerButton } from "../timers/TimerButton";
@@ -50,13 +51,19 @@ export function RecipeDetailScreen() {
   // The Settings default applies to a recipe with no saved view of its own.
   const { measurement: preferred } = useSettings();
   const [recipe, setRecipe] = useState<Recipe | null | undefined>(undefined);
-  const [view, setView] = useState<RecipeView>({ ...DEFAULT_VIEW, measurement: preferred });
+  const [view, setView] = useState<RecipeView>(DEFAULT_VIEW);
   const [timersOpen, setTimersOpen] = useState(false);
 
   useEffect(() => {
     let live = true;
-    Promise.all([getRecipe(params.recipeId), getRecipeView(params.recipeId, preferred)])
-      .then(([r, v]) => { if (live) { setRecipe(r); setView(v); } })
+    Promise.all([getRecipe(params.recipeId), getRecipeView(params.recipeId)])
+      .then(([r, saved]) => {
+        if (!live) return;
+        setRecipe(r);
+        // A saved view wins. Otherwise open on the Settings default, but only
+        // where this recipe can actually offer it.
+        setView(saved ?? openingView(r, preferred));
+      })
       .catch(() => { if (live) setRecipe(null); });
     return () => { live = false; };
   }, [params.recipeId, preferred]);
@@ -208,11 +215,25 @@ export function RecipeDetailScreen() {
                       >
                         {shown.text}
                       </Text>
-                      {view.measurement === "original" && ing.weightAmount ? (
-                        <Text style={[textStyle("footnote"), { color: c.textTertiary }]}>
-                          {`${ing.weightAmount}${ing.weightUnit ?? ""}`}
-                        </Text>
-                      ) : null}
+                      {/* The gram weight a source sometimes gives alongside a
+                          cup measure. It goes through presentAmount like
+                          everything else, because printing the recipe's raw
+                          175 g beside a doubled 350 g is worse than printing
+                          nothing -- and it is suppressed when it only repeats
+                          the line above. */}
+                      {(() => {
+                        if (view.measurement !== "original" || !ing.weightAmount) return null;
+                        const hint = presentAmount(ing.weightAmount, ing.weightUnit, ing.name, {
+                          scale: view.scale,
+                          measurement: "original",
+                        });
+                        if (!hint.text || measuresAgree(hint.text, shown.text)) return null;
+                        return (
+                          <Text style={[textStyle("footnote"), { color: c.textTertiary }]}>
+                            {hint.text}
+                          </Text>
+                        );
+                      })()}
                     </View>
                   );
                 })()}

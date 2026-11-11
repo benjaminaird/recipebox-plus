@@ -4,7 +4,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { SAMPLE_RECIPES } from "../src/data/sampleRecipes.ts";
-import { buildSearchText, matches, queryLibrary, recentlyAdded, resumableCooks } from "../src/data/query.ts";
+import { buildSearchText, matches, openingView, queryLibrary, recentlyAdded, resumableCooks } from "../src/data/query.ts";
 import {
   collectCategories,
   collectTags,
@@ -15,6 +15,7 @@ import {
   stepIngredientUses,
   useChipLabel,
   useQuantityLabel,
+  type Recipe,
 } from "../src/data/types.ts";
 
 const byId = (id: string) => {
@@ -361,4 +362,45 @@ test("recently added returns the newest few, in order", () => {
   }
   assert.ok(recentlyAdded([], 4).length === 0, "an empty library is not an error");
   assert.equal(recentlyAdded(SAMPLE_RECIPES, 99).length, SAMPLE_RECIPES.length);
+});
+
+test("a default measurement a recipe cannot offer falls back to its own units", () => {
+  // The bug: set Metric, open a recipe already written in grams. Metric is
+  // hidden from the selector (converting metric to metric says nothing), so
+  // the view held a value no pill matched -- three options, none selected,
+  // and nothing on screen to say what was being shown.
+  const metricRecipe = {
+    id: "m", title: "Shortbread", createdAt: 0, updatedAt: 0,
+    sections: [{ title: "", ingredients: [
+      { id: "i1", amount: "250", unit: "g", name: "plain flour" },
+      { id: "i2", amount: "175", unit: "g", name: "unsalted butter" },
+    ], steps: [] }],
+  } as unknown as Recipe;
+
+  assert.equal(openingView(metricRecipe, "metric").measurement, "original");
+  assert.equal(openingView(metricRecipe, "us").measurement, "us");
+  assert.equal(openingView(metricRecipe, "original").measurement, "original");
+
+  const usRecipe = {
+    id: "u", title: "Cookies", createdAt: 0, updatedAt: 0,
+    sections: [{ title: "", ingredients: [
+      { id: "i1", amount: "2", unit: "cup", name: "plain flour" },
+      { id: "i2", amount: "1", unit: "cup", name: "caster sugar" },
+    ], steps: [] }],
+  } as unknown as Recipe;
+  assert.equal(openingView(usRecipe, "metric").measurement, "metric");
+  assert.equal(openingView(usRecipe, "us").measurement, "original");
+
+  // A recipe we cannot classify gets no conversion imposed on it either.
+  const vague = {
+    id: "v", title: "Soup", createdAt: 0, updatedAt: 0,
+    sections: [{ title: "", ingredients: [{ id: "i1", name: "a handful of parsley" }], steps: [] }],
+  } as unknown as Recipe;
+  assert.equal(openingView(vague, "metric").measurement, "original");
+  assert.equal(openingView(null, "metric").measurement, "original");
+
+  // And a batch is never inherited: 1x always, whatever the default.
+  for (const pref of ["original", "us", "metric"] as const) {
+    assert.equal(openingView(usRecipe, pref).scale, 1);
+  }
 });
