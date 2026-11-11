@@ -18,7 +18,7 @@ import { BrandHeader } from "../components/BrandHeader";
 import { RecipeTile } from "../components/RecipeTile";
 import { activeSessions, listRecipes } from "../data/db";
 import { recentlyAdded, resumableCooks, type ResumableCook } from "../data/query";
-import type { Recipe } from "../data/types";
+import { flattenSteps, type Recipe } from "../data/types";
 import type { RootStackParamList } from "../navigation/types";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -102,71 +102,128 @@ export function HomeScreen() {
         </Pressable>
       </View>
 
-      {data.cooking.length > 0 ? (
-        <View style={{ gap: t.space.md }}>
-          <Text accessibilityRole="header" maxFontSizeMultiplier={maxScale("sectionTitle")} style={[textStyle("sectionTitle"), { color: c.text }]}>
-            Still cooking
-          </Text>
-          {data.cooking.map((cook) => (
-            <Pressable
-              key={cook.recipe.id}
-              onPress={() => navigation.navigate("CookMode", { recipeId: cook.recipe.id })}
-              accessibilityRole="button"
-              accessibilityLabel={`Resume ${cook.recipe.title}, step ${cook.stepIndex + 1} of ${cook.totalSteps}`}
-              // Side by side, "Resume" takes a fixed share of the width and
-              // the title is squeezed into a few characters per line once the
-              // text is large. Above the threshold the card stacks instead.
-              style={({ pressed }) => [
-                styles.resume,
-                t.largeText && styles.resumeStacked,
-                {
-                  backgroundColor: c.accentSoft,
-                  borderRadius: t.radius.md,
-                  minHeight: t.minTouch,
-                  opacity: pressed ? 0.75 : 1,
-                },
-              ]}
+      {/* The page's one bold element, and only when it has earned it.
+          Cooking is the activity people are always interrupted during -- it is
+          the whole reason Cook Mode saves a place at all -- so a cook who
+          opens RecipeBox mid-dish is almost always here to carry on. That
+          makes "what am I doing next" the most useful sentence on the screen,
+          and it is shown rather than described: the step's own text, not a
+          count of steps. Everything below stays deliberately quiet. */}
+      {data.cooking.map((cook) => {
+        const steps = flattenSteps(cook.recipe);
+        const step = steps[cook.stepIndex];
+        const done = (cook.stepIndex + 1) / Math.max(cook.totalSteps, 1);
+        return (
+          <Pressable
+            key={cook.recipe.id}
+            onPress={() => navigation.navigate("CookMode", { recipeId: cook.recipe.id })}
+            accessibilityRole="button"
+            accessibilityLabel={`Resume ${cook.recipe.title}, step ${cook.stepIndex + 1} of ${cook.totalSteps}`}
+            accessibilityHint={step ? step.text : undefined}
+            style={({ pressed }) => [
+              styles.resume,
+              {
+                backgroundColor: c.accentSoft,
+                borderRadius: t.radius.lg,
+                opacity: pressed ? 0.85 : 1,
+              },
+            ]}
+          >
+            <Text style={[textStyle("eyebrow"), { color: c.accentText }]}>
+              Still cooking · {whenLabel(cook.updatedAt, now)}
+            </Text>
+
+            <Text
+              accessibilityRole="header"
+              maxFontSizeMultiplier={maxScale("sectionTitle")}
+              style={[textStyle("sectionTitle"), { color: c.text }]}
+              numberOfLines={2}
             >
-              <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
-                <Text style={[textStyle("cardTitle"), { color: c.text }]} numberOfLines={2}>
-                  {cook.recipe.title}
-                </Text>
-                <Text style={[textStyle("footnote"), { color: c.accentText }]}>
-                  Step {cook.stepIndex + 1} of {cook.totalSteps} · {whenLabel(cook.updatedAt, now)}
-                </Text>
-              </View>
-              <Text numberOfLines={1} style={[textStyle("headline"), { color: c.accentText }]}>
-                Resume
+              {cook.recipe.title}
+            </Text>
+
+            {step ? (
+              <Text style={[textStyle("body"), { color: c.textSecondary }]} numberOfLines={3}>
+                {step.text}
               </Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
+            ) : null}
+
+            {/* The same progress bar Cook Mode uses, so the card and the
+                screen it opens agree about where the cook is. */}
+            <View style={[styles.track, { backgroundColor: c.surface }]}>
+              <View
+                style={{
+                  width: `${Math.min(Math.max(done, 0), 1) * 100}%`,
+                  height: "100%",
+                  backgroundColor: c.accentText,
+                  borderRadius: 999,
+                }}
+              />
+            </View>
+
+            <View style={[styles.resumeFoot, t.largeText && styles.resumeFootStacked]}>
+              <Text style={[textStyle("footnote"), { color: c.accentText, flex: t.largeText ? undefined : 1 }]}>
+                Step {cook.stepIndex + 1} of {cook.totalSteps}
+              </Text>
+              <View style={[styles.resumeCta, { backgroundColor: c.accent, borderRadius: t.radius.pill, minHeight: t.minTouch }]}>
+                <Text style={[textStyle("headline"), { color: c.onAccent }]}>Resume</Text>
+              </View>
+            </View>
+          </Pressable>
+        );
+      })}
 
       <View style={{ gap: t.space.md }}>
         <View style={styles.sectionHead}>
           <Text accessibilityRole="header" maxFontSizeMultiplier={maxScale("sectionTitle")} style={[textStyle("sectionTitle"), { color: c.text, flex: 1 }]}>
             Recently added
           </Text>
-          <Pressable
-            onPress={() => navigation.navigate("Tabs", { screen: "Recipes" })}
-            accessibilityRole="button"
-            accessibilityLabel="See all recipes"
-            hitSlop={10}
-            style={{ minHeight: t.minTouch, justifyContent: "center" }}
-          >
-            <Text style={[textStyle("footnote"), { color: c.accentText, fontWeight: "600" }]}>
-              All {data.recipes.length}
-            </Text>
-          </Pressable>
+          {/* Nothing to see all of, when there is nothing. "All 0" is a link
+              that promises a screen and delivers an empty one. */}
+          {data.recipes.length > 0 ? (
+            <Pressable
+              onPress={() => navigation.navigate("Tabs", { screen: "Recipes" })}
+              accessibilityRole="button"
+              accessibilityLabel={`See all ${data.recipes.length} recipes`}
+              hitSlop={10}
+              style={{ minHeight: t.minTouch, justifyContent: "center" }}
+            >
+              <Text style={[textStyle("footnote"), { color: c.accentText, fontWeight: "600" }]}>
+                All {data.recipes.length}
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
 
         {recent.length === 0 ? (
-          <View style={[styles.card, { backgroundColor: c.surface, borderRadius: t.radius.md, padding: t.space.lg }]}>
-            <Text style={[textStyle("body"), { color: c.textSecondary }]}>
-              Your library is empty. Recipes you add live on this device.
+          // An empty screen is an invitation to act. It says what will happen
+          // and offers the thing that makes it happen, rather than reporting
+          // a state back to the cook who already knows they have no recipes.
+          <Pressable
+            onPress={() => navigation.navigate("AddRecipe")}
+            accessibilityRole="button"
+            accessibilityLabel="Add your first recipe"
+            style={({ pressed }) => [
+              styles.card,
+              {
+                backgroundColor: c.surface,
+                borderRadius: t.radius.md,
+                padding: t.space.xl,
+                gap: t.space.sm,
+                opacity: pressed ? 0.75 : 1,
+              },
+            ]}
+          >
+            <Text style={[textStyle("cardTitle"), { color: c.text }]}>
+              Nothing in the box yet
             </Text>
-          </View>
+            <Text style={[textStyle("body"), { color: c.textSecondary }]}>
+              Paste a recipe, or bring one in from a link or a photo. It stays on this device.
+            </Text>
+            <Text style={[textStyle("headline"), { color: c.accentText, marginTop: t.space.xs }]}>
+              Add a recipe
+            </Text>
+          </Pressable>
         ) : (
           recent.map((recipe) => (
             <Pressable
@@ -204,13 +261,13 @@ export function HomeScreen() {
         )}
       </View>
 
-      <View style={{ gap: t.space.sm }}>
-        <View style={[styles.badge, { backgroundColor: c.attentionSoft, borderRadius: t.radius.sm }]}>
-          <Text style={[textStyle("footnote"), { color: c.attention, fontWeight: "600" }]}>Not built yet</Text>
-        </View>
-        <Text style={[textStyle("body"), { color: c.textSecondary }]}>
-          Today's planned meals and any import still waiting for review will appear here once Plan
-          and Add are built.
+      {/* Still true, still said -- but said quietly and last. An amber badge
+          at the foot of Home made the thing that does NOT work the loudest
+          element on the page. The honesty was right; the weight was not. */}
+      <View style={[styles.footnote, { borderTopColor: c.separator }]}>
+        <Text style={[textStyle("footnote"), { color: c.textTertiary }]}>
+          Planned meals and imports waiting for review will appear here once Plan and Add are
+          built.
         </Text>
       </View>
     </ScrollView>
@@ -225,8 +282,14 @@ const styles = StyleSheet.create({
   gear: { alignItems: "center", justifyContent: "center" },
   card: { overflow: "hidden" },
   sectionHead: { flexDirection: "row", alignItems: "center", gap: 12 },
-  resume: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },
-  resumeStacked: { flexDirection: "column", alignItems: "flex-start", gap: 8 },
+  // The one card on the page allowed to take up room. Generous padding and a
+  // larger radius are what separate it from the quiet rows below; nothing else
+  // on Home gets either.
+  resume: { padding: 18, gap: 10 },
+  track: { height: 4, borderRadius: 999, overflow: "hidden", marginTop: 2 },
+  resumeFoot: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 2 },
+  resumeFootStacked: { flexDirection: "column", alignItems: "flex-start" },
+  resumeCta: { alignItems: "center", justifyContent: "center", paddingHorizontal: 22 },
   row: { flexDirection: "row", gap: 14, alignItems: "center" },
-  badge: { alignSelf: "flex-start", paddingHorizontal: 9, paddingVertical: 3 },
+  footnote: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 14 },
 });
