@@ -12,7 +12,8 @@ import { join } from "node:path";
 import test from "node:test";
 import {
   DEFAULT_MEASUREMENT, DEFAULT_TIMER_SOUND, MEASUREMENT_CHOICES, TIMER_SOUND_CHOICES,
-  parseMeasurement, parseTimerSound, timerChannelId, timerSoundFile, timerSoundLabel,
+  parseMeasurement, parseTimerSound, timerChannelId, timerSoundFile,
+  timerSoundIsSilent, timerSoundLabel,
 } from "../src/settings/settings.ts";
 
 const ROOT = join(import.meta.dirname, "..");
@@ -50,6 +51,19 @@ test("a stored timer sound is validated on read", () => {
   assert.equal(parseTimerSound("system"), "system");
   for (const junk of [null, undefined, "", "klaxon", 7, {}]) {
     assert.equal(parseTimerSound(junk), DEFAULT_TIMER_SOUND, `junk: ${String(junk)}`);
+  }
+});
+
+test("silent is distinguishable from the system sound", () => {
+  // Both have no bundled file, so a caller that only looks at the filename
+  // would turn a request for silence into the system's own sound -- which is
+  // the loudest possible way to get this wrong.
+  assert.equal(timerSoundFile("silent"), null);
+  assert.equal(timerSoundFile("system"), null);
+  assert.equal(timerSoundIsSilent("silent"), true);
+  assert.equal(timerSoundIsSilent("system"), false);
+  for (const c of TIMER_SOUND_CHOICES) {
+    if (c.file) assert.equal(timerSoundIsSilent(c.value), false, `${c.value} has a file and is silent`);
   }
 });
 

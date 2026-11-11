@@ -27,7 +27,8 @@
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import {
-  TIMER_SOUND_CHOICES, timerChannelId, timerSoundFile, type TimerSound,
+  TIMER_SOUND_CHOICES, timerChannelId, timerSoundFile, timerSoundIsSilent,
+  type TimerSound,
 } from "../settings/settings";
 
 export type PermissionState = "granted" | "denied" | "undetermined";
@@ -128,9 +129,12 @@ export async function cancelTimerNotification(id: string): Promise<void> {
   }
 }
 
-/** The value iOS wants for a sound: a bundled filename, or the system sound. */
-function soundValue(sound: TimerSound | undefined): string {
-  return timerSoundFile(sound ?? "chime") ?? "default";
+/** The value iOS wants: a bundled filename, the system sound, or `false` for a
+ *  banner with no sound. */
+function soundValue(sound: TimerSound | undefined): string | false {
+  const choice = sound ?? "chime";
+  if (timerSoundIsSilent(choice)) return false;
+  return timerSoundFile(choice) ?? "default";
 }
 
 /**
@@ -146,7 +150,8 @@ export async function ensureTimerChannels(): Promise<void> {
       await Notifications.setNotificationChannelAsync(timerChannelId(choice.value), {
         name: `Kitchen timers (${choice.label})`,
         importance: Notifications.AndroidImportance.HIGH,
-        sound: choice.file ?? "default",
+        // null is a silent channel; "default" is the system sound.
+        sound: choice.silent ? null : choice.file ?? "default",
         vibrationPattern: [0, 300, 200, 300],
         enableVibrate: true,
       });
