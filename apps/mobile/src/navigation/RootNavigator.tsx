@@ -15,6 +15,7 @@ import { RecipesScreen } from "../screens/RecipesScreen";
 import { RecipeDetailScreen } from "../screens/RecipeDetailScreen";
 import { CookModeScreen } from "../screens/CookModeScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
+import { PlanScreen } from "../screens/PlanScreen";
 import { Placeholder } from "../components/Placeholder";
 import { AddTabButton } from "./AddTabButton";
 
@@ -58,20 +59,6 @@ function AddScreen() {
         "Import from a link, a photo of a recipe card, or a PDF",
         "Review what was understood in context, with anything uncertain flagged (ADR 0014)",
         "Save a recipe even while some of it is still unresolved",
-      ]}
-    />
-  );
-}
-
-function PlanScreen() {
-  return (
-    <Placeholder
-      title="Plan"
-      summary="The meal planner will sit on the same local store as the recipe library, so planning works offline."
-      planned={[
-        "A week view you can drag recipes onto",
-        "Servings adjusted per planned meal",
-        "Roll a plan forward into the shopping list",
       ]}
     />
   );

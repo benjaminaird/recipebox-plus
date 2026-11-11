@@ -67,7 +67,7 @@ milestone.
 
 | # | Milestone | State | Commit |
 | --- | --- | --- | --- |
-| 1 | Functional meal planning | in progress | — |
+| 1 | Functional meal planning | **done** | (below) |
 | 2 | Functional shopping lists | not started | — |
 | 3 | Manual recipe create and edit | not started | — |
 | 3b | Safe import-review architecture | not started | — |
@@ -82,10 +82,40 @@ milestone.
 green, Hermes bundles compile for both platforms, production web files
 byte-identical to `main`.
 
+## Milestone 1 — functional meal planning (done)
+
+Working: a week strip for navigation with a dot on any day that has something
+planned; the selected day in full, slots in the order they are eaten; add a
+recipe to a slot through the shared picker; change a meal's slot, day or batch;
+remove it; tap through to the recipe. Empty states say what will happen rather
+than reporting a state the cook can already see.
+
+**Verified on the simulator**, not inferred: added a meal, moved it to
+tomorrow, set it to 2x, then terminated the app and read the row back; then
+shut the simulator down **entirely**, cold booted, and the meal was still
+there. The v4 migration left all 7 recipes, the edited tags and the in-progress
+cook untouched.
+
+15 new tests, mostly on dates. 170 total.
+
+### Deliberately not implemented (recorded, per the brief)
+
+- **No drag-and-drop reordering** inside a slot. `position` exists in the model
+  and is honoured on read, but there is no gesture to change it. Drag would
+  compete with the week strip's horizontal scroll and is poor with VoiceOver;
+  "Move to" in the options sheet does the same job one-handed.
+- **Moving a meal is relative** — a day earlier, a day later, a week later —
+  not an arbitrary date picker. Covers the real cases (it slipped, we are away
+  that night) without a calendar modal.
+- **Measurement preference is not yet reflected** in Plan, because Plan shows
+  no quantities. The shopping list is where it becomes visible.
+
 ## Open issues
 
-None yet.
+None blocking.
 
 ## Next action
 
-Build the Plan domain module and its tests.
+Milestone 2, shopping lists: Metro `watchFolders` so the native app can consume
+`public/shopping-list.js` unmodified, then the schema, then generation from
+recipes and planned meals.

@@ -8,6 +8,9 @@
 import * as SQLite from "expo-sqlite";
 import type { CookProgress, Recipe } from "./types";
 import type { Measurement } from "../domain/convert";
+import {
+  isDateKey, parseScale, parseSlot, toDateKey, type PlannedMeal,
+} from "../domain/plan";
 import { hasTag, normalizeCategory, normalizeRecipeTags, sameCategory } from "../domain/tags";
 import type { Scale } from "../domain/present";
 import type { Timer } from "../domain/timer";
@@ -16,8 +19,18 @@ import { SAMPLE_RECIPES } from "./sampleRecipes";
 
 const DB_NAME = "recipebox.db";
 
-/** Bump when the table shape changes; `migrate` is additive and idempotent. */
-const SCHEMA_VERSION = 3;
+/**
+ * Bump when the table shape changes; `migrate` is additive and idempotent.
+ *
+ * Every migration so far is a `CREATE TABLE IF NOT EXISTS`, which is why
+ * upgrading has never cost a user a recipe: there is no path through this
+ * function that drops, renames or rewrites an existing row. Keep it that way.
+ * A change that genuinely cannot be expressed additively needs a copy-and-swap
+ * with a test that proves the old rows arrived, not an ALTER in the dark.
+ *
+ * 4 — planned_meals (meal planning).
+ */
+const SCHEMA_VERSION = 4;
 
 let handle: Promise<SQLite.SQLiteDatabase> | null = null;
 
@@ -72,6 +85,30 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
       created_at   INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS timers_created_at ON timers (created_at);
+    /* Meal planning.
+     *
+     * The shape is the one ADR 0006 can merge, even though sync is not built:
+     * it specifies last-write-wins per day-and-meal slot, so each planned meal
+     * carries its own stable id and its own updated_at rather than inheriting a
+     * document-level timestamp. Deletes are soft (deleted_at), because that ADR
+     * also says a deletion must lose to a concurrent edit -- which is only
+     * decidable if the deletion is a row rather than an absence.
+     *
+     * The date column is TEXT in YYYY-MM-DD form: a calendar day, not an
+     * instant. An epoch would move a meal across a timezone change or a
+     * daylight-saving boundary; see domain/plan.ts. */
+    CREATE TABLE IF NOT EXISTS planned_meals (
+      id          TEXT PRIMARY KEY NOT NULL,
+      date        TEXT NOT NULL,
+      slot        TEXT NOT NULL,
+      recipe_id   TEXT NOT NULL,
+      scale       REAL NOT NULL DEFAULT 1,
+      position    INTEGER NOT NULL DEFAULT 0,
+      created_at  INTEGER NOT NULL,
+      updated_at  INTEGER NOT NULL,
+      deleted_at  INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS planned_meals_date ON planned_meals (date);
     CREATE TABLE IF NOT EXISTS recipe_view (
       recipe_id   TEXT PRIMARY KEY NOT NULL,
       scale       REAL NOT NULL,
@@ -323,6 +360,80 @@ export async function saveRecipeView(recipeId: string, view: RecipeView): Promis
   );
 }
 
+// --- meal plan ---------------------------------------------------------------
+
+type PlannedMealRow = {
+  id: string; date: string; slot: string; recipe_id: string;
+  scale: number; position: number; created_at: number; updated_at: number;
+};
+
+function rowToPlannedMeal(r: PlannedMealRow): PlannedMeal {
+  // Validated on read, like every other stored shape: a row written by a later
+  // version, or corrupted, must not reach the arithmetic that scales a
+  // shopping list.
+  return {
+    id: r.id,
+    date: isDateKey(r.date) ? r.date : toDateKey(new Date()),
+    slot: parseSlot(r.slot),
+    recipeId: r.recipe_id,
+    scale: parseScale(r.scale),
+    position: Number.isFinite(r.position) ? r.position : 0,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
+
+/**
+ * Every planned meal that has not been deleted.
+ *
+ * The whole plan, not a window: a library of meals is small (a year of three
+ * meals a day is a thousand rows), the week strip needs counts for dates
+ * outside the visible week, and the shopping list asks for arbitrary ranges.
+ * Paging this would add a cache to save nothing.
+ */
+export async function listPlannedMeals(): Promise<PlannedMeal[]> {
+  const db = await open();
+  const rows = await db.getAllAsync<PlannedMealRow>(
+    `SELECT id, date, slot, recipe_id, scale, position, created_at, updated_at
+       FROM planned_meals
+      WHERE deleted_at IS NULL
+      ORDER BY date ASC, position ASC`,
+  );
+  return rows.map(rowToPlannedMeal);
+}
+
+export async function savePlannedMeal(meal: PlannedMeal): Promise<void> {
+  const db = await open();
+  await db.runAsync(
+    `INSERT INTO planned_meals (id, date, slot, recipe_id, scale, position, created_at, updated_at, deleted_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)
+     ON CONFLICT(id) DO UPDATE SET
+       date = excluded.date, slot = excluded.slot, recipe_id = excluded.recipe_id,
+       scale = excluded.scale, position = excluded.position,
+       updated_at = excluded.updated_at, deleted_at = NULL`,
+    [
+      meal.id, meal.date, meal.slot, meal.recipeId,
+      meal.scale, meal.position, meal.createdAt, meal.updatedAt,
+    ],
+  );
+}
+
+/**
+ * Remove a planned meal.
+ *
+ * Soft, per ADR 0006: the sync policy says a deletion loses to a concurrent
+ * edit of the same element, which can only be decided if the deletion is
+ * recorded rather than inferred from an absence. It also means an undo is a
+ * row update away if one is ever wanted.
+ */
+export async function deletePlannedMeal(id: string, now = Date.now()): Promise<void> {
+  const db = await open();
+  await db.runAsync(
+    `UPDATE planned_meals SET deleted_at = ?, updated_at = ? WHERE id = ?`,
+    [now, now, id],
+  );
+}
+
 type TimerRow = {
   id: string; label: string; duration_ms: number;
   ends_at: number | null; remaining_ms: number | null;
@@ -386,6 +497,6 @@ export async function clearFinishedTimers(): Promise<void> {
 /** Test and development helper. Not reachable from the UI. */
 export async function resetForTesting(): Promise<void> {
   const db = await open();
-  await db.execAsync(`DELETE FROM recipes; DELETE FROM cook_progress; DELETE FROM recipe_view; DELETE FROM timers; DELETE FROM meta;`);
+  await db.execAsync(`DELETE FROM recipes; DELETE FROM cook_progress; DELETE FROM recipe_view; DELETE FROM timers; DELETE FROM planned_meals; DELETE FROM meta;`);
   handle = null;
 }
