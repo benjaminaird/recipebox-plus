@@ -2,11 +2,13 @@
 // Mode pushed above them. Navigation chrome is themed from the tokens, so the
 // bars follow the appearance setting like everything else (ADR 0019).
 import { Ionicons } from "@expo/vector-icons";
-import { NavigationContainer, type Theme as NavTheme, DefaultTheme } from "@react-navigation/native";
+import { NavigationContainer, useNavigation, type Theme as NavTheme, DefaultTheme } from "@react-navigation/native";
+import { Pressable, Text } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useMemo } from "react";
 import { useTheme } from "../theme/ThemeProvider";
+import { textStyle } from "../theme/fonts";
 import type { RootStackParamList, TabParamList } from "./types";
 import { HomeScreen } from "../screens/HomeScreen";
 import { RecipesScreen } from "../screens/RecipesScreen";
@@ -14,6 +16,23 @@ import { RecipeDetailScreen } from "../screens/RecipeDetailScreen";
 import { CookModeScreen } from "../screens/CookModeScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { Placeholder } from "../components/Placeholder";
+import { AddTabButton } from "./AddTabButton";
+
+function CloseButton() {
+  const t = useTheme();
+  const navigation = useNavigation();
+  return (
+    <Pressable
+      onPress={() => navigation.goBack()}
+      accessibilityRole="button"
+      accessibilityLabel="Close"
+      hitSlop={12}
+      style={({ pressed }) => ({ minHeight: t.minTouch, justifyContent: "center", opacity: pressed ? 0.6 : 1 })}
+    >
+      <Text style={[textStyle("body"), { color: t.colors.accentText, fontWeight: "600" }]}>Close</Text>
+    </Pressable>
+  );
+}
 
 const Tab = createBottomTabNavigator<TabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -31,6 +50,7 @@ const ICONS: Record<keyof TabParamList, [IoniconName, IoniconName]> = {
 function AddScreen() {
   return (
     <Placeholder
+      underHeader
       title="Add a recipe"
       summary="Import is the product's core promise, so it is being built against the real reliability suite rather than mocked up here."
       planned={[
@@ -84,6 +104,9 @@ function Tabs() {
         tabBarStyle: {
           backgroundColor: c.surface,
           borderTopColor: c.separator,
+          // The raised Add button overhangs the bar, and a bar that clips its
+          // own children would cut the circle in half.
+          overflow: "visible",
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: "500" },
         tabBarIcon: ({ focused, color, size }) => (
@@ -93,7 +116,19 @@ function Tabs() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Recipes" component={RecipesScreen} />
-      <Tab.Screen name="Add" component={AddScreen} />
+      <Tab.Screen
+        name="Add"
+        component={AddScreen}
+        options={{ tabBarButton: AddTabButton, tabBarLabel: () => null }}
+        listeners={({ navigation }) => ({
+          // Intercept: Add is an action, so it opens over the current screen
+          // instead of switching to a tab the cook would then have to leave.
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.getParent()?.navigate("AddRecipe");
+          },
+        })}
+      />
       <Tab.Screen name="Plan" component={PlanScreen} />
       <Tab.Screen name="Lists" component={ListsScreen} />
     </Tab.Navigator>
@@ -143,6 +178,23 @@ export function RootNavigator() {
             headerStyle: { backgroundColor: c.canvas },
             headerShadowVisible: false,
             headerTintColor: c.accentText,
+          }}
+        />
+        <Stack.Screen
+          name="AddRecipe"
+          component={AddScreen}
+          options={{
+            // A sheet, because adding a recipe is a task you finish or abandon
+            // and then carry on from where you were.
+            presentation: "modal",
+            headerShown: true,
+            title: "",
+            headerStyle: { backgroundColor: c.canvas },
+            headerShadowVisible: false,
+            headerTintColor: c.accentText,
+            // A sheet can be flicked away, but a gesture is not a control: a
+            // cook who does not know it is there has no visible way out.
+            headerLeft: () => <CloseButton />,
           }}
         />
         <Stack.Screen

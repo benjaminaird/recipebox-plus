@@ -249,3 +249,59 @@ export function formatDecimalQuantity(q: Quantity): string {
     case "none": return "";
   }
 }
+
+/**
+ * Snap a converted cup or spoon measure to the nearest mark on the measure.
+ *
+ * The counterpart of roundMetricMeasure, for the system that measures by
+ * volume rather than by weight. Converting 460 g of butter gives 2.0299 cups,
+ * and "2.03 cups" is the same false precision as "1.42 g": nobody owns a
+ * vessel that reads hundredths of a cup.
+ *
+ * So the rule is not a tolerance but the equipment. A measuring cup is moulded
+ * with marks at eighths, thirds and quarters; a spoon at quarters. A converted
+ * amount is shown at the nearest of those marks, always -- which is the most
+ * precise thing a cook can actually do, and it means no converted volume ever
+ * reaches the screen as a decimal.
+ *
+ * The error this introduces is at most half a mark: a sixteenth of a cup, or a
+ * quarter-spoon's half. That is comfortably inside the error already present
+ * in the conversion itself, since how tightly flour is packed moves its weight
+ * per cup by far more than that. Trading invisible accuracy for a number that
+ * can be measured is the right way round.
+ *
+ * Converted values only. A recipe that was itself written "2.03 cups" -- it
+ * was not -- would still say so.
+ */
+const SPOON_UNITS: ReadonlySet<string> = new Set(["tsp", "tbsp"]);
+/** A measuring spoon is moulded in quarters at best, so eighths and thirds of
+ *  a tablespoon are numbers nobody can act on. Cups have the finer set. */
+const SPOON_FRACTIONS: readonly number[] = [0, 1 / 4, 1 / 2, 3 / 4, 1];
+const CUP_FRACTIONS: readonly number[] = FRACTIONS.map(([v]) => v);
+
+export function snapToKitchenFraction(q: Quantity, unit: string): Quantity {
+  const choices = SPOON_UNITS.has(unit) ? SPOON_FRACTIONS : CUP_FRACTIONS;
+  const snap = (v: number): number => {
+    if (!Number.isFinite(v) || v === 0) return v;
+    const sign = v < 0 ? -1 : 1;
+    const abs = Math.abs(v);
+    const whole = Math.floor(abs);
+    const rest = abs - whole;
+
+    // 1 is in each list so that 1.98 carries to 2 rather than settling on a
+    // near-whole fraction.
+    let best = rest;
+    let bestGap = Infinity;
+    for (const value of choices) {
+      const gap = Math.abs(rest - value);
+      if (gap < bestGap) { bestGap = gap; best = value; }
+    }
+    return sign * (whole + best);
+  };
+
+  switch (q.kind) {
+    case "exact": return { kind: "exact", value: snap(q.value) };
+    case "range": return { kind: "range", min: snap(q.min), max: snap(q.max) };
+    default: return q;
+  }
+}

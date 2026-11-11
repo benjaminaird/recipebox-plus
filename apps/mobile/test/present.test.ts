@@ -255,3 +255,59 @@ test("a weight hint that only repeats the line above is not a second line", () =
   assert.equal(measuresAgree("1 cup", "227 g"), false);
   assert.equal(measuresAgree("175 g", "180 g"), false);
 });
+
+test("a converted cup measure lands on a fraction a cook can measure", () => {
+  // 460 g of butter is 2.0299 cups. "2.03 cups" is the same false precision
+  // as "1.42 g": nobody owns a measure that reads hundredths of a cup.
+  const butter = presentAmount("230", "g", "unsalted butter", { scale: 2, measurement: "us" });
+  assert.equal(butter.text, "2 cups", `got "${butter.text}"`);
+
+  // Thirds survive where the measure has them -- a 1/3-cup is a real thing,
+  // and snapping it to eighths would be a worse answer, not a tidier one.
+  const third = presentAmount("125", "g", "plain flour", { scale: 1, measurement: "us" });
+  assert.equal(third.text, "1 cup", `got "${third.text}"`);
+
+  // A spoon measure is moulded in quarters, so eighths of a tablespoon are a
+  // number nobody can act on.
+  const spoonfuls = presentAmount("80", "g", "caster sugar", { scale: 1, measurement: "us" });
+  assert.match(spoonfuls.unit, /tbsp/i, `got "${spoonfuls.text}"`);
+  assert.doesNotMatch(spoonfuls.amount, /\/(8|3)$/, `got "${spoonfuls.text}"`);
+
+  // No converted US amount should show hundredths at any batch size.
+  const names = ["unsalted butter", "plain flour", "caster sugar", "light brown sugar", "dark chocolate"];
+  for (const name of names) {
+    for (const grams of ["50", "80", "115", "150", "200", "230", "397"]) {
+      for (const scale of [0.5, 1, 2, 3, 4] as const) {
+        const out = presentAmount(grams, "g", name, { scale, measurement: "us" });
+        if (!out.converted) continue;
+        assert.doesNotMatch(
+          out.amount, /\.\d\d/,
+          `${scale}x ${grams} g ${name} -> "${out.text}" exposes a precision artifact`,
+        );
+      }
+    }
+  }
+});
+
+test("snapping moves an amount by at most half a mark on the measure", () => {
+  // The error has to stay inside what the equipment can resolve, or the
+  // tidier number is a different quantity. Checked against raw arithmetic:
+  // a cup is marked in eighths, so half a mark is a sixteenth.
+  for (const grams of ["40", "60", "90", "125", "175", "250", "300"]) {
+    for (const scale of [0.5, 1, 2, 3] as const) {
+      const out = presentAmount(grams, "g", "plain flour", { scale, measurement: "us" });
+      if (!out.converted || out.unit.indexOf("cup") !== 0) continue;
+      const shown = (() => {
+        const m = out.amount.match(/^(?:(\d+)\s+)?(\d+)\/(\d+)$/);
+        if (m) return (m[1] ? Number(m[1]) : 0) + Number(m[2]) / Number(m[3]);
+        return Number(out.amount);
+      })();
+      // 125 g per cup is the density table's value for plain flour.
+      const exact = (Number(grams) * scale) / 125;
+      assert.ok(
+        Math.abs(shown - exact) <= 1 / 16 + 1e-9,
+        `${scale}x ${grams} g flour: shown ${shown}, exact ${exact.toFixed(4)}`,
+      );
+    }
+  }
+});

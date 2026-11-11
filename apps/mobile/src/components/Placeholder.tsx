@@ -14,12 +14,17 @@ export function Placeholder({
   summary,
   planned,
   brand = false,
+  underHeader = false,
 }: {
   title: string;
   summary: string;
   planned: string[];
   /** Show the RecipeBox lockup above the title. Home only — the app's front door. */
   brand?: boolean;
+  /** True when a native header already sits above this screen. The header has
+   *  cleared the status bar, so adding the safe-area inset on top of it stacks
+   *  two clearances and opens a hole above the title. */
+  underHeader?: boolean;
 }) {
   const t = useTheme();
   const insets = useSafeAreaInsets();
@@ -29,7 +34,7 @@ export function Placeholder({
     <ScrollView
       style={{ backgroundColor: c.canvas }}
       contentContainerStyle={{
-        paddingTop: insets.top + t.space.lg,
+        paddingTop: (underHeader ? 0 : insets.top) + t.space.lg,
         paddingBottom: insets.bottom + t.space.huge,
         paddingHorizontal: t.space.screenGutter,
         gap: t.space.xxl,

@@ -12,7 +12,7 @@
 import { convertIngredient, type Measurement } from "./convert.ts";
 import {
   formatDecimalQuantity, formatQuantity, parseQuantity, roundDiscrete, roundForUnit,
-  roundMetricMeasure, scaleQuantity, type Quantity,
+  roundMetricMeasure, scaleQuantity, snapToKitchenFraction, type Quantity,
 } from "./quantity.ts";
 import { canonicalUnit, displayUnit, SYSTEM_AMBIGUOUS, unitKind, unitSystem } from "./units.ts";
 
@@ -82,7 +82,12 @@ export function presentAmount(
       if (result.ok) {
         // Snap before display. The arithmetic is exact; the kitchen is not,
         // and a converted 56.749999 must not reach the screen as "56.75".
-        q = roundMetricMeasure(roundForUnit(result.quantity, result.unit), result.unit);
+        // Each system gets the precision its own equipment has: grams and
+        // millilitres snap to steps a scale can read, cups and spoons to the
+        // fractions a measure is moulded in.
+        q = unitSystem(result.unit) === "metric"
+          ? roundMetricMeasure(roundForUnit(result.quantity, result.unit), result.unit)
+          : snapToKitchenFraction(roundForUnit(result.quantity, result.unit), result.unit);
         finalUnit = result.unit;
         converted = true;
         if (result.via) {

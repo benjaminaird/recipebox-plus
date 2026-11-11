@@ -15,8 +15,14 @@
 //
 // Not yet built, and documented as outstanding requirements: multiple timers
 // and background notifications.
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+// Gesture Handler's ScrollView, not React Native's. They look identical and
+// take the same props, but only this one takes part in the gesture system:
+// RN's scroll view claims a vertical drag through the responder system and
+// cancels any pan competing for it, which is why a swipe-down that was correct
+// in every other respect did nothing at all on the device.
+import { Gesture, GestureDetector, ScrollView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -50,6 +56,12 @@ export function CookModeScreen() {
   const { measurement: preferred } = useSettings();
   const [view, setView] = useState<RecipeView>(DEFAULT_VIEW);
   const [timersOpen, setTimersOpen] = useState(false);
+  // Whether the step's text is scrolled to the very top. The dismiss gesture
+  // is only allowed from there: scrolling back up through a long step must
+  // never throw the cook out of Cook Mode mid-dish.
+  // A ref, not state, and read when the gesture ends. The gesture object is
+  // memoised; rebuilding it on every scroll event to carry a fresh value would
+  // be churn, and a stale closure here means dismissing a cook mid-scroll.
 
   // Load the recipe and the saved place together, so the first frame is
   // already on the right step rather than flashing step one.
@@ -90,6 +102,43 @@ export function CookModeScreen() {
     navigation.goBack();
   }, [navigation, params.recipeId]);
 
+  // Gestures, with deliberately narrow openings.
+  //
+  // The screen already scrolls vertically and the Next/Back buttons are still
+  // there; these are an addition for hands that are busy, not a replacement,
+  // and the cost of a false positive is high -- a cook mid-dish thrown back to
+  // the library, or jumped a step without noticing.
+  //
+  // The horizontal pan declares what it is NOT: it fails on any meaningful
+  // vertical movement, which hands an ordinary scroll straight to the
+  // ScrollView untouched. Leaving by swiping down is handled by the scroll
+  // view itself, as an overscroll pull -- see the ScrollView below for why a
+  // second pan could not do it.
+  const ACTIVATE = 28;        // how far before a pan claims the gesture
+  const CROSS_AXIS = 18;      // how far across before it gives up
+  const DISMISS_PULL = 90;    // how far past the top edge before a pull dismisses
+
+  const swipeSteps = useMemo(
+    () =>
+      Gesture.Pan()
+        .activeOffsetX([-ACTIVATE, ACTIVATE])
+        .failOffsetY([-CROSS_AXIS, CROSS_AXIS])
+        .runOnJS(true)
+        .onEnd((e) => {
+          // Distance or a decisive flick; a slow short drag is neither.
+          const far = Math.abs(e.translationX) > 60;
+          const fast = Math.abs(e.velocityX) > 500;
+          if (!far && !fast) return;
+          if (e.translationX < 0) {
+            if (index < steps.length - 1) goTo(index + 1);
+          } else if (index > 0) {
+            goTo(index - 1);
+          }
+        }),
+    [index, steps.length, goTo],
+  );
+
+
   if (recipe === undefined) {
     return (
       <View style={[styles.centre, { backgroundColor: c.canvas }]}>
@@ -114,6 +163,7 @@ export function CookModeScreen() {
   const progress = (index + 1) / steps.length;
 
   return (
+    <GestureDetector gesture={swipeSteps}>
     <View style={{ flex: 1, backgroundColor: c.canvas, paddingTop: insets.top }}>
       <View style={[styles.bar, { paddingHorizontal: t.space.screenGutter }]}>
         <Text style={[textStyle("eyebrow"), { color: c.textTertiary, flex: 1 }]} numberOfLines={1}>
@@ -149,6 +199,35 @@ export function CookModeScreen() {
       </View>
 
       <ScrollView
+        // Swipe down to leave, as an overscroll pull rather than a pan.
+        //
+        // A pan competing with this scroll view loses, and loses silently: an
+        // on-screen readout showed the pan receiving ten points of a
+        // three-hundred-point drag before the scroll view claimed the touch
+        // and cancelled it. Neither sharing the gesture nor blocking the
+        // scroll changed that.
+        //
+        // So let the scroll view have the drag and read the result. Pulling
+        // the content past its top edge is something that can ONLY happen at
+        // the top, which means "prevent accidental dismissal while scrolling"
+        // is not a rule to enforce but a property of the mechanism -- mid-step
+        // there is content above and no overscroll to give. The rubber band
+        // is the feedback: the cook sees the step being pulled before they
+        // commit, and lets go early if they did not mean it.
+        //
+        // iOS only in effect. Android answers an overscroll with a stretch or
+        // a glow and reports no negative offset, so there the Close button and
+        // the system back gesture remain the way out. Documented rather than
+        // faked.
+        alwaysBounceVertical
+        onScrollEndDrag={(e) => {
+          if (e.nativeEvent.contentOffset.y < -DISMISS_PULL) {
+            // goBack, not finish: leaving is not the same as having cooked it,
+            // and the saved place must survive.
+            navigation.goBack();
+          }
+        }}
+        scrollEventThrottle={16}
         contentContainerStyle={{
           paddingHorizontal: t.space.screenGutter,
           paddingTop: t.space.xl,
@@ -316,6 +395,7 @@ export function CookModeScreen() {
         defaultLabel={`${recipe.title} · Step ${index + 1}`}
       />
     </View>
+    </GestureDetector>
   );
 }
 

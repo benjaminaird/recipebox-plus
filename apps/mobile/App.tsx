@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ThemeProvider } from "./src/theme/ThemeProvider";
 import { serifFonts } from "./src/theme/fonts";
@@ -24,18 +25,22 @@ export default function App() {
 
   if (!ready) return null;
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        {/* Settings sits above the timers, which read the chosen alert sound. */}
-        <SettingsProvider>
-          {/* Above the navigator: a timer belongs to the session, not to the
-              screen that started it, and has to survive moving between them. */}
-          <TimerProvider>
-            <StatusBar style="auto" />
-            <RootNavigator />
-          </TimerProvider>
-        </SettingsProvider>
-      </ThemeProvider>
-    </SafeAreaProvider>
+    // Gesture Handler needs a root of its own above everything that uses it.
+    // Without it a GestureDetector mounts, compiles and silently never fires.
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          {/* Settings sits above the timers, which read the chosen alert sound. */}
+          <SettingsProvider>
+            {/* Above the navigator: a timer belongs to the session, not to the
+                screen that started it, and has to survive moving between them. */}
+            <TimerProvider>
+              <StatusBar style="auto" />
+              <RootNavigator />
+            </TimerProvider>
+          </SettingsProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

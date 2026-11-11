@@ -16,4 +16,5 @@ export type RootStackParamList = {
   RecipeDetail: { recipeId: string };
   CookMode: { recipeId: string };
   Settings: undefined;
+  AddRecipe: undefined;
 };
