@@ -169,9 +169,12 @@ ran on the phone at all.
    Left alone here deliberately, because this branch is not deploying.
 2. **The import fetch endpoint.** Contract written, not built; security
    requirements now reviewed in
-   [import-fetch-security.md](./import-fetch-security.md). Blocked on two
-   prerequisites rather than on caution: the `isPrivateIp` SSRF fix, and
-   ADR 0010's `/api/v1` with device-token auth, neither of which exists.
+   [import-fetch-security.md](./import-fetch-security.md). The SSRF fix that
+   review found is done; what blocks the endpoint is ADR 0010's `/api/v1` with
+   device-token auth, which does not exist. Two residual items are recorded
+   there rather than fixed: the guard resolves DNS and `fetch` resolves it
+   again (the rebinding window), and the redirect timeout is per hop, so six
+   stalled hops reach 54s inside a function capped at 60s.
 3. **A sample recipe was edited during testing.** Weeknight Tarka Dal lost its
    ground turmeric while I was proving that deleting a referenced ingredient
    leaves no dangling step references. It is a legitimate edit and the recipe
@@ -309,11 +312,15 @@ Nothing queued on the metric work. The remaining open item is the
 `/api/v1/import/fetch` endpoint (open issue 2). Its security requirements —
 SSRF, redirects, DNS resolution, timeouts, rate limiting and response size —
 are reviewed in
-[import-fetch-security.md](./import-fetch-security.md), and that review turned
-up something that wants your attention before the endpoint does: **a live SSRF
-bypass in `isPrivateIp`**, which `/api/fetch-url` uses today. Hex-form
-IPv4-mapped IPv6 addresses are judged public, so `http://[::ffff:7f00:1]/`
-reaches loopback and `http://[::ffff:a9fe:a9fe]/` reaches the cloud metadata
-service. Confirmed end to end against a local service, not inferred. The fix is
-a few lines and is verified in that document; it was **not applied**, because it
-changes live production code that CLAUDE.md holds fixed until approved.
+[import-fetch-security.md](./import-fetch-security.md). That review turned up a
+live SSRF bypass in `isPrivateIp`, which `/api/fetch-url` uses today: it judged
+IPv6 by its spelling, so seventeen addresses were judged public — sixteen of
+them reachable through a URL, including `::ffff:7f00:1` (127.0.0.1) and
+`::ffff:a9fe:a9fe` (the cloud metadata service). **Approved and fixed**: IPv6 is
+now expanded to its sixteen bytes and compared numerically, which cannot have
+that class of bug. Confirmed end to end both ways — eight spellings of loopback
+all refused, and ten real hosts plus ten real public IPv6 addresses still
+allowed.
+
+What remains is ADR 0010: the endpoint needs `/api/v1` and device-token auth,
+and neither exists.

@@ -1971,6 +1971,52 @@ function isAbortError(err) {
 // Block loopback, private, link-local (incl. cloud metadata 169.254.169.254),
 // CGNAT, and reserved ranges so the server-side fetchers can't be aimed at
 // internal services.
+//
+// IPv6 is judged by its BYTES, never by how it is spelled. An earlier version
+// compared strings -- `lower === '::1'`, `startsWith('fe80')`, and a regex for
+// `::ffff:` followed by a dotted quad -- and every one of those is a spelling
+// of a range rather than the range itself. Seventeen addresses that must never
+// be fetched were judged public as a result, sixteen of them reachable through
+// a URL because `new URL()` normalises almost none of them away: `[::ffff:7f00:1]` is 127.0.0.1, `[::ffff:a9fe:a9fe]` is
+// the 169.254.169.254 metadata service, `[::7f00:1]` is loopback through the
+// deprecated IPv4-compatible prefix, and link-local is fe80::/10 -- ten bits,
+// so `febf::1` is link-local too and `startsWith('fe80')` never saw it.
+// Expanding to bytes once and comparing numbers cannot have that class of bug.
+
+// An IPv6 literal as its 16 bytes, or null if it is not one. Accepts every
+// legal spelling: compressed, uncompressed, mixed case, and a trailing dotted
+// quad.
+function ipv6ToBytes(input) {
+  let text = String(input == null ? '' : input).toLowerCase().replace(/^\[|\]$/g, '');
+  // A zone index ("fe80::1%eth0") names a local interface by definition, and
+  // net.isIPv6 rejects it, so drop it before the check rather than after.
+  const zone = text.indexOf('%');
+  if (zone !== -1) text = text.slice(0, zone);
+  if (!net.isIPv6(text)) return null;
+  // A trailing dotted quad is two hextets written in decimal.
+  const dotted = text.match(/^(.*:)(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (dotted) {
+    const q = dotted.slice(2).map(Number);
+    if (q.some((n) => n > 255)) return null;
+    text = dotted[1] + (((q[0] << 8) | q[1]).toString(16)) + ':' + (((q[2] << 8) | q[3]).toString(16));
+  }
+  const halves = text.split('::');
+  if (halves.length > 2) return null;
+  const head = halves[0] ? halves[0].split(':') : [];
+  const tail = halves.length === 2 ? (halves[1] ? halves[1].split(':') : []) : null;
+  const groups = tail === null
+    ? head
+    : head.concat(new Array(Math.max(0, 8 - head.length - tail.length)).fill('0'), tail);
+  if (groups.length !== 8) return null;
+  const bytes = [];
+  for (const group of groups) {
+    if (!/^[0-9a-f]{1,4}$/.test(group)) return null;
+    const value = parseInt(group, 16);
+    bytes.push((value >> 8) & 255, value & 255);
+  }
+  return bytes;
+}
+
 function isPrivateIp(ip) {
   if (net.isIPv4(ip)) {
     const p = ip.split('.').map(Number);
@@ -1982,14 +2028,27 @@ function isPrivateIp(ip) {
     if (p[0] >= 224) return true;
     return false;
   }
-  if (net.isIPv6(ip)) {
-    const lower = ip.toLowerCase().replace(/^\[|\]$/g, '');
-    if (lower === '::1' || lower === '::') return true;
-    if (lower.startsWith('fe80') || lower.startsWith('fc') || lower.startsWith('fd')) return true;
-    const mapped = lower.match(/::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
-    if (mapped) return isPrivateIp(mapped[1]);
-    return false;
-  }
+  const b = ipv6ToBytes(ip);
+  if (!b) return false;
+  const zerosUpTo = (n) => b.slice(0, n).every((x) => x === 0);
+  const embeddedV4 = () => isPrivateIp(b.slice(12).join('.'));
+  // ::/128 unspecified and ::1/128 loopback.
+  if (zerosUpTo(15) && (b[15] === 0 || b[15] === 1)) return true;
+  // ::ffff:0:0/96 IPv4-mapped and ::/96 IPv4-compatible. Both carry an IPv4
+  // address, so the IPv4 rules above decide it -- in either spelling.
+  if (zerosUpTo(10) && b[10] === 255 && b[11] === 255) return embeddedV4();
+  if (zerosUpTo(12)) return embeddedV4();
+  // 2002::/16 6to4 carries its IPv4 address in bytes 2-5.
+  if (b[0] === 32 && b[1] === 2) return isPrivateIp(b.slice(2, 6).join('.'));
+  // Prefixes that exist only to reach somewhere else, and on which no recipe
+  // site is ever hosted: 64:ff9b::/32 NAT64 and 2001::/32 Teredo.
+  if (b[0] === 0 && b[1] === 100 && b[2] === 255 && b[3] === 155) return true;
+  if (b[0] === 32 && b[1] === 1 && b[2] === 0 && b[3] === 0) return true;
+  // fe80::/10 link-local -- ten bits, so fe80 through febf.
+  if (b[0] === 254 && (b[1] & 192) === 128) return true;
+  // fc00::/7 unique local (fc and fd), ff00::/8 multicast.
+  if ((b[0] & 254) === 252) return true;
+  if (b[0] === 255) return true;
   return false;
 }
 function ssrfError(message) {
@@ -3932,7 +3991,7 @@ module.exports._test = {
   parseRecipePageLimit, encodeRecipeCursor, decodeRecipeCursor, readVisibleRecipesPage,
   DEFAULT_RECIPE_PAGE_SIZE, MAX_RECIPE_PAGE_SIZE, RECIPE_CATEGORIES,
   fetchWithTimeout, readBodyCapped, isAbortError,
-  isPrivateIp, assertPublicHost, looksBlockedPage, buildPageResult, scraperRequestUrl, jinaRequestUrl,
+  isPrivateIp, ipv6ToBytes, assertPublicHost, looksBlockedPage, buildPageResult, scraperRequestUrl, jinaRequestUrl,
   periodKey, resetAfter,
   resolveMonthlyCostCap,
   hashToken, publicUser, VERIFY_TOKEN_MINUTES,

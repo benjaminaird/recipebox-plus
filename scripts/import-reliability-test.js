@@ -1,7 +1,7 @@
 const assert = require("assert");
 const http = require("http");
 const app = require("../server");
-const { fetchWithTimeout, readBodyCapped, isAbortError, isPrivateIp, assertPublicHost, looksBlockedPage } = app._test;
+const { fetchWithTimeout, readBodyCapped, isAbortError, isPrivateIp, ipv6ToBytes, assertPublicHost, looksBlockedPage } = app._test;
 
 async function rejects(promise, label) {
   let threw = false;
@@ -43,6 +43,80 @@ async function resolves(promise, label) {
     .forEach((ip) => assert.strictEqual(isPrivateIp(ip), true, ip + " should be private/blocked"));
   ["8.8.8.8", "1.1.1.1", "172.32.0.1", "151.101.1.140", "2606:4700:4700::1111"]
     .forEach((ip) => assert.strictEqual(isPrivateIp(ip), false, ip + " should be public"));
+
+  // --- An IPv6 range is a range, not a spelling ---
+  // The list above is every spelling an earlier isPrivateIp got right. It
+  // compared strings, so seventeen addresses that must never be fetched were
+  // judged public, and `new URL()` normalises almost none of them away:
+  // [::ffff:7f00:1] IS 127.0.0.1, and a fetch through it reached a service on
+  // loopback. Each entry below was one of those holes.
+  [
+    ["0:0:0:0:0:0:0:1", "loopback, written out in full"],
+    ["0000:0000:0000:0000:0000:0000:0000:0001", "loopback, every hextet padded"],
+    ["::ffff:7f00:1", "IPv4-mapped loopback in hex, not dotted"],
+    ["::ffff:7f00:0001", "same, padded"],
+    ["0:0:0:0:0:ffff:7f00:1", "same, uncompressed"],
+    ["::ffff:a9fe:a9fe", "IPv4-mapped 169.254.169.254 - cloud metadata"],
+    ["::ffff:0a00:1", "IPv4-mapped 10.0.0.1"],
+    ["::ffff:ac1f:1", "IPv4-mapped 172.31.0.1"],
+    ["::ffff:c0a8:1", "IPv4-mapped 192.168.0.1"],
+    ["::ffff:6440:1", "IPv4-mapped 100.64.0.1, CGNAT"],
+    ["::7f00:1", "IPv4-compatible loopback (::/96, deprecated but routable)"],
+    ["::127.0.0.1", "IPv4-compatible loopback, dotted"],
+    ["::a9fe:a9fe", "IPv4-compatible cloud metadata"],
+    ["64:ff9b::7f00:1", "NAT64 well-known prefix carrying loopback"],
+    ["64:ff9b::127.0.0.1", "NAT64, dotted"],
+    ["2002:7f00:1::1", "6to4 carrying loopback in bytes 2-5"],
+    ["2002:a9fe:a9fe::1", "6to4 carrying cloud metadata"],
+    ["febf::1", "link-local - fe80::/10 is ten bits, so febf is in it"],
+    ["fe9a::1", "link-local, mid-range"],
+    ["fdff::1", "unique local"],
+    ["ff02::1", "multicast, all nodes on the link"],
+    ["ff00::1", "multicast"],
+    ["fe80::1%eth0", "link-local with a zone index naming a local interface"],
+    ["FE80::1", "uppercase"],
+    ["::FFFF:7F00:1", "uppercase IPv4-mapped loopback"],
+  ].forEach(([ip, why]) => assert.strictEqual(isPrivateIp(ip), true, ip + " must be blocked - " + why));
+
+  // Public addresses must stay fetchable; a guard that blocks everything is
+  // not a guard, it is an outage.
+  [
+    ["2606:2800:220:1:248:1893:25c8:1946", "example.com"],
+    ["2a00:1450:4001:800::200e", "a public host"],
+    ["2001:db8::1", "documentation prefix - reserved, but not internal"],
+    ["2003::1", "public, and adjacent to the Teredo prefix 2001::/32"],
+  ].forEach(([ip, why]) => assert.strictEqual(isPrivateIp(ip), false, ip + " must stay allowed - " + why));
+
+  // Nonsense must not be mistaken for an address in a blocked range, and must
+  // not throw either: isPrivateIp is called on whatever DNS hands back.
+  ["", null, undefined, "not-an-ip", "::ffff:999.1.1.1", "1:2:3:4:5:6:7:8:9", "::g", "127.0.0.1.1"]
+    .forEach((junk) => assert.strictEqual(isPrivateIp(junk), false, JSON.stringify(junk) + " is not an IP"));
+
+  // The expansion itself, since every verdict above rests on it.
+  assert.deepStrictEqual(ipv6ToBytes("::1"), [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]);
+  assert.deepStrictEqual(ipv6ToBytes("::"), new Array(16).fill(0));
+  assert.deepStrictEqual(ipv6ToBytes("::ffff:7f00:1"), [0,0,0,0,0,0,0,0,0,0,255,255,127,0,0,1]);
+  assert.deepStrictEqual(ipv6ToBytes("::ffff:127.0.0.1"), ipv6ToBytes("::ffff:7f00:1"),
+    "the dotted and hex spellings of one address expand identically");
+  assert.deepStrictEqual(ipv6ToBytes("0:0:0:0:0:0:0:1"), ipv6ToBytes("::1"),
+    "compressed and uncompressed expand identically");
+  assert.strictEqual(ipv6ToBytes("fe80::1")[0], 254);
+  assert.strictEqual(ipv6ToBytes("8.8.8.8"), null, "an IPv4 address is not IPv6");
+  assert.strictEqual(ipv6ToBytes("nonsense"), null);
+  assert.strictEqual(ipv6ToBytes(""), null);
+
+  // assertPublicHost must refuse the BRACKETED literal, which is the form that
+  // actually arrives from new URL().hostname.
+  for (const literal of ["[::ffff:7f00:1]", "[::ffff:a9fe:a9fe]", "[::7f00:1]", "[febf::1]", "[64:ff9b::7f00:1]", "[ff02::1]"]) {
+    await rejects(assertPublicHost(literal), literal + " blocked as a bracketed URL hostname");
+  }
+  // And the reason the hex form mattered: the URL parser does not rewrite it
+  // into the dotted form the old regex looked for.
+  assert.strictEqual(new URL("http://[::ffff:7f00:1]/").hostname, "[::ffff:7f00:1]",
+    "new URL() keeps the hex spelling, so the guard must understand it");
+  assert.strictEqual(new URL("http://[0:0:0:0:0:0:0:1]/").hostname, "[::1]",
+    "it does compress this one, which is why that spelling was never exploitable");
+  await resolves(assertPublicHost("[2606:2800:220:1:248:1893:25c8:1946]"), "a public IPv6 literal is still allowed");
 
   // assertPublicHost: these resolve without network (literal IPs / localhost short-circuit).
   await rejects(assertPublicHost("localhost"), "localhost blocked");

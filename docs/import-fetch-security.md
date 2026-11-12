@@ -10,9 +10,9 @@ authenticated endpoint that takes a URL, fetches it server-side, and returns the
 raw HTML for the device to extract on-device per ADR 0007. This document reviews
 what that needs to be safe, and what already exists.
 
-**Nothing here is implemented.** No endpoint was added and `server.js` is
-unchanged. One finding below is a defect in code that is **already live**, and
-it is the reason this review exists rather than an implementation.
+**The endpoint is not implemented.** No route was added. One finding below was
+a defect in code that is **already live**; it was approved separately and
+**is now fixed** — see finding 1.
 
 ## The short version
 
@@ -25,84 +25,80 @@ nothing.** A second fetch path with its own idea of what a private address is
 would be the same mistake the native shopping list had made about measurement
 units, with a worse failure mode.
 
-Three things must change or be decided first. They are ordered by severity.
+Three things needed to change or be decided first. They are ordered by
+severity; the first is now fixed, the other two are open.
 
-## 1. `isPrivateIp` does not catch hex-form IPv4-mapped IPv6 — live, exploitable
+## 1. `isPrivateIp` judged IPv6 by its spelling — fixed
 
-`isPrivateIp` (`server.js:1973`) recognises an IPv4-mapped IPv6 address only in
-its **dotted** spelling, via
+**Status: fixed in `server.js`.** Approved as a security fix on its own, ahead
+of the endpoint. Keeping the detail because the shape of the bug is the useful
+part.
+
+The IPv6 branch compared strings:
 
 ```js
+if (lower === '::1' || lower === '::') return true;
+if (lower.startsWith('fe80') || lower.startsWith('fc') || lower.startsWith('fd')) return true;
 const mapped = lower.match(/::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
+if (mapped) return isPrivateIp(mapped[1]);
 ```
 
-The same addresses have an equivalent **hex** spelling, which that pattern does
-not match and which no other branch catches. `::ffff:7f00:1` *is* 127.0.0.1.
+Every line of that is a *spelling* of a range rather than the range. An IPv6
+address has many legal spellings of the same 16 bytes, and `new URL()`
+normalises almost none of them away. **Seventeen addresses that must never be
+fetched were judged public, sixteen of them reachable through a URL:**
 
-What the WHATWG URL parser normalises matters here, and it does not normalise
-this. `new URL("http://[0:0:0:0:0:0:0:1]/").hostname` comes back as `[::1]`, so
-the uncompressed loopback spelling is blocked by the `=== '::1'` check. But
-`new URL("http://[::ffff:7f00:1]/").hostname` stays `[::ffff:7f00:1]`, so the
-hex form reaches `isPrivateIp` as written and is judged public.
+| spelling | what it actually is | why it slipped through |
+| --- | --- | --- |
+| `::ffff:7f00:1` | 127.0.0.1 | the regex wanted a *dotted* quad |
+| `::ffff:a9fe:a9fe` | 169.254.169.254, cloud metadata | same |
+| `::ffff:0a00:1`, `::ffff:ac1f:1`, `::ffff:c0a8:1`, `::ffff:6440:1` | 10.0.0.1, 172.31.0.1, 192.168.0.1, 100.64.0.1 | same |
+| `::7f00:1`, `::127.0.0.1`, `::a9fe:a9fe` | loopback and metadata via the deprecated IPv4-**compatible** `::/96` | no branch covered that prefix at all |
+| `64:ff9b::7f00:1` | loopback via the NAT64 well-known prefix | not covered |
+| `2002:7f00:1::1` | loopback via 6to4, which carries IPv4 in bytes 2–5 | not covered |
+| `febf::1`, `fe9a::1` | link-local — `fe80::/10` is **ten** bits, so `fe80`–`febf` | `startsWith('fe80')` saw only the first of 64 |
+| `ff02::1`, `ff00::1` | multicast | the IPv4 branch blocked `>= 224`; the IPv6 branch had no equivalent |
+| `0:0:0:0:0:0:0:1` | loopback, uncompressed | the only one **not** exploitable: `new URL()` compresses it to `[::1]` |
 
-Measured against the live code, not inferred:
+It was confirmed end to end, not inferred. A local server on 127.0.0.1 served a
+known string; `http://[::ffff:7f00:1]:<port>/` passed `assertPublicHost` and
+returned that string, while `127.0.0.1` and `[::1]` were refused at the guard.
+`/api/fetch-url` uses this guard, so it was live.
 
-| host | what it is | `isPrivateIp` | reachable by URL |
-| --- | --- | --- | --- |
-| `127.0.0.1` | loopback | blocked | — |
-| `::1` | loopback | blocked | — |
-| `::ffff:127.0.0.1` | loopback, dotted | blocked | — |
-| `2130706433`, `0x7f000001` | loopback, obfuscated | blocked | — |
-| **`::ffff:7f00:1`** | **loopback** | **allowed** | **yes** |
-| **`::ffff:a9fe:a9fe`** | **169.254.169.254, cloud metadata** | **allowed** | **yes** |
-| **`::ffff:0a00:0001`** | **10.0.0.1** | **allowed** | **yes** |
-| `0:0:0:0:0:0:0:1` | loopback, uncompressed | allowed | no — URL normalises it to `::1` |
+### The fix
 
-The bypass was confirmed end to end, not just as a failed predicate: a local
-HTTP server was started on 127.0.0.1 serving a known string, and
-`http://[::ffff:7f00:1]:<port>/` passed `assertPublicHost` and then returned
-that string through `fetch`. `127.0.0.1` and `[::1]` were refused at the guard,
-as they should be.
+Not another spelling. A new `ipv6ToBytes()` expands any IPv6 literal to its 16
+bytes — compressed, uncompressed, mixed case, trailing dotted quad, zone index
+— and `isPrivateIp` then compares **numbers**:
 
-**Impact.** `169.254.169.254` is the cloud instance metadata service. On a
-platform that serves credentials there, an SSRF that reaches it is a credential
-disclosure, and the response body of this endpoint is returned to the caller
-verbatim as `html`. That makes the proposed endpoint a materially worse place
-for this bug than `/api/fetch-url`, which post-processes into a recipe shape.
+- `::/128` and `::1/128`
+- `::ffff:0:0/96` and `::/96`: an IPv4 address in disguise, so the IPv4 rules
+  decide it, in either spelling
+- `2002::/16`: 6to4, judged by the IPv4 address in bytes 2–5
+- `64:ff9b::/32` and `2001::/32`: NAT64 and Teredo, prefixes that exist only to
+  reach somewhere else and on which no recipe site is hosted — refused outright
+- `fe80::/10` by mask, `fc00::/7`, `ff00::/8`
 
-**Fix.** Normalise before judging rather than pattern-matching a spelling.
-Convert any IPv4-mapped IPv6 address to its dotted form and re-test, instead of
-only recognising addresses already written that way:
+A spelling check on IPv6 will keep producing findings like this one. A numeric
+one cannot have that class of bug, which is the actual repair.
 
-```js
-// Any ::ffff:0:0/96 address is an IPv4 address wearing IPv6 clothes, in either
-// spelling: ::ffff:127.0.0.1 and ::ffff:7f00:1 are the same host.
-const hextets = lower.split(":");
-const mappedHex = lower.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
-if (mappedHex) {
-  const hi = parseInt(mappedHex[1], 16), lo = parseInt(mappedHex[2], 16);
-  return isPrivateIp([hi >> 8, hi & 255, lo >> 8, lo & 255].join("."));
-}
-```
+### Evidence
 
-That snippet was checked against the live function rather than written and
-left: wrapped around `isPrivateIp`, it newly blocks `::ffff:7f00:1`,
-`::ffff:a9fe:a9fe`, `::ffff:0a00:0001`, `::ffff:ac10:0001` and
-`::ffff:c0a8:0001`, still allows the public `::ffff:5db8:d822`
-(93.184.216.34), and changes no verdict for the dotted, plain-IPv4 or
-native-IPv6 cases.
+All seventeen addresses are now blocked, and nothing legitimate was lost:
 
-A stronger version, and the one worth writing, drops spelling entirely:
-expand the address to its 16 bytes once, then test ranges numerically. Spelling
-checks on IPv6 will keep producing findings like this one; a numeric test will
-not.
-
-**This is a fix to live production code.** It was not made here. `CLAUDE.md`
-holds the web app's behaviour fixed until a change is explicitly approved, and
-`/api/fetch-url` is on a page real users use today. It is a security fix rather
-than a behaviour change, so it probably deserves to go in on its own, ahead of
-the endpoint and separately from it — but that is a call to make, not one to
-take. **The endpoint must not ship before it.**
+- The end-to-end probe was re-run across eight spellings of 127.0.0.1
+  (`::ffff:7f00:1`, `::7f00:1`, `64:ff9b::7f00:1`, `2002:7f00:1::1` among
+  them). **Every one refused at the guard; none reached the service.**
+- Ten real recipe and reference hosts still resolve and pass, and ten real
+  public IPv6 addresses — including Google's `2001:4860:4828:7700::`, which
+  sits next to the Teredo prefix now refused — are still allowed. A guard that
+  blocks everything is not a guard, it is an outage.
+- `scripts/import-reliability-test.js` now covers all of it: every blocked
+  spelling with the reason, public addresses that must stay allowed, malformed
+  input that must neither match a range nor throw, and `ipv6ToBytes` itself
+  asserting that the dotted and hex spellings of one address expand to the same
+  bytes. The suite's original eleven-address list is kept — it is exactly the
+  set of spellings the old code got right, which is why the holes survived.
 
 ## 2. The guard resolves DNS, then `fetch` resolves it again
 
@@ -143,8 +139,8 @@ dead function.
 | Need | Existing mechanism | Verdict |
 | --- | --- | --- |
 | Protocol allow-list | `safeFetch` refuses anything but `http:`/`https:` | reuse as is |
-| Private address blocking | `assertPublicHost` + `isPrivateIp`: loopback, `10/8`, `127/8`, `169.254/16`, `172.16–31`, `192.168/16`, CGNAT `100.64/10`, multicast and reserved `224+`, IPv6 `::1`, `fe80`, `fc`/`fd` | reuse **after finding 1** |
-| Obfuscated host forms | `assertPublicHost` refuses decimal, hex and octal-label encodings before they reach DNS, so `getaddrinfo` cannot interpret them differently from the check | reuse as is — this is the right shape, and finding 1 is the one spelling it misses |
+| Private address blocking | `assertPublicHost` + `isPrivateIp`: IPv4 loopback, `10/8`, `127/8`, `169.254/16`, `172.16–31`, `192.168/16`, CGNAT `100.64/10`, multicast and reserved `224+`; IPv6 judged numerically per finding 1 | reuse as is |
+| Obfuscated host forms | `assertPublicHost` refuses decimal, hex and octal-label encodings before they reach DNS, so `getaddrinfo` cannot interpret them differently from the check | reuse as is |
 | Name-based internal hosts | `localhost`, `*.localhost`, `*.internal`, `*.local` refused | reuse as is |
 | Redirects | `redirect: 'manual'`, every hop re-validated before it is followed, capped at 5 | reuse; fix the budget per finding 3 |
 | Response size | `readBodyCapped`, streaming, honours `content-length`, cancels the body, default 6 MB | reuse with a **smaller** cap — see below |
@@ -196,13 +192,13 @@ put a fetching endpoint on the web app's session cookies.
 
 **Therefore: implementation is blocked, and not by caution.** The ordering is
 
-1. Fix finding 1 in `isPrivateIp`, with tests for both spellings.
-2. Build `/api/v1` + device token auth (ADR 0010).
-3. Add the endpoint, reusing every mechanism in the table above.
+1. ~~Fix finding 1 in `isPrivateIp`.~~ **Done** — it was live, so it went in on
+   its own rather than waiting for the endpoint.
+2. Build `/api/v1` + device token auth (ADR 0010). **This is the blocker.**
+3. Add the endpoint, reusing every mechanism in the table above and adding
+   none.
 4. Decide the DNS-pinning question in finding 2 before it is a production
    incident rather than after.
-
-Step 1 is worth doing on its own, now, because it is live.
 
 ## Appendix: the `build-core.js` guard, and whether it wants a parser
 

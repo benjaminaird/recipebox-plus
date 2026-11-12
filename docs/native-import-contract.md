@@ -90,10 +90,12 @@ Those four are now reviewed in detail, with what already exists and what must
 change first, in
 [import-fetch-security.md](./import-fetch-security.md). The short version:
 `server.js` already has the whole defensive apparatus and the endpoint should
-reuse it rather than add any, but **the review found a live SSRF bypass in the
-shared `isPrivateIp` guard** (hex-form IPv4-mapped IPv6, e.g. `::ffff:7f00:1`
-for 127.0.0.1, confirmed reaching a service on loopback), and there is still no
-`/api/v1` and no device-token verification. Both block implementation.
+reuse it rather than add any. The review did find a live SSRF bypass in the
+shared `isPrivateIp` guard — it judged IPv6 by its spelling, so seventeen
+addresses including `::ffff:7f00:1` (127.0.0.1) and `::ffff:a9fe:a9fe` (cloud
+metadata) were judged public — and **that is now fixed**: IPv6 is expanded to
+its bytes and compared numerically. What still blocks implementation is
+ADR 0010: there is no `/api/v1` and no device-token verification.
 
 ## Smaller, safe alternative if the above is too much
 
