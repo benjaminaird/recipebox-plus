@@ -1,7 +1,8 @@
 const assert = require("assert");
 const http = require("http");
+const net = require("net");
 const app = require("../server");
-const { fetchWithTimeout, pinnedFetch, safeFetch, readBodyCapped, isAbortError, isPrivateIp, ipv6ToBytes, assertPublicHost, looksBlockedPage } = app._test;
+const { fetchWithTimeout, pinnedFetch, safeFetch, readBodyCapped, isAbortError, isPrivateIp, ipv6ToBytes, BLOCKED_PORTS, assertPublicHost, looksBlockedPage } = app._test;
 
 async function rejects(promise, label) {
   let threw = false;
@@ -214,6 +215,49 @@ async function resolves(promise, label) {
   // Five redirects at 9s each was 54s inside a function capped at 60. An
   // exhausted budget is reported as a timeout, before any connection is made,
   // so this needs no network.
+  // --- A remote server must not be able to crash the process ---
+  // node's parser accepts any three-digit status; the Response constructor
+  // throws a RangeError outside 200-599. The throw happens inside the response
+  // callback, where request.on("error") cannot see it, so before this was
+  // guarded any page or redirect target could end the function with an
+  // uncaught exception. Global fetch() absorbed this and the hand-built
+  // Response has to as well.
+  {
+    const raw = net.createServer((sock) => {
+      sock.on("data", () => sock.write("HTTP/1.1 700 Nope\r\nContent-Type: text/html\r\nContent-Length: 2\r\n\r\nhi"));
+    });
+    await new Promise((resolve) => raw.listen(0, "127.0.0.1", resolve));
+    const rawPort = raw.address().port;
+    let threw;
+    try { await pinnedFetch(`http://example.com:${rawPort}/`, {}, 3000, ["127.0.0.1"]); }
+    catch (e) { threw = e; }
+    raw.close();
+    assert.ok(threw, "an unrepresentable status must reject");
+    assert.match(String(threw.message), /unusable HTTP response/, "and must reject with a handled error, not an uncaught RangeError");
+    assert.ok(!isAbortError(threw), "and must not masquerade as a timeout");
+  }
+
+  // --- Ports no browser will open ---
+  // Global fetch() refused these for free ("bad port"); pinning DNS meant
+  // moving to node's HTTP client, which does not. Without this the fetcher
+  // would speak HTTP at SMTP, IRC, NFS or an X server on any public host.
+  {
+    assert.ok(BLOCKED_PORTS.has(25) && BLOCKED_PORTS.has(22) && BLOCKED_PORTS.has(6666), "the list covers SMTP, SSH and IRC");
+    for (const port of [25, 22, 23, 143, 2049, 6000, 6666]) {
+      await rejects(safeFetch(`http://example.com:${port}/`, {}, 500, 5, 800), `port ${port} is refused before any connection`);
+    }
+    // And the refusal is the SSRF class, so the route answers 400 rather than 502.
+    let err;
+    try { await safeFetch("http://example.com:25/", {}, 500, 5, 800); } catch (e) { err = e; }
+    assert.ok(err && err.ssrf, "a blocked port is an ssrf-class refusal");
+    assert.match(err.message, /blocked port/);
+    // A port that is merely unusual stays allowed: this is a blocklist, not an
+    // allowlist, and plenty of sites serve HTTP on 8080 or 8443.
+    for (const port of [8080, 8443, 3000, 1234]) {
+      assert.strictEqual(BLOCKED_PORTS.has(port), false, `port ${port} must stay allowed`);
+    }
+  }
+
   // --- A controlled DNS-rebinding scenario ---
   // The name answers with a PUBLIC address while the guard checks it, and with
   // 127.0.0.1 by the time the socket opens. The private destination must never

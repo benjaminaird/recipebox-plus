@@ -2185,7 +2185,21 @@ function pinnedFetch(rawUrl, options = {}, timeoutMs = 9000, addresses = []) {
       incoming.on('close', stopBodyTimer);
       incoming.on('error', stopBodyTimer);
 
-      const response = new Response(body, { status, statusText: incoming.statusMessage || '', headers });
+      // Node's parser accepts any three-digit status, including 700, while the
+      // Response constructor throws a RangeError outside 200-599. This runs
+      // inside the response callback, where request.on('error') cannot see it,
+      // so an unguarded construction let any page or redirect target kill the
+      // function with an uncaught exception. Global fetch() absorbed this; a
+      // hand-built Response has to absorb it too.
+      let response;
+      try {
+        response = new Response(body, { status, statusText: incoming.statusMessage || '', headers });
+      } catch (err) {
+        try { request.destroy(); } catch {}
+        try { incoming.destroy(); } catch {}
+        finish(reject, new Error('upstream sent an unusable HTTP response: ' + err.message));
+        return;
+      }
       // Response.url is empty on a constructed Response, and callers read it
       // as the final URL after redirects.
       try { Object.defineProperty(response, 'url', { value: rawUrl, configurable: true }); } catch {}
@@ -2199,9 +2213,30 @@ function pinnedFetch(rawUrl, options = {}, timeoutMs = 9000, addresses = []) {
     request.end();
   });
 }
+// Ports no browser will open, and neither will we.
+//
+// The WHATWG fetch spec keeps this list so a page cannot be tricked into
+// speaking HTTP at SMTP, IRC, NFS or an X server. Global fetch() enforced it
+// for free ("bad port"); moving to node's HTTP client to pin DNS dropped it,
+// so it is restored here. The guard already refuses private destinations, so
+// this is about not turning the fetcher into a cross-protocol tool against
+// public hosts.
+const BLOCKED_PORTS = new Set([
+  1, 7, 9, 11, 13, 15, 17, 19, 20, 21, 22, 23, 25, 37, 42, 43, 53, 69, 77, 79,
+  87, 95, 101, 102, 103, 104, 109, 110, 111, 113, 115, 117, 119, 123, 135, 137,
+  139, 143, 161, 179, 389, 427, 465, 512, 513, 514, 515, 526, 530, 531, 532,
+  540, 548, 554, 556, 563, 587, 601, 636, 989, 990, 993, 995, 1719, 1720, 1723,
+  2049, 3659, 4045, 4190, 5060, 5061, 6000, 6566, 6665, 6666, 6667, 6668, 6669,
+  6679, 6697, 10080,
+]);
+
 // Like fetchWithTimeout, but validates the host (and every redirect hop)
 // against the SSRF guard, and pins each connection to the addresses that were
 // judged. Use this for any fetch whose host is user-controlled.
+//
+// This is the policy layer: protocol, port and host are judged here, per hop,
+// so a redirect cannot smuggle any of them past. pinnedFetch below is only the
+// transport.
 //
 // `timeoutMs` bounds one hop; `totalMs` bounds the whole thing. Both are
 // needed, because they fail in opposite directions: a per-hop timeout alone let
@@ -2229,6 +2264,7 @@ async function safeFetch(rawUrl, options = {}, timeoutMs = 9000, maxRedirects = 
     let u;
     try { u = new URL(current); } catch { throw ssrfError('bad url'); }
     if (u.protocol !== 'http:' && u.protocol !== 'https:') throw ssrfError('blocked protocol');
+    if (u.port && BLOCKED_PORTS.has(Number(u.port))) throw ssrfError('blocked port');
     const addresses = await assertPublicHost(u.hostname);
     if (left() <= 0) throw expired();
     const resp = await pinnedFetch(current, options, Math.min(timeoutMs, left()), addresses);
@@ -4135,7 +4171,7 @@ module.exports._test = {
   parseRecipePageLimit, encodeRecipeCursor, decodeRecipeCursor, readVisibleRecipesPage,
   DEFAULT_RECIPE_PAGE_SIZE, MAX_RECIPE_PAGE_SIZE, RECIPE_CATEGORIES,
   fetchWithTimeout, pinnedFetch, safeFetch, readBodyCapped, isAbortError,
-  isPrivateIp, ipv6ToBytes, assertPublicHost, looksBlockedPage, buildPageResult, scraperRequestUrl, jinaRequestUrl,
+  isPrivateIp, ipv6ToBytes, BLOCKED_PORTS, assertPublicHost, looksBlockedPage, buildPageResult, scraperRequestUrl, jinaRequestUrl,
   periodKey, resetAfter,
   resolveMonthlyCostCap,
   hashToken, publicUser, VERIFY_TOKEN_MINUTES,
