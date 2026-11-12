@@ -167,9 +167,11 @@ ran on the phone at all.
    `public/sw.js`.** The service worker precaches `/shopping-list.js` by cache
    name, so a returning web user keeps the old module until that string changes.
    Left alone here deliberately, because this branch is not deploying.
-2. **The import fetch endpoint.** Contract written, not built. It needs
-   decisions on rate limiting, SSRF and response size that are not mine, and
-   it is a production change.
+2. **The import fetch endpoint.** Contract written, not built; security
+   requirements now reviewed in
+   [import-fetch-security.md](./import-fetch-security.md). Blocked on two
+   prerequisites rather than on caution: the `isPrivateIp` SSRF fix, and
+   ADR 0010's `/api/v1` with device-token auth, neither of which exists.
 3. **A sample recipe was edited during testing.** Weeknight Tarka Dal lost its
    ground turmeric while I was proving that deleting a referenced ingredient
    leaves no dangling step references. It is a legitimate edit and the recipe
@@ -304,6 +306,14 @@ actually ships was exercised, not just Node's `require`.
 ## Next action
 
 Nothing queued on the metric work. The remaining open item is the
-`/api/v1/import/fetch` endpoint (open issue 2), whose security requirements —
-SSRF, redirects, DNS, timeouts, rate limiting and response size — are the next
-thing to review.
+`/api/v1/import/fetch` endpoint (open issue 2). Its security requirements —
+SSRF, redirects, DNS resolution, timeouts, rate limiting and response size —
+are reviewed in
+[import-fetch-security.md](./import-fetch-security.md), and that review turned
+up something that wants your attention before the endpoint does: **a live SSRF
+bypass in `isPrivateIp`**, which `/api/fetch-url` uses today. Hex-form
+IPv4-mapped IPv6 addresses are judged public, so `http://[::ffff:7f00:1]/`
+reaches loopback and `http://[::ffff:a9fe:a9fe]/` reaches the cloud metadata
+service. Confirmed end to end against a local service, not inferred. The fix is
+a few lines and is verified in that document; it was **not applied**, because it
+changes live production code that CLAUDE.md holds fixed until approved.

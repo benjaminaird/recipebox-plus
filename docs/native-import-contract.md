@@ -86,6 +86,15 @@ needs decisions that are not mine:
   HTML response needs its own cap.
 - **Whether the device token from ADR 0010 exists yet.**
 
+Those four are now reviewed in detail, with what already exists and what must
+change first, in
+[import-fetch-security.md](./import-fetch-security.md). The short version:
+`server.js` already has the whole defensive apparatus and the endpoint should
+reuse it rather than add any, but **the review found a live SSRF bypass in the
+shared `isPrivateIp` guard** (hex-form IPv4-mapped IPv6, e.g. `::ffff:7f00:1`
+for 127.0.0.1, confirmed reaching a service on loopback), and there is still no
+`/api/v1` and no device-token verification. Both block implementation.
+
 ## Smaller, safe alternative if the above is too much
 
 The native app could accept **pasted HTML or pasted recipe text** and run the

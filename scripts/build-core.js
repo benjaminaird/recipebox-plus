@@ -51,10 +51,24 @@ const SIBLINGS = new Set(MODULES.flatMap((m) => [`./${m}`, `./${m}.js`]));
  * comment line are skipped. Full comment stripping is not worth it here: these
  * modules keep their prose in block comments and `//` lines, and a `require`
  * that matters is never written on one. */
+// Is the match at `index` inside a comment on its own line?
+//
+// Only asked so that prose does not get reported as code: these files talk
+// about "the import pipeline" and are "require()-able in Node", and a guard
+// that cries wolf gets deleted. It judges the text BEFORE the match on that
+// line, which is why a comment opened and CLOSED before the match is not a
+// comment at all — `/**/require("../../node_modules/evil")` is code, and an
+// earlier version of this function waved it through because the prefix began
+// "/*".
 function isCommentLine(source, index) {
   const start = source.lastIndexOf("\n", index) + 1;
-  const line = source.slice(start, index).trimStart();
-  return line.startsWith("*") || line.startsWith("//") || line.startsWith("/*");
+  const prefix = source.slice(start, index);
+  const trimmed = prefix.trimStart();
+  if (trimmed.startsWith("//")) return true;
+  // A continuation line of a block comment, as long as it has not ended.
+  if (trimmed.startsWith("*") && !trimmed.includes("*/")) return true;
+  // A block comment opened earlier on this line and still open at the match.
+  return prefix.lastIndexOf("/*") > prefix.lastIndexOf("*/");
 }
 
 function assertSelfContained(name, source) {
@@ -81,7 +95,13 @@ function assertSelfContained(name, source) {
    * import pipeline" and "macros captured during import (recipe.macros)" — a
    * looser match reports a comment as a violation, and a guard that cries wolf
    * gets deleted. A dynamic `import()` is left to the browser, which fails on
-   * it immediately and unmissably. */
+   * it immediately and unmissably.
+   *
+   * The line anchor is also the limit of this check. A block comment whose
+   * continuation lines do not begin with "*" would still be read as code, and
+   * no amount of regex fixes that — only tracking comment state would.
+   * docs/import-fetch-security.md weighs a parser against this, and why the
+   * job that proves this package needs no dependencies cannot import one. */
   for (const m of source.matchAll(/^\s*(import|export)\s/gm)) {
     bad.push(`a top-level \`${m[1]}\` — this package is CommonJS/UMD, not ESM`);
   }
