@@ -2068,7 +2068,36 @@ function isPrivateIp(ip) {
 function ssrfError(message) {
   return Object.assign(new Error(message), { ssrf: true });
 }
-async function assertPublicHost(hostname) {
+// DNS is the one step in the chain node cannot interrupt. dns.lookup runs in
+// libuv's threadpool and takes no timeout, so a name whose resolver never
+// answers would otherwise hold a fetch past its budget however carefully the
+// rest of the chain is bounded.
+//
+// The wait is bounded by racing the lookup against a timer. Note what that does
+// and does not do: the caller stops waiting, and the losing lookup carries on in
+// the background until the resolver gives up. Its answer is discarded and no
+// code reads it, so it cannot affect a decision -- it is not a second,
+// unjudged resolution -- but it does hold a threadpool slot meanwhile. Properly
+// cancelling resolution needs a resolver of our own (dns.Resolver, which can be
+// cancelled), and that one answers from the network only: no hosts file, no
+// nsswitch, no mDNS. Bounding the wait is the smaller change and fixes the
+// stated problem, so that is what this is.
+const DNS_TIMEOUT_MS = 5000;
+async function resolveWithinBudget(host, budgetMs) {
+  const asked = Number(budgetMs);
+  const limit = Math.max(1, Math.min(Number.isFinite(asked) ? asked : DNS_TIMEOUT_MS, DNS_TIMEOUT_MS));
+  let timer = null;
+  try {
+    return await Promise.race([
+      dns.lookup(host, { all: true }),
+      new Promise((_, reject) => { timer = setTimeout(() => reject(ssrfError('dns timeout')), limit); }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+async function assertPublicHost(hostname, budgetMs) {
   const host = String(hostname || '').toLowerCase().replace(/^\[|\]$/g, '');
   if (!host) throw ssrfError('blocked host');
   if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.internal') || host.endsWith('.local')) throw ssrfError('blocked host');
@@ -2088,7 +2117,8 @@ async function assertPublicHost(hostname) {
     labels.some((l) => /^0[0-7]+$/.test(l));
   if (numericEncoding) throw ssrfError('blocked host');
   let addrs;
-  try { addrs = await dns.lookup(host, { all: true }); } catch { throw ssrfError('unresolvable host'); }
+  try { addrs = await resolveWithinBudget(host, budgetMs); }
+  catch (err) { throw (err && err.ssrf) ? err : ssrfError('unresolvable host'); }
   if (!addrs || !addrs.length) throw ssrfError('unresolvable host');
   for (const a of addrs) { if (isPrivateIp(a.address)) throw ssrfError('blocked host'); }
   // Returned, not discarded: safeFetch pins the connection to these exact
@@ -2262,8 +2292,9 @@ const BLOCKED_PORTS = new Set([
 //
 // The deadline is checked again after the DNS lookup, because resolution is
 // part of the wall clock. It is not interruptible: node's dns.lookup takes no
-// timeout, so one hanging resolution can still overrun the budget. Bounding
-// that needs a resolver with its own timeout, and is not done here.
+// timeout, so resolution is raced against the remaining budget (capped at
+// DNS_TIMEOUT_MS) rather than waited on: see resolveWithinBudget for what that
+// bounds and what it leaves running.
 async function safeFetch(rawUrl, options = {}, timeoutMs = 9000, maxRedirects = 5, totalMs = Math.max(timeoutMs, 20000)) {
   const deadline = Date.now() + totalMs;
   const left = () => deadline - Date.now();
@@ -2275,7 +2306,7 @@ async function safeFetch(rawUrl, options = {}, timeoutMs = 9000, maxRedirects = 
     try { u = new URL(current); } catch { throw ssrfError('bad url'); }
     if (u.protocol !== 'http:' && u.protocol !== 'https:') throw ssrfError('blocked protocol');
     if (u.port && BLOCKED_PORTS.has(Number(u.port))) throw ssrfError('blocked port');
-    const addresses = await assertPublicHost(u.hostname);
+    const addresses = await assertPublicHost(u.hostname, left());
     if (left() <= 0) throw expired();
     const resp = await pinnedFetch(current, options, Math.min(timeoutMs, left()), addresses);
     if (resp.status >= 300 && resp.status < 400 && resp.headers.get('location')) {
@@ -4384,7 +4415,7 @@ module.exports._test = {
   parseRecipePageLimit, encodeRecipeCursor, decodeRecipeCursor, readVisibleRecipesPage,
   DEFAULT_RECIPE_PAGE_SIZE, MAX_RECIPE_PAGE_SIZE, RECIPE_CATEGORIES,
   fetchWithTimeout, pinnedFetch, safeFetch, readBodyCapped, isAbortError,
-  isPrivateIp, ipv6ToBytes, BLOCKED_PORTS, assertPublicHost, looksBlockedPage, buildPageResult, scraperRequestUrl, jinaRequestUrl,
+  isPrivateIp, ipv6ToBytes, BLOCKED_PORTS, assertPublicHost, resolveWithinBudget, DNS_TIMEOUT_MS, looksBlockedPage, buildPageResult, scraperRequestUrl, jinaRequestUrl,
   periodKey, resetAfter,
   resolveMonthlyCostCap,
   hashToken, publicUser, VERIFY_TOKEN_MINUTES,

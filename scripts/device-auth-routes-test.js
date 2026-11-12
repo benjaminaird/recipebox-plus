@@ -29,6 +29,12 @@ const users = [
 ];
 
 const store = deviceAuth.createMemoryStore(users);
+
+// A suite that stops halfway must not pass. An await on a promise that never
+// settles empties the event loop, and node then exits 0 with most of the file
+// unrun -- so the exit code starts as a failure and is cleared only by the line
+// that announces success at the very end.
+process.exitCode = 1;
 app._test.useDeviceStore(store);
 
 let base = '';
@@ -207,6 +213,7 @@ async function run() {
   assert.strictEqual(other.status, 200, 'another account is not caught in the same bucket');
 
   console.log('device-auth-routes-test: ok');
+  process.exitCode = 0;
 }
 
 async function main() {

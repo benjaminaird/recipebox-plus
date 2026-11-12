@@ -39,6 +39,12 @@ const DEVICE = { name: 'E2E iPhone', platform: 'ios', installId: 'e2e-phone' };
 let clock = Date.now();
 const now = () => clock;
 
+// A suite that stops halfway must not pass. An await on a promise that never
+// settles empties the event loop, and node then exits 0 with most of the file
+// unrun -- so the exit code starts as a failure and is cleared only where the
+// suite announces that it finished.
+process.exitCode = 1;
+
 function makeSession(baseUrl, credentials, device = DEVICE) {
   const api = createAuthApi({ baseUrl, fetchImpl: (url, init) => fetch(url, init), timeoutMs: 5000 });
   return createSessionManager({ api, credentials, device, now, jitter: () => 0.5 });
@@ -117,7 +123,8 @@ async function main() {
     const list = await otherApi.devices(afterOut.accessToken);
     assert.ok(!list.devices.some((d) => d.id === recoveredDeviceId), 'the signed-out device is gone from the account');
 
-    console.log('native-auth-e2e-test: ok');
+    process.exitCode = 0;
+  console.log('native-auth-e2e-test: ok');
   } finally {
     app._test.useDeviceStore(null);
     server.close();

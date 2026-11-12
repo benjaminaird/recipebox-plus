@@ -2,7 +2,13 @@ const assert = require("assert");
 const http = require("http");
 const net = require("net");
 const app = require("../server");
-const { fetchWithTimeout, pinnedFetch, safeFetch, readBodyCapped, isAbortError, isPrivateIp, ipv6ToBytes, BLOCKED_PORTS, assertPublicHost, looksBlockedPage } = app._test;
+const { fetchWithTimeout, pinnedFetch, safeFetch, readBodyCapped, isAbortError, isPrivateIp, ipv6ToBytes, BLOCKED_PORTS, assertPublicHost, DNS_TIMEOUT_MS, looksBlockedPage } = app._test;
+
+// A suite that stops halfway must not pass. An await on a promise that never
+// settles empties the event loop, and node then exits 0 with most of the file
+// unrun -- so the exit code starts as a failure and is cleared only by the line
+// that announces success at the very end.
+process.exitCode = 1;
 
 async function rejects(promise, label) {
   let threw = false;
@@ -402,6 +408,53 @@ async function resolves(promise, label) {
   await rejects(assertPublicHost("0x7f.0.0.1"), "hex-labeled loopback blocked");
   await resolves(assertPublicHost("8.8.8.8"), "public literal IP allowed");
 
+  // --- a resolver that never answers must not hold the fetch past its budget ---
+  //
+  // This was the one limitation left stated rather than fixed after the fetch
+  // hardening: dns.lookup takes no timeout. The wait is now raced against the
+  // remaining budget. The test replaces the resolver with one that never
+  // settles, which is exactly the case no amount of care inside the guard could
+  // bound before.
+  {
+    const dnsModule = require("dns");
+    const realLookup = dnsModule.promises.lookup;
+    let stillPending = 0;
+    dnsModule.promises.lookup = (host, opts) => {
+      if (String(host).endsWith(".never-answers.test")) {
+        stillPending += 1;
+        return new Promise(() => {});          // never settles, as a dead resolver does not
+      }
+      return realLookup.call(dnsModule.promises, host, opts);
+    };
+    try {
+      const started = Date.now();
+      let err;
+      try { await assertPublicHost("slow.never-answers.test", 150); } catch (e) { err = e; }
+      const waited = Date.now() - started;
+      assert.ok(err && err.ssrf, "a hanging resolution is refused rather than awaited");
+      assert.strictEqual(err.message, "dns timeout", "and says which step ran out");
+      assert.ok(waited < 1000, "the caller stopped waiting promptly (" + waited + "ms for a 150ms budget)");
+      assert.strictEqual(stillPending, 1, "one lookup was started");
+
+      // The whole fetch, not just the guard: a tight budget is honoured even
+      // when the name never resolves.
+      const fetchStarted = Date.now();
+      let fetchErr;
+      try { await safeFetch("https://slow.never-answers.test/recipe", {}, 9000, 5, 400); } catch (e) { fetchErr = e; }
+      const fetchWaited = Date.now() - fetchStarted;
+      assert.ok(fetchErr, "the fetch fails rather than hanging");
+      assert.ok(fetchWaited < 1500, "and inside its budget (" + fetchWaited + "ms for a 400ms budget)");
+
+      // The cap applies even when nobody asked for a budget, so a caller that
+      // passes none cannot wait for ever either.
+      const cappedStart = Date.now();
+      try { await assertPublicHost("nobudget.never-answers.test"); } catch { /* expected */ }
+      assert.ok(Date.now() - cappedStart <= DNS_TIMEOUT_MS + 500, "an absent budget still falls back to the ceiling");
+    } finally {
+      dnsModule.promises.lookup = realLookup;
+    }
+  }
+
   // --- bot-challenge / block-page detection (so blocked fetches fail cleanly
   //     to Paste Text instead of feeding the AI a near-empty challenge page) ---
   assert.strictEqual(looksBlockedPage({ title: "Just a moment...", text: "Checking your browser before accessing.", hasRecipe: false }), true, "Cloudflare 'Just a moment' is blocked");
@@ -411,4 +464,5 @@ async function resolves(promise, label) {
   assert.strictEqual(looksBlockedPage({ title: "Just a moment...", text: "short", hasRecipe: true }), false, "a structured recipe is never treated as blocked");
 
   console.log("import-reliability-test: ok");
+  process.exitCode = 0;
 })().catch((err) => { console.error(err); process.exit(1); });

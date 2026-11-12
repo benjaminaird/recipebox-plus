@@ -36,6 +36,12 @@ const CARLA = { user_id: 'user-carla', email: 'carla@example.com', display_name:
 const T0 = new Date('2026-11-12T09:00:00Z');
 const at = (seconds) => new Date(T0.getTime() + (seconds * 1000));
 
+// A suite that stops halfway must not pass. An await on a promise that never
+// settles empties the event loop, and node then exits 0 with most of the file
+// unrun -- so the exit code starts as a failure and is cleared only where the
+// suite announces that it finished.
+process.exitCode = 1;
+
 async function caught(fn) {
   try { await fn(); } catch (err) { return err; }
   throw new assert.AssertionError({ message: 'expected this to be refused, and it was not' });
@@ -349,7 +355,8 @@ async function main() {
   const url = process.env.DEVICE_AUTH_TEST_DATABASE_URL;
   if (!url) {
     console.log('  postgres store: skipped (set DEVICE_AUTH_TEST_DATABASE_URL to an isolated test database to include it)');
-    console.log('device-auth-test: ok');
+    process.exitCode = 0;
+  console.log('device-auth-test: ok');
     return;
   }
   if (!/test|localhost|127\.0\.0\.1/i.test(url)) {
@@ -377,6 +384,7 @@ async function main() {
     await pool.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`).catch(() => {});
     await pool.end().catch(() => {});
   }
+  process.exitCode = 0;
   console.log('device-auth-test: ok');
 }
 
