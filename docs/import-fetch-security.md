@@ -10,9 +10,10 @@ authenticated endpoint that takes a URL, fetches it server-side, and returns the
 raw HTML for the device to extract on-device per ADR 0007. This document reviews
 what that needs to be safe, and what already exists.
 
-**The endpoint is not implemented.** No route was added. One finding below was
-a defect in code that is **already live**; it was approved separately and
-**is now fixed** — see finding 1.
+**The endpoint is not implemented.** No route was added. The three findings
+below were defects in code that is **already live**, reached through
+`/api/fetch-url`; all three were approved separately and are fixed. What still
+blocks the endpoint is ADR 0010, not security.
 
 ## The short version
 
@@ -25,8 +26,9 @@ nothing.** A second fetch path with its own idea of what a private address is
 would be the same mistake the native shopping list had made about measurement
 units, with a worse failure mode.
 
-Three things needed to change or be decided first. They are ordered by
-severity; the first is now fixed, the other two are open.
+Three things needed to change or be decided first. **All three are now
+fixed**, each approved on its own as a change to live code. They are kept here,
+with their evidence, because the shapes of these bugs are the reusable part.
 
 ## 1. `isPrivateIp` judged IPv6 by its spelling — fixed
 
@@ -100,39 +102,110 @@ All seventeen addresses are now blocked, and nothing legitimate was lost:
   bytes. The suite's original eleven-address list is kept — it is exactly the
   set of spellings the old code got right, which is why the holes survived.
 
-## 2. The guard resolves DNS, then `fetch` resolves it again
+## 2. The guard resolved DNS, then `fetch` resolved it again — fixed
 
-`assertPublicHost` calls `dns.lookup` and checks the addresses; `safeFetch` then
-calls `fetch(current)`, which resolves the name **again**, independently. The
-two resolutions can differ. A name whose record has a very short TTL, under the
-attacker's control, can answer with a public address for the check and a private
-one for the connection.
+**Status: fixed in `server.js`.**
 
-This is the standard DNS-rebinding bypass and no amount of care in
-`assertPublicHost` closes it, because the check and the connection are two
-separate resolutions of the same name.
+`assertPublicHost` called `dns.lookup` and judged the addresses; `safeFetch`
+then called `fetch(current)`, which resolved the same name **again**,
+independently. Two resolutions, and a record with a short TTL under an
+attacker's control can answer with a public address for the check and a private
+one for the connection. The gap between them was the whole bug, and no amount of
+care inside `assertPublicHost` closed it.
 
-**Mitigation.** Resolve once and connect to the address, not the name: pin the
-validated IP and pass it to a custom undici `lookup`, or dial the IP with the
-original `Host` header and SNI preserved. Node's `fetch` accepts a `dispatcher`
-with a `connect.lookup` option, which is the least invasive place to put it.
+### The fix
 
-**Recommendation.** Not a blocker for a first version, but it must be recorded
-as a known residual risk rather than discovered later. It is listed second
-because finding 1 needs no DNS trickery at all.
+`assertPublicHost` now **returns** the addresses it judged instead of
+discarding them, and a new `pinnedFetch` connects to exactly those. Node's
+`http`/`https` `request` takes a `lookup`, so the pin is installed there and
+hands back only the judged addresses; `agent: false`, because a pooled
+keep-alive socket was opened on an earlier resolution and would skip the lookup
+entirely.
 
-## 3. The redirect timeout is per hop, and the function has 60 seconds
+The URL keeps its hostname, so the `Host` header and the TLS SNI are unchanged
+and **certificate validation is untouched**. That is the reason to pin the
+lookup rather than to put the IP in the URL, where HTTPS would fail on a name
+mismatch — the obvious shortcut is the one that quietly disables cert checking.
 
-`safeFetch` allows `maxRedirects = 5` and gives **each** hop
-`timeoutMs = 9000`. Six hops that each stall gives 54 seconds inside a function
-whose `vercel.json` `maxDuration` is **60**. A slow chain therefore runs the
-function to its limit rather than returning a clean error.
+This replaces global `fetch` with Node's HTTP client **for the two import
+callers only**, which brought two things `fetch` had done silently and that
+`pinnedFetch` now does explicitly:
 
-**Fix.** Budget the whole fetch, not each hop: take a deadline once and pass the
-remaining time to each hop, so the total cannot exceed it. This is excluded from
-the finding list as a DoS concern, but it is a correctness bug at the contract
-level — the endpoint owes the device a `422` or a timeout it can act on, not a
-dead function.
+- **Decompression.** `http.request` does none. `pinnedFetch` asks for
+  `gzip, deflate, br`, decompresses with `zlib`, and drops `content-encoding`
+  and `content-length` once they no longer describe the bytes — the latter
+  because `readBodyCapped` trusts `content-length`. Getting this wrong would
+  hand the extractor binary rubbish that merely looks like a failed import.
+- **`Response` shape.** Callers read `r.status`, `r.ok`, `r.headers.get()` and
+  `r.url`. The first three come free from a real `Response`; `url` is empty on a
+  constructed one, so it is defined explicitly, because `fetchHtmlMetadata`
+  returns it as `finalUrl`.
+
+### Evidence
+
+- **The pin is honoured, both ways.** A request to `http://example.com:<port>/`
+  pinned to `127.0.0.1` reaches a local server, and the server sees
+  `Host: example.com:<port>` — so the hostname, not the IP, is what goes on the
+  wire. Pinned instead to a public address, the same URL does **not** reach that
+  local server. That is a rebinding answer being ignored, demonstrated in both
+  directions.
+- **No behaviour change on the real import path.** The live `/api/fetch-url`
+  route was run against ten URLs on this branch and on `main`, and the output
+  is **identical** for every one: JSON-LD extraction (6 ingredients and 5 steps
+  from the same page), an `http` → `https` redirect, a three-hop redirect chain,
+  bot-blocked sites failing the same way with the same message, and the same
+  `blocked` and `extractSource` values throughout.
+- **Decompression is right.** Page sizes and `<title>` values match global
+  `fetch` byte for byte on real pages, and gzip and brotli bodies from a local
+  server round-trip in the regression suite.
+- Covered offline in `scripts/import-reliability-test.js`: the pin honoured, the
+  `Host` header preserved, a public pin refusing to reach loopback, an empty pin
+  list refusing rather than falling back to DNS, gzip and brotli, a bodiless
+  `304`, a redirect's `location` still readable, and a stalled connection still
+  aborting as a timeout.
+
+## 3. The redirect timeout was per hop — fixed
+
+**Status: fixed in `server.js`.**
+
+`safeFetch` allowed `maxRedirects = 5` and gave **each** hop `timeoutMs = 9000`.
+Six stalled hops is 54 seconds inside a function whose `vercel.json`
+`maxDuration` is **60**, so a slow chain ran the function to its limit instead
+of returning something the device could act on.
+
+### The fix
+
+One deadline for the whole fetch, checked before each hop and again after the
+DNS lookup, with each hop's timeout clamped to whatever is left.
+
+`timeoutMs` still bounds one hop and `totalMs` now bounds the whole thing,
+because the two fail in opposite directions: a per-hop timeout alone allowed the
+54 seconds, and a total budget alone would cut a single slow-but-legitimate
+fetch short. So the **default** budget is whichever is larger of 20 seconds and
+one hop — nobody who did not ask for a budget gets less time than they asked for
+per hop — while a budget passed explicitly is honoured as given.
+
+That last clause is worth stating because the first version got it wrong: it set
+the deadline from `Math.max(timeoutMs, totalMs)` unconditionally, which silently
+discarded any budget *smaller* than one hop. A 9-second hop inside a 2-second
+budget duly ran for 9 seconds, which the tests caught and which is now the
+regression case.
+
+**One residual limit, stated rather than fixed:** `dns.lookup` takes no timeout
+and is not interruptible, so a single hanging resolution can still overrun the
+budget. The deadline is re-checked immediately after it, which stops the *loop*,
+but bounding resolution itself needs a resolver with its own timeout. Not done.
+
+### Evidence
+
+Measured, not reasoned: a 9-second hop inside an explicit 2-second budget now
+aborts at 2002ms where it previously ran 9004ms; a 1.2-second hop under the
+default budget still aborts at 1203ms, so the per-hop timeout governs when it is
+the smaller of the two; an exhausted budget is refused before any connection
+(and so needs no network, which keeps the test offline for CI); and a caller
+passing `timeoutMs = 30000` with no budget is not shortened to 20 seconds. An
+exhausted budget reports as an `AbortError`, so `isAbortError` upstream reads it
+as the timeout it is.
 
 ## What already exists and should simply be reused
 
@@ -142,9 +215,9 @@ dead function.
 | Private address blocking | `assertPublicHost` + `isPrivateIp`: IPv4 loopback, `10/8`, `127/8`, `169.254/16`, `172.16–31`, `192.168/16`, CGNAT `100.64/10`, multicast and reserved `224+`; IPv6 judged numerically per finding 1 | reuse as is |
 | Obfuscated host forms | `assertPublicHost` refuses decimal, hex and octal-label encodings before they reach DNS, so `getaddrinfo` cannot interpret them differently from the check | reuse as is |
 | Name-based internal hosts | `localhost`, `*.localhost`, `*.internal`, `*.local` refused | reuse as is |
-| Redirects | `redirect: 'manual'`, every hop re-validated before it is followed, capped at 5 | reuse; fix the budget per finding 3 |
+| Redirects | `redirect: 'manual'`, every hop re-validated and re-pinned before it is followed, capped at 5, whole chain under one deadline | reuse as is |
 | Response size | `readBodyCapped`, streaming, honours `content-length`, cancels the body, default 6 MB | reuse with a **smaller** cap — see below |
-| Timeouts | `fetchWithTimeout`, `AbortController`, 9 s default | reuse; fix the budget per finding 3 |
+| Timeouts | per hop and per fetch, per finding 3 | reuse as is |
 | Rate limiting | `checkRateLimit(key, bucket, max, scope)`, DB-backed in `rate_limit_counters`, already used per-IP, per-user and as a burst bucket on the AI routes | reuse; see below |
 | Blocked-page detection | `looksBlockedPage`, and the scraper fallback with `IMPORT_PROXY_DAILY_CAP` | reuse as is |
 
@@ -194,11 +267,13 @@ put a fetching endpoint on the web app's session cookies.
 
 1. ~~Fix finding 1 in `isPrivateIp`.~~ **Done** — it was live, so it went in on
    its own rather than waiting for the endpoint.
-2. Build `/api/v1` + device token auth (ADR 0010). **This is the blocker.**
-3. Add the endpoint, reusing every mechanism in the table above and adding
-   none.
-4. Decide the DNS-pinning question in finding 2 before it is a production
-   incident rather than after.
+2. ~~Pin DNS (finding 2) and budget the whole fetch (finding 3).~~ **Done**,
+   also on live code and also ahead of the endpoint.
+3. Build `/api/v1` + device token auth (ADR 0010). **This is the only
+   remaining blocker, and it is not a security one.**
+4. Add the endpoint, reusing every mechanism in the table above and adding
+   none. Give the raw HTML its own response cap, and decide the rate-limit keys
+   and the fail-open question below.
 
 ## Appendix: the `build-core.js` guard, and whether it wants a parser
 

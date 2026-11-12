@@ -170,11 +170,11 @@ ran on the phone at all.
 2. **The import fetch endpoint.** Contract written, not built; security
    requirements now reviewed in
    [import-fetch-security.md](./import-fetch-security.md). The SSRF fix that
-   review found is done; what blocks the endpoint is ADR 0010's `/api/v1` with
-   device-token auth, which does not exist. Two residual items are recorded
-   there rather than fixed: the guard resolves DNS and `fetch` resolves it
-   again (the rebinding window), and the redirect timeout is per hop, so six
-   stalled hops reach 54s inside a function capped at 60s.
+   review found is done, as are its other two findings (DNS pinning, and one
+   deadline for the whole fetch rather than one per hop). What blocks the
+   endpoint is ADR 0010's `/api/v1` with device-token auth, which does not
+   exist. One residual limit is recorded rather than fixed: `dns.lookup` takes
+   no timeout, so a single hanging resolution can still overrun the budget.
 3. **A sample recipe was edited during testing.** Weeknight Tarka Dal lost its
    ground turmeric while I was proving that deleting a referenced ingredient
    leaves no dangling step references. It is a legitimate edit and the recipe
@@ -322,5 +322,17 @@ that class of bug. Confirmed end to end both ways — eight spellings of loopbac
 all refused, and ten real hosts plus ten real public IPv6 addresses still
 allowed.
 
+The review's other two findings are **also fixed**, both on live code: the
+guard resolved DNS and `fetch` then resolved it again, so a short-TTL record
+could answer public for the check and private for the connection — the
+connection is now pinned to the addresses the guard judged, with the hostname
+left in place so TLS certificate validation is untouched. And the redirect
+timeout was per hop, so six stalled hops reached 54s inside a function capped at
+60s; the whole fetch now has one deadline. The live `/api/fetch-url` route was
+run against ten URLs on this branch and on `main` and the output is identical
+for every one, which is how we know swapping the HTTP client changed no
+behaviour.
+
 What remains is ADR 0010: the endpoint needs `/api/v1` and device-token auth,
-and neither exists.
+and neither exists. That is the only remaining blocker, and it is not a
+security one.

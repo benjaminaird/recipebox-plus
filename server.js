@@ -3,6 +3,10 @@ const path = require('path');
 const crypto = require('crypto');
 const net = require('net');
 const dns = require('dns').promises;
+const http = require('http');
+const https = require('https');
+const zlib = require('zlib');
+const { Readable } = require('stream');
 const { fetchTranscript } = require('youtube-transcript');
 // Deterministic structured-data extractor (shared with the client). Lets URL
 // imports skip the AI entirely when a page has complete schema.org data.
@@ -2060,7 +2064,7 @@ async function assertPublicHost(hostname) {
   if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.internal') || host.endsWith('.local')) throw ssrfError('blocked host');
   if (net.isIP(host)) {
     if (isPrivateIp(host)) throw ssrfError('blocked host');
-    return;
+    return [host];
   }
   // Block obfuscated numeric IP encodings (decimal/hex integer, or dotted forms
   // using octal/hex labels, e.g. 2130706433, 0x7f000001, 0177.0.0.1). These are
@@ -2077,17 +2081,136 @@ async function assertPublicHost(hostname) {
   try { addrs = await dns.lookup(host, { all: true }); } catch { throw ssrfError('unresolvable host'); }
   if (!addrs || !addrs.length) throw ssrfError('unresolvable host');
   for (const a of addrs) { if (isPrivateIp(a.address)) throw ssrfError('blocked host'); }
+  // Returned, not discarded: safeFetch pins the connection to these exact
+  // addresses so nothing re-resolves the name. See pinnedFetch.
+  return addrs.map((a) => a.address);
 }
-// Like fetchWithTimeout, but validates the host (and every redirect hop) against
-// the SSRF guard. Use this for any fetch whose host is user-controlled.
-async function safeFetch(rawUrl, options = {}, timeoutMs = 9000, maxRedirects = 5) {
+
+// A fetch whose DNS answer cannot change between the check and the connection.
+//
+// assertPublicHost resolves a hostname and judges the addresses; global fetch()
+// would then resolve the same name AGAIN, independently. Those are two
+// resolutions, and a record with a short TTL under an attacker's control can
+// answer with a public address for the check and a private one for the
+// connection. The gap between them is the whole bug, and no amount of care
+// inside assertPublicHost closes it.
+//
+// So the connection is pinned. node's http/https request takes a `lookup`, and
+// this one returns only addresses that were already judged. The URL keeps its
+// hostname, so the Host header and the TLS SNI are unchanged and certificate
+// validation is untouched -- which is the reason to pin the lookup rather than
+// to put the IP in the URL, where HTTPS would break on a name mismatch.
+//
+// `agent: false` because a pooled keep-alive socket was opened on an earlier
+// resolution and would skip this one entirely.
+function pinnedFetch(rawUrl, options = {}, timeoutMs = 9000, addresses = []) {
+  const url = new URL(rawUrl);
+  const secure = url.protocol === 'https:';
+  const transport = secure ? https : http;
+  const pinned = (addresses || []).filter((a) => net.isIP(a));
+  return new Promise((resolve, reject) => {
+    if (!pinned.length) { reject(ssrfError('unresolvable host')); return; }
+    let done = false;
+    const finish = (fn, value) => { if (!done) { done = true; clearTimeout(timer); fn(value); } };
+    const timer = setTimeout(() => {
+      // Named so isAbortError() reads it as a timeout, exactly as the
+      // AbortController in fetchWithTimeout does.
+      try { request.destroy(); } catch {}
+      finish(reject, Object.assign(new Error('The operation was aborted'), { name: 'AbortError' }));
+    }, timeoutMs);
+
+    const request = transport.request({
+      protocol: url.protocol,
+      hostname: url.hostname.replace(/^\[|\]$/g, ''),
+      port: url.port || (secure ? 443 : 80),
+      path: (url.pathname || '/') + (url.search || ''),
+      method: options.method || 'GET',
+      // Compression is requested explicitly and undone below, because
+      // http.request does neither for us and global fetch() did both.
+      headers: Object.assign({ 'Accept-Encoding': 'gzip, deflate, br' }, options.headers || {}),
+      agent: false,
+      lookup: (hostname, opts, callback) => {
+        if (opts && opts.all) {
+          callback(null, pinned.map((a) => ({ address: a, family: net.isIPv6(a) ? 6 : 4 })));
+          return;
+        }
+        callback(null, pinned[0], net.isIPv6(pinned[0]) ? 6 : 4);
+      },
+    }, (incoming) => {
+      const status = incoming.statusCode || 0;
+      const headers = new Headers();
+      for (const [name, value] of Object.entries(incoming.headers || {})) {
+        for (const one of Array.isArray(value) ? value : [value]) {
+          if (one !== undefined) { try { headers.append(name, String(one)); } catch {} }
+        }
+      }
+      // A status that cannot carry a body must be given none, or the Response
+      // constructor throws.
+      const bodiless = status === 101 || status === 204 || status === 205 || status === 304;
+      let body = null;
+      if (!bodiless) {
+        const encoding = String(incoming.headers['content-encoding'] || '').toLowerCase().trim();
+        const decoder = encoding === 'gzip' || encoding === 'x-gzip' ? zlib.createGunzip()
+          : encoding === 'deflate' ? zlib.createInflate()
+          : encoding === 'br' ? zlib.createBrotliDecompress()
+          : null;
+        let stream = incoming;
+        if (decoder) {
+          // A corrupt or mislabelled body must fail the fetch, not hang it.
+          decoder.on('error', () => { try { incoming.destroy(); } catch {} });
+          stream = incoming.pipe(decoder);
+          headers.delete('content-encoding');
+          // No longer true of the decompressed bytes, and readBodyCapped
+          // trusts it.
+          headers.delete('content-length');
+        }
+        body = Readable.toWeb(stream);
+      }
+      const response = new Response(body, { status, statusText: incoming.statusMessage || '', headers });
+      // Response.url is empty on a constructed Response, and callers read it
+      // as the final URL after redirects.
+      try { Object.defineProperty(response, 'url', { value: rawUrl, configurable: true }); } catch {}
+      finish(resolve, response);
+    });
+
+    request.on('error', (err) => finish(reject, err));
+    if (options.body) request.write(options.body);
+    request.end();
+  });
+}
+// Like fetchWithTimeout, but validates the host (and every redirect hop)
+// against the SSRF guard, and pins each connection to the addresses that were
+// judged. Use this for any fetch whose host is user-controlled.
+//
+// `timeoutMs` bounds one hop; `totalMs` bounds the whole thing. Both are
+// needed, because they fail in opposite directions: a per-hop timeout alone let
+// six stalled hops reach 54 seconds inside a function capped at 60, and a total
+// budget alone would cut a single slow-but-legitimate fetch short.
+//
+// So the DEFAULT budget is whichever is larger of 20 seconds and one hop --
+// nobody who did not ask for a budget gets less time than they asked for per
+// hop -- while a budget passed explicitly is honoured as given. An earlier
+// version took the max of the two unconditionally, which silently ignored a
+// caller asking for a *smaller* budget, and a 9s hop inside a 2s budget duly
+// ran for 9s.
+//
+// The deadline is checked again after the DNS lookup, because resolution is
+// part of the wall clock. It is not interruptible: node's dns.lookup takes no
+// timeout, so one hanging resolution can still overrun the budget. Bounding
+// that needs a resolver with its own timeout, and is not done here.
+async function safeFetch(rawUrl, options = {}, timeoutMs = 9000, maxRedirects = 5, totalMs = Math.max(timeoutMs, 20000)) {
+  const deadline = Date.now() + totalMs;
+  const left = () => deadline - Date.now();
+  const expired = () => Object.assign(new Error('The operation was aborted: fetch budget exhausted'), { name: 'AbortError' });
   let current = String(rawUrl);
   for (let hop = 0; hop <= maxRedirects; hop++) {
+    if (left() <= 0) throw expired();
     let u;
     try { u = new URL(current); } catch { throw ssrfError('bad url'); }
     if (u.protocol !== 'http:' && u.protocol !== 'https:') throw ssrfError('blocked protocol');
-    await assertPublicHost(u.hostname);
-    const resp = await fetchWithTimeout(current, { ...options, redirect: 'manual' }, timeoutMs);
+    const addresses = await assertPublicHost(u.hostname);
+    if (left() <= 0) throw expired();
+    const resp = await pinnedFetch(current, options, Math.min(timeoutMs, left()), addresses);
     if (resp.status >= 300 && resp.status < 400 && resp.headers.get('location')) {
       const next = new URL(resp.headers.get('location'), current).href;
       try { await resp.body?.cancel(); } catch {}
@@ -3990,7 +4113,7 @@ module.exports._test = {
   validateRecipeForSave, upsertUserRecipe, moveUserRecipeCategory, canonicalRecipeCategory, canonicalizeRecipeRecord,
   parseRecipePageLimit, encodeRecipeCursor, decodeRecipeCursor, readVisibleRecipesPage,
   DEFAULT_RECIPE_PAGE_SIZE, MAX_RECIPE_PAGE_SIZE, RECIPE_CATEGORIES,
-  fetchWithTimeout, readBodyCapped, isAbortError,
+  fetchWithTimeout, pinnedFetch, safeFetch, readBodyCapped, isAbortError,
   isPrivateIp, ipv6ToBytes, assertPublicHost, looksBlockedPage, buildPageResult, scraperRequestUrl, jinaRequestUrl,
   periodKey, resetAfter,
   resolveMonthlyCostCap,

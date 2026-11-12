@@ -1,7 +1,7 @@
 const assert = require("assert");
 const http = require("http");
 const app = require("../server");
-const { fetchWithTimeout, readBodyCapped, isAbortError, isPrivateIp, ipv6ToBytes, assertPublicHost, looksBlockedPage } = app._test;
+const { fetchWithTimeout, pinnedFetch, safeFetch, readBodyCapped, isAbortError, isPrivateIp, ipv6ToBytes, assertPublicHost, looksBlockedPage } = app._test;
 
 async function rejects(promise, label) {
   let threw = false;
@@ -117,6 +117,114 @@ async function resolves(promise, label) {
   assert.strictEqual(new URL("http://[0:0:0:0:0:0:0:1]/").hostname, "[::1]",
     "it does compress this one, which is why that spelling was never exploitable");
   await resolves(assertPublicHost("[2606:2800:220:1:248:1893:25c8:1946]"), "a public IPv6 literal is still allowed");
+
+  // assertPublicHost returns what it judged, so the connection can be pinned
+  // to exactly those addresses instead of resolving the name a second time.
+  assert.deepStrictEqual(await assertPublicHost("8.8.8.8"), ["8.8.8.8"], "a literal host returns itself");
+
+  // --- DNS pinning: the connection goes where the GUARD looked, not where ---
+  // --- the name points when the socket opens                              ---
+  // assertPublicHost resolves and judges; global fetch() would then resolve
+  // again, and a record with a short TTL can answer public for the check and
+  // private for the connection. pinnedFetch closes that by handing node's
+  // http lookup only the addresses already judged.
+  const zlib = require("zlib");
+  const pinServer = http.createServer((req, res) => {
+    if (req.url === "/gzip") {
+      res.writeHead(200, { "content-type": "text/html", "content-encoding": "gzip" });
+      res.end(zlib.gzipSync("<!doctype html><title>compressed</title>"));
+      return;
+    }
+    if (req.url === "/br") {
+      res.writeHead(200, { "content-type": "text/html", "content-encoding": "br" });
+      res.end(zlib.brotliCompressSync("<!doctype html><title>brotli</title>"));
+      return;
+    }
+    if (req.url === "/304") { res.writeHead(304); res.end(); return; }
+    if (req.url === "/moved") { res.writeHead(302, { location: "/" }); res.end(); return; }
+    res.writeHead(200, { "content-type": "text/html", "x-seen-host": String(req.headers.host) });
+    res.end("<!doctype html><title>pinned</title>");
+  });
+  await new Promise((resolve) => pinServer.listen(0, "127.0.0.1", resolve));
+  const pinPort = pinServer.address().port;
+
+  {
+    // The hostname says example.com; the pin says loopback. The connection
+    // follows the pin -- which is how a rebinding answer gets ignored.
+    const r = await pinnedFetch(`http://example.com:${pinPort}/`, {}, 5000, ["127.0.0.1"]);
+    assert.strictEqual(r.status, 200);
+    assert.match(await r.text(), /pinned/, "the pinned address is the one connected to");
+    assert.strictEqual(r.ok, true, "Response.ok survives");
+    assert.strictEqual(r.url, `http://example.com:${pinPort}/`, "Response.url is the requested URL, which callers read as finalUrl");
+  }
+  {
+    // The Host header and TLS SNI keep the hostname, which is why pinning the
+    // lookup is safe where rewriting the URL to the IP would break HTTPS.
+    const r = await pinnedFetch(`http://example.com:${pinPort}/`, {}, 5000, ["127.0.0.1"]);
+    assert.strictEqual(r.headers.get("x-seen-host"), `example.com:${pinPort}`, "the server sees the hostname, not the pinned IP");
+  }
+  {
+    // The reverse: a name that resolves to loopback must not reach loopback
+    // when the pin is a public address.
+    let reached = false;
+    try {
+      const r = await pinnedFetch(`http://localhost:${pinPort}/`, {}, 2000, ["93.184.216.34"]);
+      reached = /pinned/.test(await r.text());
+    } catch { /* refused or timed out: either way it did not arrive */ }
+    assert.strictEqual(reached, false, "a public pin must not reach a loopback service");
+  }
+  {
+    // http.request does no decompression and global fetch did, so pinnedFetch
+    // has to. A mislabelled or undone body here would hand the extractor
+    // binary rubbish that merely looks like a failed import.
+    const gz = await pinnedFetch(`http://example.com:${pinPort}/gzip`, {}, 5000, ["127.0.0.1"]);
+    assert.match(await gz.text(), /<title>compressed<\/title>/, "gzip is decompressed");
+    assert.strictEqual(gz.headers.get("content-encoding"), null, "the encoding header is dropped once undone");
+    assert.strictEqual(gz.headers.get("content-length"), null, "and so is a length that no longer describes the bytes");
+    const br = await pinnedFetch(`http://example.com:${pinPort}/br`, {}, 5000, ["127.0.0.1"]);
+    assert.match(await br.text(), /<title>brotli<\/title>/, "brotli is decompressed");
+  }
+  {
+    // A status that cannot carry a body must not throw in the Response
+    // constructor, and a redirect must still expose its location.
+    const r304 = await pinnedFetch(`http://example.com:${pinPort}/304`, {}, 5000, ["127.0.0.1"]);
+    assert.strictEqual(r304.status, 304);
+    const moved = await pinnedFetch(`http://example.com:${pinPort}/moved`, {}, 5000, ["127.0.0.1"]);
+    assert.strictEqual(moved.headers.get("location"), "/", "a redirect's location is readable, which is how safeFetch walks the chain");
+  }
+  {
+    // No addresses means nothing to connect to, and must not fall back to DNS.
+    await rejects(pinnedFetch(`http://example.com:${pinPort}/`, {}, 2000, []), "an empty pin list refuses rather than resolving");
+  }
+  {
+    // The per-hop timeout still aborts a server that never answers.
+    const stalled = http.createServer(() => {});
+    await new Promise((resolve) => stalled.listen(0, "127.0.0.1", resolve));
+    const started = Date.now();
+    let err;
+    try { await pinnedFetch(`http://example.com:${stalled.address().port}/`, {}, 800, ["127.0.0.1"]); }
+    catch (e) { err = e; }
+    stalled.close();
+    assert.ok(err && isAbortError(err), "a stalled pinned fetch aborts as a timeout");
+    assert.ok(Date.now() - started < 2500, "and aborts promptly");
+  }
+  pinServer.close();
+
+  // --- The whole fetch has one budget, not one per hop ---
+  // Five redirects at 9s each was 54s inside a function capped at 60. An
+  // exhausted budget is reported as a timeout, before any connection is made,
+  // so this needs no network.
+  {
+    // totalMs=0 against a 9000ms per-hop timeout is also the regression test
+    // for how this was first written: an earlier version set the deadline from
+    // Math.max(timeoutMs, totalMs), which silently discarded any budget
+    // smaller than one hop, and a 9s hop inside a 2s budget duly ran 9s.
+    const started = Date.now();
+    let err;
+    try { await safeFetch("https://example.com/", {}, 9000, 5, 0); } catch (e) { err = e; }
+    assert.ok(err && isAbortError(err), "an explicit budget smaller than one hop is still honoured, and reads as a timeout");
+    assert.ok(Date.now() - started < 500, "and is refused before any connection, so this needs no network");
+  }
 
   // assertPublicHost: these resolve without network (literal IPs / localhost short-circuit).
   await rejects(assertPublicHost("localhost"), "localhost blocked");
