@@ -214,6 +214,61 @@ async function resolves(promise, label) {
   // Five redirects at 9s each was 54s inside a function capped at 60. An
   // exhausted budget is reported as a timeout, before any connection is made,
   // so this needs no network.
+  // --- The deadline covers reading the body, not just getting the headers ---
+  // A server can answer promptly and then dribble for ever. The body is read by
+  // the caller after safeFetch has returned, so a timer cleared when the
+  // headers arrive would leave that unbounded.
+  {
+    const slowBody = http.createServer((req, res) => {
+      res.writeHead(200, { "content-type": "text/html" });
+      if (req.url === "/dribble") {
+        const tick = setInterval(() => { try { res.write("x"); } catch { clearInterval(tick); } }, 300);
+        res.on("close", () => clearInterval(tick));
+        return;
+      }
+      res.write("<!doctype html>"); // headers, a little body, then silence
+    });
+    await new Promise((resolve) => slowBody.listen(0, "127.0.0.1", resolve));
+    const slowPort = slowBody.address().port;
+    for (const path of ["/dribble", "/silence"]) {
+      const started = Date.now();
+      let err;
+      try {
+        const r = await pinnedFetch(`http://example.com:${slowPort}${path}`, {}, 1200, ["127.0.0.1"]);
+        await readBodyCapped(r);
+      } catch (e) { err = e; }
+      assert.ok(err, `a stalled body (${path}) must not read for ever`);
+      assert.ok(isAbortError(err), `and must surface as a timeout so the route answers 504, got ${err && err.message}`);
+      assert.ok(Date.now() - started < 3000, `and must stop near the deadline (${path})`);
+    }
+    slowBody.close();
+  }
+
+  // --- Response-size limits survive the move off global fetch ---
+  {
+    const zlib = require("zlib");
+    const bigServer = http.createServer((req, res) => {
+      if (req.url === "/bomb") {
+        // ~40 MB of one byte in ~40 KB of gzip. content-length describes the
+        // COMPRESSED body and says nothing about what it expands to, which is
+        // why pinnedFetch drops that header once it has decompressed.
+        res.writeHead(200, { "content-type": "text/html", "content-encoding": "gzip" });
+        res.end(zlib.gzipSync(Buffer.alloc(40 * 1024 * 1024, 0x61)));
+        return;
+      }
+      res.writeHead(200, { "content-type": "text/html", "content-length": String(8 * 1024 * 1024) });
+      res.end(Buffer.alloc(8 * 1024 * 1024, 0x62));
+    });
+    await new Promise((resolve) => bigServer.listen(0, "127.0.0.1", resolve));
+    const bigPort = bigServer.address().port;
+    const over = await pinnedFetch(`http://example.com:${bigPort}/big`, {}, 8000, ["127.0.0.1"]);
+    assert.strictEqual(await readBodyCapped(over, 6000000), null, "an over-cap body is still refused");
+    const bomb = await pinnedFetch(`http://example.com:${bigPort}/bomb`, {}, 8000, ["127.0.0.1"]);
+    assert.strictEqual(bomb.headers.get("content-length"), null, "a decompressed body has no trustworthy declared length");
+    assert.strictEqual(await readBodyCapped(bomb, 6000000), null, "and the cap bounds the DECOMPRESSED size, which content-length never could");
+    bigServer.close();
+  }
+
   {
     // totalMs=0 against a 9000ms per-hop timeout is also the regression test
     // for how this was first written: an earlier version set the deadline from

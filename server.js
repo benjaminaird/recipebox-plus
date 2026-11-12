@@ -2111,12 +2111,20 @@ function pinnedFetch(rawUrl, options = {}, timeoutMs = 9000, addresses = []) {
   return new Promise((resolve, reject) => {
     if (!pinned.length) { reject(ssrfError('unresolvable host')); return; }
     let done = false;
+    const abortError = () => Object.assign(new Error('The operation was aborted'), { name: 'AbortError' });
     const finish = (fn, value) => { if (!done) { done = true; clearTimeout(timer); fn(value); } };
+    // One deadline for the whole exchange, headers AND body. It is not cleared
+    // when the headers arrive: a server that answers promptly and then dribbles
+    // the body forever would otherwise be unbounded, because the body is read
+    // by the caller after this promise has already resolved. The timer is
+    // re-armed with whatever is left of the same budget and torn down when the
+    // body ends, so reading cannot extend the deadline it was given.
+    const deadline = Date.now() + timeoutMs;
     const timer = setTimeout(() => {
+      try { request.destroy(abortError()); } catch {}
       // Named so isAbortError() reads it as a timeout, exactly as the
       // AbortController in fetchWithTimeout does.
-      try { request.destroy(); } catch {}
-      finish(reject, Object.assign(new Error('The operation was aborted'), { name: 'AbortError' }));
+      finish(reject, abortError());
     }, timeoutMs);
 
     const request = transport.request({
@@ -2166,10 +2174,23 @@ function pinnedFetch(rawUrl, options = {}, timeoutMs = 9000, addresses = []) {
         }
         body = Readable.toWeb(stream);
       }
+      // Hand the rest of the budget to the body. An unref'd timer so an
+      // unread body cannot hold a serverless function open, and cleared on
+      // every way a stream can finish.
+      clearTimeout(timer);
+      const bodyTimer = setTimeout(() => { try { request.destroy(abortError()); } catch {} }, Math.max(1, deadline - Date.now()));
+      if (typeof bodyTimer.unref === 'function') bodyTimer.unref();
+      const stopBodyTimer = () => clearTimeout(bodyTimer);
+      incoming.on('end', stopBodyTimer);
+      incoming.on('close', stopBodyTimer);
+      incoming.on('error', stopBodyTimer);
+
       const response = new Response(body, { status, statusText: incoming.statusMessage || '', headers });
       // Response.url is empty on a constructed Response, and callers read it
       // as the final URL after redirects.
       try { Object.defineProperty(response, 'url', { value: rawUrl, configurable: true }); } catch {}
+      // Also exposed so a caller reading the body knows how long it may take.
+      try { Object.defineProperty(response, 'deadline', { value: deadline, configurable: true }); } catch {}
       finish(resolve, response);
     });
 
