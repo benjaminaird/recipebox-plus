@@ -31,6 +31,7 @@
     "auth-verification-test": "node scripts/auth-verification-test.js",
     "device-auth-test": "node scripts/device-auth-test.js",
     "device-auth-routes-test": "node scripts/device-auth-routes-test.js",
+    "device-auth-db-test": "node scripts/device-auth-db-test.js",
     "native-auth-e2e-test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/native-auth-e2e-test.mjs",
     "security-headers-test": "node scripts/security-headers-test.js",
     "security-hardening-test": "node scripts/security-hardening-test.js",

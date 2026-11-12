@@ -1412,6 +1412,34 @@ async function issueVerificationEmail(db, req, userId, email) {
   }
 }
 
+// Run a block inside a transaction that is actually one.
+//
+// `pool.query('BEGIN')` does not start a transaction the following
+// `pool.query()` calls are inside. A pool hands out a connection per query, so
+// with two callers at once the BEGIN and the work can land on different
+// backends — measured against PostgreSQL 16, not feared: two concurrent
+// callers each did BEGIN / INSERT / ROLLBACK and one row survived both
+// rollbacks. `upsertUserRecipe` already checks out a client for this reason;
+// the auth routes below now do the same.
+async function withTransaction(db, run) {
+  const client = typeof db.connect === 'function' ? await db.connect() : db;
+  let started = false;
+  try {
+    await client.query('BEGIN');
+    started = true;
+    const result = await run(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    if (started) {
+      try { await client.query('ROLLBACK'); } catch (_) { /* preserve the original error */ }
+    }
+    throw err;
+  } finally {
+    if (client !== db && typeof client.release === 'function') client.release();
+  }
+}
+
 async function currentUser(req) {
   const db = await getPool();
   if (!db) return null;
@@ -2668,19 +2696,14 @@ app.post('/api/auth/reset-password', async (req, res) => {
     );
     const reset = result.rows[0];
     if (!reset) return res.status(400).json({ error: 'This reset link is invalid or expired.' });
-    await db.query('BEGIN');
-    try {
-      await db.query('UPDATE profiles SET password_hash=$1, updated_at=now() WHERE user_id=$2', [hashPassword(password), reset.user_id]);
-      await db.query('UPDATE password_reset_tokens SET used_at=now() WHERE token_hash=$1', [reset.token_hash]);
-      await db.query('DELETE FROM account_sessions WHERE user_id=$1', [reset.user_id]);
+    await withTransaction(db, async (tx) => {
+      await tx.query('UPDATE profiles SET password_hash=$1, updated_at=now() WHERE user_id=$2', [hashPassword(password), reset.user_id]);
+      await tx.query('UPDATE password_reset_tokens SET used_at=now() WHERE token_hash=$1', [reset.token_hash]);
+      await tx.query('DELETE FROM account_sessions WHERE user_id=$1', [reset.user_id]);
       // Resetting a password signs out every native device as well. A reset is
       // the move someone makes when they think a credential has been taken.
-      await deviceAuth.revokeAllDevices(deviceAuth.createPgStore(db), reset.user_id);
-      await db.query('COMMIT');
-    } catch (err) {
-      await db.query('ROLLBACK');
-      throw err;
-    }
+      await deviceAuth.revokeAllDevices(deviceAuth.createPgStore(tx), reset.user_id);
+    });
     clearAuthLimit(req);
     res.clearCookie(SESSION_COOKIE, { path: '/' });
     res.json({ ok: true });
@@ -2703,14 +2726,12 @@ app.post('/api/auth/verify-email', async (req, res) => {
     );
     const row = result.rows[0];
     if (!row) return res.status(400).json({ error: 'This confirmation link is invalid or has expired. Request a new one from Settings.' });
-    await db.query('BEGIN');
-    try {
-      await db.query('UPDATE email_verification_tokens SET used_at=now() WHERE token_hash=$1', [row.token_hash]);
-      await db.query('UPDATE profiles SET email_verified=true, email_verified_at=now(), updated_at=now() WHERE user_id=$1', [row.user_id]);
+    await withTransaction(db, async (tx) => {
+      await tx.query('UPDATE email_verification_tokens SET used_at=now() WHERE token_hash=$1', [row.token_hash]);
+      await tx.query('UPDATE profiles SET email_verified=true, email_verified_at=now(), updated_at=now() WHERE user_id=$1', [row.user_id]);
       // Invalidate any other outstanding tokens for this user.
-      await db.query('UPDATE email_verification_tokens SET used_at=now() WHERE user_id=$1 AND used_at IS NULL', [row.user_id]);
-      await db.query('COMMIT');
-    } catch (err) { await db.query('ROLLBACK'); throw err; }
+      await tx.query('UPDATE email_verification_tokens SET used_at=now() WHERE user_id=$1 AND used_at IS NULL', [row.user_id]);
+    });
     clearAuthLimit(req);
     res.json({ ok: true, verified: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -2746,23 +2767,18 @@ app.post('/api/auth/change-password', async (req, res) => {
     if (!profile || !verifyPassword(currentPassword, profile.password_hash)) return res.status(401).json({ error: 'Current password did not match.' });
     const token = parseCookies(req)[SESSION_COOKIE];
     const tokenHash = token ? hashToken(token) : '';
-    await db.query('BEGIN');
-    try {
-      await db.query('UPDATE profiles SET password_hash=$1, updated_at=now() WHERE user_id=$2', [hashPassword(nextPassword), user.user_id]);
-      await db.query('DELETE FROM password_reset_tokens WHERE user_id=$1', [user.user_id]);
+    await withTransaction(db, async (tx) => {
+      await tx.query('UPDATE profiles SET password_hash=$1, updated_at=now() WHERE user_id=$2', [hashPassword(nextPassword), user.user_id]);
+      await tx.query('DELETE FROM password_reset_tokens WHERE user_id=$1', [user.user_id]);
       // Same rule as a reset: the new password is the only credential that
       // still works, on the web and on every device.
-      await deviceAuth.revokeAllDevices(deviceAuth.createPgStore(db), user.user_id);
+      await deviceAuth.revokeAllDevices(deviceAuth.createPgStore(tx), user.user_id);
       if (tokenHash) {
-        await db.query('DELETE FROM account_sessions WHERE user_id=$1 AND token_hash<>$2', [user.user_id, tokenHash]);
+        await tx.query('DELETE FROM account_sessions WHERE user_id=$1 AND token_hash<>$2', [user.user_id, tokenHash]);
       } else {
-        await db.query('DELETE FROM account_sessions WHERE user_id=$1', [user.user_id]);
+        await tx.query('DELETE FROM account_sessions WHERE user_id=$1', [user.user_id]);
       }
-      await db.query('COMMIT');
-    } catch (err) {
-      await db.query('ROLLBACK');
-      throw err;
-    }
+    });
     clearAuthLimit(req);
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -2788,19 +2804,14 @@ app.post('/api/auth/delete-account', async (req, res) => {
     const result = await db.query('SELECT user_id, password_hash FROM profiles WHERE user_id=$1', [user.user_id]);
     const profile = result.rows[0];
     if (!profile || !verifyPassword(req.body.password, profile.password_hash)) return res.status(401).json({ error: 'Password did not match.' });
-    await db.query('BEGIN');
-    try {
-      await db.query('DELETE FROM recipes WHERE user_id=$1', [user.user_id]);
-      await db.query('DELETE FROM meal_plans WHERE user_id=$1', [user.user_id]);
-      await db.query('DELETE FROM user_settings WHERE user_id=$1', [user.user_id]);
-      await db.query('DELETE FROM password_reset_tokens WHERE user_id=$1', [user.user_id]);
-      await db.query('DELETE FROM account_sessions WHERE user_id=$1', [user.user_id]);
-      await db.query('DELETE FROM profiles WHERE user_id=$1', [user.user_id]);
-      await db.query('COMMIT');
-    } catch (err) {
-      await db.query('ROLLBACK');
-      throw err;
-    }
+    await withTransaction(db, async (tx) => {
+      await tx.query('DELETE FROM recipes WHERE user_id=$1', [user.user_id]);
+      await tx.query('DELETE FROM meal_plans WHERE user_id=$1', [user.user_id]);
+      await tx.query('DELETE FROM user_settings WHERE user_id=$1', [user.user_id]);
+      await tx.query('DELETE FROM password_reset_tokens WHERE user_id=$1', [user.user_id]);
+      await tx.query('DELETE FROM account_sessions WHERE user_id=$1', [user.user_id]);
+      await tx.query('DELETE FROM profiles WHERE user_id=$1', [user.user_id]);
+    });
     clearAuthLimit(req);
     res.clearCookie(SESSION_COOKIE, { path: '/' });
     res.json({ ok: true });
@@ -4418,7 +4429,10 @@ module.exports._test = {
   isPrivateIp, ipv6ToBytes, BLOCKED_PORTS, assertPublicHost, resolveWithinBudget, DNS_TIMEOUT_MS, looksBlockedPage, buildPageResult, scraperRequestUrl, jinaRequestUrl,
   periodKey, resetAfter,
   resolveMonthlyCostCap,
-  hashToken, publicUser, VERIFY_TOKEN_MINUTES,
+  hashToken, hashPassword, verifyPassword, publicUser, VERIFY_TOKEN_MINUTES, withTransaction,
+  // Closing the pool is only ever wanted by a test that created a throwaway
+  // database and now needs to drop it.
+  async closePool() { if (pool) { const p = pool; pool = null; await p.end(); } },
   deviceAuth, authLimitVerdict, bearerToken, requireDeviceAuth, getDeviceStore,
   DEVICE_REFRESH_LIMIT_MAX,
   // In-process seam: the offline route suites point /api/v1 at a memory store

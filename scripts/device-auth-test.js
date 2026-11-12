@@ -404,12 +404,19 @@ async function main() {
     throw new Error('DEVICE_AUTH_TEST_DATABASE_URL does not look like a test database; refusing to touch it');
   }
   const { Pool } = require('pg');
-  const pool = new Pool({ connectionString: url, ssl: url.includes('localhost') ? false : { rejectUnauthorized: false } });
+  const ssl = /localhost|127\.0\.0\.1/.test(url) ? false : { rejectUnauthorized: false };
   const schema = `device_auth_test_${crypto.randomBytes(4).toString('hex')}`;
+
+  // Two pools on purpose. `SET search_path` applies to the connection that ran
+  // it, and a pool hands out several — so the parallel cases would land on a
+  // connection that had never heard of the schema. The working pool carries
+  // the search_path in its connection options instead, where every connection
+  // it opens gets it.
+  const admin = new Pool({ connectionString: url, ssl });
+  let pool = null;
   try {
-    await pool.query(`CREATE SCHEMA ${schema}`);
-    await pool.query(`SET search_path TO ${schema}`);
-    await pool.query('CREATE EXTENSION IF NOT EXISTS pgcrypto');
+    await admin.query(`CREATE SCHEMA ${schema}`);
+    pool = new Pool({ connectionString: url, ssl, options: `-c search_path=${schema}`, max: 4 });
     await pool.query('CREATE TABLE profiles (user_id text PRIMARY KEY, email text UNIQUE, display_name text, role text, password_hash text, email_verified boolean, email_verified_at timestamptz)');
     await ensureSchema(pool);
     await runSuite('postgres store', async (users) => {
@@ -422,8 +429,9 @@ async function main() {
       return createPgStore(pool);
     });
   } finally {
-    await pool.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`).catch(() => {});
-    await pool.end().catch(() => {});
+    if (pool) await pool.end().catch(() => {});
+    await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`).catch(() => {});
+    await admin.end().catch(() => {});
   }
   process.exitCode = 0;
   console.log('device-auth-test: ok');
