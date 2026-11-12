@@ -63,6 +63,7 @@ jobs:
       - name: Server-dependent tests
         run: |
           for t in nutrition-billing-test ai-credits-test auth-rate-limit-test auth-verification-test \
+                   device-auth-test device-auth-routes-test \
                    entitlements-test household-test import-fidelity-test import-reliability-test \
                    library-view-test meal-plan-test nightmare-report-test notes-import-test \
                    recipe-persistence-test recipe-save-test request-guards-test scraper-fallback-test \

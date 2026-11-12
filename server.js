@@ -15,6 +15,9 @@ const RecipeBoxExtract = require('./packages/recipe-core/src/recipe-extract');
 const RecipeBoxShopping = require('./packages/recipe-core/src/shopping-list');
 // One canonical category definition is shared by validation, hydration, and UI.
 const RecipeBoxLibrary = require('./packages/recipe-core/src/recipe-library');
+// Device sessions for the native client. Token lifecycle + storage only; it
+// reads the web app's `profiles` and owns no identity of its own (ADR 0010).
+const deviceAuth = require('./lib/device-auth');
 
 const app = express();
 app.disable('x-powered-by');
@@ -51,6 +54,7 @@ const SESSION_DAYS = 3650;
 const PASSWORD_MIN_LENGTH = 6;
 const AUTH_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const AUTH_LIMIT_MAX = 20;
+const DEVICE_REFRESH_LIMIT_MAX = 120; // refreshes per IP per quarter-hour (/api/v1)
 const RESET_TOKEN_MINUTES = 60;
 const VERIFY_TOKEN_MINUTES = 60 * 24; // email verification links last 24h
 const AI_MONTHLY_LIMIT = Number(process.env.AI_MONTHLY_LIMIT || 50);
@@ -631,6 +635,8 @@ async function getPool() {
       updated_at timestamptz NOT NULL DEFAULT now(),
       PRIMARY KEY(household_id, period)
     )`);
+    // device_sessions / device_tokens: additive, nothing existing is altered.
+    await deviceAuth.ensureSchema(pool);
     await seedAppControlKnowledge(pool);
     await ensureConfiguredMasterAdmin(pool);
   }
@@ -673,16 +679,15 @@ function authLimitKey(req) {
 // Auth attempt throttling. DB-backed (rate_limit_counters) so it actually works
 // across serverless instances; falls back to the in-memory map when there is no
 // database (local dev). Per IP+email, max AUTH_LIMIT_MAX per 15 minutes.
-async function checkAuthLimit(req, res) {
+// The verdict on its own, so the native surface can share these exact buckets
+// and limits while answering in its own coded shape. The web's response below
+// is unchanged, and both surfaces draw down one budget rather than one each.
+async function authLimitVerdict(req) {
   const db = await getPool();
   if (db) {
     try {
       const rl = await checkRateLimit(authLimitKey(req), 'auth', AUTH_LIMIT_MAX, 'quarterhour');
-      if (!rl.allowed) {
-        res.status(429).json({ error: 'Too many sign-in attempts. Wait a few minutes and try again.' });
-        return false;
-      }
-      return true;
+      return { allowed: rl.allowed, resetAt: rl.resetAt };
     } catch { /* fall through to in-memory */ }
   }
   const key = authLimitKey(req);
@@ -694,7 +699,12 @@ async function checkAuthLimit(req, res) {
   }
   entry.count += 1;
   authAttempts.set(key, entry);
-  if (entry.count > AUTH_LIMIT_MAX) {
+  return { allowed: entry.count <= AUTH_LIMIT_MAX, resetAt: new Date(entry.resetAt) };
+}
+
+async function checkAuthLimit(req, res) {
+  const verdict = await authLimitVerdict(req);
+  if (!verdict.allowed) {
     res.status(429).json({ error: 'Too many sign-in attempts. Wait a few minutes and try again.' });
     return false;
   }
@@ -2632,6 +2642,9 @@ app.post('/api/auth/reset-password', async (req, res) => {
       await db.query('UPDATE profiles SET password_hash=$1, updated_at=now() WHERE user_id=$2', [hashPassword(password), reset.user_id]);
       await db.query('UPDATE password_reset_tokens SET used_at=now() WHERE token_hash=$1', [reset.token_hash]);
       await db.query('DELETE FROM account_sessions WHERE user_id=$1', [reset.user_id]);
+      // Resetting a password signs out every native device as well. A reset is
+      // the move someone makes when they think a credential has been taken.
+      await deviceAuth.revokeAllDevices(deviceAuth.createPgStore(db), reset.user_id);
       await db.query('COMMIT');
     } catch (err) {
       await db.query('ROLLBACK');
@@ -2706,6 +2719,9 @@ app.post('/api/auth/change-password', async (req, res) => {
     try {
       await db.query('UPDATE profiles SET password_hash=$1, updated_at=now() WHERE user_id=$2', [hashPassword(nextPassword), user.user_id]);
       await db.query('DELETE FROM password_reset_tokens WHERE user_id=$1', [user.user_id]);
+      // Same rule as a reset: the new password is the only credential that
+      // still works, on the web and on every device.
+      await deviceAuth.revokeAllDevices(deviceAuth.createPgStore(db), user.user_id);
       if (tokenHash) {
         await db.query('DELETE FROM account_sessions WHERE user_id=$1 AND token_hash<>$2', [user.user_id, tokenHash]);
       } else {
@@ -2776,6 +2792,203 @@ app.post('/api/auth/migrate', async (req, res) => {
     if (req.body.mealPlan && typeof req.body.mealPlan === 'object') await replaceUserMealPlan(user.user_id, req.body.mealPlan);
     res.json({ ok: true, recipes: merged, mealPlan: await readUserMealPlan(user.user_id) });
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── /api/v1 — the native client's surface (ADR 0010, docs/native-auth-design.md)
+//
+// Kept apart from the cookie routes above on purpose: a device token is
+// accepted only under /api/v1, a session cookie only on the legacy routes, and
+// neither surface honours the other's credential. A stolen credential stays on
+// the surface it came from, and /api/v1 needs no CSRF defence because no
+// browser attaches a bearer token by itself.
+//
+// Authorization is not re-implemented here. Every route resolves a `req.user`
+// of the same shape `requireAuth` produces and then calls the very helpers the
+// web calls, so the two transports cannot drift apart in what they permit.
+
+// Set only through module.exports._test, in-process, by the offline suites:
+// it lets the route tests run the shipped lifecycle against the memory store
+// with no database. Nothing in a request can reach it.
+let deviceStoreForTests = null;
+
+async function getDeviceStore() {
+  if (deviceStoreForTests) return deviceStoreForTests;
+  const db = await getPool();
+  return db ? deviceAuth.createPgStore(db) : null;
+}
+
+// Errors carry a stable `code`; clients switch on it, never on `message`.
+function sendV1Error(res, err) {
+  if (err instanceof deviceAuth.DeviceAuthError) {
+    const body = { code: err.code, message: err.message };
+    return res.status(err.status).json(body);
+  }
+  console.error('api/v1 error:', err && err.message);
+  return res.status(500).json({ code: 'server_error', message: 'Something went wrong.' });
+}
+
+function bearerToken(req) {
+  const header = String(req.headers.authorization || '').trim();
+  const match = /^Bearer[ \t]+(\S+)$/i.exec(header);
+  return match ? match[1] : '';
+}
+
+// `req.user` is the same row shape `currentUser()` returns — never the raw
+// profiles row, which carries the password hash.
+function deviceUserRow(user) {
+  return {
+    user_id: user.user_id,
+    email: user.email,
+    display_name: user.display_name,
+    role: user.role,
+    email_verified: user.email_verified,
+    email_verified_at: user.email_verified_at,
+  };
+}
+
+async function requireDeviceAuth(req, res, next) {
+  try {
+    const store = await getDeviceStore();
+    if (!store) return res.status(503).json({ code: 'database_unavailable', message: 'The service is not available right now.' });
+    const resolved = await deviceAuth.authenticate(store, bearerToken(req));
+    req.user = deviceUserRow(resolved.user);
+    req.device = resolved.device;
+    next();
+  } catch (err) { sendV1Error(res, err); }
+}
+
+function retryAfterSeconds(resetAt) {
+  if (!resetAt) return 900;
+  const seconds = Math.ceil((new Date(resetAt).getTime() - Date.now()) / 1000);
+  return Math.max(1, Math.min(seconds, 3600));
+}
+
+app.post('/api/v1/auth/signin', async (req, res) => {
+  try {
+    // The web's own buckets and limits: one credential-stuffing budget per
+    // IP+email across both surfaces, not one each.
+    const verdict = await authLimitVerdict(req);
+    if (!verdict.allowed) {
+      return res.status(429).json({ code: 'rate_limited', message: 'Too many sign-in attempts. Wait a few minutes and try again.', retryAfter: retryAfterSeconds(verdict.resetAt) });
+    }
+    const store = await getDeviceStore();
+    if (!store) return res.status(503).json({ code: 'database_unavailable', message: 'The service is not available right now.' });
+
+    let result;
+    try {
+      result = await deviceAuth.signIn(store, { email: req.body && req.body.email, password: req.body && req.body.password, device: req.body && req.body.device }, { verifyPassword });
+    } catch (err) {
+      // An unverified account gets its confirmation email re-sent on the spot,
+      // because the only thing it can usefully do next is confirm.
+      if (err instanceof deviceAuth.DeviceAuthError && err.code === 'email_verification_required') {
+        let sent = false;
+        try {
+          const db = await getPool();
+          if (db && err.extra) sent = await issueVerificationEmail(db, req, err.extra.userId, err.extra.email);
+        } catch { /* best effort, never blocks the response */ }
+        return res.status(403).json({ code: err.code, message: err.message, verificationEmailSent: sent });
+      }
+      throw err;
+    }
+    clearAuthLimit(req);
+    res.json(result);
+  } catch (err) { sendV1Error(res, err); }
+});
+
+app.post('/api/v1/auth/refresh', async (req, res) => {
+  try {
+    const store = await getDeviceStore();
+    if (!store) return res.status(503).json({ code: 'database_unavailable', message: 'The service is not available right now.' });
+    const db = await getPool();
+    if (db) {
+      // Refresh has its own budget, per IP, so a stolen token cannot be used to
+      // mint pairs indefinitely without being noticed.
+      const rl = await checkRateLimit(`${clientIp(req)}|refresh`, 'device-refresh', DEVICE_REFRESH_LIMIT_MAX, 'quarterhour');
+      if (!rl.allowed) return res.status(429).json({ code: 'rate_limited', message: 'Too many refresh attempts.', retryAfter: retryAfterSeconds(rl.resetAt) });
+    }
+    const result = await deviceAuth.refresh(store, { refreshToken: req.body && req.body.refreshToken });
+    res.json(result);
+  } catch (err) {
+    if (err && err.reuseDetected) {
+      // Never log the token or its hash; the fingerprint is enough to tie an
+      // incident together without storing a credential in the logs.
+      console.warn('api/v1 refresh reuse detected; device chain revoked', err.deviceId);
+    }
+    sendV1Error(res, err);
+  }
+});
+
+// Idempotent, and deliberately accepts either credential: a client signing out
+// with an access token that has just expired must still be able to finish.
+app.post('/api/v1/auth/signout', async (req, res) => {
+  try {
+    const store = await getDeviceStore();
+    if (!store) return res.json({ ok: true });
+    let deviceId = null;
+    try {
+      const resolved = await deviceAuth.authenticate(store, bearerToken(req));
+      deviceId = resolved.device.id;
+    } catch { /* fall through to the refresh token */ }
+    if (!deviceId && req.body && req.body.refreshToken) {
+      const row = await store.getToken(deviceAuth.hashToken(String(req.body.refreshToken)));
+      if (row && row.kind === 'refresh') deviceId = row.device_id;
+    }
+    if (deviceId) await deviceAuth.signOut(store, { deviceId });
+    res.json({ ok: true });
+  } catch (err) { sendV1Error(res, err); }
+});
+
+app.get('/api/v1/auth/devices', requireDeviceAuth, async (req, res) => {
+  try {
+    const store = await getDeviceStore();
+    res.json({ devices: await deviceAuth.listDevices(store, req.user.user_id, req.device.id) });
+  } catch (err) { sendV1Error(res, err); }
+});
+
+app.delete('/api/v1/auth/devices/:id', requireDeviceAuth, async (req, res) => {
+  try {
+    const store = await getDeviceStore();
+    res.json(await deviceAuth.revokeDevice(store, req.user.user_id, req.params.id));
+  } catch (err) { sendV1Error(res, err); }
+});
+
+// Re-send a confirmation link for an account that cannot sign in yet. Credentials
+// are required so this cannot be used to mail someone else, and the answer is
+// the same whatever happens so it cannot be used to discover who has an account.
+app.post('/api/v1/auth/verification/send', async (req, res) => {
+  try {
+    const verdict = await authLimitVerdict(req);
+    if (!verdict.allowed) {
+      return res.status(429).json({ code: 'rate_limited', message: 'Too many attempts. Wait a few minutes and try again.', retryAfter: retryAfterSeconds(verdict.resetAt) });
+    }
+    const store = await getDeviceStore();
+    if (!store) return res.json({ ok: true });
+    const user = await store.findUserByEmail(normalizeEmail(req.body && req.body.email));
+    if (user && verifyPassword(String((req.body && req.body.password) || ''), user.password_hash) && user.email_verified === false) {
+      const db = await getPool();
+      if (db) await issueVerificationEmail(db, req, user.user_id, user.email);
+    }
+    res.json({ ok: true });
+  } catch (err) { sendV1Error(res, err); }
+});
+
+app.get('/api/v1/me', requireDeviceAuth, async (req, res) => {
+  res.json({ user: deviceAuth.publicUser(req.user), device: deviceAuth.publicDevice(req.device, req.device.id) });
+});
+
+// The household a device may see is decided by the same function the web route
+// calls, with the same argument. That is the whole of "authorization does not
+// depend on how you authenticated".
+app.get('/api/v1/household', requireDeviceAuth, async (req, res) => {
+  try { res.json((await readHouseholdForUser(req.user.user_id)) || { household: null }); }
+  catch (err) { sendV1Error(res, err); }
+});
+
+// Anything else under /api/v1 is a 404 with a code, not the SPA's index.html —
+// a published client must be able to tell "no such endpoint" from "here is a
+// web page", which is what it would otherwise receive from the catch-all below.
+app.all('/api/v1/*', (req, res) => {
+  res.status(404).json({ code: 'not_found', message: 'No such endpoint.' });
 });
 
 app.get('/api/recipes', async (req, res) => {
@@ -4175,6 +4388,12 @@ module.exports._test = {
   periodKey, resetAfter,
   resolveMonthlyCostCap,
   hashToken, publicUser, VERIFY_TOKEN_MINUTES,
+  deviceAuth, authLimitVerdict, bearerToken, requireDeviceAuth, getDeviceStore,
+  DEVICE_REFRESH_LIMIT_MAX,
+  // In-process seam: the offline route suites point /api/v1 at a memory store
+  // so the shipped lifecycle is what they exercise. Nothing in a request can
+  // reach this, and production never calls it.
+  useDeviceStore(store) { deviceStoreForTests = store; },
   trustedAppOrigin, sanitizeAiBody, ALLOWED_AI_MODELS, DEFAULT_AI_MODEL, MAX_AI_OUTPUT_TOKENS,
 };
 
