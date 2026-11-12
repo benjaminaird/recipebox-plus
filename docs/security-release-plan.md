@@ -23,19 +23,27 @@ without explicit authorisation.**
 | `4dfb9da` | The deadline covers reading the body | **yes** |
 | `0069c9d` | The controlled DNS-rebinding test | **yes** (test only) |
 | `23d90d6` | An unusable HTTP status no longer crashes the fetcher; WHATWG bad ports refused again | **yes** |
+| `d5723ab` | The fetch budget now covers DNS; suites that stop halfway now fail | **yes** |
+| `529c178`, `71e0268` | Device authentication, server and native | **no** — a new API surface and a new client, nothing to do with these fixes |
 | `e78fc31` | Metric corrections | **no** — changes what web users see; approved for the branch, not for release |
 | `1c22098` | `packages/recipe-core` extraction | **no** — not needed by the fixes, and it moves every domain module |
 | `8a303a8`, `239ea76` | The dependency-free build guard | **no** — `scripts/build-core.js` only exists because of the extraction |
 | everything in `apps/mobile` | The native client | **no** |
 
-The five releasable commits touch **`server.js` and
-`scripts/import-reliability-test.js` and nothing else**. They do not depend on
-the extraction: the hunks live in `isPrivateIp` / `pinnedFetch` / `safeFetch`
-and in the `_test` export list, none of which the extraction touched.
+The six releasable commits touch **`server.js` and
+`scripts/import-reliability-test.js` and nothing else** once the branch-only
+files are dropped. They do not depend on the extraction: the hunks live in
+`isPrivateIp` / `pinnedFetch` / `safeFetch` / `assertPublicHost` and in the
+`_test` export list, none of which the extraction touched.
 
-## The recommended path: cherry-pick the five onto `main`
+`d5723ab` also edits three test scripts that exist only on the branch
+(`device-auth-test`, `device-auth-routes-test`, `native-auth-e2e-test`). The
+cherry-pick turns those into conflicts, and the recipe below drops them with
+the documents — they belong to the native work, not to this release.
 
-A branch off `main`, the five commits cherry-picked **code only**, a pull
+## The recommended path: cherry-pick the six onto `main`
+
+A branch off `main`, the six commits cherry-picked **code only**, a pull
 request, then the normal deploy. Not a merge of `feature/recipebox-2.0`, which
 would drag the metric change and the native app into production.
 
@@ -43,9 +51,10 @@ would drag the metric change and the native app into production.
 git fetch origin
 git switch -c security/fetch-hardening origin/main
 
-# Code only. Each commit also touched branch-only docs, which do not exist on
-# main and will conflict; resolve by dropping them.
-for c in 04c89a7 362ada5 4dfb9da 0069c9d 23d90d6; do
+# Code only. Each commit also touched branch-only files (documents, and the
+# native auth suites) which do not exist on main and will conflict; resolve by
+# dropping them.
+for c in 04c89a7 362ada5 4dfb9da 0069c9d 23d90d6 d5723ab; do
   git cherry-pick -n "$c" || true
   for f in $(git diff --name-only --diff-filter=U); do git rm -q -f "$f"; done
   git commit -C "$c"
@@ -58,25 +67,32 @@ Then the suites, and a pull request into `main`.
 
 ### Verified, not assumed
 
-The above was run locally in a throwaway worktree (branch
-`release-ssrf-verify`, never pushed, since deleted):
+The above was run locally in a throwaway worktree, twice: once for the five
+commits (branch `release-ssrf-verify`) and again for all six after the DNS fix
+landed (branch `release-ssrf-verify-2`). Neither was pushed; both are deleted.
 
-- **All five applied**, `server.js` auto-merging with no conflict. The only
-  conflicts were the branch-only documents, which are dropped.
+- **All six applied**, `server.js` auto-merging with no conflict. The only
+  conflicts were branch-only files — the documents, and the three native auth
+  suites — all of which are dropped.
 - **Exactly two files differ from `main`**: `server.js` and
   `scripts/import-reliability-test.js`.
 - **`public/shopping-list.js` is byte-identical to `main`** — the metric change
-  does not leak into this release. `apps/mobile` is absent.
+  does not leak into this release. `apps/mobile` and `lib/device-auth.js` are
+  absent, so none of the native authentication work rides along.
 - **The candidate's `server.js` differs from the branch's by six lines**, which
   are the three `packages/recipe-core` require paths. Nothing else: the
   security code is the same code.
-- **Eighteen regression suites pass** on the candidate, including
-  `import-reliability` (which carries the new SSRF, rebinding, deadline and
-  port tests), `security-hardening`, `security-headers`, `request-guards`,
-  `auth-rate-limit`, `auth-verification` and `recipe-persistence`.
+- **Every regression suite that exists on `main` passes** on the candidate —
+  24 of them, including `import-reliability` (which carries the SSRF,
+  rebinding, deadline, port and DNS-budget tests), `security-hardening`,
+  `security-headers`, `request-guards`, `auth-rate-limit`, `auth-verification`
+  and `recipe-persistence`. `nutrition-billing-test` and `recipe-library-test`
+  are branch-only and simply are not there; a run that lists them as failures
+  is looking for files `main` has never had.
 - **The fixes are live in the candidate**: `[::ffff:7f00:1]`,
   `[::ffff:a9fe:a9fe]`, `[::7f00:1]`, `[febf::1]` and `[ff02::1]` all refused,
-  the blocked-port list present, `pinnedFetch` in place.
+  the blocked-port list present, `pinnedFetch` in place, and the DNS budget
+  (`resolveWithinBudget`) wired into `assertPublicHost`.
 
 ### Two tools are branch-only
 
@@ -112,7 +128,11 @@ reachable — but they are changes, and someone will ask:
    rather than up to 54, and the body is now inside that bound. A page that
    took 30 seconds to dribble its HTML used to arrive and now returns 504.
    The route already had that 504 and a message pointing at Paste Text.
-4. **No change to the shopping list, the recipe card, or anything a cook sees**
+4. **A name that will not resolve fails after five seconds** rather than
+   holding the request until the function's own limit. A resolver that is
+   merely slow — anything under five seconds, which is every healthy one —
+   behaves as before.
+5. **No change to the shopping list, the recipe card, or anything a cook sees**
    on a page that imports normally. That is the point of releasing this set and
    not the branch.
 
@@ -128,9 +148,11 @@ and instant. There is no migration to undo and no data written in a new shape.
   this release changes no file the service worker caches. It *is* needed
   whenever the metric change ships, and
   [ADR 0021](./adr/0021-metric-and-us-customary-are-separate.md) records that.
-- **`dns.lookup` has no timeout.** One hanging resolution can still overrun the
-  budget; bounding it needs a resolver with its own timeout. Recorded in
-  [import-fetch-security.md](./import-fetch-security.md) and unchanged by this
-  release.
+- **Cancelling a DNS lookup.** `d5723ab` bounds the *wait* — the fetch can no
+  longer overrun its budget on a resolver that never answers — but the lookup
+  itself keeps running in the background until it gives up, because
+  `dns.lookup` is not interruptible. Its answer is discarded, so this is a held
+  threadpool slot and not a security gap.
+  [import-fetch-security.md](./import-fetch-security.md) has the detail.
 - **The metric change and the native client**, which need their own release
   decisions and, for the native client, a build that is not being made yet.

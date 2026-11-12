@@ -392,3 +392,62 @@ behaviour.
 What remains is ADR 0010: the endpoint needs `/api/v1` and device-token auth,
 and neither exists. That is the only remaining blocker, and it is not a
 security one.
+
+### Milestone 12 — device authentication, built
+
+The five decisions from Milestone 11 are settled (two by the user, three by me
+under the rule "follow the recommendation where it is compatible and
+reversible") and recorded in
+[ADR 0022](./adr/0022-native-session-lifetimes-and-email-verification.md) and at
+the end of [native-auth-design.md](./native-auth-design.md). `/api/v1` now
+exists.
+
+**Server** (`529c178`). `lib/device-auth.js` holds the token lifecycle over a
+small store interface, with a Postgres store and an in-memory store of the same
+shape; `server.js` mounts the router. Access tokens live 15 minutes, refresh
+tokens 30 days rolling, and a device session ends at 180 days however often it
+refreshed — the ceiling is the part worth arguing for, since a rolling window
+alone makes a session permanent, which is what `SESSION_DAYS = 3650` already
+does to web sessions and is not a thing to copy onto a credential in a pocket.
+Rotation revokes the whole device chain on replay, with a 60-second grace
+window so two refreshes racing on one phone are not mistaken for an attack.
+Email verification is enforced natively and unchanged on the web; accounts
+backfilled to `email_verified = true` are reported with a null
+`email_verified_at` rather than being passed off as proven. A password reset or
+change now revokes every device as well as every browser session. Native
+sign-in draws on the web's existing rate-limit bucket rather than a second one.
+
+**Native** (`71e0268`). `apps/mobile/src/auth/` is the client: an API client
+that distinguishes "the server refused" from "the server was never reached", a
+credential store backed by the Keychain and Android Keystore
+(`AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY`, never synced, never restored to another
+device), and a session machine in which a network failure can never sign anyone
+out and nothing can delete local data — it holds no reference to the database at
+all. Two accounts on one phone are separated rather than erased: the first to
+sign in adopts the library already there, anyone else gets their own store.
+**No screen calls any of it yet**, so the bundle still contains none of it and
+the app still does no authentication. The sign-in UI is the next milestone.
+
+**Evidence.** Four suites: the lifecycle against both stores, the same surface
+over HTTP on the real Express app, 26 client cases, and
+`scripts/native-auth-e2e-test.mjs` — the app's own session manager, imported as
+TypeScript, driving the real server over an ephemeral port through sign-in,
+silent mid-request rotation, revocation from a second device, going offline
+against a dead port, recovery without a password, and sign-out. Seven mutations
+were applied one at a time and each failed a test. The Postgres store's SQL is
+exercised only when `DEVICE_AUTH_TEST_DATABASE_URL` names an isolated test
+database; the suite says so rather than implying coverage it has not got.
+
+**The DNS limitation is fixed** (`d5723ab`). The fetch budget now covers
+resolution. Writing that test turned up something worse than the bug: awaiting
+a promise that never settles does not hang node, it exits 0 with the rest of
+the file unrun — so any of these suites could have been quietly half-running in
+CI. Every suite now starts failed and clears it only where it announces it
+finished.
+
+[security-release-plan.md](./security-release-plan.md) is current: six
+releasable commits now, re-verified by cherry-picking them onto a throwaway
+branch off `main`. Two files differ, `public/shopping-list.js` is byte-identical
+to `main`, `lib/device-auth.js` and `apps/mobile` are absent, and all 24 suites
+that exist on `main` pass. Still not executed, and still needing explicit
+authorisation.

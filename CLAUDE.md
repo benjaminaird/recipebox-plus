@@ -50,6 +50,7 @@ their names; do not rename them. ADRs 0001–0012 predate this and still say
 - [0019](./docs/adr/0019-semantic-tokens-and-appearance.md) — one semantic token set, System / Light / Dark from the first build
 - [0020](./docs/adr/0020-recipe-source-attribution.md) — Source attribution is structured, durable and always visible
 - [0021](./docs/adr/0021-metric-and-us-customary-are-separate.md) — metric and US customary are separate systems; a shopping list never mixes them
+- [0022](./docs/adr/0022-native-session-lifetimes-and-email-verification.md) — native session lifetimes, and email verification required natively but not on the web
 
 ## Product requirements
 

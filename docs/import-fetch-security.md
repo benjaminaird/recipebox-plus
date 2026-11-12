@@ -191,10 +191,31 @@ discarded any budget *smaller* than one hop. A 9-second hop inside a 2-second
 budget duly ran for 9 seconds, which the tests caught and which is now the
 regression case.
 
-**One residual limit, stated rather than fixed:** `dns.lookup` takes no timeout
-and is not interruptible, so a single hanging resolution can still overrun the
-budget. The deadline is re-checked immediately after it, which stops the *loop*,
-but bounding resolution itself needs a resolver with its own timeout. Not done.
+**The residual limit, now bounded.** This section used to end by saying that
+`dns.lookup` takes no timeout, so one hanging resolution could overrun the
+budget. It is fixed in `d5723ab`: `resolveWithinBudget` races the lookup against
+whatever is left of the deadline, capped at five seconds.
+
+Be exact about what that buys, because the difference is why it was left
+standing before. The *caller* stops waiting, so a fetch can no longer overrun
+its budget on a dead resolver. The *lookup* carries on in libuv's threadpool
+until it gives up, because `dns.lookup` still cannot be interrupted. Its answer
+is read by nobody and discarded, so it is not a second, unjudged resolution and
+opens no rebinding gap — but it does hold a threadpool slot meanwhile.
+Cancelling the work needs `dns.Resolver`, which answers from the network only:
+no hosts file, no nsswitch, no mDNS. That is a behaviour change nobody asked
+for, so the smaller fix is the one that shipped, and the remaining cost is
+recorded here rather than implied to be nothing.
+
+Measured: a resolver that never answers is refused in under a second against a
+150ms budget, and a whole `safeFetch` against such a name returns inside a
+400ms budget. With the race removed, the suite fails.
+
+That test also turned up something worth knowing about every suite in
+`scripts/`: awaiting a promise that never settles does not hang node, it empties
+the event loop and exits **0**, with the rest of the file unrun. Each suite now
+starts with a failing exit code and clears it only on the line that announces it
+finished, so a half-run suite can no longer pass.
 
 ### Evidence
 

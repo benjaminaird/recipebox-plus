@@ -1,13 +1,18 @@
 ---
-status: proposed — design only, no code written
+status: accepted and built — see "What was built" at the end
 date: 2026-11-12
 ---
 
-# Native authentication for `/api/v1`: design proposal
+# Native authentication for `/api/v1`: design
 
-Implements [ADR 0010](./adr/0010-versioned-api-and-token-auth.md). Nothing here
-is built; `server.js` is unchanged by this document. It ends with the decisions
-that are not mine to make.
+Implements [ADR 0010](./adr/0010-versioned-api-and-token-auth.md), with the
+lifetimes and the verification policy settled in
+[ADR 0022](./adr/0022-native-session-lifetimes-and-email-verification.md).
+
+This document was written as a proposal and is kept as the design. Everything
+below describes what the code now does; where the built thing differs from what
+was proposed, the difference is called out rather than quietly edited away.
+The last two sections say what was built, what was proven, and what is left.
 
 ## What already exists, and why that settles most of this
 
@@ -151,7 +156,7 @@ users, and nothing here needs to touch it.
 
 ```sql
 CREATE TABLE IF NOT EXISTS device_sessions (
-  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id            uuid PRIMARY KEY,                 -- minted by crypto.randomUUID()
   user_id       text NOT NULL REFERENCES profiles(user_id) ON DELETE CASCADE,
   device_name   text NOT NULL DEFAULT 'Unknown device',
   platform      text NOT NULL DEFAULT 'unknown',   -- 'ios' | 'android'
@@ -322,25 +327,112 @@ reason about.
   only start binding once a build is in users' hands.
 - **No production data migration.** The tables start empty; nothing backfills.
 
-## Decisions I am not making unilaterally
+## The five decisions, and how each was settled
 
-These change the product's security posture or its behaviour for real users,
-and the design is deliberately parked here rather than guessing:
+All five are resolved. Two were decided by the person whose product it is; the
+other three fell to me, under the instruction to follow the recommendation only
+where it is compatible with the existing account and household model and
+creates no irreversible production consequence.
 
-1. **Token lifetimes.** Proposed: access 15 minutes, refresh 30 days with
-   rotation. The web's `SESSION_DAYS = 3650` is not a precedent worth
-   following, but 30 days is a product decision about how often a cook has to
-   re-type a password.
-2. **Does native sign-in require a verified email?** The web does not check
-   `email_verified`. Matching it is consistent; requiring verification is
-   safer. Diverging silently is the only wrong answer.
-3. **What `checkRateLimit` failing open should mean here.** With no database it
-   currently allows the request. That is defensible for a sign-in form and
-   questionable for token issuance.
-4. **Whether the web should also get device management.** The tables support
-   it, and "sign out all devices" is more useful than it is expensive — but it
-   is web UI work, which is out of scope by `CLAUDE.md` until approved.
-5. **Whether to implement now or after review.** The recommendation is after:
-   every decision above lands in the schema or the token lifecycle, and
-   changing them later means a migration against rows that real devices are
-   holding tokens for.
+1. **Token lifetimes — settled by the user.** Access 15 minutes; refresh 30
+   days, rolling on use; rotation on every refresh; replay revokes the family.
+   The absolute ceiling was left to me to choose and document: **180 days**, for
+   the reasons in [ADR 0022](./adr/0022-native-session-lifetimes-and-email-verification.md).
+   Concurrent refreshes are kept from reading as replays by a 60-second grace
+   window, and by the client refreshing single-flight.
+
+2. **Email verification — settled by the user.** Required natively, unchanged
+   on the web, grandfathered accounts honoured, and `email_verified_at`
+   reported beside the flag so a backfilled "true" is never passed off as
+   proof. ADR 0022 records the whole of it.
+
+3. **What `checkRateLimit` failing open should mean here — mine, and it turned
+   out not to be a decision.** The concern was that with no database the
+   limiter allows everything, which is defensible for a sign-in form and
+   questionable for token issuance. But with no database there is no `profiles`
+   table either: `/api/v1/auth/signin` answers `503 database_unavailable`
+   before any credential is examined, so there is nothing to issue a token
+   from. The fail-open path cannot reach token issuance, and the right change
+   was none. What *was* changed is that native sign-in draws on the web's own
+   per-IP-and-email bucket rather than a second one of its own, so a
+   credential-stuffing run cannot buy itself a fresh budget by switching
+   surface. There is a test for exactly that.
+
+4. **Device management on the web — mine, and the answer is not yet.** The
+   tables and the API support it. Building the UI is a change to the production
+   web app, which rule one of `CLAUDE.md` puts behind an explicit approval, and
+   no approval covers it. Deferred, not forgotten.
+
+5. **Implement now or after review — settled by the user: now.**
+
+## What was built
+
+| Piece | Where |
+| --- | --- |
+| Token lifecycle: minting, rotation, replay detection, revocation, expiry | `lib/device-auth.js` |
+| Postgres store, and an in-memory store of the same shape | `lib/device-auth.js` |
+| `/api/v1` router, `requireDeviceAuth`, the coded 404 | `server.js` |
+| Device revocation on password reset and password change | `server.js` |
+| API client, credential store, session state machine, two-account isolation | `apps/mobile/src/auth/` |
+| Keychain / Keystore storage | `apps/mobile/src/auth/secureCredentialStore.ts` |
+
+Endpoints, all under `/api/v1`: `POST auth/signin`, `POST auth/refresh`,
+`POST auth/signout`, `GET auth/devices`, `DELETE auth/devices/:id`,
+`POST auth/verification/send`, `GET me`, `GET household`. Anything else under
+`/api/v1` is a JSON `404 { code: "not_found" }` rather than the single-page
+app's HTML, because a published client must be able to tell a missing endpoint
+from a web page.
+
+`GET /api/v1/household` exists to make one claim testable rather than merely
+stated: it calls `readHouseholdForUser(req.user.user_id)` — the identical
+function, with the identical argument, that `GET /api/household` calls for a
+cookie session. Authorization does not know which transport it was reached by.
+
+### What the tests prove, and how far
+
+- `scripts/device-auth-test.js` — the lifecycle, against both stores.
+  Credentials, verification, access-token expiry, rotation, replay, concurrent
+  refresh (including two genuinely parallel ones), the rolling window, the
+  180-day ceiling, per-device revocation, one account's inability to touch
+  another's device, re-sign-in on a known device, credential-change revocation,
+  the device ceiling, hostile input, and 400 minted tokens all distinct.
+- `scripts/device-auth-routes-test.js` — the same surface over HTTP on the real
+  Express app: status codes, stable error codes, header parsing, the shared
+  rate-limit bucket, and that neither surface honours the other's credential.
+- `scripts/native-auth-e2e-test.mjs` — the app's own session manager, imported
+  as TypeScript, against the real server: sign in, rotate silently mid-request,
+  be revoked from a second device and discover it on the next call, go offline
+  against a dead port and stay signed in, recover without a password, sign out.
+- `apps/mobile/test/auth.test.ts` — 26 cases on the client's rules: the two
+  kinds of failure, single-flight refresh, backoff, and what two accounts on
+  one phone may see.
+
+Seven mutations were applied one at a time and each failed a test: reuse
+detection disabled, a refresh token accepted as an access token, revocation
+unchecked, verification unenforced, the ceiling removed, the coded 404 dropped,
+and native sign-in given a rate-limit bucket of its own.
+
+**Where the proof stops.** The Postgres store's SQL is exercised only when
+`DEVICE_AUTH_TEST_DATABASE_URL` points at an isolated test database; the suite
+says so rather than implying coverage it does not have, and it refuses any URL
+that does not look like a test database. CI runs the memory store, which proves
+the lifecycle but not the statements. The two stores are driven by one suite
+precisely so that running it against a database is the only step needed.
+
+### What is not built
+
+- **No sign-in screen.** Nothing in the app imports any of
+  `apps/mobile/src/auth/`, so the bundle that builds from this work still
+  contains none of it and the app still does no authentication. That is the
+  next milestone, and it is deliberately separate: the infrastructure is
+  reviewable on its own.
+- **No verification email in development.** Sending needs `RESEND_API_KEY`,
+  which is production configuration. The code path is built and the response
+  tells the truth when there is no key; the key itself is not invented here.
+- **No sync.** `/api/v1` carries authentication and two read endpoints. The
+  sync surface from ADR 0006 is a later milestone and will sit behind the same
+  `requireDeviceAuth`.
+- **The ADR 0010 compatibility fixture** — a frozen description of what a `v1`
+  client sends and expects, replayed in CI — is designed above but not yet
+  written. It only starts binding when a build is in users' hands, so it is due
+  before the first TestFlight release and not before.
