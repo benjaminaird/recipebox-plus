@@ -6,11 +6,11 @@ const dns = require('dns').promises;
 const { fetchTranscript } = require('youtube-transcript');
 // Deterministic structured-data extractor (shared with the client). Lets URL
 // imports skip the AI entirely when a page has complete schema.org data.
-const RecipeBoxExtract = require('./public/recipe-extract');
+const RecipeBoxExtract = require('./packages/recipe-core/src/recipe-extract');
 // Shared shopping-list/pantry sanitizers (reused server-side for household data).
-const RecipeBoxShopping = require('./public/shopping-list');
+const RecipeBoxShopping = require('./packages/recipe-core/src/shopping-list');
 // One canonical category definition is shared by validation, hydration, and UI.
-const RecipeBoxLibrary = require('./public/recipe-library');
+const RecipeBoxLibrary = require('./packages/recipe-core/src/recipe-library');
 
 const app = express();
 app.disable('x-powered-by');

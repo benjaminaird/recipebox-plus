@@ -35,6 +35,8 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       # No npm install on purpose: these modules must stay dependency-free.
+      - name: public/ matches packages/recipe-core/src
+        run: node scripts/build-core.js --check
       - name: Domain regression scripts
         run: |
           for t in normalize-test import-extract-test grounding-test recipe-schema-test \

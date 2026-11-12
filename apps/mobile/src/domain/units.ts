@@ -3,7 +3,7 @@
 // Pure: no React Native, no DOM, no network. It runs under `node --test` and is
 // shaped to move into packages/recipe-core (ADR 0003) unchanged.
 //
-// This overlaps `public/shopping-list.js`, which the production web app loads
+// This overlaps `packages/recipe-core/src/shopping-list.js`, which the production web app loads
 // directly and which must not change behaviour. Rather than edit it, the shared
 // primitives are restated here and a parity test asserts the two agree, so a
 // divergence fails a test instead of reaching a cook.

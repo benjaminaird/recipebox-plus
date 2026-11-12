@@ -1,4 +1,11 @@
 /*
+ * RecipeBox shared domain logic. Two files hold this code:
+ *   packages/recipe-core/src/recipe-extract.js  — the canonical source. Edit this one.
+ *   public/recipe-extract.js  — a generated copy, served to the browser. Never edit it.
+ * After changing the source run `npm run build:core` and commit both.
+ * See packages/recipe-core/README.md.
+ */
+/*
  * RecipeBoxExtract — deterministic, AI-free recipe extraction from web pages.
  *
  * The accuracy strategy is "structured data first": most recipe sites embed a

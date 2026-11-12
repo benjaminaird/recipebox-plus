@@ -10,7 +10,7 @@
 const assert = require("assert");
 const fs = require("fs");
 const path = require("path");
-const Extract = require("../public/recipe-extract");
+const Extract = require("../packages/recipe-core/src/recipe-extract");
 
 const FIX_DIR = path.join(__dirname, "import-test", "fixtures");
 // Hard thresholds for the deterministic path — structured data should be near-perfect.

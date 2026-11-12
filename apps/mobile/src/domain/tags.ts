@@ -18,7 +18,7 @@
 //
 // ## Agreement with the web app
 //
-// `public/recipe-tags.js` already defines what a tag looks like, and the two
+// `packages/recipe-core/src/recipe-tags.js` already defines what a tag looks like, and the two
 // surfaces must agree: a cook who types "copy-cat" on the phone and sees
 // "Copycat" on the laptop is looking at one library, and a cook who sees two
 // tags that differ only in punctuation is looking at a bug. The rules below
@@ -35,7 +35,7 @@
 export const MAX_TAGS = 12;
 
 /** Known spellings that should land on one tag. Mirrors CANONICAL in
- *  public/recipe-tags.js. */
+ *  packages/recipe-core/src/recipe-tags.js. */
 const CANONICAL: Readonly<Record<string, string>> = {
   "copycat": "Copycat",
   "restaurant style": "Copycat",

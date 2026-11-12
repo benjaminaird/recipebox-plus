@@ -6,8 +6,8 @@ const root = path.join(__dirname, '..');
 const server = fs.readFileSync(path.join(root, 'server.js'), 'utf8');
 const app = fs.readFileSync(path.join(root, 'src/app.jsx'), 'utf8');
 const sw = fs.readFileSync(path.join(root, 'public/sw.js'), 'utf8');
-const library = fs.readFileSync(path.join(root, 'public/recipe-library.js'), 'utf8');
-const Library = require('../public/recipe-library');
+const library = fs.readFileSync(path.join(root, 'packages/recipe-core/src/recipe-library.js'), 'utf8');
+const Library = require('../packages/recipe-core/src/recipe-library');
 
 assert.match(server, /app\.post\('\/api\/recipes\/save'/, 'dedicated acknowledged save endpoint exists');
 assert.match(server, /recipe_json->>'id'.*FOR UPDATE/s, 'save is idempotent by stable recipe id');

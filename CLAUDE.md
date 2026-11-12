@@ -58,10 +58,16 @@ their names; do not rename them. ADRs 0001–0012 predate this and still say
 - `src/app.jsx` — the **web** front end (monolith, ~6,800 lines). Edit this, then
   run `npm run build:app`. Never hand-edit `public/app.js`; it is a build
   artifact.
-- `public/recipe-*.js`, `public/shopping-list.js`, `public/nutrition.js` — the
-  portable domain logic: pure UMD JavaScript, no DOM, no network, no
-  dependencies. This is the most valuable code in the repo and the reason the
-  native client is React Native. Treat it as a shared library, not web code.
+- `packages/recipe-core/src/*.js` — the portable domain logic: pure UMD
+  JavaScript, no DOM, no network, no dependencies. This is the most valuable
+  code in the repo and the reason the native client is React Native. It is a
+  shared library, not web code, and it is the **only** editable copy. See
+  [packages/recipe-core/README.md](./packages/recipe-core/README.md).
+- `public/shopping-list.js`, `public/recipe-*.js`, `public/nutrition.js` —
+  generated copies of the above, served to the browser as `<script src>` tags
+  because Vercel serves `public/` as the static root and nothing builds on
+  deploy. Never hand-edit them: change the package and run `npm run build:core`.
+  `npm run core:check` fails the build if the two have drifted.
 
 ## Rules
 
@@ -70,10 +76,12 @@ their names; do not rename them. ADRs 0001–0012 predate this and still say
 - Never delete, overwrite or invalidate saved recipe data. The localStorage keys
   (`recipebox-v5`, `recipebox-mealplan-v2`, `recipebox-shopping-v1`,
   `recipebox-pantry-v1`) and the Neon schema are load-bearing for real users.
-- Import reliability is the product's core promise. Any change touching the
-  domain modules must keep their regression scripts green: `normalize-test`,
+- Import reliability is the product's core promise. Any change touching
+  `packages/recipe-core` must keep its regression scripts green: `normalize-test`,
   `import-extract-test`, `grounding-test`, `recipe-schema-test`,
-  `recipe-tags-test`, `shopping-list-test`, `nutrition-test`.
+  `recipe-tags-test`, `shopping-list-test`, `nutrition-test`,
+  `recipe-library-test`. CI runs them with no `npm install` at all, which is how
+  the package's dependency-free contract is enforced rather than merely stated.
 - `docs/roadmap.md` is a historical log and is partly stale — it still names a
   production branch that is now behind `main`. Trust the code and the ADRs over
   the roadmap.

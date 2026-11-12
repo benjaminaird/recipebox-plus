@@ -1,3 +1,10 @@
+/*
+ * RecipeBox shared domain logic. Two files hold this code:
+ *   packages/recipe-core/src/shopping-list.js  — the canonical source. Edit this one.
+ *   public/shopping-list.js  — a generated copy, served to the browser. Never edit it.
+ * After changing the source run `npm run build:core` and commit both.
+ * See packages/recipe-core/README.md.
+ */
 (function (root) {
   const VOLUME_TO_TSP = {
     tsp: 1, teaspoon: 1, teaspoons: 1,

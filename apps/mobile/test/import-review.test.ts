@@ -1,6 +1,6 @@
 // Import review, over the REAL production extractor.
 //
-// These tests load `public/recipe-extract.js` and `public/recipe-grounding.js`
+// These tests load `packages/recipe-core/src/recipe-extract.js` and `packages/recipe-core/src/recipe-grounding.js`
 // themselves and run them on stored HTML fixtures. That is the point: if the
 // native app ever drifted onto a second importer, or the production one
 // changed its output shape, these fail rather than the two surfaces quietly

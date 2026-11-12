@@ -55,3 +55,24 @@ Restructuring is approved in principle only. Before the first file moves:
    `api/index.js` entry point, the `build:app` esbuild step and the output path
    `public/app.js` — and verify it on a preview deployment before `main` moves.
    The production web app must not break for a single deploy.
+
+## Status of the work (2026-11-11)
+
+`packages/recipe-core` **exists and is the only editable copy** of all eight
+domain modules. `server.js`, the regression scripts and the native app resolve
+it by relative path; `public/` holds generated copies for the browser, because
+Vercel serves `public/` as the static root and nothing builds on deploy.
+`npm run core:check` fails if the two drift, and it runs in CI.
+
+Precondition 1 was met by comparing the six regression suites that exist on both
+`main` and this branch: identical output, byte for byte, before and after the
+move. The module bodies themselves are identical to `main` apart from a
+banner naming the canonical source. Precondition 2 was met earlier by
+[docs/web-build-and-deploy.md](../web-build-and-deploy.md).
+
+`apps/web/` has **not** happened and is not scheduled. Moving `server.js` and
+`src/app.jsx` touches `vercel.json`, `api/index.js` and the deploy path itself,
+and it buys nothing the shared package did not already buy: the thing that made
+extraction urgent was two surfaces needing one extractor, and that is now true.
+The sketch above should be read as the structure this ADR would have reached,
+not as remaining work.

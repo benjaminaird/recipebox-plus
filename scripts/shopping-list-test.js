@@ -8,7 +8,7 @@ const {
   sanitizePantry,
   groupCompoundIngredients,
   abbreviateUnit,
-} = require("../public/shopping-list");
+} = require("../packages/recipe-core/src/shopping-list");
 
 // ── Canonical unit abbreviations (used by card, shopping list, scaled, PDF) ──
 const U = (u, a) => abbreviateUnit(u, a);

@@ -7,7 +7,7 @@
 //   node scripts/recipe-model/eval.js --json        print the full report
 //
 // Subjects:
-//   extractor  — today's deterministic JSON-LD/microdata path (public/recipe-extract.js),
+//   extractor  — today's deterministic JSON-LD/microdata path (packages/recipe-core/src/recipe-extract.js),
 //                plus the one line the app adds after it (sourceUrl = final URL).
 //   reference  — the ideal target-model output built from each case's truth; must score 100%.
 //   ai-*       — the paid AI paths. Never run here; listed as pending until a
@@ -20,8 +20,8 @@ const fs = require("fs");
 const path = require("path");
 const ROOT = path.join(__dirname, "..", "..");
 const DIR = path.join(ROOT, "tests", "recipe-model");
-const Extract = require(path.join(ROOT, "public", "recipe-extract.js"));
-const Normalize = require(path.join(ROOT, "public", "recipe-normalize.js"));
+const Extract = require(path.join(ROOT, "packages", "recipe-core", "src", "recipe-extract.js"));
+const Normalize = require(path.join(ROOT, "packages", "recipe-core", "src", "recipe-normalize.js"));
 const { score, referenceOutput } = require("./scorer");
 const { validate } = require("./validate");
 

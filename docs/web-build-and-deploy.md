@@ -115,12 +115,16 @@ check serves them locally. CI uses the real CDNs.
 
 - `api/index.js` keeps exporting the Express app from the same `server.js`
   behaviour.
-- `server.js` keeps resolving the domain modules. Today that is
-  `require('./public/recipe-extract')`, `./public/shopping-list` and
-  `./public/recipe-library`. After extraction it resolves
-  through the package, with an identical runtime result.
+- `server.js` keeps resolving the domain modules. It now requires them from
+  `./packages/recipe-core/src/...` — `recipe-extract`, `shopping-list` and
+  `recipe-library` — by plain relative path, with an identical runtime result.
+  Nothing resolves the package through `node_modules`, and nothing may start to
+  while the CI domain job runs without installing anything.
 - `public/` keeps serving the same files at the same paths, including the
-  domain modules as browser globals.
+  domain modules as browser globals. They are generated copies now
+  (`npm run build:core`, guarded by `npm run core:check`) because Vercel serves
+  `public/` as the static root and nothing builds on deploy — the same
+  arrangement `public/app.js` has always been in.
 - `public/app.js` stays a reproducible build of `src/app.jsx`, which CI checks.
 - `vercel.json` rewrites and headers stay unchanged, and production stays on
   `main` through Git integration.

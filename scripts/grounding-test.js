@@ -2,7 +2,7 @@
  * Tests for the import grounding/verification pass (Phase 3). Pure, offline.
  */
 const assert = require("assert");
-const G = require("../public/recipe-grounding");
+const G = require("../packages/recipe-core/src/recipe-grounding");
 
 function recipe(names) {
   return { sections: [{ name: "Main", ingredients: names.map((n, i) => ({ id: "i" + i, name: n })) }] };

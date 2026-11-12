@@ -5,8 +5,8 @@
 // this app uses. These modules are pure by design -- their own headers say "no
 // DOM/network/AI" -- which is what makes running them on a phone possible at
 // all.
-import extractApi from "../../../../public/recipe-extract.js";
-import groundingApi from "../../../../public/recipe-grounding.js";
+import extractApi from "../../../../packages/recipe-core/src/recipe-extract.js";
+import groundingApi from "../../../../packages/recipe-core/src/recipe-grounding.js";
 
 export type WebImport = {
   extractFromHtml: (

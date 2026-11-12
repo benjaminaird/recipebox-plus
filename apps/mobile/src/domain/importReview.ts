@@ -3,7 +3,7 @@
 // ## This is the production importer, not a second one
 //
 // The brief forbids a separate incompatible importer, and there is no need for
-// one. `public/recipe-extract.js`, `recipe-normalize.js` and
+// one. `packages/recipe-core/src/recipe-extract.js`, `recipe-normalize.js` and
 // `recipe-grounding.js` are all **pure** -- their own headers say "no
 // DOM/network/AI" -- and `server.js` already treats the HTML-to-recipe step as
 // a pure function for exactly this reason. So the native app runs the same

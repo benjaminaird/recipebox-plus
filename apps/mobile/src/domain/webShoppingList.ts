@@ -18,7 +18,7 @@
 // Expo's base tsconfig allows JavaScript, so TypeScript reads the UMD file
 // directly and infers what it can. The cast below states what this app relies
 // on; the parity tests prove the real module still does it.
-import api from "../../../../public/shopping-list.js";
+import api from "../../../../packages/recipe-core/src/shopping-list.js";
 
 export type WebShoppingItem = {
   id: string;

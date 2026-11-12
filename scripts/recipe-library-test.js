@@ -1,9 +1,9 @@
-// Pure regression test for public/recipe-library.js: categories, the offline
+// Pure regression test for packages/recipe-core/src/recipe-library.js: categories, the offline
 // mirror's compaction rules and paginated loading. No server, network or
 // dependencies, so it can also run on Hermes later. Locks today's behaviour; it
 // does not change it.
 const assert = require("assert");
-const L = require("../public/recipe-library");
+const L = require("../packages/recipe-core/src/recipe-library");
 
 (async () => {
   // ── canonical categories ──

@@ -4,7 +4,7 @@
  * responses (no network / no key / no AI spend).
  */
 const assert = require("assert");
-const S = require("../public/recipe-schema");
+const S = require("../packages/recipe-core/src/recipe-schema");
 
 // ── Tools are well-formed for the Anthropic tools API ──
 assert.strictEqual(S.EXTRACTION_TOOLS.length, 2);

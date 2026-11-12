@@ -1,6 +1,6 @@
 // The recipe shape, mirroring what the product already stores.
 //
-// These types are a TypeScript statement of `public/recipe-schema.js` — the
+// These types are a TypeScript statement of `packages/recipe-core/src/recipe-schema.js` — the
 // same field names, the same nesting, the same stable ingredient ids that
 // steps point at (ADR 0012). The native client must not invent a parallel
 // format: a recipe written here has to round-trip through the existing

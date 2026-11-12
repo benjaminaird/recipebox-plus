@@ -1,7 +1,7 @@
 const assert = require("assert");
 const fs = require("fs");
 const path = require("path");
-const { enrichRecipeIngredients } = require("../public/shopping-list");
+const { enrichRecipeIngredients } = require("../packages/recipe-core/src/shopping-list");
 
 // 1) The import normalizer must NOT change ingredient identity (the bug was
 //    half-and-half showing up as whole milk). Identity-sensitive dairy/flour/etc.

@@ -3,7 +3,7 @@
 //
 // Pure. No React Native, no DOM.
 //
-// The shape matters more than the arithmetic. `public/shopping-list.js` reads
+// The shape matters more than the arithmetic. `packages/recipe-core/src/shopping-list.js` reads
 // an amount as `number | null`, which collapses two very different cases into
 // one: "1-2 lemons" and "a pinch" both come back null. Scaling has to tell
 // them apart -- a range doubles to "2-4", a pinch stays a pinch -- so an

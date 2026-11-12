@@ -1,4 +1,11 @@
 /*
+ * RecipeBox shared domain logic. Two files hold this code:
+ *   packages/recipe-core/src/recipe-normalize.js  — the canonical source. Edit this one.
+ *   public/recipe-normalize.js  — a generated copy, served to the browser. Never edit it.
+ * After changing the source run `npm run build:core` and commit both.
+ * See packages/recipe-core/README.md.
+ */
+/*
  * RecipeBoxNormalize — Stage 2 of the import pipeline: deterministic, AI-free
  * normalization so every imported recipe follows one consistent RecipeBox style,
  * regardless of source.

@@ -2,7 +2,7 @@
 //
 // ## This does not reimplement the aggregation
 //
-// `public/shopping-list.js` is the production algorithm and it is loaded here
+// `packages/recipe-core/src/shopping-list.js` is the production algorithm and it is loaded here
 // as itself, through Metro's watchFolders (see metro.config.js). It already
 // answers every question the brief asks about what may be combined:
 //

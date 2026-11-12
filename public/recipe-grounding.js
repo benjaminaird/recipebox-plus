@@ -1,4 +1,11 @@
 /*
+ * RecipeBox shared domain logic. Two files hold this code:
+ *   packages/recipe-core/src/recipe-grounding.js  — the canonical source. Edit this one.
+ *   public/recipe-grounding.js  — a generated copy, served to the browser. Never edit it.
+ * After changing the source run `npm run build:core` and commit both.
+ * See packages/recipe-core/README.md.
+ */
+/*
  * RecipeBoxGrounding — verify an AI-extracted recipe against its source text.
  *
  * The accuracy contract: imports must be faithful, so after an AI extraction (the

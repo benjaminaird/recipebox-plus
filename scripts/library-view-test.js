@@ -1,5 +1,5 @@
 const assert = require("assert");
-const RecipeBoxTags = require("../public/recipe-tags");
+const RecipeBoxTags = require("../packages/recipe-core/src/recipe-tags");
 
 // These mirror the pure view rules in Library() (src/app.jsx). Keep in sync.
 const tagKey = (t) => RecipeBoxTags.normalizeTagKey(t);

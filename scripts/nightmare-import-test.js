@@ -14,9 +14,9 @@
 const fs = require("fs");
 const path = require("path");
 
-const Extract = require("../public/recipe-extract");
-const Normalize = require("../public/recipe-normalize");
-const Grounding = require("../public/recipe-grounding");
+const Extract = require("../packages/recipe-core/src/recipe-extract");
+const Normalize = require("../packages/recipe-core/src/recipe-normalize");
+const Grounding = require("../packages/recipe-core/src/recipe-grounding");
 
 const ROOT = path.resolve(__dirname, "..");
 const MANIFEST_PATH = path.join(ROOT, "tests", "fixtures", "imports", "nightmare-recipes", "manifest.json");

@@ -9,7 +9,7 @@ const {
   setCollectionMembership,
   collectionKeys,
   sanitizeCollectionOverrides,
-} = require("../public/recipe-tags");
+} = require("../packages/recipe-core/src/recipe-tags");
 
 // --- normalization / dedup ---
 (function tagNormalizationDeduplicatesCasing() {

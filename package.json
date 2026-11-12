@@ -4,7 +4,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "build:app": "npx --yes esbuild@0.20.2 src/app.jsx --jsx=transform --minify --target=es2020 --legal-comments=none --outfile=public/app.js",
+    "build:core": "node scripts/build-core.js",
+    "core:check": "node scripts/build-core.js --check",
+    "build:app": "npm run build:core && npx --yes esbuild@0.20.2 src/app.jsx --jsx=transform --minify --target=es2020 --legal-comments=none --outfile=public/app.js",
     "build:recipebox": "npm run build:app",
     "shopping-list-test": "node scripts/shopping-list-test.js",
     "notes-import-test": "node scripts/notes-import-test.js",
@@ -30,6 +32,7 @@
     "security-headers-test": "node scripts/security-headers-test.js",
     "security-hardening-test": "node scripts/security-hardening-test.js",
     "nutrition-test": "node scripts/nutrition-test.js",
+    "recipe-library-test": "node scripts/recipe-library-test.js",
     "import-extract-test": "node scripts/import-extract-test.js",
     "nightmare-report-test": "node scripts/nightmare-report-test.js",
     "scraper-fallback-test": "node scripts/scraper-fallback-test.js",

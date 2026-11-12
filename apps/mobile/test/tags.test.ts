@@ -4,7 +4,7 @@
 // library, so a cook who types "copy-cat" on the phone and sees "Copycat" on
 // the laptop is looking at one tag -- and if the two modules ever disagree,
 // they are looking at two, with no error anywhere to say so. These tests load
-// the REAL public/recipe-tags.js, not a copy, so a change there fails here.
+// the REAL packages/recipe-core/src/recipe-tags.js, not a copy, so a change there fails here.
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import test from "node:test";
@@ -14,7 +14,7 @@ import {
 } from "../src/domain/tags.ts";
 
 const require_ = createRequire(import.meta.url);
-const web = require_("../../../public/recipe-tags.js");
+const web = require_("../../../packages/recipe-core/src/recipe-tags.js");
 
 // ---------------------------------------------------------------------------
 // Parity with the production web module
@@ -92,7 +92,7 @@ test("a tag is removed by meaning, not by exact spelling", () => {
 });
 
 test("a known gap in the shared canonical table, pinned so it cannot move quietly", () => {
-  // public/recipe-tags.js says in a comment that "CopyCat", "copy-cat" and
+  // packages/recipe-core/src/recipe-tags.js says in a comment that "CopyCat", "copy-cat" and
   // "copycat" all become "copycat". The first and third do. The second does
   // NOT: the key regex turns a hyphen into a space, giving "copy cat", which
   // is not in the canonical table. So a library can hold "Copycat" and

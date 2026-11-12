@@ -51,15 +51,16 @@ production schema**; the contract a future sync would need is documented in
 
 ### Shopping-list aggregation reuses the production module, unmodified
 
-`public/shopping-list.js` is the real aggregation algorithm and a list that
-differs between phone and laptop is a bug found in a supermarket. Extracting
-`packages/recipe-core` (ADR 0003) is the right end state but edits
-`src/app.jsx` and `server.js` — production files this session must not touch.
+The real aggregation algorithm is shared, not reimplemented: a list that differs
+between phone and laptop is a bug found in a supermarket with a trolley.
 
-So the native app consumes `public/shopping-list.js` **where it sits**, through
-Metro `watchFolders`. No production file changes, one copy of the algorithm.
-The ADR 0003 extraction remains the proper fix and is still proposed as its own
-milestone.
+During the overnight sprint the native app consumed `public/shopping-list.js`
+where it sat, through Metro `watchFolders`, because extracting the package meant
+editing production files that session could not touch. **That has since
+happened** — see milestone 8 — so the module now lives in
+`packages/recipe-core/src/shopping-list.js` and `public/` holds a generated
+copy. The native wrappers point at the package; nothing else about the
+arrangement changed.
 
 ---
 
@@ -74,7 +75,8 @@ milestone.
 | 4 | Home integration | **done** | `bc5876a` |
 | 5 | Cross-feature correctness | **done** | `8ccb50f` |
 | 6 | Visual and interaction review | **done** | `318b879` |
-| 7 | Documentation and final verification | **done** | (this commit) |
+| 7 | Documentation and final verification | **done** | `a292410` |
+| 8 | Extract `packages/recipe-core` (ADR 0003) | **done** | (this commit) |
 
 ## Baseline at session start
 
@@ -157,11 +159,15 @@ ADR 0003 extraction, where one corrected copy would serve both surfaces.
 
 ## Open issues, for your decision
 
-1. **Three metric defects in `public/shopping-list.js`**, which the web app
-   presumably shows too: no metric volume units at all, metric weights
+1. **Three metric defects in the shopping-list module**, which the web app
+   presumably shows too: no metric volume units at all (`ml` and `L` are not
+   units to it, so `1 L stock` and `500 ml stock` never combine), metric weights
    displayed in ounces, and vulgar fractions on kilos. Worked around natively;
-   **not fixed at source**, because that is a production change. Fixing them
-   properly belongs with the ADR 0003 extraction.
+   **still not fixed at source.** The ADR 0003 extraction is done, so there is
+   now one copy to correct and both surfaces would get it — which is exactly why
+   this is a decision rather than a chore. Fixing it changes what real web users
+   see on a page they use today, and CLAUDE.md holds the web app's behaviour
+   fixed until a change is explicitly approved.
 2. **The import fetch endpoint.** Contract written, not built. It needs
    decisions on rate limiting, SSRF and response size that are not mine, and
    it is a production change.
@@ -223,9 +229,42 @@ Full gate set green: tokens, sounds, typecheck, 227 mobile tests, Hermes
 bundles for both platforms, all seven domain regression scripts. Production web
 files byte-identical to `main`.
 
+## Milestone 8 — extract `packages/recipe-core` (done)
+
+ADR 0003's shared package, for real: all eight domain modules moved with
+`git mv` so history follows, and the package now holds the only editable copy.
+
+- **`server.js`, the regression scripts and the native app** resolve the modules
+  from `packages/recipe-core/src/` by plain relative path. Nothing resolves the
+  package name through `node_modules`, and nothing may start to: the CI domain
+  job installs nothing at all, which is how the dependency-free contract is
+  enforced rather than merely asserted. `build-core.js` also fails on any
+  non-relative `require` inside the package, so a bare specifier cannot pass a
+  developer's machine and then break CI, the browser and the phone.
+- **`public/` holds generated copies.** Vercel serves `public/` as the static
+  root and nothing builds on deploy, so the files the browser fetches must
+  physically exist there and be committed — the same arrangement `public/app.js`
+  has always been in. `npm run build:core` writes them, `npm run core:check`
+  fails on drift and runs in CI, and `build:app` now runs `build:core` first so
+  one command refreshes everything the browser downloads.
+- **Behaviour is unchanged, and measured rather than asserted.** ADR 0003's
+  precondition 1 was met with a `main` worktree: the six regression suites that
+  exist on both sides produce byte-for-byte identical output before and after.
+  Each module body is identical to `main` apart from a banner naming both
+  files and which of them to edit — the one thing that stops someone changing
+  the generated copy and losing the change on the next build.
+- **`apps/web/` was not done** and is not scheduled; ADR 0003 records why.
+
+Verified: `core:check`, all eight domain scripts, the recipe-model scorer and
+evaluation, design tokens, all nineteen server scripts, a reproducible
+`public/app.js`, mobile tokens / sounds / typecheck / **227 tests**, and Hermes
+bundles for both platforms. Strings unique to the package
+(`Household / Other`, `heaping`, `itemprop`) are present in the iOS bundle, so
+Metro genuinely resolved the moved files rather than silently dropping them.
+
 ## Next action
 
-Nothing queued. The open issues below need your decisions; the largest is
-whether to extract `packages/recipe-core` (ADR 0003), which would let one
-corrected copy of the shopping-list module serve both surfaces and fix the
-three metric defects at source.
+Nothing queued. Open issue 1 is now a single decision with a single place to
+act: correcting the metric handling in
+`packages/recipe-core/src/shopping-list.js` would fix the phone and the web app
+together, and would change what web users see today.

@@ -3,7 +3,7 @@
 // exactly 1 AI Assist. Loads server.js (Express, pg), so it runs on Node only.
 // No database, network or credentials are needed.
 const assert = require("assert");
-const N = require("../public/nutrition");
+const N = require("../packages/recipe-core/src/nutrition");
 const app = require("../server");
 const { detectAiFeature, aiAssistCost } = app._test;
 

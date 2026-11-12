@@ -1,5 +1,5 @@
 const assert = require("assert");
-const RecipeBoxTags = require("../public/recipe-tags");
+const RecipeBoxTags = require("../packages/recipe-core/src/recipe-tags");
 
 // Mirrors the pure logic in MealPlanner() (src/app.jsx). Keep in sync.
 const quickKey = RecipeBoxTags.normalizeTagKey("Quick");

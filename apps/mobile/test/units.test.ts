@@ -13,11 +13,11 @@ import {
 
 const require_ = createRequire(import.meta.url);
 // The real module the production web app loads, not a copy of it.
-const web = require_("../../../public/shopping-list.js");
+const web = require_("../../../packages/recipe-core/src/shopping-list.js");
 
 // ---------------------------------------------------------------------------
 // Parity. This domain code restates primitives that already exist in
-// public/shopping-list.js. That module cannot be edited without changing
+// packages/recipe-core/src/shopping-list.js. That module cannot be edited without changing
 // production web behaviour, so the two must be held together by a test rather
 // than by good intentions.
 // ---------------------------------------------------------------------------

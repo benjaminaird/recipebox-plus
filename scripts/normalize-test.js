@@ -2,7 +2,7 @@
  * Tests for Stage 2 deterministic normalization (no AI). Pure, offline.
  */
 const assert = require("assert");
-const N = require("../public/recipe-normalize");
+const N = require("../packages/recipe-core/src/recipe-normalize");
 
 // ── Fractions: unicode + smashed mixed numbers ──
 assert.strictEqual(N.normalizeFractions("1½ cups"), "1 1/2 cups");

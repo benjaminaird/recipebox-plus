@@ -1,3 +1,10 @@
+/*
+ * RecipeBox shared domain logic. Two files hold this code:
+ *   packages/recipe-core/src/recipe-library.js  — the canonical source. Edit this one.
+ *   public/recipe-library.js  — a generated copy, served to the browser. Never edit it.
+ * After changing the source run `npm run build:core` and commit both.
+ * See packages/recipe-core/README.md.
+ */
 (function (root, factory) {
   const api = factory();
   if (typeof module !== "undefined" && module.exports) module.exports = api;

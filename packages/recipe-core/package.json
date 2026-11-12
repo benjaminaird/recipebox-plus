@@ -1,0 +1,20 @@
+{
+  "name": "@recipebox/recipe-core",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RecipeBox's portable domain logic: import extraction, normalization, grounding, tags, shopping lists, nutrition. Pure UMD JavaScript — no DOM, no network, no dependencies.",
+  "type": "commonjs",
+  "sideEffects": false,
+  "exports": {
+    "./shopping-list": "./src/shopping-list.js",
+    "./recipe-tags": "./src/recipe-tags.js",
+    "./nutrition": "./src/nutrition.js",
+    "./recipe-extract": "./src/recipe-extract.js",
+    "./recipe-grounding": "./src/recipe-grounding.js",
+    "./recipe-schema": "./src/recipe-schema.js",
+    "./recipe-normalize": "./src/recipe-normalize.js",
+    "./recipe-library": "./src/recipe-library.js"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

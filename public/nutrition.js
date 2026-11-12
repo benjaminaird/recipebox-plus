@@ -1,4 +1,11 @@
 /*
+ * RecipeBox shared domain logic. Two files hold this code:
+ *   packages/recipe-core/src/nutrition.js  — the canonical source. Edit this one.
+ *   public/nutrition.js  — a generated copy, served to the browser. Never edit it.
+ * After changing the source run `npm run build:core` and commit both.
+ * See packages/recipe-core/README.md.
+ */
+/*
  * RecipeBoxNutrition — shared, pure helpers for the AI nutrition/macros estimate.
  *
  * Loaded as a global (window.RecipeBoxNutrition) for the app and required by Node

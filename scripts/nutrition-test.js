@@ -1,8 +1,8 @@
-// Pure domain test for public/nutrition.js: no server, no network, no
+// Pure domain test for packages/recipe-core/src/nutrition.js: no server, no network, no
 // dependencies, so it can run on Node and later on Hermes. The server-side
 // billing checks for the nutrition prompt live in nutrition-billing-test.js.
 const assert = require("assert");
-const N = require("../public/nutrition");
+const N = require("../packages/recipe-core/src/nutrition");
 
 // ── normalizeNutrition: coerce messy model/import output to a fixed shape ──
 const messy = N.normalizeNutrition({
