@@ -76,7 +76,8 @@ arrangement changed.
 | 5 | Cross-feature correctness | **done** | `8ccb50f` |
 | 6 | Visual and interaction review | **done** | `318b879` |
 | 7 | Documentation and final verification | **done** | `a292410` |
-| 8 | Extract `packages/recipe-core` (ADR 0003) | **done** | (this commit) |
+| 8 | Extract `packages/recipe-core` (ADR 0003) | **done** | `1c22098` |
+| 9 | Correct the metric handling (ADR 0021) | **done** | (this commit) |
 
 ## Baseline at session start
 
@@ -127,8 +128,10 @@ list. Aisle ordering and per-item provenance come from the shared module.
 
 ### What the production module could not do
 
-Found by reading its unit tables, and all three are **production web behaviour
-this session must not change**:
+Found by reading its unit tables. All three were **production web behaviour that
+session could not change**, and all three are **now fixed** — see milestone 9
+and [ADR 0021](./adr/0021-metric-and-us-customary-are-separate.md). Kept here
+because the defects are what the native workarounds were shaped by:
 
 1. **No metric volumes.** `VOLUME_TO_TSP` runs tsp → gallons and has no ml or
    litre. An unknown unit gets folded into the ingredient NAME, so "200 ml
@@ -138,13 +141,12 @@ this session must not change**:
    `105.82 oz Beef`.
 3. **Vulgar fractions on metric units.** 3.6 kg → `3 5/8 kg`.
 
-The native app works around all three without touching `public/`: metric
-volumes are held out and totalled natively, and metric weights are re-rendered
-with this app's own formatting rules.
-
-**This is worth raising with you** — the web app presumably shows the same
-things to anyone with a metric library. Fixing it properly belongs with the
-ADR 0003 extraction, where one corrected copy would serve both surfaces.
+The native app worked around all three without touching `public/`: metric
+volumes were held out and totalled natively, and metric weight lines were
+re-rendered with this app's own formatting rules. **Both workarounds have since
+been deleted.** The shared module is correct, so the phone had nothing left to
+work around, and leaving the hold-out in place would have meant the fix never
+ran on the phone at all.
 
 ### Deliberately not implemented
 
@@ -159,15 +161,12 @@ ADR 0003 extraction, where one corrected copy would serve both surfaces.
 
 ## Open issues, for your decision
 
-1. **Three metric defects in the shopping-list module**, which the web app
-   presumably shows too: no metric volume units at all (`ml` and `L` are not
-   units to it, so `1 L stock` and `500 ml stock` never combine), metric weights
-   displayed in ounces, and vulgar fractions on kilos. Worked around natively;
-   **still not fixed at source.** The ADR 0003 extraction is done, so there is
-   now one copy to correct and both surfaces would get it — which is exactly why
-   this is a decision rather than a chore. Fixing it changes what real web users
-   see on a page they use today, and CLAUDE.md holds the web app's behaviour
-   fixed until a change is explicitly approved.
+1. ~~**Three metric defects in the shopping-list module.**~~ **Approved and
+   fixed** — milestone 9 and [ADR 0021](./adr/0021-metric-and-us-customary-are-separate.md).
+   One open consequence remains: **a release must bump `VERSION` in
+   `public/sw.js`.** The service worker precaches `/shopping-list.js` by cache
+   name, so a returning web user keeps the old module until that string changes.
+   Left alone here deliberately, because this branch is not deploying.
 2. **The import fetch endpoint.** Contract written, not built. It needs
    decisions on rate limiting, SSRF and response size that are not mine, and
    it is a production change.
@@ -262,9 +261,49 @@ bundles for both platforms. Strings unique to the package
 (`Household / Other`, `heaping`, `itemprop`) are present in the iOS bundle, so
 Metro genuinely resolved the moved files rather than silently dropping them.
 
+## Milestone 9 — correct the metric handling (done)
+
+Approved as an intentional behaviour change, isolated on this branch.
+[ADR 0021](./adr/0021-metric-and-us-customary-are-separate.md) records the
+decision and the reasoning; the short version is that the module now has four
+unit classes instead of two, metric volumes total in millilitres and metric
+weights in grams, and the four never combine with each other.
+
+- **The approved cases, asserted in the module's own regression script:**
+  `1 L` + `500 ml` → `1.5 L`, `1.8 kg` + `1.2 kg` → `3 kg`, `500 g` + `250 g` →
+  `750 g`, `3.6 kg` → `3.6 kg`, and `1/4 tsp salt` still reads `1/4 tsp salt`.
+  Scaling is asserted at ½×, 1×, 2×, 3× and 4× across both vocabularies.
+- **The native workarounds are gone.** `apps/mobile/src/domain/shoppingList.ts`
+  held two: metric volumes were kept out of the shared module and totalled in
+  the app, and metric weight lines were re-rendered. Both deleted, along with
+  every `units.ts` import they needed — the file now contains no measurement
+  arithmetic. Its metric tests were left pointed at the same behaviour and now
+  exercise the shared module directly, which is the useful part: the same cases
+  are checked from both ends.
+- **One native behaviour changed on purpose.** A metric volume group with one
+  unreadable amount (`a good splash`) used to show a single totalled line
+  warning it might be short. It now keeps both lines apart with the reason, the
+  same treatment a metric weight always had. Seeing "a good splash" written out
+  beats a total that silently under-buys.
+- **US customary output is unchanged**, asserted rather than assumed: the
+  `volume` and `weight` classes keep their names, their tables and their
+  formatting, so every US group key is what it was. `src/app.jsx`,
+  `public/app.js`, `public/index.html`, `public/sw.js` and `vercel.json` are
+  byte-identical to `main`.
+
+Verified: `core:check`; all eight domain scripts; design tokens; nineteen server
+scripts plus `smoke` and `security-smoke` against a live isolated server;
+`web-preview-check` with a real browser; a reproducible `public/app.js`; mobile
+tokens / sounds / typecheck / **227 tests**; and Hermes bundles for iOS and
+Android. The bundles contain `volume-metric` and `weight-metric` and no longer
+contain the deleted workaround's warning string, which is how we know the phone
+runs the corrected module rather than its own copy. The browser's generated copy
+was evaluated with no `module` in scope, so the `<script src>` branch that
+actually ships was exercised, not just Node's `require`.
+
 ## Next action
 
-Nothing queued. Open issue 1 is now a single decision with a single place to
-act: correcting the metric handling in
-`packages/recipe-core/src/shopping-list.js` would fix the phone and the web app
-together, and would change what web users see today.
+Nothing queued on the metric work. The remaining open item is the
+`/api/v1/import/fetch` endpoint (open issue 2), whose security requirements —
+SSRF, redirects, DNS, timeouts, rate limiting and response size — are the next
+thing to review.

@@ -6,6 +6,23 @@
  * See packages/recipe-core/README.md.
  */
 (function (root) {
+  // ── Measurement: four tables, not two ─────────────────────────────────────
+  // A measurement belongs to a system as well as to a dimension. US customary
+  // volumes total in teaspoons and US weights in ounces, as they always have;
+  // metric volumes total in millilitres and metric weights in grams.
+  //
+  // Grams and kilograms used to live in the ounce table, which is why 500 g
+  // plus 250 g of sugar came out as "26.46 oz". Millilitres and litres were in
+  // no table at all, which is worse: an unrecognised unit is folded into the
+  // ingredient's name, so "500 ml stock" became an item called "Ml Stock" and
+  // could never combine with "1 L stock".
+  //
+  // The two systems are never added to each other. The arithmetic is exact — a
+  // cup is 236.588 ml — but a cook who wrote "1 cup" in one recipe and
+  // "250 ml" in another is better served by two lines than by "2.06 cups" in a
+  // system one of those recipes never used. Volume and weight are never added
+  // to each other in either system: that needs a density per ingredient, which
+  // this module does not have and will not guess.
   const VOLUME_TO_TSP = {
     tsp: 1, teaspoon: 1, teaspoons: 1,
     tbsp: 3, tablespoon: 3, tablespoons: 3,
@@ -17,11 +34,18 @@
   const WEIGHT_TO_OZ = {
     oz: 1, ounce: 1, ounces: 1,
     lb: 16, lbs: 16, pound: 16, pounds: 16,
-    g: 1 / 28.3495, gram: 1 / 28.3495, grams: 1 / 28.3495,
-    kg: 1000 / 28.3495, kilogram: 1000 / 28.3495, kilograms: 1000 / 28.3495,
+  };
+  const VOLUME_TO_ML = {
+    ml: 1, milliliter: 1, milliliters: 1, millilitre: 1, millilitres: 1,
+    l: 1000, liter: 1000, liters: 1000, litre: 1000, litres: 1000,
+  };
+  const WEIGHT_TO_G = {
+    mg: 0.001, milligram: 0.001, milligrams: 0.001,
+    g: 1, gram: 1, grams: 1,
+    kg: 1000, kilogram: 1000, kilograms: 1000,
   };
   const COUNT_UNITS = new Set(["egg", "eggs", "lemon", "lemons", "package", "packages", "pkg", "pkgs", "can", "cans", "clove", "cloves", "stick", "sticks"]);
-  const KNOWN_UNITS = new Set([...Object.keys(VOLUME_TO_TSP), ...Object.keys(WEIGHT_TO_OZ), ...COUNT_UNITS, "pinch", "pinches", "dash", "dashes"]);
+  const KNOWN_UNITS = new Set([...Object.keys(VOLUME_TO_TSP), ...Object.keys(WEIGHT_TO_OZ), ...Object.keys(VOLUME_TO_ML), ...Object.keys(WEIGHT_TO_G), ...COUNT_UNITS, "pinch", "pinches", "dash", "dashes"]);
   const MEASURE_DESCRIPTORS = new Set(["heaping", "scant", "level", "rounded", "generous", "packed"]);
   const PREP_WORDS = ["melted", "cubed", "softened", "chopped", "diced", "minced", "sliced", "divided", "beaten", "packed", "zested", "juiced", "room temperature"];
   const CATEGORY_ORDER = ["Produce", "Meat & Seafood", "Dairy & Eggs", "Bakery", "Baking", "Pantry", "Canned & Jarred", "Frozen", "Spices & Seasonings", "Beverages", "Household / Other", "Uncategorized"];
@@ -61,7 +85,7 @@
 
   function cleanUnit(unit) {
     const u = String(unit || "").toLowerCase().replace(/\./g, "").trim();
-    const aliases = { t: "tsp", tsps: "tsp", tbl: "tbsp", tbls: "tbsp", tbs: "tbsp", tablespoons: "tbsp", tablespoon: "tbsp", teaspoons: "tsp", teaspoon: "tsp", cups: "cup", pounds: "lb", pound: "lb", lbs: "lb", ounces: "oz", ounce: "oz", grams: "g", gram: "g", kilograms: "kg", kilogram: "kg", packages: "package", pkgs: "package", pkg: "package", cans: "can", cloves: "clove", sticks: "stick", eggs: "egg", lemons: "lemon" };
+    const aliases = { t: "tsp", tsps: "tsp", tbl: "tbsp", tbls: "tbsp", tbs: "tbsp", tablespoons: "tbsp", tablespoon: "tbsp", teaspoons: "tsp", teaspoon: "tsp", cups: "cup", pounds: "lb", pound: "lb", lbs: "lb", ounces: "oz", ounce: "oz", grams: "g", gram: "g", kilograms: "kg", kilogram: "kg", kilos: "kg", kilo: "kg", milligrams: "mg", milligram: "mg", milliliters: "ml", milliliter: "ml", millilitres: "ml", millilitre: "ml", liters: "l", liter: "l", litres: "l", litre: "l", packages: "package", pkgs: "package", pkg: "package", cans: "can", cloves: "clove", sticks: "stick", eggs: "egg", lemons: "lemon" };
     const descriptive = u.match(/^([a-z]+)\s+(.+)$/);
     if (descriptive && MEASURE_DESCRIPTORS.has(descriptive[1])) {
       const base = aliases[descriptive[2]] || descriptive[2];
@@ -88,7 +112,8 @@
     milliliter: "ml", milliliters: "ml", millilitre: "ml", millilitres: "ml", ml: "ml",
     liter: "L", liters: "L", litre: "L", litres: "L", l: "L",
     gram: "g", grams: "g", gramme: "g", grammes: "g", g: "g",
-    kilogram: "kg", kilograms: "kg", kilogramme: "kg", kilogrammes: "kg", kg: "kg",
+    kilogram: "kg", kilograms: "kg", kilogramme: "kg", kilogrammes: "kg", kilo: "kg", kilos: "kg", kg: "kg",
+    milligram: "mg", milligrams: "mg", milligramme: "mg", milligrammes: "mg", mg: "mg",
     cup: "cup", cups: "cup",
   };
   function abbreviateUnit(unit, amount) {
@@ -199,8 +224,12 @@
     const u = cleanUnit(unit);
     if (!u) return "none";
     if (/^(heaping|scant|level|rounded|generous|packed)\s+/.test(u)) return "unit:" + u;
+    // "volume" and "weight" keep their names, and so every US customary group
+    // key is exactly what it was before metric became its own class.
     if (VOLUME_TO_TSP[u]) return "volume";
     if (WEIGHT_TO_OZ[u]) return "weight";
+    if (VOLUME_TO_ML[u]) return "volume-metric";
+    if (WEIGHT_TO_G[u]) return "weight-metric";
     if (COUNT_UNITS.has(u)) return "count:" + u;
     return "unit:" + u;
   }
@@ -213,11 +242,74 @@
     if (/^(heaping|scant|level|rounded|generous|packed)\s+/.test(u)) return null;
     if (VOLUME_TO_TSP[u]) return n * VOLUME_TO_TSP[u];
     if (WEIGHT_TO_OZ[u]) return n * WEIGHT_TO_OZ[u];
+    if (VOLUME_TO_ML[u]) return n * VOLUME_TO_ML[u];
+    if (WEIGHT_TO_G[u]) return n * WEIGHT_TO_G[u];
     if (COUNT_UNITS.has(u)) return n;
     return n;
   }
 
+  // ── Metric display ────────────────────────────────────────────────────────
+  // A metric quantity reads as a decimal in the unit a cook would say it in:
+  // millilitres below a litre, grams below a kilo, milligrams below a gram.
+  // Never as an ounce conversion, and never as a vulgar fraction — 3.6 kg came
+  // out of here as "3 5/8 kg". Fractions are an imperial
+  // idiom inherited from measuring by cup and spoon; a system built on tens has
+  // no use for them. Cups and spoons keep theirs.
+
+  // The step a unit rounds to is the one a cook can act on: 5 g above 50 g,
+  // 1 g above 10 g, half a gram below that, and 0.05 for kilos and litres.
+  // Rounding to the equipment rather than to the arithmetic is also what keeps
+  // a total off the screen as "753.0000000000001 g".
+  function metricStep(value, unit) {
+    if (unit === "kg" || unit === "l") return 0.05;
+    const v = Math.abs(value);
+    return v >= 50 ? 5 : v >= 10 ? 1 : 0.5;
+  }
+
+  // Two decimal places at most, trailing zeros dropped, rounded before it is
+  // stringified so binary floating point never reaches a cook: 1.8 kg plus
+  // 1.2 kg lands on 3000.0000000000005 g, and 3000.0000000000005 / 1000 is
+  // not 3.
+  function metricDecimal(n) {
+    if (!isFinite(n)) return "";
+    return String(Number((Math.round(n * 100) / 100).toFixed(2)));
+  }
+
+  // A ladder is [unit, size in the system's base unit], largest rung first.
+  // The largest rung there is at least one whole of wins, so 1200 g reads
+  // 1.2 kg while 800 g stays 800 g.
+  const METRIC_VOLUME_LADDER = [["l", 1000], ["ml", 1]];
+  const METRIC_WEIGHT_LADDER = [["kg", 1000], ["g", 1], ["mg", 0.001]];
+
+  function displayMetric(total, ladder) {
+    const base = ladder.find((rung) => rung[1] === 1);
+    if (!isFinite(total)) return { amount: "", unit: base[0] };
+    if (total === 0) return { amount: "0", unit: base[0] };
+    let chosen = ladder[ladder.length - 1];
+    for (const rung of ladder) if (Math.abs(total) >= rung[1]) { chosen = rung; break; }
+    const value = total / chosen[1];
+    const step = metricStep(value, chosen[0]);
+    return { amount: metricDecimal(Math.round(value / step) * step), unit: chosen[0] };
+  }
+
+  // One contributing line, scaled. A metric unit takes the ladder above; US
+  // customary, count and unknown units keep the fraction vocabulary this app
+  // has always shown, so "1/4 tsp salt" stays legible and a scaled cup still
+  // lands on a mark a measuring cup has.
+  function displaySingleAmount(quantity, unit, scale) {
+    const n = amountToNumber(quantity);
+    if (n === null) return { amount: quantity, unit };
+    const cls = unitClass(unit);
+    if (cls === "volume-metric" || cls === "weight-metric") {
+      const base = unitBaseValue(quantity, unit);
+      if (base !== null) return displayMetric(base * scale, cls === "volume-metric" ? METRIC_VOLUME_LADDER : METRIC_WEIGHT_LADDER);
+    }
+    return { amount: numberToFraction(n * scale), unit };
+  }
+
   function displayCombinedAmount(total, unitClassValue, preferredUnit) {
+    if (unitClassValue === "volume-metric") return displayMetric(total, METRIC_VOLUME_LADDER);
+    if (unitClassValue === "weight-metric") return displayMetric(total, METRIC_WEIGHT_LADDER);
     if (unitClassValue === "volume") {
       if (total >= 48 && Math.abs(total / 48 - Math.round(total / 48)) < 0.001) return { amount: numberToFraction(total / 48), unit: total === 48 ? "cup" : "cups" };
       if (total >= 48) return { amount: numberToFraction(total / 48), unit: "cups" };
@@ -302,8 +394,8 @@
       const notes = Array.from(group.notes).join(", ");
       if (group.parts.length === 1) {
         const part = group.parts[0];
-        const amount = amountToNumber(part.quantity) === null ? part.quantity : numberToFraction(amountToNumber(part.quantity) * scale);
-        return [{ id: idx + "-" + group.normalizedName, text: shoppingLine(amount, part.unit, part.display_name, part.preparation_note), category: group.category, checked: false, parts: group.parts, combined: false }];
+        const single = displaySingleAmount(part.quantity, part.unit, scale);
+        return [{ id: idx + "-" + group.normalizedName, text: shoppingLine(single.amount, single.unit, part.display_name, part.preparation_note), category: group.category, checked: false, parts: group.parts, combined: false }];
       }
       if (group.canCombine && group.unitClass && !group.unitClass.startsWith("unit:")) {
         const display = displayCombinedAmount(group.total, group.unitClass === "none" ? "none" : group.unitClass, group.unit);

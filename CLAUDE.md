@@ -46,6 +46,10 @@ their names; do not rename them. ADRs 0001–0012 predate this and still say
 - [0015](./docs/adr/0015-recipe-version-history.md) — originals kept, every change reversible
 - [0016](./docs/adr/0016-ai-recipe-helper.md) — the Helper proposes, validates, and waits for approval
 - [0017](./docs/adr/0017-model-selection-is-measured.md) — the production model is chosen by measurement
+- [0018](./docs/adr/0018-modern-cookbook-visual-identity.md) — the Modern Cookbook visual direction
+- [0019](./docs/adr/0019-semantic-tokens-and-appearance.md) — one semantic token set, System / Light / Dark from the first build
+- [0020](./docs/adr/0020-recipe-source-attribution.md) — Source attribution is structured, durable and always visible
+- [0021](./docs/adr/0021-metric-and-us-customary-are-separate.md) — metric and US customary are separate systems; a shopping list never mixes them
 
 ## Product requirements
 

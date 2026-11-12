@@ -4,15 +4,17 @@
 // shaped to move into packages/recipe-core (ADR 0003) unchanged.
 //
 // This overlaps `packages/recipe-core/src/shopping-list.js`, which the production web app loads
-// directly and which must not change behaviour. Rather than edit it, the shared
-// primitives are restated here and a parity test asserts the two agree, so a
-// divergence fails a test instead of reaching a cook.
+// directly. The shared primitives are restated here and a parity test asserts
+// the two agree, so a divergence fails a test instead of reaching a cook. The
+// shopping list itself is not reimplemented here — that module aggregates it,
+// metric included.
 //
-// Two things that module cannot do, and this one must:
+// Two things this file does that the shared module deliberately does not:
 //
-//   - Metric volume. `ml` and `L` exist there only as display abbreviations;
-//     VOLUME_TO_TSP has no metric entries, so millilitres can be shown but not
-//     converted. Here both systems share one base.
+//   - Convert BETWEEN the systems. The shared module totals each system on its
+//     own, so a cup and a millilitre never land in one line. Converting one to
+//     the other is still needed to show a recipe in the cook's own units, and
+//     that is this table's job: both systems share one base here.
 //   - Volume <-> weight. That is not arithmetic: it needs a density per
 //     ingredient, and lives in density.ts. Nothing in this file pretends a cup
 //     and a gram are interchangeable.

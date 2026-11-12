@@ -19,6 +19,11 @@
 // Reimplementing any of that would create a second answer to "is 1 cup of
 // flour the same as 100 g of flour", and the two would diverge.
 //
+// Since the metric correction to that module it also formats a metric line
+// the way a metric cook reads it, so this file no longer re-renders or
+// pre-aggregates anything: there is one answer to "how much of this do I buy",
+// and it lives in the shared package.
+//
 // ## What this module adds
 //
 // Two things the web module has no concept of.
@@ -33,11 +38,7 @@
 // must not be merged without the cook choosing. They are held out of the
 // aggregation and listed separately, flagged, so "flaky sea salt, to finish
 // (optional)" never silently increases the salt someone has to buy.
-import {
-  formatDecimalNumber, formatQuantity, parseQuantity, roundForUnit, roundMetricMeasure,
-  scaleQuantity,
-} from "./quantity.ts";
-import { VOLUME_ML, WEIGHT_G, canonicalUnit, displayUnit, unitKind, unitSystem } from "./units.ts";
+import { formatQuantity, parseQuantity, scaleQuantity } from "./quantity.ts";
 import type { Ingredient, Recipe, Section } from "../data/types.ts";
 
 import { web } from "./webShoppingList.ts";
@@ -55,84 +56,6 @@ export type BuiltItem = {
   /** True when the line came from an ingredient marked optional. */
   optional: boolean;
 };
-
-/**
- * Render a metric line ourselves, or return null to keep the module's.
- *
- * The shared module decides *what may be combined*, and those decisions are
- * the valuable part. Its final formatting is US-centric, and on a metric
- * recipe it produces lines a cook cannot use:
- *
- *     250 g + 150 g butter   ->  "14 1/8 oz Butter"
- *     1.8 kg + 1.2 kg beef   ->  "105.82 oz Beef"
- *     3.6 kg chicken         ->  "3 5/8 kg Chicken"
- *
- * Ounces for someone shopping in grams, a vulgar fraction on a kilo, and two
- * decimal places of an ounce. That is production web behaviour and not ours to
- * change from here, so the native app re-renders the line instead -- using the
- * same rules Recipe Detail already uses, where metric takes decimals and a
- * weight is rounded to something a scale can read.
- *
- * Only for groups that are entirely metric and entirely one kind. Anything
- * else keeps the module's text, which is good at cups, spoons and their
- * laddering, and which we have no reason to second-guess.
- */
-function metricLine(
-  parts: ReadonlyArray<{ quantity?: string; unit?: string; display_name?: string }>,
-): string | null {
-  if (parts.length === 0) return null;
-  const units = parts.map((p) => canonicalUnit(p.unit));
-  if (!units.every((u) => unitSystem(u) === "metric")) return null;
-
-  const kind = unitKind(units[0]);
-  if (kind !== "weight" && kind !== "volume") return null;
-  if (!units.every((u) => unitKind(u) === kind)) return null;
-
-  const table: Record<string, number> = kind === "weight" ? WEIGHT_G : VOLUME_ML;
-
-  let total = 0;
-  for (let i = 0; i < parts.length; i += 1) {
-    const q = parseQuantity(parts[i].quantity);
-    // A line we cannot read a number from must not be silently dropped out of
-    // a total. Hand the whole group back to the module, which will keep the
-    // parts apart and say why.
-    if (q.kind !== "exact" && q.kind !== "range") return null;
-    const value = q.kind === "range" ? q.max : q.value;
-    const base = table[units[i]];
-    if (!Number.isFinite(base)) return null;
-    total += value * base;
-  }
-
-  // Climb to the larger unit only when there is enough to warrant it: 1200 g
-  // is better read as 1.2 kg, 800 g is not better as 0.8 kg.
-  const to = kind === "weight" ? (total >= 1000 ? "kg" : "g") : (total >= 1000 ? "L" : "ml");
-  const value = total / table[to];
-  const rounded = roundMetricMeasure(roundForUnit({ kind: "exact", value }, to), to);
-  const amount = rounded.kind === "exact" ? formatDecimalNumber(rounded.value) : formatDecimalNumber(value);
-  const name = parts[0].display_name ?? "";
-  return [amount, displayUnit(to, Number(amount)), name].filter(Boolean).join(" ").trim();
-}
-
-/**
- * Metric volumes, which the shared module does not know are units.
- *
- * Its VOLUME_TO_TSP table holds teaspoons through gallons and **no metric
- * volume at all** -- no ml, no litre. An unrecognised unit is folded into the
- * ingredient's NAME, so "200 ml double cream" becomes an item called "Ml
- * Double Cream" with no unit, and "1 L stock" and "500 ml stock" become two
- * items that can never be combined because their names differ.
- *
- * That is production web behaviour and not ours to change from here. But two
- * of the sample recipes are metric and a cook with a metric library would get
- * exactly that, so the native app keeps these ingredients away from the module
- * and totals them itself, in millilitres, with the formatting rules this app
- * already uses everywhere else.
- */
-const METRIC_VOLUMES: ReadonlySet<string> = new Set(["ml", "cl", "dl", "L"]);
-
-function isMetricVolume(unit: string | undefined | null): boolean {
-  return METRIC_VOLUMES.has(canonicalUnit(unit));
-}
 
 export type ListSource = {
   recipe: Recipe;
@@ -175,7 +98,7 @@ function requiredSections(source: ListSource): Section[] {
   return (source.recipe.sections ?? []).map((section) => ({
     ...section,
     ingredients: section.ingredients
-      .filter((i) => !isOptional(i) && !isMetricVolume(i.unit))
+      .filter((i) => !isOptional(i))
       .map((i) => ({ ...scaleIngredient(i, source.scale), source: tag })),
   }));
 }
@@ -193,7 +116,7 @@ export function buildList(sources: readonly ListSource[]): BuiltItem[] {
 
   const built: BuiltItem[] = web.buildShoppingListFromSections(sections, { scale: 1 }).map((item) => ({
     id: item.id,
-    text: metricLine(item.parts ?? []) ?? item.text,
+    text: item.text,
     category: item.category ?? "Uncategorized",
     combined: item.combined === true,
     ...(item.warning ? { warning: item.warning } : {}),
@@ -202,67 +125,6 @@ export function buildList(sources: readonly ListSource[]): BuiltItem[] {
     sources: (item.sources ?? []).map((s) => s.title).filter(Boolean),
     optional: false,
   }));
-
-  // Metric volumes, totalled here because the module cannot.
-  //
-  // Grouped on the same normalised name the module would use, so "double
-  // cream" from two recipes is one line and "double cream" and "single cream"
-  // are two -- the same judgement, applied by the same function.
-  type VolumeGroup = {
-    ml: number;
-    name: string;
-    category: string;
-    sources: string[];
-    readable: boolean;
-  };
-  const volumes = new Map<string, VolumeGroup>();
-
-  for (const source of sources) {
-    for (const section of source.recipe.sections ?? []) {
-      for (const ingredient of section.ingredients) {
-        if (isOptional(ingredient) || !isMetricVolume(ingredient.unit)) continue;
-        const scaled = scaleIngredient(ingredient, source.scale);
-        // Ask the module for the name and aisle, with the unit withheld so it
-        // does not end up inside the name.
-        const parsed = web.parseShoppingIngredient({ ...scaled, unit: "" }, section.name ?? "");
-        const key = parsed.normalized_ingredient_name || parsed.display_name;
-        const existing = volumes.get(key) ?? {
-          ml: 0,
-          name: parsed.display_name,
-          category: parsed.category || "Uncategorized",
-          sources: [],
-          readable: true,
-        };
-        const q = parseQuantity(scaled.amount);
-        if (q.kind === "exact" || q.kind === "range") {
-          existing.ml += (q.kind === "range" ? q.max : q.value) * VOLUME_ML[canonicalUnit(scaled.unit)];
-        } else {
-          // An amount we cannot read must not quietly vanish from a total.
-          existing.readable = false;
-        }
-        if (!existing.sources.includes(source.recipe.title)) existing.sources.push(source.recipe.title);
-        volumes.set(key, existing);
-      }
-    }
-  }
-
-  for (const [key, group] of volumes) {
-    const to = group.ml >= 1000 ? "L" : "ml";
-    const value = group.ml / VOLUME_ML[to];
-    const rounded = roundMetricMeasure(roundForUnit({ kind: "exact", value }, to), to);
-    const amount = rounded.kind === "exact" ? formatDecimalNumber(rounded.value) : formatDecimalNumber(value);
-    built.push({
-      id: `vol-${key}`,
-      text: [amount, displayUnit(to, Number(amount)), group.name].filter(Boolean).join(" ").trim(),
-      category: group.category,
-      combined: group.sources.length > 1,
-      ...(group.readable
-        ? {}
-        : { warning: "One of these amounts could not be read, so this total may be short." }),
-      sources: group.sources,
-      optional: false,
-    });
-  }
 
   // Optional ingredients, appended one per line and never merged with anything.
   // Scaled like the rest, because half a batch wants half the garnish, but kept

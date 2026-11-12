@@ -31,6 +31,8 @@ assert.strictEqual(U("milliliters"), "ml");
 assert.strictEqual(U("liter"), "L");
 assert.strictEqual(U("grams"), "g");
 assert.strictEqual(U("kilogram"), "kg");
+assert.strictEqual(U("milligrams"), "mg");
+assert.strictEqual(U("kilos"), "kg");
 // cup pluralizes naturally; >1 is plural, fractions/1 are singular.
 assert.strictEqual(U("cups", "2"), "cups");
 assert.strictEqual(U("cup", "1"), "cup");
@@ -245,5 +247,111 @@ const unmeasured = groupCompoundIngredients([
 assert.strictEqual(unmeasured.length, 2, "an unmeasured same-name line stays separate");
 
 assert.deepStrictEqual(groupCompoundIngredients([]), [], "empty list -> empty groups");
+
+// ── Metric measurement ──────────────────────────────────────────────────────
+// Metric used to be handled two different wrong ways. Weights lived in the
+// ounce table, so 500 g + 250 g of sugar came out as "26.46 oz" and 3.6 kg of
+// chicken as "3 5/8 kg". Volumes lived in no table at all, so "ml" was folded
+// into the ingredient's NAME: "500 ml stock" became an item called "Ml Stock"
+// that could never combine with "1 L stock".
+const one = (ingredients, options) => {
+  const built = buildShoppingListFromSections([{ name: "Main", ingredients }], options);
+  assert.strictEqual(built.length, 1, "expected one line, got " + JSON.stringify(built.map((i) => i.text)));
+  return built[0].text;
+};
+
+// The approved cases, in the approval's own words.
+assert.strictEqual(one([{ amount: "1", unit: "L", name: "stock" }, { amount: "500", unit: "ml", name: "stock" }]), "1.5 L Stock");
+assert.strictEqual(one([{ amount: "1.8", unit: "kg", name: "flour" }, { amount: "1.2", unit: "kg", name: "flour" }]), "3 kg Flour");
+assert.strictEqual(one([{ amount: "500", unit: "g", name: "sugar" }, { amount: "250", unit: "g", name: "sugar" }]), "750 g Sugar");
+assert.strictEqual(one([{ amount: "3.6", unit: "kg", name: "chicken" }]), "3.6 kg Chicken");
+assert.strictEqual(one([{ amount: "1/4", unit: "tsp", name: "salt" }]), "1/4 tsp Salt", "a quarter teaspoon stays legible");
+
+// 1.8 + 1.2 is 3000.0000000000005 g in binary floating point, and
+// 3000.0000000000005 / 1000 is not 3. Neither number may reach a cook.
+for (const text of [
+  one([{ amount: "1.8", unit: "kg", name: "flour" }, { amount: "1.2", unit: "kg", name: "flour" }]),
+  one([{ amount: "0.1", unit: "L", name: "cream" }, { amount: "0.2", unit: "L", name: "cream" }]),
+]) {
+  assert.ok(!/000|\.\d{3}/.test(text), "no floating-point artefact in " + JSON.stringify(text));
+}
+
+// A unit is never written as a fraction of itself, and never in the other
+// system's units.
+for (const text of [
+  one([{ amount: "3.6", unit: "kg", name: "chicken" }]),
+  one([{ amount: "250", unit: "g", name: "butter" }, { amount: "150", unit: "g", name: "butter" }]),
+  one([{ amount: "200", unit: "ml", name: "cream" }, { amount: "300", unit: "ml", name: "cream" }]),
+]) {
+  assert.doesNotMatch(text, /\//, "no vulgar fraction in " + JSON.stringify(text));
+  assert.doesNotMatch(text, /\boz\b|\blb\b|\bcup/i, "no US customary unit in " + JSON.stringify(text));
+}
+
+// The unit climbs only when there is a whole one of the larger unit.
+assert.strictEqual(one([{ amount: "200", unit: "ml", name: "cream" }, { amount: "300", unit: "ml", name: "cream" }]), "500 ml Cream");
+assert.strictEqual(one([{ amount: "800", unit: "ml", name: "stock" }, { amount: "700", unit: "ml", name: "stock" }]), "1.5 L Stock");
+assert.strictEqual(one([{ amount: "500", unit: "g", name: "flour" }, { amount: "500", unit: "g", name: "flour" }]), "1 kg Flour");
+assert.strictEqual(one([{ amount: "300", unit: "mg", name: "saffron" }]), "300 mg Saffron");
+assert.strictEqual(one([{ amount: "500", unit: "mg", name: "saffron" }, { amount: "200", unit: "mg", name: "saffron" }]), "700 mg Saffron");
+
+// Written out, abbreviated, or as free text — the same line either way.
+assert.strictEqual(one(["500 ml stock", "1 L stock"]), "1.5 L Stock", "metric units parse out of raw ingredient text");
+assert.strictEqual(one(["250 grams butter"]), "250 g Butter");
+assert.strictEqual(one([{ amount: "250", unit: "grams", name: "butter" }]), "250 g Butter");
+assert.doesNotMatch(one(["200 ml double cream"]), /\bMl\b/, "the unit must never end up inside the name");
+
+// The two systems are never added together. The arithmetic would be exact; the
+// result would be a quantity in a system one of the recipes never used.
+const mixed = buildShoppingListFromSections([{ name: "Main", ingredients: [
+  { amount: "1", unit: "cup", name: "milk" },
+  { amount: "250", unit: "ml", name: "milk" },
+] }]);
+assert.strictEqual(mixed.length, 2, "a cup and 250 ml are two lines, not 2.06 cups");
+assert.ok(mixed.some((i) => /^1 cup Milk$/.test(i.text)), "the cup keeps its own wording");
+assert.ok(mixed.some((i) => /^250 ml Milk$/.test(i.text)), "the millilitres keep theirs");
+
+// Volume and weight never combine in either system: that needs a density.
+assert.strictEqual(buildShoppingListFromSections([{ name: "Main", ingredients: [
+  { amount: "1", unit: "cup", name: "flour" },
+  { amount: "100", unit: "g", name: "flour" },
+] }]).length, 2, "a cup of flour and 100 g of flour are not interchangeable");
+
+// Scaling, in both vocabularies. A metric line scales as a decimal; a spoon
+// stays on a mark a measuring spoon has.
+const SCALED = {
+  0.5: ["1.8 kg Chicken", "750 ml Stock", "1/8 tsp Salt", "375 g Sugar"],
+  1:   ["3.6 kg Chicken", "1.5 L Stock", "1/4 tsp Salt", "750 g Sugar"],
+  2:   ["7.2 kg Chicken", "3 L Stock", "1/2 tsp Salt", "1.5 kg Sugar"],
+  3:   ["10.8 kg Chicken", "4.5 L Stock", "3/4 tsp Salt", "2.25 kg Sugar"],
+  4:   ["14.4 kg Chicken", "6 L Stock", "1 tsp Salt", "3 kg Sugar"],
+};
+for (const [scale, expected] of Object.entries(SCALED)) {
+  const options = { scale: Number(scale) };
+  assert.strictEqual(one([{ amount: "3.6", unit: "kg", name: "chicken" }], options), expected[0], "x" + scale + " single metric weight");
+  assert.strictEqual(one([{ amount: "1", unit: "L", name: "stock" }, { amount: "500", unit: "ml", name: "stock" }], options), expected[1], "x" + scale + " combined metric volume");
+  assert.strictEqual(one([{ amount: "1/4", unit: "tsp", name: "salt" }], options), expected[2], "x" + scale + " US customary fraction");
+  assert.strictEqual(one([{ amount: "500", unit: "g", name: "sugar" }, { amount: "250", unit: "g", name: "sugar" }], options), expected[3], "x" + scale + " combined metric weight");
+}
+
+// A metric group with one unreadable amount is kept apart and says why, which
+// is what a metric weight has always done.
+const splash = buildShoppingListFromSections([{ name: "Main", ingredients: [
+  { amount: "500", unit: "ml", name: "stock" },
+  { amount: "a good splash", unit: "ml", name: "stock" },
+] }]);
+assert.strictEqual(splash.length, 2, "an unreadable amount must not be dropped out of a total");
+assert.ok(splash.every((i) => i.warning), "and the reason must be on the line");
+
+// Different ingredients stay different, whatever the system.
+assert.strictEqual(buildShoppingListFromSections([{ name: "Main", ingredients: [
+  { amount: "200", unit: "ml", name: "double cream" },
+  { amount: "200", unit: "ml", name: "single cream" },
+] }]).length, 2, "double and single cream are not the same ingredient");
+
+// A preparation note still splits nothing and still travels with the line.
+assert.strictEqual(one([
+  { amount: "250", unit: "g", name: "butter melted" },
+  { amount: "150", unit: "g", name: "butter" },
+]), "400 g Butter (melted)");
 
 console.log("shopping-list-test: ok");

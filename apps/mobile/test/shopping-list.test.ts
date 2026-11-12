@@ -189,10 +189,11 @@ test("an empty source list builds an empty list rather than throwing", () => {
 // ---------------------------------------------------------------------------
 
 test("metric amounts are not shown in ounces", () => {
-  // The shared module formats for US kitchens: 250 g + 150 g of butter comes
-  // out of it as "14 1/8 oz Butter", and 1.8 kg + 1.2 kg of beef as
-  // "105.82 oz Beef". Neither is usable by someone shopping in grams, and the
-  // second is two decimal places of an ounce as well.
+  // The shared module used to format every weight for a US kitchen: 250 g plus
+  // 150 g of butter came out as "14 1/8 oz Butter" and 1.8 kg plus 1.2 kg of
+  // beef as "105.82 oz Beef". The native app re-rendered those lines itself.
+  // The module now totals metric in grams and these assertions run against it
+  // directly, which is the point: one implementation, checked from both ends.
   const grams = buildList([
     at(recipe("A", [{ id: "i1", amount: "250", unit: "g", name: "butter" }])),
     at(recipe("B", [{ id: "i1", amount: "150", unit: "g", name: "butter" }])),
@@ -213,7 +214,8 @@ test("metric amounts are not shown in ounces", () => {
 });
 
 test("a metric amount never carries a vulgar fraction", () => {
-  // 1.8 kg doubled is 3.6 kg. The module renders that as "3 5/8 kg".
+  // 1.8 kg doubled is 3.6 kg, which the module used to render "3 5/8 kg" —
+  // eighths of a kilo, from the fraction table that belongs to cups.
   const items = buildList([
     at(recipe("Roast", [{ id: "i1", amount: "1.8", unit: "kg", name: "whole chicken" }]), 2),
   ]);
@@ -238,8 +240,8 @@ test("millilitres climb to litres only when there are enough of them", () => {
 });
 
 test("US volumes keep the shared module's formatting", () => {
-  // Cups and spoons are what the module is good at, including laddering
-  // between them. Re-rendering those would be second-guessing it for no gain.
+  // Cups and spoons ladder as they always have. The metric correction added two
+  // aggregation classes beside them and changed nothing here.
   const items = find(buildList([
     at(recipe("A", [{ id: "i1", amount: "1", unit: "cup", name: "plain flour" }])),
     at(recipe("B", [{ id: "i1", amount: "2", unit: "cups", name: "plain flour" }])),
@@ -258,10 +260,11 @@ test("a group with an unreadable amount is left to the module, not half-totalled
   assert.ok(items.some((i) => i.warning));
 });
 
-test("metric volumes combine, which the shared module cannot do at all", () => {
-  // The module's volume table runs from teaspoons to gallons and contains no
-  // metric volume, so it treats "ml" as part of the ingredient's name. Left to
-  // it, "1 L stock" and "500 ml stock" become two items that never combine.
+test("metric volumes combine", () => {
+  // The module's volume table once ran from teaspoons to gallons and held no
+  // metric volume at all, so "ml" was folded into the ingredient's NAME:
+  // "500 ml stock" became an item called "Ml Stock" and could never combine
+  // with "1 L stock". Both halves of that are asserted below.
   const items = buildList([
     at(recipe("A", [{ id: "i1", amount: "1", unit: "L", name: "chicken stock" }])),
     at(recipe("B", [{ id: "i1", amount: "500", unit: "ml", name: "chicken stock" }])),
@@ -293,11 +296,17 @@ test("different metric-volume ingredients are still different ingredients", () =
   assert.equal(find(items, "single cream").length, 1);
 });
 
-test("an unreadable metric volume is flagged rather than dropped from the total", () => {
+test("an unreadable metric volume is kept apart rather than half-totalled", () => {
+  // A millilitre now gets the same treatment a gram always did: one line the
+  // module cannot read a number from makes the whole group uncombinable, and
+  // both original lines are listed with the reason. The native app used to
+  // total this one itself and show a single line warning it might be short,
+  // which buys a cook less than seeing "a good splash" written out.
   const items = find(buildList([
     at(recipe("A", [{ id: "i1", amount: "500", unit: "ml", name: "stock" }])),
     at(recipe("B", [{ id: "i1", amount: "a good splash", unit: "ml", name: "stock" }])),
   ]), "stock");
-  assert.equal(items.length, 1);
-  assert.ok(items[0].warning, "a total that may be short must say so");
+  assert.equal(items.length, 2, `expected both lines kept, got ${JSON.stringify(textOf(items))}`);
+  assert.ok(items.every((i) => i.warning), "a group that was not totalled must say why");
+  assert.ok(items.some((i) => /splash/i.test(i.text)), "the unreadable amount keeps its own wording");
 });

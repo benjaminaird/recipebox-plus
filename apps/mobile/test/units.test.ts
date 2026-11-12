@@ -46,14 +46,19 @@ test("unit abbreviation agrees with the web module", () => {
   }
 });
 
-test("the web module's two gaps are the reason this module exists", () => {
-  // Ranges: it returns null, so a range could never be scaled.
+test("ranges, and conversion between the systems, are why this module exists", () => {
+  // Ranges: the web module returns null, so a range could never be scaled.
   assert.equal(web.amountToNumber("1-2"), null);
   assert.deepEqual(parseQuantity("1-2"), { kind: "range", min: 1, max: 2 });
 
-  // Metric volume: displayable there, not convertible.
+  // Metric volume used to be the other gap: `ml` existed there as a display
+  // abbreviation and in no conversion table, so millilitres could be shown but
+  // never added up. That is fixed in the shared module, and the assertions
+  // below are what remains — it totals each system separately on purpose, so
+  // converting one system to the other is still this file's job.
   assert.equal(web.abbreviateUnit("milliliters", 2), "ml");
-  assert.ok(convert(1000, "ml", "L") === 1, "this module converts metric volume");
+  assert.ok(convert(1000, "ml", "L") === 1, "this module converts within metric volume");
+  assert.ok(Math.abs(convert(1, "cup", "ml")! - 236.588) < 0.001, "and across the systems");
 });
 
 // ---------------------------------------------------------------------------
