@@ -53,7 +53,8 @@
           ],
           "defaultChannel": "timers-chime"
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "extra": {
       "notes": "Design-system test build. Provisional identifiers (.dev); the permanent bundle identifier is not yet chosen. No auth, database, AI or sync.",

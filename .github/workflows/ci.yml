@@ -70,6 +70,8 @@ jobs:
                    security-hardening-test security-headers-test youtube-parser-test; do
             echo "::group::$t"; node scripts/$t.js; echo "::endgroup::"
           done
+      - name: Native client against the real server (no device, no database)
+        run: npm run native-auth-e2e-test
       - name: No tracked files changed
         run: git diff --exit-code
 
