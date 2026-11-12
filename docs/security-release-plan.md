@@ -25,6 +25,8 @@ without explicit authorisation.**
 | `23d90d6` | An unusable HTTP status no longer crashes the fetcher; WHATWG bad ports refused again | **yes** |
 | `d5723ab` | The fetch budget now covers DNS; suites that stop halfway now fail | **yes** |
 | `529c178`, `71e0268` | Device authentication, server and native | **no** — a new API surface and a new client, nothing to do with these fixes |
+| `78a4e9b` | Auth transactions use one connection | **yes, and separately urgent** — see below |
+| `8669874`, `50346fa` | The native sign-in screens, and the sync plan | **no** — a client and a document |
 | `e78fc31` | Metric corrections | **no** — changes what web users see; approved for the branch, not for release |
 | `1c22098` | `packages/recipe-core` extraction | **no** — not needed by the fixes, and it moves every domain module |
 | `8a303a8`, `239ea76` | The dependency-free build guard | **no** — `scripts/build-core.js` only exists because of the extraction |
@@ -156,3 +158,70 @@ and instant. There is no migration to undo and no data written in a new shape.
   [import-fetch-security.md](./import-fetch-security.md) has the detail.
 - **The metric change and the native client**, which need their own release
   decisions and, for the native client, a build that is not being made yet.
+
+## The transaction fix, which is its own release and a more urgent one
+
+`78a4e9b` is not an SSRF fix and should not wait behind one. It corrects
+something that is wrong in production **today**.
+
+`pool.query('BEGIN')` does not begin a transaction that the following
+`pool.query()` calls are inside. A pool hands out a connection per query, so the
+BEGIN and the work can land on different backends — the statements then run
+outside any transaction, auto-committed one at a time. With one caller at a
+time it is invisible, because the pool keeps handing back the same connection.
+Measured against PostgreSQL 16: two concurrent callers each ran BEGIN / INSERT /
+ROLLBACK through the pool, and one row survived both rollbacks.
+
+Four live routes used that pattern:
+
+| Route | What a half-applied run leaves behind |
+| --- | --- |
+| `/api/auth/delete-account` | **Recipes, meal plans and settings deleted; the account still there.** The worst of the four |
+| `/api/auth/reset-password` | A changed password with the reset token still live, or sessions not cleared |
+| `/api/auth/change-password` | The same, from the other direction |
+| `/api/auth/verify-email` | A consumed token with `email_verified` still false, or the reverse |
+
+It needs concurrency on one function instance to bite, which Fluid Compute
+makes ordinary rather than exotic: several requests share an instance, and
+therefore share the pool.
+
+**Releasing it on its own, and why it is not a cherry-pick.** Two of the four
+blocks were also edited on this branch to revoke native device sessions, and
+that line needs `lib/device-auth.js`, which is not part of any release here. So
+`git cherry-pick 78a4e9b` conflicts in `server.js` rather than applying. Of the
+four blocks, `main`'s versions of the **email-verification** and
+**account-deletion** ones are byte-identical to the branch's before the fix;
+the **reset-password** and **change-password** ones are not.
+
+The release is therefore a small hand-applied patch rather than a pick: add
+`withTransaction` beside `currentUser`, and convert `main`'s own four blocks
+from
+
+```js
+await db.query('BEGIN');
+try { …db.query… await db.query('COMMIT'); }
+catch (err) { await db.query('ROLLBACK'); throw err; }
+```
+
+to `await withTransaction(db, async (tx) => { …tx.query… });`. Nothing else: no
+new table, no new column, no new dependency, no change to any response, and no
+`deviceAuth` reference. A revert is complete and instant.
+
+### Verified, not assumed
+
+Applied exactly that way to `main` in a throwaway worktree (branch
+`release-tx-verify`, never pushed, since deleted):
+
+- **All four blocks converted**, no pool-level `BEGIN` left, four
+  `withTransaction` callers, and `server.js` still parses.
+- **Exactly one file differs from `main`**: `server.js`. `lib/device-auth.js`
+  is absent and nothing references `deviceAuth`.
+- **All 24 suites that exist on `main` pass.**
+
+The concurrency assertion itself lives in `scripts/device-auth-db-test.js`,
+which is branch-only and needs a database, so the candidate cannot run it. Run
+it on the branch — against an isolated PostgreSQL instance — and release the
+code it proves.
+
+**This has not been executed either**, and it needs the same explicit
+authorisation as everything else here.
