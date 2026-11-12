@@ -77,7 +77,9 @@ arrangement changed.
 | 6 | Visual and interaction review | **done** | `318b879` |
 | 7 | Documentation and final verification | **done** | `a292410` |
 | 8 | Extract `packages/recipe-core` (ADR 0003) | **done** | `1c22098` |
-| 9 | Correct the metric handling (ADR 0021) | **done** | (this commit) |
+| 9 | Correct the metric handling (ADR 0021) | **done** | `e78fc31` |
+| 10 | Fetch-security hardening (SSRF, pinning, deadline) | **done** | `04c89a7`…`23d90d6` |
+| 11 | Native auth design (ADR 0010) | **design only** | (this commit) |
 
 ## Baseline at session start
 
@@ -321,6 +323,60 @@ now expanded to its sixteen bytes and compared numerically, which cannot have
 that class of bug. Confirmed end to end both ways — eight spellings of loopback
 all refused, and ten real hosts plus ten real public IPv6 addresses still
 allowed.
+
+### Milestone 10 — fetch-security hardening (done)
+
+Five commits, each independently green, all on the branch and none deployed:
+
+- `04c89a7` — `isPrivateIp` judged IPv6 by its spelling, so **seventeen**
+  addresses that must never be fetched were judged public, sixteen of them
+  reachable through a URL. Now expanded to sixteen bytes and compared
+  numerically. Cross-checked against `net.BlockList` on 4,000 generated
+  addresses with zero disagreements.
+- `362ada5` — the guard resolved DNS and `fetch` resolved it again. The
+  connection is now pinned to the addresses the guard judged, with the hostname
+  left in place so TLS certificate validation is untouched.
+- `4dfb9da` — the deadline stopped at the headers, so a dribbled body was
+  unbounded. One deadline now covers DNS, connection, redirects **and** reading.
+- `0069c9d` — the controlled DNS-rebinding scenario, with a negative control.
+  With the pin removed the same test reports
+  `status 200, body "PRIVATE DESTINATION REACHED"`; with it restored, zero
+  connect-time resolutions and zero contacts.
+- `23d90d6` — two regressions the hand-built HTTP client introduced: an
+  out-of-range status (`HTTP/1.1 700`) threw a `RangeError` inside the response
+  callback and crashed the process, and the WHATWG blocked-port list that
+  global `fetch` enforced for free was gone, so the fetcher would speak HTTP at
+  SMTP, IRC, NFS or an X server. Both fixed and both now regression tests.
+
+An automated security review of the three middle commits found **no
+vulnerabilities**; the two items in `23d90d6` came from its non-vulnerability
+notes and were fixed anyway, because the hand-built client caused them.
+
+[security-release-plan.md](./security-release-plan.md) records how to ship
+these five **without** the metric change or the native client, verified by
+cherry-picking them onto a throwaway branch off `main`: two files differ,
+`public/shopping-list.js` is byte-identical to `main`, and eighteen suites pass.
+Not executed.
+
+### Milestone 11 — native auth design (design only)
+
+[native-auth-design.md](./native-auth-design.md) is the ADR 0010 proposal:
+`/api/v1`, opaque access tokens with rotating refresh tokens and reuse
+detection, two additive tables, `expo-secure-store` for the refresh token and
+memory only for the access token, and authorization that reuses the existing
+household and recipe helpers so no route learns which transport reached it.
+Nothing is implemented. It ends with five decisions that are not mine —
+token lifetimes, whether native sign-in requires a verified email, what
+`checkRateLimit` failing open should mean for token issuance, whether the web
+gets device management, and whether to build before or after that review.
+
+Two things the design had to take a view on, both found while reading:
+`SESSION_DAYS = 3650` means a web session effectively never ends, which must
+not be copied to a device token; and `/api/auth/signin` does not check
+`email_verified`, so whether the native client matches that is a decision
+rather than an oversight.
+
+---
 
 The review's other two findings are **also fixed**, both on live code: the
 guard resolved DNS and `fetch` then resolved it again, so a short-TTL record
