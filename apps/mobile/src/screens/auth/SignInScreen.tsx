@@ -64,7 +64,7 @@ export function SignInScreen() {
       lead={
         expired
           ? "RecipeBox could not renew your session."
-          : "An account keeps your recipes on every device you cook from. Everything already here stays here either way."
+          : "Your recipes, on every device you cook from."
       }
       footer={
         <>
@@ -74,6 +74,10 @@ export function SignInScreen() {
             tone="plain"
             onPress={() => navigation.navigate("ForgotPassword", { email: email.trim() || undefined })}
           />
+          {/* Last, and a real control: the way out of this screen is not a
+              greyed-out hint, because cooking without an account is a
+              supported way to use RecipeBox rather than a lesser one. */}
+          <QuietButton label="Keep cooking without an account" tone="plain" onPress={() => navigation.goBack()} />
         </>
       }
     >
@@ -133,7 +137,6 @@ export function SignInScreen() {
         ) : null}
       </View>
 
-      <QuietButton label="Keep cooking without an account" tone="plain" onPress={() => navigation.goBack()} />
     </AuthScreen>
   );
 }

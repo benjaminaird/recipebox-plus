@@ -452,11 +452,15 @@ precisely so that running it against a database is the only step needed.
 
 ### What is not built
 
-- **No sign-in screen.** Nothing in the app imports any of
-  `apps/mobile/src/auth/`, so the bundle that builds from this work still
-  contains none of it and the app still does no authentication. That is the
-  next milestone, and it is deliberately separate: the infrastructure is
-  reviewable on its own.
+- ~~**No sign-in screen.**~~ Built in the following milestone: five screens,
+  the AuthProvider, and Settings' Account row. Signing in, restoring a session
+  across a relaunch, and rotation were all confirmed on an iOS simulator
+  against a real PostgreSQL-backed server.
+- **`extra.apiBaseUrl` is deliberately empty** in `app.json`. `/api/v1` is not
+  deployed, so a configured URL would mean the app posting a password to a
+  server that would answer with the single-page app's HTML. Empty, the app says
+  it has no sign-in server before anyone types anything. Set it to the server's
+  origin — a laptop, a staging host — to sign in.
 - **No verification email in development.** Sending needs `RESEND_API_KEY`,
   which is production configuration. The code path is built and the response
   tells the truth when there is no key; the key itself is not invented here.

@@ -57,8 +57,8 @@
       "expo-secure-store"
     ],
     "extra": {
-      "apiBaseUrl": "https://recipebox-kappa.vercel.app",
-      "notes": "Design-system test build. Provisional identifiers (.dev); the permanent bundle identifier is not yet chosen. No auth, database, AI or sync.",
+      "apiBaseUrl": "",
+      "notes": "Design-system test build. apiBaseUrl is empty on purpose: /api/v1 is not deployed, so the app says it has no sign-in server rather than sending a password to one that would not use it. Set it to the server origin to enable signing in. Provisional identifiers (.dev); the permanent bundle identifier is not yet chosen. No auth, database, AI or sync.",
       "eas": {
         "projectId": "06ab1d4f-79eb-4e7b-8e55-fc94b5ef2c56"
       }

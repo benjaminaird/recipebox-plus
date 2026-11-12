@@ -27,6 +27,12 @@ import { CreateAccountScreen } from "../screens/auth/CreateAccountScreen";
 import { VerifyEmailScreen } from "../screens/auth/VerifyEmailScreen";
 import { ForgotPasswordScreen } from "../screens/auth/ForgotPasswordScreen";
 
+// A native header is a fixed height, so a button label that grows without
+// bound is clipped rather than wrapped. Capped here: the design spec asks for
+// layout changes under Dynamic Type, never truncation, and a half-height
+// "Close" is truncation by another name.
+const HEADER_BUTTON_MAX_SCALE = 1.4;
+
 function EditRecipeButton({ recipeId }: { recipeId: string }) {
   const t = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -38,7 +44,7 @@ function EditRecipeButton({ recipeId }: { recipeId: string }) {
       hitSlop={12}
       style={({ pressed }) => ({ minHeight: t.minTouch, justifyContent: "center", opacity: pressed ? 0.6 : 1 })}
     >
-      <Text style={[textStyle("body"), { color: t.colors.accentText, fontWeight: "600" }]}>Edit</Text>
+      <Text maxFontSizeMultiplier={HEADER_BUTTON_MAX_SCALE} style={[textStyle("body"), { color: t.colors.accentText, fontWeight: "600" }]}>Edit</Text>
     </Pressable>
   );
 }
@@ -54,7 +60,7 @@ function CloseButton() {
       hitSlop={12}
       style={({ pressed }) => ({ minHeight: t.minTouch, justifyContent: "center", opacity: pressed ? 0.6 : 1 })}
     >
-      <Text style={[textStyle("body"), { color: t.colors.accentText, fontWeight: "600" }]}>Close</Text>
+      <Text maxFontSizeMultiplier={HEADER_BUTTON_MAX_SCALE} style={[textStyle("body"), { color: t.colors.accentText, fontWeight: "600" }]}>Close</Text>
     </Pressable>
   );
 }

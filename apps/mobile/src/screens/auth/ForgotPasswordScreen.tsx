@@ -52,7 +52,7 @@ export function ForgotPasswordScreen() {
   return (
     <AuthScreen
       title="Reset your password"
-      lead="We will email you a link. Choosing the new password happens in your browser, on the RecipeBox website."
+      lead="We will email you a link. You choose the new password in your browser."
       footer={<QuietButton label="Back to sign in" onPress={() => navigation.goBack()} />}
     >
       {message ? <Notice message={message} /> : null}

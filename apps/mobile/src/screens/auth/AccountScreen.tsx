@@ -109,7 +109,7 @@ export function AccountScreen() {
     return (
       <AuthScreen
         title="Account"
-        lead="RecipeBox works without an account. Signing in adds your recipes on every device you cook from."
+        lead="RecipeBox works without an account. Signing in adds your recipes on every device."
       >
         {state.status === "expired" ? (
           <Notice

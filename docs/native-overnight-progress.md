@@ -465,3 +465,66 @@ branch off `main`. Two files differ, `public/shopping-list.js` is byte-identical
 to `main`, `lib/device-auth.js` and `apps/mobile` are absent, and all 24 suites
 that exist on `main` pass. Still not executed, and still needing explicit
 authorisation.
+
+### Milestone 13 — the database, the screens, and a phone that signs in
+
+**Phase 1: real PostgreSQL.** Docker was installed but its daemon was not
+running; started, a throwaway `postgres:16-alpine` container gave an isolated
+instance. The lifecycle suite passes against real SQL, and
+`scripts/device-auth-db-test.js` covers what the offline suite cannot: the
+bootstrap creating the device tables and surviving a second run, the foreign key
+and the partial unique index, verification enforced against a real account whose
+web session is left alone, a grandfathered row signing in without its
+verification being overstated, household authorization returning byte-identical
+answers through a cookie and through a bearer token, concurrent refresh over two
+real connections, replay revoking the chain, independent device revocation, the
+six-month ceiling and re-signing in on the same install afterwards, and
+database-backed rate limiting.
+
+**And a real bug, found by testing rollback.** `pool.query('BEGIN')` does not
+begin a transaction the following `pool.query()` calls are inside: a pool hands
+out a connection per query. Sequentially it looks fine because the pool keeps
+handing back the same connection — which is why the first rollback test passed
+either way. Two concurrent callers each ran BEGIN / INSERT / ROLLBACK through
+the pool and **one row survived both rollbacks**. Four live auth routes used
+that pattern, including account deletion, where a half-applied transaction
+loses someone's recipes and leaves the account. `withTransaction` checks a
+client out, as `upsertUserRecipe` in the same file always has.
+
+**Phases 2–4: the screens.** Sign in (which doubles as the reconnect screen),
+create an account, confirm your email, reset your password, and the account
+screen with its device list. Two server routes so the client stays on `/api/v1`
+rather than depending on unversioned web endpoints; `createAccount` is extracted
+from the web signup and used by both, so there is one definition of what a new
+account is. What a failure may say is a pure, tested module: a failed sign-in
+never reveals whether an address has an account, and no message about being
+offline reads as a lost cookbook.
+
+The Keychain needed two accommodations. It outlives the app that wrote to it, so
+a reinstall would otherwise find the previous installation's refresh token —
+someone deleting the app to sign out would still be signed in, and a second-hand
+phone would hand over the account. A credential is now honoured only when the
+marker stored beside it, in a file that goes with the app, is still there. And
+the credential store reports `persistent: false` where secure storage is
+unavailable, so the app can admit a session will not survive a relaunch.
+
+**Phase 5: on a device.** Built locally with `expo run:ios` (no EAS build) and
+driven on an iPhone 17 Pro simulator. The app opens signed out and cooks
+locally; the screens render in light and dark; at the largest accessibility text
+size everything scrolls and nothing truncates — except the navigator's "Close"
+button, which clipped inside the fixed-height native header and is now capped.
+Pointed at a local server over the test database, the app signed in, showed the
+account with its confirmation date and its device list, and **restored the
+session across a full app restart** with the refresh token rotating on the way —
+the one claim no test suite can make. `app.json` ships with `apiBaseUrl` empty,
+so the app says it has no sign-in server rather than posting a password to one
+that would not use it.
+
+The twelve journeys in `scripts/native-auth-e2e-test.mjs` are walked by the
+app's own session manager against the real Express server, and all twelve pass
+with PostgreSQL behind it.
+
+**Phase 6:** [native-sync-plan.md](./native-sync-plan.md) — how an existing web
+collection reaches the phone. Its first rule is that the first sync pulls and
+does not push, because the phone arrives holding seeded samples whose ids are
+identical on every install.

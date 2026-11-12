@@ -161,17 +161,25 @@ export function PrimaryButton({
       style={({ pressed }) => [
         styles.primary,
         {
-          backgroundColor: c.accent,
+          // Disabled is a different colour, not a faded accent. A translucent
+          // green still reads as a button somebody painted oddly; this reads
+          // as one that is not ready yet, which is what it is.
+          backgroundColor: disabled && !busy ? c.sunken : c.accent,
           borderRadius: t.radius.md,
           minHeight: Math.max(t.minTouch, 52),
           paddingHorizontal: t.space.lg,
           paddingVertical: t.space.md,
-          opacity: inert ? 0.55 : pressed ? 0.85 : 1,
+          opacity: busy ? 0.75 : pressed ? 0.85 : 1,
         },
       ]}
     >
       {busy ? <ActivityIndicator color={c.onAccent} /> : null}
-      <Text style={[textStyle("headline"), { color: c.onAccent, fontWeight: "600", textAlign: "center" }]}>
+      <Text
+        style={[
+          textStyle("headline"),
+          { color: disabled && !busy ? c.textTertiary : c.onAccent, fontWeight: "600", textAlign: "center" },
+        ]}
+      >
         {label}
       </Text>
     </Pressable>

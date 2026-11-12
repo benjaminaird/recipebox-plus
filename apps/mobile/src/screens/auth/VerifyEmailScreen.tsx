@@ -61,7 +61,7 @@ export function VerifyEmailScreen() {
   return (
     <AuthScreen
       title="Confirm your email"
-      lead="RecipeBox sends one link to prove the address is yours. Open it in the browser, then come back and sign in."
+      lead="Open the link we sent, then come back and sign in."
       footer={
         <QuietButton
           label="Keep cooking without an account"
