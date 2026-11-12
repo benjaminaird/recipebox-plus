@@ -329,8 +329,25 @@ test("signing back in as the owner returns to the same library", () => {
 });
 
 test("signing out leaves the library where it was", () => {
-  const out = resolveLocalStore({ claimedBy: "user-alice", signedInUserId: null });
+  const out = resolveLocalStore({ claimedBy: "user-alice", signedInUserId: null, lastUserId: "user-alice" });
   assert.equal(out.name, BASE_LOCAL_STORE);
   assert.equal(out.claimedBy, "user-alice", "the claim survives a sign-out, so signing back in is not a migration");
   assert.equal(localDataOnSignOut(), "keep");
+});
+
+test("a guest who signs out does not land in the owner's library", () => {
+  // Signing out is not a way back into someone else's recipes. Without the
+  // last-signed-in account, a borrowed phone would show the owner's library to
+  // whoever signed out of it last.
+  const guestOut = resolveLocalStore({ claimedBy: "user-alice", signedInUserId: null, lastUserId: "user-bob" });
+  const guestIn = resolveLocalStore({ claimedBy: "user-alice", signedInUserId: "user-bob" });
+  assert.equal(guestOut.name, guestIn.name, "the guest keeps their own store after signing out");
+  assert.notEqual(guestOut.name, BASE_LOCAL_STORE);
+  assert.equal(guestOut.isolated, true);
+});
+
+test("a device nobody has ever signed in on opens the library it has always opened", () => {
+  const fresh = resolveLocalStore({ claimedBy: null, signedInUserId: null });
+  assert.equal(fresh.name, BASE_LOCAL_STORE);
+  assert.equal(fresh.claimedBy, null, "and signing out of nothing claims nothing");
 });

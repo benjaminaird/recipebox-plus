@@ -43,10 +43,23 @@ chain — a false positive costs one sign-in, a false negative costs an account.
 The exception is a **60-second grace window**. Two refreshes racing on one
 device, or a retry of a request whose response never arrived, present the same
 token twice and are not an attack; without the window the honest case would
-look identical to the dishonest one and lock a working phone out. The cost is
-stated plainly: inside that minute a captured refresh token can be spent once.
-The client holds up its end by refreshing single-flight, so the window is
-defence against the network, not a routine occurrence.
+look identical to the dishonest one and lock a working phone out.
+
+Inside that window the token gets **the same answer it got the first time** —
+not a second chain. The first version issued a fresh pair instead, and a
+security review showed what that bought: a token captured in transit and
+replayed within the minute gave its holder a parallel session that reuse
+detection could never see, because neither chain was ever presented twice.
+Repeating the answer makes a replay worth exactly what the replayer already
+had, and leaves the one chain subject to detection as usual — whichever holder
+rotates second is caught.
+
+Repeating an answer means keeping it, and all that is kept of a token is its
+hash. So the successor pair is sealed under a key derived from the token that
+produced it: whoever can present that token can open it, which is precisely the
+set of people who already hold it, and a copy of the database opens nothing. The
+spend and the seal happen in one conditional update, so a genuine race has one
+winner and the loser returns the winner's pair rather than a pair of its own.
 
 ## Email verification
 

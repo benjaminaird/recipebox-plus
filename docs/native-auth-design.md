@@ -125,6 +125,12 @@ was captured and replayed, so the whole device chain is revoked and the user
 signs in again. This is the one place the design is deliberately harsh: a
 false positive costs a sign-in, a false negative costs an account.
 
+The exception is a 60-second window in which a repeat is answered with the
+*same* pair rather than a new one — see
+[ADR 0022](./adr/0022-native-session-lifetimes-and-email-verification.md) for
+why repeating it, rather than minting a second chain, is what keeps detection
+intact.
+
 ### `POST /api/v1/auth/signout`
 
 Revokes the presented device's chain. Idempotent; always `200`.

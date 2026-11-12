@@ -159,22 +159,37 @@ async function runSuite(label, makeStore) {
     assert.strictEqual(replay.message, successor.message, say('every refresh failure reads the same to a caller'));
   }
 
-  // ── Concurrent refresh is not a replay ───────────────────────────────────
+  // ── Asking twice inside the grace window gets the same answer twice ──────
   {
     const store = await s();
     const first = await signIn(store, { email: ALICE.email, password: PASSWORD, device }, opts);
-    // The device sends two refreshes at once (or retries one whose response it
-    // never saw). Both must succeed; locking a working device out is the wrong
+    // The device sends two refreshes at once, or retries one whose response it
+    // never saw. Both must succeed — locking a working device out is the wrong
     // failure, and it is the one a naive rotation produces.
     const a = await refresh(store, { refreshToken: first.refreshToken }, { now: at(60) });
     const b = await refresh(store, { refreshToken: first.refreshToken }, { now: at(61) });
-    assert.notStrictEqual(a.refreshToken, b.refreshToken, say('each concurrent refresh gets its own token'));
-    const stillGood = await authenticate(store, b.accessToken, { now: at(62) });
-    assert.strictEqual(stillGood.user.user_id, ALICE.user_id, say('the device is still signed in after a concurrent refresh'));
-    assert.strictEqual((await store.getDevice(first.deviceId)).revoked_at, null, say('no family revocation from a race'));
 
-    // Genuinely parallel, not just sequential-in-time: the same token presented
-    // twice with no await between the calls.
+    // And both must be the SAME answer. Issuing a second, independent chain
+    // would mean a token captured in transit and replayed inside the minute
+    // bought its holder a parallel session that reuse detection could never
+    // see, because neither chain is ever presented twice. That is the bug a
+    // security review found in the first version of this window.
+    assert.strictEqual(b.refreshToken, a.refreshToken, say('a repeat inside the window repeats the answer'));
+    assert.strictEqual(b.accessToken, a.accessToken, say('including the access token'));
+    assert.ok(b.expiresIn < a.expiresIn, say('with the lifetime counted down, not restarted'));
+    assert.strictEqual((await store.getDevice(first.deviceId)).revoked_at, null, say('no family revocation from a race'));
+    const stillGood = await authenticate(store, b.accessToken, { now: at(62) });
+    assert.strictEqual(stillGood.user.user_id, ALICE.user_id, say('the device is still signed in'));
+
+    // So a replay gains nothing, and the chain it was handed is still subject
+    // to detection: whichever holder rotates second is caught.
+    const legitimate = await refresh(store, { refreshToken: a.refreshToken }, { now: at(200) });
+    assert.ok(legitimate.accessToken, say('the real device rotates on'));
+    const thief = await caught(() => refresh(store, { refreshToken: b.refreshToken }, { now: at(400) }));
+    assert.strictEqual(thief.reuseDetected, true, say('and the replayer, holding the same token, is detected'));
+
+    // Genuinely parallel, not just sequential in time: the same token
+    // presented twice with no await between the calls.
     const store2 = await s();
     const start = await signIn(store2, { email: ALICE.email, password: PASSWORD, device }, opts);
     const [p, q] = await Promise.all([
@@ -182,7 +197,33 @@ async function runSuite(label, makeStore) {
       refresh(store2, { refreshToken: start.refreshToken }, { now: at(60) }),
     ]);
     assert.ok(p.accessToken && q.accessToken, say('two simultaneous refreshes both succeed'));
+    assert.strictEqual(p.refreshToken, q.refreshToken, say('and both get the same pair, not one each'));
     assert.strictEqual((await store2.getDevice(start.deviceId)).revoked_at, null, say('and neither revokes the device'));
+    // The loser of that race minted a pair before it knew it had lost. It must
+    // not leave those rows behind: only the spent token and the one live pair
+    // should exist.
+    assert.strictEqual((await store2.listTokensForDevice(start.deviceId)).length, 4, say('the losing race leaves no orphan tokens: the spent one, its unused access token, and the one live pair'));
+    assert.ok(await authenticate(store2, p.accessToken, { now: at(61) }), say('the surviving access token works'));
+
+    // What a database thief gets from the sealed successor: nothing. The key
+    // is derived from the token, which is not stored in any form.
+    const store3 = await s();
+    const sealed = await signIn(store3, { email: ALICE.email, password: PASSWORD, device }, opts);
+    await refresh(store3, { refreshToken: sealed.refreshToken }, { now: at(60) });
+    const spent = await store3.getToken(hashToken(sealed.refreshToken));
+    assert.ok(spent.successor_enc, say('the successor is stored sealed'));
+    assert.ok(!spent.successor_enc.includes(sealed.refreshToken), say('and the stored blob is not the token'));
+    assert.strictEqual(deviceAuth.openSuccessor('a guess', spent.successor_enc), null, say('it does not open with the wrong token'));
+    assert.strictEqual(deviceAuth.openSuccessor(sealed.refreshToken, spent.successor_enc.slice(0, -4) + 'AAAA'), null, say('nor when tampered with'));
+
+    // A spent token inside the window with nothing to replay is treated as the
+    // replay it looks like, rather than minting something new.
+    const store4 = await s();
+    const stripped = await signIn(store4, { email: ALICE.email, password: PASSWORD, device }, opts);
+    await refresh(store4, { refreshToken: stripped.refreshToken }, { now: at(60) });
+    await store4.recordSuccessor(hashToken(stripped.refreshToken), null);
+    const nothingToRepeat = await caught(() => refresh(store4, { refreshToken: stripped.refreshToken }, { now: at(70) }));
+    assert.strictEqual(nothingToRepeat.reuseDetected, true, say('an unreadable successor is a replay, not a new chain'));
   }
 
   // ── Expiry of the refresh window, and the absolute ceiling ───────────────

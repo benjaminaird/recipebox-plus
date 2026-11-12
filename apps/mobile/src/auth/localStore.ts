@@ -36,20 +36,32 @@ function storeSuffix(userId: string): string {
   return hash.toString(16).padStart(8, "0");
 }
 
-export function resolveLocalStore(input: { claimedBy: string | null; signedInUserId: string | null }): LocalStoreResolution {
+export function resolveLocalStore(input: {
+  claimedBy: string | null;
+  signedInUserId: string | null;
+  /**
+   * Who was signed in last, if nobody is now. Signing out must not hand the
+   * device back to the account that owns the base store: a guest who signs out
+   * on a borrowed phone would otherwise be looking at the owner's recipes.
+   */
+  lastUserId?: string | null;
+}): LocalStoreResolution {
   const { claimedBy, signedInUserId } = input;
+  const effective = signedInUserId ?? input.lastUserId ?? null;
 
-  // Signed out: the local-first library, exactly as the app has always opened
-  // it. Signing out does not move anyone's recipes.
-  if (!signedInUserId) return { name: BASE_LOCAL_STORE, claimedBy, isolated: false };
+  // Nobody has ever signed in here: the local-first library, exactly as the
+  // app has always opened it.
+  if (!effective) return { name: BASE_LOCAL_STORE, claimedBy, isolated: false };
 
-  // First account to sign in on this device adopts what is already here.
-  if (!claimedBy) return { name: BASE_LOCAL_STORE, claimedBy: signedInUserId, isolated: false };
+  // First account to sign in on this device adopts what is already here — it
+  // was theirs before they had an account. Only an actual sign-in claims it.
+  if (!claimedBy) return { name: BASE_LOCAL_STORE, claimedBy: signedInUserId ?? null, isolated: false };
 
-  if (claimedBy === signedInUserId) return { name: BASE_LOCAL_STORE, claimedBy, isolated: false };
+  if (claimedBy === effective) return { name: BASE_LOCAL_STORE, claimedBy, isolated: false };
 
-  // Somebody else. Their own store, and the first account's is left alone.
-  return { name: "recipebox-" + storeSuffix(signedInUserId) + ".db", claimedBy, isolated: true };
+  // Somebody else, signed in or just signed out. Their own store, and the
+  // owner's is left exactly where it was.
+  return { name: "recipebox-" + storeSuffix(effective) + ".db", claimedBy, isolated: true };
 }
 
 /**
