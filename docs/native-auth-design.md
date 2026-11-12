@@ -413,10 +413,35 @@ cookie session. Authorization does not know which transport it was reached by.
   kinds of failure, single-flight refresh, backoff, and what two accounts on
   one phone may see.
 
-Seven mutations were applied one at a time and each failed a test: reuse
+Ten mutations were applied one at a time and each failed a test: reuse
 detection disabled, a refresh token accepted as an access token, revocation
 unchecked, verification unenforced, the ceiling removed, the coded 404 dropped,
-and native sign-in given a rate-limit bucket of its own.
+native sign-in given a rate-limit bucket of its own, the grace window minting a
+new chain instead of repeating the old answer, the claim losing its
+compare-and-swap, and a guest's sign-out falling back to the owner's local
+store.
+
+### What the security review found
+
+One finding, and it was right: the grace window used to issue a *fresh* pair on
+a second presentation, so a refresh token captured in transit and replayed
+inside the minute bought its holder a parallel chain that reuse detection could
+never see. Fixed in `c895439` — a repeat now returns the pair the first call
+got, and ADR 0022 explains how an answer can be repeated when only its hash is
+kept. Two notes the review placed below its own bar are fixed as well: a device
+past its ceiling is retired before its replacement is created, which would
+otherwise have collided on the partial unique index six months in; and a guest
+who signs out on a shared phone stays in their own local store rather than the
+owner's.
+
+Everything else the review traced it ruled out with a reason, and those are
+worth knowing as much as the finding: cookie-as-bearer and bearer-as-cookie
+both fail on the table they look in; `kind` is checked before anything else, so
+neither token can stand in for the other; every statement in the Postgres store
+is parameterised; the device id is shape-checked before it is bound; the
+`useDeviceStore` seam is module-private and unreachable from any request; and
+the DNS race fails closed, discarding the losing lookup rather than letting it
+reach the guard.
 
 **Where the proof stops.** The Postgres store's SQL is exercised only when
 `DEVICE_AUTH_TEST_DATABASE_URL` points at an isolated test database; the suite

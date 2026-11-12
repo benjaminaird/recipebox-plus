@@ -433,8 +433,22 @@ over HTTP on the real Express app, 26 client cases, and
 `scripts/native-auth-e2e-test.mjs` — the app's own session manager, imported as
 TypeScript, driving the real server over an ephemeral port through sign-in,
 silent mid-request rotation, revocation from a second device, going offline
-against a dead port, recovery without a password, and sign-out. Seven mutations
-were applied one at a time and each failed a test. The Postgres store's SQL is
+against a dead port, recovery without a password, and sign-out. Ten mutations
+were applied one at a time and each failed a test.
+
+**The security review found one thing, and it was right** (`c895439`). The
+60-second grace window issued a *fresh* pair on a second presentation, so a
+refresh token captured in transit and replayed inside the minute bought its
+holder a parallel chain that reuse detection could never see — the exception
+defeating the control it was an exception to. A repeat now gets the same pair
+the first call got, sealed under a key derived from the token that produced it,
+so a replay is worth what the replayer already had and the one chain stays
+detectable. Fixing it surfaced a race of my own: spending the token and
+publishing its successor were two statements, so a parallel refresh could see
+the half-done state and revoke the device. They are one conditional update now.
+Two smaller notes from the same review are fixed too — a device past its ceiling
+is retired before its replacement is created, and a guest who signs out on a
+shared phone stays in their own local store rather than the owner's. The Postgres store's SQL is
 exercised only when `DEVICE_AUTH_TEST_DATABASE_URL` names an isolated test
 database; the suite says so rather than implying coverage it has not got.
 
