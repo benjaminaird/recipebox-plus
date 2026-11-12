@@ -2973,7 +2973,12 @@ app.post('/api/v1/auth/signup', async (req, res) => {
       // 409 keeps its own code: "this email already has an account" is the one
       // thing the client can act on, by offering to sign in instead.
       const code = created.status === 409 ? 'email_taken' : 'invalid_signup';
-      return res.status(created.status).json({ code, message: created.error });
+      // 400 is a rule about what will be accepted ("at least 6 characters"),
+      // and repeating it is the most useful thing to say. 403 is the master
+      // admin reservation, and repeating *that* would confirm the configured
+      // address to anyone who guessed it, so this surface does not.
+      const message = created.status === 403 ? 'That email address cannot be used.' : created.error;
+      return res.status(created.status).json({ code, message });
     }
     clearAuthLimit(req);
 
