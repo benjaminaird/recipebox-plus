@@ -2598,6 +2598,40 @@ app.get('/api/auth/session', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Where a RecipeBox account comes into existence — the only place. The web
+// signup and the native one both call it, so "reuse the existing account
+// system" is structural rather than a promise: there is no second definition
+// of what a new account is, what makes a password acceptable, or who the
+// master admin is.
+//
+// Returns either { error, status } for the caller to send, or the new account.
+// It does not create a session, send an email or import a library: those differ
+// between the two surfaces and stay with their routes.
+async function createAccount(db, { email, password, displayName }) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { status: 400, error: 'Enter a valid email address.' };
+  if (password.length < PASSWORD_MIN_LENGTH) return { status: 400, error: 'Use a password with at least 6 characters.' };
+  if (isConfiguredMasterEmail(email) && !verifyConfiguredMasterPassword(password)) {
+    return { status: 403, error: 'This email is reserved for the RecipeBox master admin.' };
+  }
+  const exists = await db.query('SELECT user_id FROM profiles WHERE email=$1', [email]);
+  if (exists.rows[0]) return { status: 409, error: 'An account already exists for that email. Sign in with your password.' };
+
+  const userId = crypto.randomUUID();
+  const role = isConfiguredMasterEmail(email) ? 'master_admin' : 'user';
+  const verified = role === 'master_admin'; // master admin is pre-verified
+  await db.query(
+    `INSERT INTO profiles(user_id, email, display_name, role, password_hash, email_verified, email_verified_at)
+     VALUES($1, $2, $3, $4, $5, $6, $7)`,
+    [userId, email, displayName, role, hashPassword(password), verified, verified ? new Date() : null]
+  );
+  // Welcome AI Assists for a new (non-master) account — one-time bonus grant
+  // that never expires. Best-effort; never blocks signup.
+  if (role !== 'master_admin' && FREE_WELCOME_ASSISTS > 0) {
+    try { await grantCredits(userId, 'bonus', FREE_WELCOME_ASSISTS, 'welcome', 'signup welcome assists', 'system'); } catch {}
+  }
+  return { userId, role, verified, email, displayName };
+}
+
 app.post('/api/auth/signup', async (req, res) => {
   try {
     if (!(await checkAuthLimit(req, res))) return;
@@ -2606,28 +2640,11 @@ app.post('/api/auth/signup', async (req, res) => {
     const email = normalizeEmail(req.body.email);
     const displayName = String(req.body.displayName || '').trim().slice(0, 120);
     const password = String(req.body.password || '');
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Enter a valid email address.' });
-    if (password.length < PASSWORD_MIN_LENGTH) return res.status(400).json({ error: 'Use a password with at least 6 characters.' });
-    if (isConfiguredMasterEmail(email) && !verifyConfiguredMasterPassword(password)) {
-      return res.status(403).json({ error: 'This email is reserved for the RecipeBox master admin.' });
-    }
-    const exists = await db.query('SELECT user_id FROM profiles WHERE email=$1', [email]);
-    if (exists.rows[0]) return res.status(409).json({ error: 'An account already exists for that email. Sign in with your password.' });
-    const userId = crypto.randomUUID();
-    const role = isConfiguredMasterEmail(email) ? 'master_admin' : 'user';
-    const verified = role === 'master_admin'; // master admin is pre-verified
-    await db.query(
-      `INSERT INTO profiles(user_id, email, display_name, role, password_hash, email_verified, email_verified_at)
-       VALUES($1, $2, $3, $4, $5, $6, $7)`,
-      [userId, email, displayName, role, hashPassword(password), verified, verified ? new Date() : null]
-    );
+    const created = await createAccount(db, { email, password, displayName });
+    if (created.error) return res.status(created.status).json({ error: created.error });
+    const { userId, role, verified } = created;
     if (Array.isArray(req.body.recipes) && req.body.recipes.length) await replaceUserRecipes(userId, req.body.recipes);
     if (req.body.mealPlan && typeof req.body.mealPlan === 'object') await replaceUserMealPlan(userId, req.body.mealPlan);
-    // Welcome AI Assists for a new (non-master) account — one-time bonus grant
-    // that never expires. Best-effort; never blocks signup.
-    if (role !== 'master_admin' && FREE_WELCOME_ASSISTS > 0) {
-      try { await grantCredits(userId, 'bonus', FREE_WELCOME_ASSISTS, 'welcome', 'signup welcome assists', 'system'); } catch {}
-    }
     await createSession(req, res, userId);
     clearAuthLimit(req);
     if (!verified) await issueVerificationEmail(db, req, userId, email); // best-effort
@@ -2937,6 +2954,40 @@ app.post('/api/v1/auth/signin', async (req, res) => {
   } catch (err) { sendV1Error(res, err); }
 });
 
+app.post('/api/v1/auth/signup', async (req, res) => {
+  try {
+    const verdict = await authLimitVerdict(req);
+    if (!verdict.allowed) {
+      return res.status(429).json({ code: 'rate_limited', message: 'Too many attempts. Wait a few minutes and try again.', retryAfter: retryAfterSeconds(verdict.resetAt) });
+    }
+    const db = await getPool();
+    if (!db) return res.status(503).json({ code: 'database_unavailable', message: 'The service is not available right now.' });
+
+    const email = normalizeEmail(req.body && req.body.email);
+    const created = await createAccount(db, {
+      email,
+      password: String((req.body && req.body.password) || ''),
+      displayName: String((req.body && req.body.displayName) || '').trim().slice(0, 120),
+    });
+    if (created.error) {
+      // 409 keeps its own code: "this email already has an account" is the one
+      // thing the client can act on, by offering to sign in instead.
+      const code = created.status === 409 ? 'email_taken' : 'invalid_signup';
+      return res.status(created.status).json({ code, message: created.error });
+    }
+    clearAuthLimit(req);
+
+    // No tokens. A new account must confirm its email first (ADR 0022), and
+    // issuing a session here would be the one place that rule could be dodged.
+    const sent = created.verified ? false : await issueVerificationEmail(db, req, created.userId, created.email);
+    res.status(201).json({
+      user: { id: created.userId, email: created.email, displayName: created.displayName, role: created.role, emailVerified: created.verified, emailVerifiedAt: null },
+      verificationRequired: !created.verified,
+      verificationEmailSent: sent,
+    });
+  } catch (err) { sendV1Error(res, err); }
+});
+
 app.post('/api/v1/auth/refresh', async (req, res) => {
   try {
     const store = await getDeviceStore();
@@ -3010,6 +3061,49 @@ app.post('/api/v1/auth/verification/send', async (req, res) => {
       const db = await getPool();
       if (db) await issueVerificationEmail(db, req, user.user_id, user.email);
     }
+    res.json({ ok: true });
+  } catch (err) { sendV1Error(res, err); }
+});
+
+// Ask for a password-reset link. The link lands in a browser and uses the web
+// app's existing reset page: there is one reset mechanism, and the native
+// client borrows it rather than growing a second one.
+//
+// The answer is the same whatever happens, so this cannot be used to find out
+// who has an account — which is why it does not report whether an email went.
+app.post('/api/v1/auth/password-reset', async (req, res) => {
+  try {
+    const verdict = await authLimitVerdict(req);
+    if (!verdict.allowed) {
+      return res.status(429).json({ code: 'rate_limited', message: 'Too many attempts. Wait a few minutes and try again.', retryAfter: retryAfterSeconds(verdict.resetAt) });
+    }
+    const db = await getPool();
+    if (!db) return res.status(503).json({ code: 'database_unavailable', message: 'The service is not available right now.' });
+    if (!process.env.RESEND_API_KEY) {
+      // Said plainly rather than answered with a cheerful ok: a client that
+      // showed "check your email" here would be lying.
+      return res.status(503).json({ code: 'email_unavailable', message: 'Password reset email is not configured on this server.' });
+    }
+    const email = normalizeEmail(req.body && req.body.email);
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      const result = await db.query('SELECT user_id, email FROM profiles WHERE email=$1', [email]);
+      const user = result.rows[0];
+      if (user) {
+        const token = crypto.randomBytes(32).toString('base64url');
+        await db.query(
+          `INSERT INTO password_reset_tokens(token_hash, user_id, expires_at)
+           VALUES($1, $2, now() + ($3::text || ' minutes')::interval)`,
+          [hashToken(token), user.user_id, RESET_TOKEN_MINUTES]
+        );
+        try {
+          await sendPasswordResetEmail(user.email, `${trustedAppOrigin(req)}/?reset=${encodeURIComponent(token)}`);
+        } catch (err) {
+          // A delivery failure must not tell the caller the address exists.
+          console.warn('api/v1 reset email failed:', err.message);
+        }
+      }
+    }
+    clearAuthLimit(req);
     res.json({ ok: true });
   } catch (err) { sendV1Error(res, err); }
 });
@@ -4433,7 +4527,7 @@ module.exports._test = {
   // Closing the pool is only ever wanted by a test that created a throwaway
   // database and now needs to drop it.
   async closePool() { if (pool) { const p = pool; pool = null; await p.end(); } },
-  deviceAuth, authLimitVerdict, bearerToken, requireDeviceAuth, getDeviceStore,
+  deviceAuth, authLimitVerdict, bearerToken, requireDeviceAuth, getDeviceStore, createAccount,
   DEVICE_REFRESH_LIMIT_MAX,
   // In-process seam: the offline route suites point /api/v1 at a memory store
   // so the shipped lifecycle is what they exercise. Nothing in a request can

@@ -180,6 +180,31 @@ async function run(app, deviceAuth, pool) {
   assert.strictEqual(nowNative.status, 200, 'a verified account signs in natively');
   assert.ok(nowNative.json.user.emailVerifiedAt, 'and reports when it was proven');
 
+  // ── Creating an account from the native client ───────────────────────────
+  // The same account system, through /api/v1 rather than the web form: one
+  // `profiles` row, one definition of a valid password, and no session, because
+  // a new account has to confirm its email before it can have one.
+  const nativeEmail = 'native-' + crypto.randomBytes(3).toString('hex') + '@example.test';
+  const nativeSignup = await call('POST', '/api/v1/auth/signup', { body: { email: nativeEmail, password: PASSWORD, displayName: 'Native Cook' } });
+  assert.strictEqual(nativeSignup.status, 201, 'the native signup creates an account: ' + nativeSignup.text.slice(0, 160));
+  assert.strictEqual(nativeSignup.json.verificationRequired, true, 'and says it needs confirming');
+  assert.ok(!nativeSignup.json.accessToken && !nativeSignup.json.refreshToken, 'with no tokens issued');
+
+  const profileRow = await pool.query('SELECT email_verified, email_verified_at, password_hash FROM profiles WHERE email=$1', [nativeEmail]);
+  assert.strictEqual(profileRow.rows[0].email_verified, false, 'the row starts unverified');
+  assert.ok(app._test.verifyPassword(PASSWORD, profileRow.rows[0].password_hash), 'and its password is hashed the way the web hashes one');
+
+  const duplicate = await call('POST', '/api/v1/auth/signup', { body: { email: nativeEmail, password: PASSWORD, displayName: 'Impostor' } });
+  assert.strictEqual(duplicate.status, 409, 'a second account on the same email is refused');
+  assert.strictEqual(duplicate.json.code, 'email_taken', 'with a code the client can act on by offering to sign in');
+
+  const weak = await call('POST', '/api/v1/auth/signup', { body: { email: 'weak-' + crypto.randomBytes(2).toString('hex') + '@example.test', password: 'xy', displayName: 'Weak' } });
+  assert.strictEqual(weak.status, 400, 'the same password rule applies');
+  assert.strictEqual(weak.json.code, 'invalid_signup', 'and is reported in the v1 shape');
+
+  const beforeConfirming = await call('POST', '/api/v1/auth/signin', { body: { email: nativeEmail, password: PASSWORD, device: device('native-1') } });
+  assert.strictEqual(beforeConfirming.status, 403, 'and the new account cannot sign in until it confirms');
+
   // ── Grandfathered accounts ───────────────────────────────────────────────
   // Rows that predate verification: the column says true, nobody proved it.
   const grandEmail = 'grand-' + crypto.randomBytes(3).toString('hex') + '@example.test';

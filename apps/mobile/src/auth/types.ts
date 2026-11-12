@@ -55,9 +55,14 @@ export type AuthErrorCode =
   | "token_expired"
   | "device_not_found"
   | "device_limit_reached"
+  | "email_taken"
+  | "invalid_signup"
+  | "email_unavailable"
   | "database_unavailable"
   | "not_found"
   | "server_error"
+  /** A 2xx that was not JSON: not a RecipeBox v1 API at the other end. */
+  | "unsupported_response"
   | "unknown";
 
 export class AuthApiError extends Error {
@@ -100,8 +105,12 @@ const KNOWN_CODES = new Set<AuthErrorCode>([
   "token_expired",
   "device_not_found",
   "device_limit_reached",
+  "email_taken",
+  "invalid_signup",
+  "email_unavailable",
   "database_unavailable",
   "not_found",
   "server_error",
+  "unsupported_response",
   "unknown",
 ]);

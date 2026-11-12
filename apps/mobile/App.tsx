@@ -12,6 +12,7 @@ import { serifFonts } from "./src/theme/fonts";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { TimerProvider } from "./src/timers/TimerProvider";
 import { SettingsProvider } from "./src/settings/SettingsProvider";
+import { AuthProvider } from "./src/auth/AuthProvider";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -31,6 +32,10 @@ export default function App() {
       <SafeAreaProvider>
         <ThemeProvider>
           {/* Settings sits above the timers, which read the chosen alert sound. */}
+          {/* Accounts sit beside the app rather than above it: nothing here
+              gates a render, and the navigator mounts whether or not there is
+              a session, a server or a network. */}
+          <AuthProvider>
           <SettingsProvider>
             {/* Above the navigator: a timer belongs to the session, not to the
                 screen that started it, and has to survive moving between them. */}
@@ -39,6 +44,7 @@ export default function App() {
               <RootNavigator />
             </TimerProvider>
           </SettingsProvider>
+          </AuthProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

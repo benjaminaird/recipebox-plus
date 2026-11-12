@@ -21,6 +21,11 @@ import { ShoppingListScreen } from "../screens/ShoppingListScreen";
 import { RecipeEditorScreen } from "../screens/RecipeEditorScreen";
 import { ImportReviewScreen } from "../screens/ImportReviewScreen";
 import { AddTabButton } from "./AddTabButton";
+import { AccountScreen } from "../screens/auth/AccountScreen";
+import { SignInScreen } from "../screens/auth/SignInScreen";
+import { CreateAccountScreen } from "../screens/auth/CreateAccountScreen";
+import { VerifyEmailScreen } from "../screens/auth/VerifyEmailScreen";
+import { ForgotPasswordScreen } from "../screens/auth/ForgotPasswordScreen";
 
 function EditRecipeButton({ recipeId }: { recipeId: string }) {
   const t = useTheme();
@@ -311,6 +316,37 @@ export function RootNavigator() {
             headerTintColor: c.accentText,
           }}
         />
+        {/* Accounts. Account is pushed from Settings, like Settings itself;
+            the four screens that ask for something are modals, because signing
+            in is a task you finish or abandon and then carry on cooking. */}
+        <Stack.Screen
+          name="Account"
+          component={AccountScreen}
+          options={{
+            headerShown: true,
+            title: "",
+            headerBackTitle: "Settings",
+            headerStyle: { backgroundColor: c.canvas },
+            headerShadowVisible: false,
+            headerTintColor: c.accentText,
+          }}
+        />
+        <Stack.Group
+          screenOptions={{
+            presentation: "modal",
+            headerShown: true,
+            title: "",
+            headerStyle: { backgroundColor: c.canvas },
+            headerShadowVisible: false,
+            headerTintColor: c.accentText,
+            headerLeft: () => <CloseButton />,
+          }}
+        >
+          <Stack.Screen name="SignIn" component={SignInScreen} />
+          <Stack.Screen name="CreateAccount" component={CreateAccountScreen} />
+          <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+        </Stack.Group>
         <Stack.Screen
           name="CookMode"
           component={CookModeScreen}

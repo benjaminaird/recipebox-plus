@@ -20,4 +20,11 @@ export type RootStackParamList = {
   ShoppingList: { listId: string };
   RecipeEditor: { recipeId?: string } | undefined;
   ImportReview: { sampleId?: string } | undefined;
+  // Accounts. Reached from Settings, never in anyone's way: the app opens to
+  // the same recipes whether or not any of these are ever visited.
+  Account: undefined;
+  SignIn: { reason?: "expired"; email?: string } | undefined;
+  CreateAccount: undefined;
+  VerifyEmail: { email: string; emailSent: boolean };
+  ForgotPassword: { email?: string } | undefined;
 };

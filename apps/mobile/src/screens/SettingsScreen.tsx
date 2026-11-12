@@ -19,7 +19,8 @@
 import { Children, useCallback, useState } from "react";
 import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import { useTheme } from "../theme/ThemeProvider";
@@ -28,6 +29,8 @@ import { APPEARANCE_PREFERENCES, type AppearancePreference } from "../theme/appe
 import { useSettings } from "../settings/SettingsProvider";
 import { MEASUREMENT_CHOICES, TIMER_SOUND_CHOICES } from "../settings/settings";
 import { getPermission, previewTimerSound, soundCaveat, type PermissionState } from "../data/notifications";
+import { useAuth } from "../auth/AuthProvider";
+import type { RootStackParamList } from "../navigation/types";
 
 const APPEARANCE_LABELS: Record<AppearancePreference, { label: string; detail: string }> = {
   system: { label: "Match device", detail: "Follows your Light or Dark setting" },
@@ -220,6 +223,8 @@ export function SettingsScreen() {
   const c = t.colors;
   const insets = useSafeAreaInsets();
   const { measurement, setMeasurement, timerSound, setTimerSound } = useSettings();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const auth = useAuth();
   const [permission, setPermission] = useState<PermissionState>("undetermined");
 
   // Re-read on focus: the cook may have just come back from the system
@@ -233,6 +238,24 @@ export function SettingsScreen() {
   );
 
   const perm = permissionWording(permission);
+
+  // What the account row says. It is the only place in Settings that reports a
+  // state rather than a preference, so it says the state plainly — including
+  // "offline" and "ended", which are the two a cook needs to act on.
+  const account = auth.state;
+  const accountLabel = account.status === "active" || account.status === "stale"
+    ? account.user.displayName || account.user.email
+    : "Sign in";
+  const accountDetail = !auth.configured
+    ? "This build has no account server to sign in to."
+    : account.status === "active" ? account.user.email
+      : account.status === "stale" ? "Signed in, but RecipeBox cannot reach the server"
+        : account.status === "expired" ? "Your session has ended"
+          : "Keep your recipes on every device you cook from";
+  const accountAction = account.status === "active" ? "Manage"
+    : account.status === "stale" ? "Offline"
+      : account.status === "expired" ? "Reconnect"
+        : "Sign in";
 
   const preview = useCallback(async (sound: typeof timerSound) => {
     const ok = await previewTimerSound(sound);
@@ -271,6 +294,23 @@ export function SettingsScreen() {
       >
         Settings
       </Text>
+
+      <View style={{ gap: t.space.sm }}>
+        <Eyebrow>Account</Eyebrow>
+        <Group>
+          <ActionRow
+            label={accountLabel}
+            detail={accountDetail}
+            action={accountAction}
+            tone={auth.state.status === "expired" || auth.state.status === "stale" ? "attention" : "accent"}
+            onPress={() => navigation.navigate("Account")}
+          />
+        </Group>
+        <Text style={[textStyle("footnote"), { color: c.textTertiary }]}>
+          RecipeBox works without an account. Signing in is how your recipes will reach your other
+          devices; nothing syncs yet.
+        </Text>
+      </View>
 
       <View style={{ gap: t.space.sm }}>
         <Eyebrow>Appearance</Eyebrow>
@@ -361,18 +401,15 @@ export function SettingsScreen() {
           <InfoRow label="Recipes" value="Stored on this device" />
         </Group>
         <Text style={[textStyle("footnote"), { color: c.textTertiary }]}>
-          RecipeBox keeps your recipes on your own device. This build has no account, no sync and
-          sends nothing anywhere. Its identifier ends in .dev because it is a test build.
+RecipeBox keeps your recipes on your own device. Signing in does not move them anywhere
+          yet: there is no sync in this build. Its identifier ends in .dev because it is a test
+          build.
         </Text>
       </View>
 
       <View style={{ gap: t.space.sm }}>
         <Eyebrow>Not built yet</Eyebrow>
         <Group dimmed>
-          <PlannedRow
-            label="Account and household"
-            detail="A shared library needs an account first. Nothing to sign in to in this build."
-          />
           <PlannedRow
             label="Backup and export"
             detail="A portable export file is the planned backup mechanism (ADR 0009)."

@@ -65,7 +65,16 @@ export function createAuthApi(options: AuthApiOptions) {
       payload = null;
     }
 
-    if (response.status >= 200 && response.status < 300) return payload;
+    if (response.status >= 200 && response.status < 300) {
+      // A 2xx that is not JSON is not a success. A server without /api/v1
+      // answers the single-page app's HTML with a 200, and a captive portal
+      // does much the same — both would otherwise arrive here as an empty
+      // success and be read as a session.
+      if (payload === null) {
+        throw new AuthApiError(response.status, "unsupported_response", "That address did not answer as RecipeBox.");
+      }
+      return payload;
+    }
 
     // A body that is not the JSON we expect — a proxy's HTML error page, say —
     // is still the server refusing us; it is not a network failure, and it must
@@ -84,6 +93,14 @@ export function createAuthApi(options: AuthApiOptions) {
 
     async signIn(email: string, password: string, device: DeviceDescriptor): Promise<SignInResult> {
       return (await request("/api/v1/auth/signin", { method: "POST", body: { email, password, device } })) as SignInResult;
+    },
+
+    /** Create an account. Deliberately returns no tokens: a new account
+     *  confirms its email before it can have a session. */
+    async signUp(email: string, password: string, displayName: string): Promise<{ user: AuthUser; verificationRequired: boolean; verificationEmailSent: boolean }> {
+      return (await request("/api/v1/auth/signup", { method: "POST", body: { email, password, displayName } })) as {
+        user: AuthUser; verificationRequired: boolean; verificationEmailSent: boolean;
+      };
     },
 
     async refresh(refreshToken: string): Promise<TokenPair & { user: AuthUser }> {
@@ -112,6 +129,12 @@ export function createAuthApi(options: AuthApiOptions) {
 
     async resendVerification(email: string, password: string): Promise<void> {
       await request("/api/v1/auth/verification/send", { method: "POST", body: { email, password } });
+    },
+
+    /** Ask for a reset link. The link opens the web app, which is where the
+     *  one password-reset mechanism lives. */
+    async requestPasswordReset(email: string): Promise<void> {
+      await request("/api/v1/auth/password-reset", { method: "POST", body: { email } });
     },
 
     /** Any authenticated call, for the surfaces that come later (sync, import). */
