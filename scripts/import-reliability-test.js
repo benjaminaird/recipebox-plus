@@ -214,6 +214,69 @@ async function resolves(promise, label) {
   // Five redirects at 9s each was 54s inside a function capped at 60. An
   // exhausted budget is reported as a timeout, before any connection is made,
   // so this needs no network.
+  // --- A controlled DNS-rebinding scenario ---
+  // The name answers with a PUBLIC address while the guard checks it, and with
+  // 127.0.0.1 by the time the socket opens. The private destination must never
+  // be contacted.
+  //
+  // The negative control is the point of this block: the same scenario is run
+  // first through an UNPINNED fetch, which must reach the loopback service. A
+  // test that cannot fail proves nothing, and this one would pass against the
+  // unfixed code if the stubs did not really rebind.
+  {
+    const dnsMod = require("dns");
+    const realPromise = dnsMod.promises.lookup;
+    const realCallback = dnsMod.lookup;
+    const REBIND = "rebind.invalid";
+    const PUBLIC = "203.0.113.1"; // TEST-NET-3: judged public, not routable
+    let guardLookups = 0, connectLookups = 0, contacted = 0;
+
+    const privateServer = http.createServer((_, res) => { contacted += 1; res.end("PRIVATE DESTINATION REACHED"); });
+    await new Promise((resolve) => privateServer.listen(0, "127.0.0.1", resolve));
+    const privatePort = privateServer.address().port;
+    const url = `http://${REBIND}:${privatePort}/`;
+
+    // What the guard asks (dns.promises.lookup): a public address.
+    dnsMod.promises.lookup = async (host, opts) => {
+      if (host === REBIND) { guardLookups += 1; return [{ address: PUBLIC, family: 4 }]; }
+      return realPromise(host, opts);
+    };
+    // What the socket would ask (dns.lookup): loopback. This is the rebind.
+    dnsMod.lookup = (host, opts, cb) => {
+      if (host === REBIND) {
+        connectLookups += 1;
+        const done = typeof opts === "function" ? opts : cb;
+        return (opts && typeof opts === "object" && opts.all)
+          ? done(null, [{ address: "127.0.0.1", family: 4 }])
+          : done(null, "127.0.0.1", 4);
+      }
+      return realCallback(host, opts, cb);
+    };
+
+    try {
+      // Negative control: no guard, no pin. Must reach the private service.
+      contacted = 0;
+      try { await (await fetchWithTimeout(url, { redirect: "manual" }, 2500)).text(); } catch { /* reaching it is the assertion */ }
+      assert.strictEqual(contacted, 1, "the rebinding scenario must actually rebind, or this test proves nothing");
+
+      // The real thing: guard + pin.
+      contacted = 0; guardLookups = 0; connectLookups = 0;
+      let reached = false;
+      try {
+        const r = await safeFetch(url, {}, 1200, 5, 2000);
+        reached = /PRIVATE DESTINATION/.test((await readBodyCapped(r)) || "");
+      } catch (e) { assert.ok(isAbortError(e) || e.ssrf, "a pinned fetch to an unroutable public address fails as a timeout, not a connection to loopback"); }
+      assert.strictEqual(reached, false, "the private destination must never be reached");
+      assert.strictEqual(contacted, 0, "and must never even be contacted");
+      assert.strictEqual(guardLookups, 1, "the guard resolves once");
+      assert.strictEqual(connectLookups, 0, "and nothing re-resolves the name at connect time");
+    } finally {
+      dnsMod.promises.lookup = realPromise;
+      dnsMod.lookup = realCallback;
+      privateServer.close();
+    }
+  }
+
   // --- The deadline covers reading the body, not just getting the headers ---
   // A server can answer promptly and then dribble for ever. The body is read by
   // the caller after safeFetch has returned, so a timer cleared when the
