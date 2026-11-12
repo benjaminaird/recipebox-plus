@@ -2980,7 +2980,10 @@ app.post('/api/v1/auth/signup', async (req, res) => {
       const message = created.status === 403 ? 'That email address cannot be used.' : created.error;
       return res.status(created.status).json({ code, message });
     }
-    clearAuthLimit(req);
+    // Deliberately NOT clearAuthLimit. That call means "this caller proved a
+    // credential, so stop counting them as a brute-forcer", and creating an
+    // account proves nothing about the caller. Only a successful sign-in
+    // earns it.
 
     // No tokens. A new account must confirm its email first (ADR 0022), and
     // issuing a session here would be the one place that rule could be dodged.
@@ -3108,7 +3111,9 @@ app.post('/api/v1/auth/password-reset', async (req, res) => {
         }
       }
     }
-    clearAuthLimit(req);
+    // Deliberately NOT clearAuthLimit, for the same reason: asking for a reset
+    // link proves nothing, and clearing here would let someone interleave reset
+    // requests with password guesses to hold the counter at zero.
     res.json({ ok: true });
   } catch (err) { sendV1Error(res, err); }
 });

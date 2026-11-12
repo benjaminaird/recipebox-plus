@@ -212,6 +212,35 @@ async function run() {
   const other = await call('POST', '/api/v1/auth/signin', { body: signinBody({ device: { name: 'Fifth', platform: 'ios', installId: 'route-test-5' } }) });
   assert.strictEqual(other.status, 200, 'another account is not caught in the same bucket');
 
+  // Only a proved credential clears the brute-force counter.
+  //
+  // `clearAuthLimit` means "this caller showed us a password, stop counting
+  // them as a brute-forcer". Signing up and asking for a reset link prove
+  // nothing, so neither route may call it — otherwise someone could interleave
+  // reset requests with password guesses and hold the counter at zero. The
+  // check is on the source because neither route can be made to demonstrate
+  // it: both answer 503 with no database, and with one the verdict comes from
+  // `rate_limit_counters`, which `clearAuthLimit` never touches.
+  {
+    const source = require('fs').readFileSync(require('path').join(__dirname, '..', 'server.js'), 'utf8');
+    const routeBody = (path) => {
+      const start = source.indexOf("app.post('" + path + "'");
+      assert.ok(start > 0, 'found the route for ' + path);
+      const end = source.indexOf('\napp.', start + 1);
+      return source.slice(start, end === -1 ? undefined : end);
+    };
+    for (const path of ['/api/v1/auth/signup', '/api/v1/auth/password-reset']) {
+      assert.ok(
+        !/clearAuthLimit\(/.test(routeBody(path)),
+        path + ' must not clear the brute-force counter: it has checked no credential',
+      );
+    }
+    assert.ok(
+      /clearAuthLimit\(/.test(routeBody('/api/v1/auth/signin')),
+      'sign-in still clears it, which is the one place that has earned it',
+    );
+  }
+
   console.log('device-auth-routes-test: ok');
   process.exitCode = 0;
 }
