@@ -39,6 +39,49 @@ const SCHEMA_VERSION = 6;
 
 let handle: Promise<SQLite.SQLiteDatabase> | null = null;
 
+/**
+ * Which file the handle is on.
+ *
+ * Not a constant, because two accounts on one phone do not share a library.
+ * `src/auth/localStore.ts` decides which file an account may open and why;
+ * this is the half that actually opens it. They were written apart and only
+ * one of them was wired up, so the resolver chose an isolated store, the
+ * Account screen told the cook they had one, and every query still ran
+ * against the base file. The second account on a shared phone read the
+ * first's recipes while the interface said otherwise.
+ */
+let openName: string = DB_NAME;
+
+/** The file currently open, so a caller can check it is the one it meant. */
+export function activeLocalStore(): string {
+  return openName;
+}
+
+/**
+ * Open a different local library from here on.
+ *
+ * Idempotent: asking for the file already open does nothing, which is what
+ * makes it safe to call on every restore and every change of account. The
+ * previous handle is closed afterwards and its failure ignored — a close that
+ * races an in-flight read must not take down the switch, and the handle is
+ * unreachable either way.
+ */
+export async function useLocalStore(name: string): Promise<void> {
+  const next = (name || "").trim() || DB_NAME;
+  if (next === openName) return;
+  const previous = handle;
+  openName = next;
+  handle = null;
+  if (previous) {
+    try {
+      await (await previous).closeAsync();
+    } catch {
+      // Already closed, never opened, or busy. Nothing here can be recovered
+      // and nothing depends on it.
+    }
+  }
+}
+
 /** The one handle. Exported so the sync store writes through the same
  *  migrations and the same connection as everything else. */
 export function openDatabase(): Promise<SQLite.SQLiteDatabase> {
@@ -46,11 +89,15 @@ export function openDatabase(): Promise<SQLite.SQLiteDatabase> {
 }
 
 function open(): Promise<SQLite.SQLiteDatabase> {
-  if (!handle) handle = SQLite.openDatabaseAsync(DB_NAME).then(async (db) => {
-    await migrate(db);
-    await seedIfEmpty(db);
-    return db;
-  });
+  if (!handle) {
+    // Captured, so a switch during the open resolves the handle it started.
+    const name = openName;
+    handle = SQLite.openDatabaseAsync(name).then(async (db) => {
+      await migrate(db);
+      await seedIfEmpty(db);
+      return db;
+    });
+  }
   return handle;
 }
 

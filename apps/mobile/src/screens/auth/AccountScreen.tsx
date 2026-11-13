@@ -62,7 +62,7 @@ export function AccountScreen() {
     try {
       const result = await syncRecipes(auth, state.user.id, (p) => {
         setSyncMessage({ title: "Downloaded " + (p.stored + p.updated) + " so far…", tone: "info" });
-      });
+      }, auth.localStore?.name);
       setSyncMessage(describeResult(result));
     } catch (err) {
       // The whole message, not just its title. A download that failed used to

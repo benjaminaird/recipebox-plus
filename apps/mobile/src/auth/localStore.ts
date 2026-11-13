@@ -65,6 +65,25 @@ export function resolveLocalStore(input: {
 }
 
 /**
+ * Act on a resolution: open the library it names, then hand it back.
+ *
+ * This exists so that deciding which store an account may open and actually
+ * opening it cannot drift apart again. They did: the resolver was complete and
+ * tested, the Account screen already told the cook when their library was a
+ * separate one, and nothing ever opened the file — so a second account on a
+ * shared phone read the first account's recipes under a notice saying it
+ * could not. Every path that produces a resolution goes through here, and the
+ * opener is a parameter so the wiring itself is what the tests check.
+ */
+export async function applyLocalStore(
+  resolution: LocalStoreResolution,
+  open: (name: string) => Promise<void>,
+): Promise<LocalStoreResolution> {
+  await open(resolution.name);
+  return resolution;
+}
+
+/**
  * What a sign-out does to local data. It is a function returning a constant on
  * purpose: the answer is "nothing", and a named, tested answer is harder to
  * change by accident than an absence of code.

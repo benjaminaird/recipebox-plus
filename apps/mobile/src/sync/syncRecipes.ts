@@ -24,9 +24,11 @@ export async function syncRecipes(
   session: SyncSession,
   accountId: string,
   onProgress?: (progress: SyncProgress) => void,
+  /** The local library this account may write to; the pull refuses any other. */
+  expectedStore?: string,
 ): Promise<PullResult> {
   return pullRecipes({
-    store: sqlitePullStore(),
+    store: sqlitePullStore(expectedStore),
     accountId,
     onProgress,
     fetchPage: async (cursor) => {

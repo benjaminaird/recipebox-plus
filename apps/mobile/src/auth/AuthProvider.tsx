@@ -17,7 +17,7 @@ import { sqliteDeviceState as createDeviceState } from "./sqliteDeviceState.ts";
 import { afterSignIn, afterSignOut, restoreSession } from "./restore.ts";
 import { apiBaseUrl, deviceName } from "./config.ts";
 import { AuthApiError, type DeviceSummary } from "./types.ts";
-import type { LocalStoreResolution } from "./localStore.ts";
+import { applyLocalStore, type LocalStoreResolution } from "./localStore.ts";
 import type { CredentialStore } from "./credentialStore.ts";
 
 type Manager = ReturnType<typeof createSessionManager>;
@@ -54,7 +54,27 @@ function notConfigured(): never {
   throw new AuthApiError(0, "unsupported_response", "This copy of RecipeBox has no server to sign in to.");
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+/**
+ * @param openLocalStore opens the local library an account may use. Passed in
+ * rather than imported, because the auth layer deliberately holds no reference
+ * to the recipe store — that is what guarantees no line in here can delete
+ * anybody's recipes (ADR 0006), and auth-flow.test.ts enforces it. What this
+ * layer gets is the ability to say which library to open, and nothing else.
+ */
+export function AuthProvider({
+  children,
+  openLocalStore,
+}: {
+  children: ReactNode;
+  openLocalStore?: (name: string) => Promise<void>;
+}) {
+  // A ref, so the restore effect and the sign-in callbacks keep one stable
+  // identity and do not re-run because a parent re-rendered.
+  const openStoreRef = useRef(openLocalStore);
+  openStoreRef.current = openLocalStore;
+  const openStore = useCallback(async (name: string) => {
+    await (openStoreRef.current ?? (async () => {}))(name);
+  }, []);
   const [state, setState] = useState<SessionState>({ status: "signed-out" });
   const [ready, setReady] = useState(false);
   const [localStore, setLocalStore] = useState<LocalStoreResolution | null>(null);
@@ -98,7 +118,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const outcome = await restoreSession({ session: manager, credentials, device: deviceRef.current });
         if (!live) return;
         setState(outcome.state);
-        setLocalStore(outcome.store);
+        // Before anything reads a recipe: the library this account may open is
+        // opened here, not merely reported.
+        setLocalStore(await applyLocalStore(outcome.store, openStore));
         setDropped(outcome.droppedForeignCredential);
       } catch {
         // Opening the app must not depend on any of this working.
@@ -113,7 +135,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const manager = managerRef.current;
     if (!manager) notConfigured();
     const next = await manager.signIn(email, password);
-    if (next.status === "active") setLocalStore(await afterSignIn(deviceRef.current, next.user.id));
+    if (next.status === "active") {
+      setLocalStore(await applyLocalStore(await afterSignIn(deviceRef.current, next.user.id), openStore));
+    }
   }, []);
 
   const signUp = useCallback(async (email: string, password: string, displayName: string) => {
@@ -127,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const manager = managerRef.current;
     if (!manager) return;
     await manager.signOut();
-    setLocalStore(await afterSignOut(deviceRef.current));
+    setLocalStore(await applyLocalStore(await afterSignOut(deviceRef.current), openStore));
   }, []);
 
   const resendVerification = useCallback(async (email: string, password: string) => {
@@ -163,7 +187,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const manager = managerRef.current;
     if (!manager) notConfigured();
     await manager.revokeDevice(id);
-    if (managerRef.current?.state.status === "signed-out") setLocalStore(await afterSignOut(deviceRef.current));
+    if (managerRef.current?.state.status === "signed-out") {
+      setLocalStore(await applyLocalStore(await afterSignOut(deviceRef.current), openStore));
+    }
   }, []);
 
   const value = useMemo<AuthValue>(() => ({

@@ -7,7 +7,7 @@
 // that nothing knows the origin of.
 
 import * as SQLite from "expo-sqlite";
-import { openDatabase, upsertRecipeRow } from "./db";
+import { activeLocalStore, openDatabase, upsertRecipeRow } from "./db";
 import { envelopeTimes } from "../sync/pull.ts";
 import type { PullStore, RecipeOrigin, Origin } from "../sync/pull.ts";
 
@@ -29,7 +29,12 @@ function toOrigin(row: {
 const cursorKey = (accountId: string) => "sync_cursor:" + accountId;
 const syncedKey = (accountId: string) => "sync_last_at:" + accountId;
 
-export function sqlitePullStore(): PullStore {
+/**
+ * @param expectedStore the local library this account may write to, as
+ * `src/auth/localStore.ts` resolved it. Optional so a caller with no account
+ * context still works; supplied by the pull, which always has one.
+ */
+export function sqlitePullStore(expectedStore?: string): PullStore {
   return {
     async seededIds() {
       const db = await openDatabase();
@@ -53,6 +58,13 @@ export function sqlitePullStore(): PullStore {
     },
 
     async putCloudRecipe({ envelope, accountId }) {
+      // Belt and braces for the one write a pull makes. The provider opens the
+      // library this account may use before any of this runs; if that ever
+      // stops happening, a download must fail loudly rather than quietly file
+      // one account's recipes into another's library on a shared phone.
+      if (expectedStore && activeLocalStore() !== expectedStore) {
+        throw new Error("refusing to download into a different library than this account's");
+      }
       const db = await openDatabase();
       // Together or not at all. A recipe stored without its provenance would
       // look local on the next pull and be refused for ever after.

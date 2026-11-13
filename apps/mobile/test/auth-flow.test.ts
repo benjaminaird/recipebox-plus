@@ -13,7 +13,7 @@ import { AuthApiError, AuthNetworkError, type AuthUser } from "../src/auth/types
 import { memoryDeviceState, shouldDropStoredCredential } from "../src/auth/deviceState.ts";
 import { afterSignIn, afterSignOut, restoreSession, type SessionLike } from "../src/auth/restore.ts";
 import { memoryCredentialStore, type StoredCredentials } from "../src/auth/credentialStore.ts";
-import { BASE_LOCAL_STORE } from "../src/auth/localStore.ts";
+import { applyLocalStore, BASE_LOCAL_STORE } from "../src/auth/localStore.ts";
 import type { SessionState } from "../src/auth/session.ts";
 
 const USER: AuthUser = { id: "user-alice", email: "alice@example.com", displayName: "Alice", role: "user", emailVerified: true, emailVerifiedAt: null };
@@ -221,4 +221,83 @@ test("a fresh install is fresh exactly once", async () => {
   const device = memoryDeviceState({ fresh: true });
   assert.equal(await device.isFreshInstall(), true);
   assert.equal(await device.isFreshInstall(), false, "the second launch is not a new install");
+});
+
+// ---------------------------------------------------------------------------
+// The resolved library is the one that gets opened
+// ---------------------------------------------------------------------------
+//
+// The gap these cover was a real one. Deciding which library an account may
+// open was complete and tested; opening it was never wired up, so the data
+// layer kept its one hardcoded file. A second account on a shared phone read
+// the first account's recipes, and the Account screen displayed a notice
+// saying their library was separate. Resolving and opening are tested together
+// from here on, because apart they both passed.
+
+/** Records what the data layer was asked to open. */
+function recordingOpener() {
+  const opened: string[] = [];
+  return {
+    opened,
+    open: async (name: string) => { opened.push(name); },
+  };
+}
+
+test("a second account on a shared phone opens its own library, not the first one's", async () => {
+  const device = memoryDeviceState({ fresh: false, claim: "user-alice", lastUser: "user-alice" });
+  const opener = recordingOpener();
+
+  const bob = await applyLocalStore(await afterSignIn(device, "user-bob"), opener.open);
+
+  assert.equal(bob.isolated, true, "the resolver says this is a separate library");
+  assert.notEqual(bob.name, BASE_LOCAL_STORE, "and it is not the base one");
+  assert.deepEqual(opener.opened, [bob.name], "and that is the file that was opened");
+});
+
+test("the first account keeps the library it already had", async () => {
+  const device = memoryDeviceState({ fresh: false, claim: null, lastUser: null });
+  const opener = recordingOpener();
+
+  const alice = await applyLocalStore(await afterSignIn(device, "user-alice"), opener.open);
+
+  assert.equal(alice.isolated, false);
+  assert.deepEqual(opener.opened, [BASE_LOCAL_STORE], "the local-first library, as always");
+});
+
+test("switching back and forth opens each account's own library each time", async () => {
+  const device = memoryDeviceState({ fresh: false, claim: "user-alice", lastUser: "user-alice" });
+  const opener = recordingOpener();
+
+  const bob = await applyLocalStore(await afterSignIn(device, "user-bob"), opener.open);
+  const backToAlice = await applyLocalStore(await afterSignIn(device, "user-alice"), opener.open);
+  const bobAgain = await applyLocalStore(await afterSignIn(device, "user-bob"), opener.open);
+
+  assert.equal(backToAlice.name, BASE_LOCAL_STORE);
+  assert.equal(bobAgain.name, bob.name, "a store is stable, so signing back in finds the same recipes");
+  assert.deepEqual(opener.opened, [bob.name, BASE_LOCAL_STORE, bob.name]);
+});
+
+test("a guest who signs out stays in their own library rather than the owner's", async () => {
+  // Signing out is not a request to hand the phone back to whoever owns the
+  // base store. Nothing is deleted either way (ADR 0006).
+  const device = memoryDeviceState({ fresh: false, claim: "user-alice", lastUser: "user-bob" });
+  const opener = recordingOpener();
+
+  const out = await applyLocalStore(await afterSignOut(device), opener.open);
+
+  assert.equal(out.isolated, true);
+  assert.notEqual(out.name, BASE_LOCAL_STORE);
+  assert.deepEqual(opener.opened, [out.name]);
+});
+
+test("opening the app opens the library before anything could read a recipe", async () => {
+  const device = memoryDeviceState({ fresh: false, claim: "user-alice", lastUser: "user-bob" });
+  const session = fakeSession({ status: "active", user: USER, deviceId: "d", persistent: true });
+  const opener = recordingOpener();
+
+  const outcome = await restoreSession({ session, credentials: memoryCredentialStore(storedFor("bob")), device });
+  const resolved = await applyLocalStore(outcome.store, opener.open);
+
+  assert.deepEqual(opener.opened, [resolved.name]);
+  assert.equal(opener.opened.length, 1, "and exactly once");
 });
