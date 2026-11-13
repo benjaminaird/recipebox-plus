@@ -146,6 +146,42 @@ assert.deepStrictEqual(
   (function () { var p = Extract.parseIngredientLine("Salt to taste"); return { amount: p.amount, unit: p.unit, name: p.name }; })(),
   { amount: "", unit: "", name: "Salt to taste" }, "no leading quantity -> whole line is the name",
 );
+// The same lines written without the space, which is how most British sites
+// write a weight. Requiring the space sent the whole line to the name, so a
+// scone recipe imported with four of its nine amounts missing.
+function split(line) {
+  var p = Extract.parseIngredientLine(line);
+  return { amount: p.amount, unit: p.unit, name: p.name };
+}
+assert.deepStrictEqual(
+  split("350g self-raising flour, plus more for dusting"),
+  { amount: "350", unit: "g", name: "self-raising flour, plus more for dusting" },
+);
+assert.deepStrictEqual(split("175ml milk"), { amount: "175", unit: "ml", name: "milk" });
+assert.deepStrictEqual(split("1.5kg potatoes"), { amount: "1.5", unit: "kg", name: "potatoes" });
+assert.deepStrictEqual(split("8oz cream cheese"), { amount: "8", unit: "oz", name: "cream cheese" });
+assert.deepStrictEqual(
+  split("100-200g dark chocolate"),
+  { amount: "100-200", unit: "g", name: "dark chocolate" }, "a glued range too",
+);
+// ...and the lines that merely look like it. Each of these keeps its text,
+// because guessing here invents a measurement the page never gave.
+assert.deepStrictEqual(
+  split("100% dark chocolate, chopped"),
+  { amount: "", unit: "", name: "100% dark chocolate, chopped" }, "a percentage is not an amount",
+);
+assert.deepStrictEqual(
+  split("2cm piece of ginger, peeled"),
+  { amount: "", unit: "", name: "2cm piece of ginger, peeled" }, "cm is not a unit this module knows",
+);
+assert.deepStrictEqual(
+  split("7up to top up"),
+  { amount: "", unit: "", name: "7up to top up" }, "'up' is not a unit",
+);
+assert.deepStrictEqual(
+  split("350g"), { amount: "", unit: "", name: "350g" }, "an amount with nothing to measure stays as written",
+);
+
 // A bare schema.org Recipe (no @graph) is still found.
 const bare = Extract.findRecipeNode({ "@type": "Recipe", name: "X", recipeIngredient: ["1 cup water"] });
 assert.ok(bare && bare.name === "X", "bare Recipe node found");

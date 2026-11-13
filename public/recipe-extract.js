@@ -192,17 +192,42 @@
     var raw = clean(line).replace(/\b(\d+)\s+and\s+(\d+\/\d+)\b/i, "$1 $2");
     if (!raw) return { amount: "", unit: "", name: "", raw: "" };
     // amount may be a range ("1 to 2", "1-2") — keep it as written in `amount`.
-    var m = raw.match(new RegExp("^(" + QTY + "(?:\\s*(?:-|–|to)\\s*" + QTY + ")?)\\s+(.*)$"));
-    if (!m) return { amount: "", unit: "", name: raw, raw: raw };
-    var amount = m[1].trim();
-    var rest = m[2].trim();
-    var unit = "";
-    var um = rest.match(/^([a-zA-Z]+)\.?\s+(.*)$/);
-    if (um && Object.prototype.hasOwnProperty.call(KNOWN_UNITS, um[1].toLowerCase())) {
-      unit = um[1].toLowerCase();
-      rest = um[2].trim();
+    var RANGE = QTY + "(?:\\s*(?:-|–|to)\\s*" + QTY + ")?";
+    var m = raw.match(new RegExp("^(" + RANGE + ")\\s+(.*)$"));
+    if (m) {
+      var amount = m[1].trim();
+      var rest = m[2].trim();
+      var unit = "";
+      var um = rest.match(/^([a-zA-Z]+)\.?\s+(.*)$/);
+      if (um && Object.prototype.hasOwnProperty.call(KNOWN_UNITS, um[1].toLowerCase())) {
+        unit = um[1].toLowerCase();
+        rest = um[2].trim();
+      }
+      return { amount: amount, unit: unit, name: rest, raw: raw };
     }
-    return { amount: amount, unit: unit, name: rest, raw: raw };
+
+    // The same line written without the space: "350g self-raising flour",
+    // "175ml milk". British sites write almost every weight this way, and
+    // requiring the space meant the whole line fell through to the name, so a
+    // scone recipe arrived with four of its nine ingredients having no amount
+    // at all — the cook then retyping numbers that were on the page.
+    //
+    // Deliberately stricter than loosening the rule above to allow no space.
+    // This needs digits, then letters, then a space: "100% dark chocolate"
+    // keeps its "100%" because % is not a letter, and "2cm piece of ginger"
+    // keeps its "2cm" because cm is not a unit this module knows. Anything
+    // unrecognised still falls through to the name, text intact.
+    var glued = raw.match(new RegExp("^(" + RANGE + ")([a-zA-Z]+)\\.?\\s+(.*)$"));
+    if (glued && Object.prototype.hasOwnProperty.call(KNOWN_UNITS, glued[2].toLowerCase())) {
+      return {
+        amount: glued[1].trim(),
+        unit: glued[2].toLowerCase(),
+        name: glued[3].trim(),
+        raw: raw,
+      };
+    }
+
+    return { amount: "", unit: "", name: raw, raw: raw };
   }
 
   function ingredientsFrom(node) {
