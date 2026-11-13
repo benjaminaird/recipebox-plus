@@ -6,7 +6,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import {
-  decideWrite, isStorableRecipe, pullRecipes,
+  decideWrite, envelopeTimes, isStorableRecipe, pullRecipes,
   type PullStore, type RecipeEnvelope, type RecipeOrigin, type RecipePage,
 } from "../src/sync/pull.ts";
 import type { Recipe } from "../src/data/types.ts";
@@ -269,4 +269,54 @@ test("progress is reported per page, so a long pull can be shown", async () => {
   ]);
   await pullRecipes({ store, accountId: "user-alice", fetchPage, onProgress: (p) => seen.push(p.stored) });
   assert.deepEqual(seen, [1, 2]);
+});
+
+// ---------------------------------------------------------------------------
+// The times a downloaded recipe is stored with
+// ---------------------------------------------------------------------------
+//
+// These were the defect that stopped the first real pull: a recipe's body
+// carries no timestamps, the phone's table will not take a null, and every
+// download failed on the first row. The in-memory store above cannot catch
+// that, because it has no columns to constrain -- so the mapping is tested
+// directly instead of being trusted.
+
+test("a downloaded recipe is stored with the times the server sent", () => {
+  const times = envelopeTimes({
+    createdAt: "2026-11-01T09:30:00.000Z",
+    updatedAt: "2026-11-12T18:05:00.000Z",
+  });
+  assert.equal(times.createdAt, Date.parse("2026-11-01T09:30:00.000Z"));
+  assert.equal(times.updatedAt, Date.parse("2026-11-12T18:05:00.000Z"));
+});
+
+test("the times are numbers, because that is what the column holds", () => {
+  const times = envelopeTimes({ createdAt: "2026-11-01T09:30:00.000Z", updatedAt: "2026-11-01T09:30:00.000Z" });
+  assert.equal(typeof times.createdAt, "number");
+  assert.equal(typeof times.updatedAt, "number");
+  assert.ok(Number.isFinite(times.createdAt) && Number.isFinite(times.updatedAt));
+});
+
+test("a missing or unparseable time never becomes a null", () => {
+  // The column is NOT NULL. Whatever the server sends, something must come out
+  // of here, because the alternative is the download failing entirely.
+  for (const envelope of [
+    {},
+    { createdAt: "", updatedAt: "" },
+    { createdAt: "not a date", updatedAt: "also not a date" },
+    { updatedAt: "2026-11-12T18:05:00.000Z" },
+  ]) {
+    const times = envelopeTimes(envelope);
+    assert.ok(Number.isFinite(times.createdAt), JSON.stringify(envelope));
+    assert.ok(Number.isFinite(times.updatedAt), JSON.stringify(envelope));
+  }
+});
+
+test("a recipe with no created time is dated from when it was last changed", () => {
+  // Not from "now": a recipe changed last March should not appear in Recently
+  // added just because this phone downloaded it today.
+  const changed = "2026-03-04T12:00:00.000Z";
+  const times = envelopeTimes({ updatedAt: changed });
+  assert.equal(times.createdAt, Date.parse(changed));
+  assert.equal(times.updatedAt, Date.parse(changed));
 });

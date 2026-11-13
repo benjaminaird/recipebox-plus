@@ -8,6 +8,7 @@
 
 import * as SQLite from "expo-sqlite";
 import { openDatabase, upsertRecipeRow } from "./db";
+import { envelopeTimes } from "../sync/pull.ts";
 import type { PullStore, RecipeOrigin, Origin } from "../sync/pull.ts";
 
 function toOrigin(row: {
@@ -56,7 +57,7 @@ export function sqlitePullStore(): PullStore {
       // Together or not at all. A recipe stored without its provenance would
       // look local on the next pull and be refused for ever after.
       await db.withTransactionAsync(async () => {
-        await upsertRecipeRow(db, envelope.recipe);
+        await upsertRecipeRow(db, envelope.recipe, envelopeTimes(envelope));
         await db.runAsync(
           `INSERT INTO recipe_origin (recipe_id, origin, account_id, owner_id, shared, server_id, server_updated_at, pulled_at)
            VALUES (?, 'cloud', ?, ?, ?, ?, ?, ?)

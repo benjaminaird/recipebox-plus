@@ -45,6 +45,32 @@ export type RecipeEnvelope = {
   createdAt: string;
 };
 
+/**
+ * The local row's timestamps for a recipe that came from the cloud.
+ *
+ * The server keeps a recipe's body and its times as separate things, so the
+ * body it sends back carries no createdAt or updatedAt. The phone's table
+ * stores epoch milliseconds and will not take a null, so reading the times off
+ * the recipe wrote nothing at all: the insert failed its NOT NULL constraint
+ * and took the whole pull down with it. They come off the envelope instead.
+ *
+ * A time that will not parse falls back to now rather than failing: a slightly
+ * wrong "added" date is a far smaller loss than a library that will not
+ * download, and the server's own ordering is what a re-pull goes by anyway.
+ */
+export function envelopeTimes(envelope: { createdAt?: string; updatedAt?: string }): {
+  createdAt: number;
+  updatedAt: number;
+} {
+  const at = (value: string | undefined, fallback: number): number => {
+    const parsed = value ? Date.parse(value) : NaN;
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+  const now = Date.now();
+  const updatedAt = at(envelope.updatedAt, now);
+  return { createdAt: at(envelope.createdAt, updatedAt), updatedAt };
+}
+
 export type RecipePage = {
   recipes: RecipeEnvelope[];
   nextCursor: string | null;

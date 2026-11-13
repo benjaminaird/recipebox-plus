@@ -38,7 +38,7 @@ export function AccountScreen() {
   const [message, setMessage] = useState<Message | null>(null);
   const [busy, setBusy] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [syncMessage, setSyncMessage] = useState<Message | null>(null);
 
   const state = auth.state;
   const signedIn = state.status === "active" || state.status === "stale";
@@ -58,14 +58,17 @@ export function AccountScreen() {
   const runSync = useCallback(async () => {
     if (syncing || state.status !== "active") return;
     setSyncing(true);
-    setSyncMessage("Looking for your recipes…");
+    setSyncMessage({ title: "Looking for your recipes…", tone: "info" });
     try {
       const result = await syncRecipes(auth, state.user.id, (p) => {
-        setSyncMessage("Downloaded " + (p.stored + p.updated) + " so far…");
+        setSyncMessage({ title: "Downloaded " + (p.stored + p.updated) + " so far…", tone: "info" });
       });
       setSyncMessage(describeResult(result));
     } catch (err) {
-      setSyncMessage(describeAuthError(err, "devices").title);
+      // The whole message, not just its title. A download that failed used to
+      // be drawn in the same calm green as one that succeeded, because the
+      // tone was thrown away here and replaced with "info" at the call site.
+      setSyncMessage(describeAuthError(err, "devices"));
     } finally {
       setSyncing(false);
     }
@@ -192,7 +195,7 @@ export function AccountScreen() {
         <Text accessibilityRole="header" style={[textStyle("sectionTitle"), { color: t.colors.text }]}>
           Your recipes
         </Text>
-        {syncMessage ? <Notice message={{ title: syncMessage, tone: "info" }} /> : null}
+        {syncMessage ? <Notice message={syncMessage} /> : null}
         <Panel>
           <PanelRow
             first

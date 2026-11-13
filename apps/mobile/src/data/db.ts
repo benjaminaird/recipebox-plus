@@ -243,13 +243,30 @@ async function seedIfEmpty(db: SQLite.SQLiteDatabase): Promise<void> {
   });
 }
 
-/** Insert or update one recipe row. Exported for the sync store, which has
- *  to write the recipe and its provenance inside one transaction. */
-export async function upsertRecipeRow(db: SQLite.SQLiteDatabase, recipe: Recipe): Promise<void> {
-  return upsert(db, recipe);
+/**
+ * Insert or update one recipe row. Exported for the sync store, which has to
+ * write the recipe and its provenance inside one transaction.
+ *
+ * `times` exists because a recipe arriving from the cloud does not carry the
+ * local model's timestamps. The server stores the recipe body and the times it
+ * was created and changed as separate things, so the body it sends back has no
+ * createdAt or updatedAt in it -- and writing it without them put a null into
+ * a NOT NULL column and failed the whole pull. The caller that knows the times
+ * passes them; everything else keeps using the recipe's own.
+ */
+export async function upsertRecipeRow(
+  db: SQLite.SQLiteDatabase,
+  recipe: Recipe,
+  times?: { createdAt: number; updatedAt: number },
+): Promise<void> {
+  return upsert(db, recipe, times);
 }
 
-async function upsert(db: SQLite.SQLiteDatabase, recipe: Recipe): Promise<void> {
+async function upsert(
+  db: SQLite.SQLiteDatabase,
+  recipe: Recipe,
+  times?: { createdAt: number; updatedAt: number },
+): Promise<void> {
   await db.runAsync(
     `INSERT INTO recipes (id, title, category, tags, search, created_at, updated_at, json)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -262,8 +279,8 @@ async function upsert(db: SQLite.SQLiteDatabase, recipe: Recipe): Promise<void> 
       recipe.category ?? null,
       JSON.stringify(recipe.tags ?? []),
       buildSearchText(recipe),
-      recipe.createdAt,
-      recipe.updatedAt,
+      times ? times.createdAt : recipe.createdAt,
+      times ? times.updatedAt : recipe.updatedAt,
       JSON.stringify(recipe),
     ],
   );
