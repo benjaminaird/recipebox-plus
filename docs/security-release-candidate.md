@@ -159,3 +159,154 @@ there is no data to migrate back.
 Pushing the branch and opening the pull request has not been done, because
 doing so starts the path to production. **It needs explicit approval**, and so
 does the merge.
+
+---
+
+# Final review, 2026-11-13
+
+Re-verified against `origin/main` at `7d70c20` — **`main` has not moved** since
+the candidate was cut, so it is still based on current production.
+
+| Check | Result |
+| --- | --- |
+| Files changed vs `origin/main` | 3: `server.js`, `scripts/import-reliability-test.js`, `scripts/transaction-test.js` |
+| Functions the `server.js` diff touches | `isPrivateIp`, `assertPublicHost`, `isAbortError`, the four auth routes, the `_test` exports, and the new node requires. Nothing else |
+| Native / mobile / metric / unfinished content | **none** — searched for `device-auth`, `deviceAuth`, `device_sessions`, `device_tokens`, `api/v1`, `apps/mobile`, `recipe-core`, `volume-metric`, `weight-metric`, `metricDecimal`, `shopping-list`, `recipe_origin`, `createAccount`. The only `sync` matches are the word `async` and two `zlib.*Sync` calls in a test |
+| The six fetch commits | Each matches its reviewed source commit by subject: `89d907b`→`04c89a7`, `570f9ee`→`362ada5`, `6db102d`→`4dfb9da`, `a6fa18c`→`0069c9d`, `e44b195`→`23d90d6`, `b490f85`→`d5723ab` |
+| The transaction fix | `0ac9870`, hand-applied (it cannot be cherry-picked), plus its test `8edfdb6` |
+| Security code identity | **8/8 functions byte-identical** to the feature branch by hash: `isPrivateIp`, `ipv6ToBytes`, `assertPublicHost`, `resolveWithinBudget`, `pinnedFetch`, `safeFetch`, `readBodyCapped`, `withTransaction` |
+| 24 suites that exist on `main` | pass |
+| Transaction regression, real PostgreSQL 16 | pass; reverting `withTransaction` to the pool fails it |
+| SSRF classification | 17 internal addresses private, 5 public addresses public, blocked hostnames and numeric encodings refused, a public literal allowed |
+| Prohibited ports | 25 and 6666 blocked, 8080 and 8443 allowed |
+| Deadlines | an exhausted budget aborts before connecting (0 ms) |
+| Response-body limit | under the cap returns, over the cap returns null |
+| DNS | bounded by the remaining budget, capped at 5 s |
+| **Legitimate public fetches** | **identical to `main` on 5 real URLs**, including a successful recipe extraction from BBC Good Food and a blocked page that is blocked on both |
+
+## Differences between the candidate and current `main`
+
+Only the three files above. Within `server.js`, the candidate adds
+`withTransaction` and converts four route bodies to it; adds `ipv6ToBytes`,
+`resolveWithinBudget`, `pinnedFetch` and `BLOCKED_PORTS`; rewrites
+`isPrivateIp`'s IPv6 branch numerically; and extends `safeFetch` with the
+address pin, the chain deadline and the port check. Nothing in the candidate
+differs from the reviewed code on the feature branch except the `_test` export
+line, which omits two helpers the candidate does not need.
+
+## Deployment
+
+**One thing to know first:** every push to any branch creates a Vercel Preview
+deployment automatically, and previews currently receive the **production**
+`DATABASE_URL` (see [preview-environment-safety.md](./preview-environment-safety.md)).
+Pushing this branch therefore creates a preview wired to real data. That is
+harmless as long as nobody signs in or saves on it, but it is why the branch has
+been kept local until you decide.
+
+```sh
+# 1. Push the candidate. This creates an SSO-protected preview deployment.
+cd /Users/benjaminaird/Projects/recipebox-security-rc
+git push -u origin security/release-candidate
+
+# 2. Open the pull request into main.
+gh pr create --repo benjaminaird/recipebox-plus --base main \
+  --head security/release-candidate \
+  --title 'Security: SSRF, fetch deadlines and auth transaction correctness' \
+  --body-file - <<'BODY'
+Seven reviewed fetch-hardening commits plus the PostgreSQL transaction fix.
+Three files: server.js and two test scripts. No schema change, no new
+dependency, no new environment variable.
+
+main has no CI, so the suites below were run by hand in the worktree:
+24 suites that exist on main, the transaction regression against real
+PostgreSQL 16, and a five-URL comparison of /api/fetch-url against main
+showing identical behaviour.
+BODY
+
+# 3. Before merging, run the suites by hand. main has NO CI.
+cd /Users/benjaminaird/Projects/recipebox-security-rc
+for f in scripts/*.js; do case "$f" in *import-test*|*nightmare*|*web-preview*|*build-core*|*preview-save*|*smoke-test*|*transaction-test*) continue;; esac; node "$f" >/dev/null || echo "FAILED $f"; done
+
+# 4. And the transaction regression, against a throwaway database.
+docker run -d --rm --name rb-release-check -e POSTGRES_PASSWORD=pw \
+  -e POSTGRES_DB=rb_release_check -p 55432:5432 postgres:16-alpine
+sleep 5
+TRANSACTION_TEST_DATABASE_URL=postgres://postgres:pw@localhost:55432/rb_release_check \
+  node scripts/transaction-test.js
+docker rm -f rb-release-check
+
+# 5. Merge. Vercel deploys production from main automatically.
+```
+
+## Post-deployment verification
+
+```sh
+# 1. The deployment is live and has its database.
+curl -s https://recipebox-kappa.vercel.app/api/health
+#    expect {"status":"ok","database":true}
+
+# 2. A legitimate public recipe page still imports. The most important check:
+#    the fetch path is what changed most.
+curl -s 'https://recipebox-kappa.vercel.app/api/fetch-url?url=https%3A%2F%2Fwww.bbcgoodfood.com%2Frecipes%2Fclassic-scones-jam-clotted-cream' \
+  | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s);console.log('title:',j.title,'| recipe:',!!j.recipe,'| via:',j.via);});"
+#    expect a title, recipe true, via "direct"
+
+# 3. An internal address is refused, and quickly.
+time curl -s -o /dev/null -w '%{http_code}\n' \
+  'https://recipebox-kappa.vercel.app/api/fetch-url?url=http%3A%2F%2F%5B%3A%3Affff%3A7f00%3A1%5D%2F'
+#    expect 400, in well under a second
+
+# 4. A prohibited port is refused.
+curl -s -o /dev/null -w '%{http_code}\n' \
+  'https://recipebox-kappa.vercel.app/api/fetch-url?url=http%3A%2F%2Fexample.com%3A25%2F'
+#    expect 400
+
+# 5. The security headers are unchanged.
+curl -sI https://recipebox-kappa.vercel.app/ | grep -iE 'x-frame-options|strict-transport|x-content-type'
+
+# 6. Then, in the browser, with a real account: sign in, change the password,
+#    and confirm the other sessions are signed out and the new password works.
+#    This is the transaction fix's user-visible path.
+```
+
+Watch the function logs for an increased rate of `AbortError`. A small rise is
+expected — slow fetches now fail sooner on purpose. A large one would mean the
+budget is too tight for real sites.
+
+## Rollback
+
+**The release needs no database rollback, because it changes no database.** No
+table, no column, no index, no migration, no data written in a new shape. That
+is the main thing to understand about rolling it back: only code moves.
+
+```sh
+# Revert the merge commit and let Vercel deploy the revert from main.
+gh pr view <number> --repo benjaminaird/recipebox-plus --json mergeCommit
+git revert -m 1 <merge-commit-sha>
+git push origin main
+```
+
+Or, faster and without touching git: in the Vercel dashboard, promote the
+previous production deployment (`main` at `7d70c20`) — **Deployments → the
+earlier production deployment → Promote to Production**. That is the quickest
+path and the one to use if an import outage is in progress.
+
+### Database backup, as far as this session can establish it
+
+- The database is **Neon project `recipebox-db` (`polished-bonus-69833220`)**,
+  with **exactly one branch, `main`**, marked by the Vercel integration as the
+  production branch. There are no preview branches.
+- Neon provides **point-in-time restore** by creating a branch from a timestamp,
+  which is the mechanism a recovery would use. **The retention window for this
+  project has not been read in this session**, and it is plan-dependent — on
+  the free tier it is short. **Confirm it in the Neon dashboard before relying
+  on it.**
+- No scheduled logical dump (`pg_dump`) is configured anywhere in this
+  repository, and nothing in the deploy path takes one.
+
+Because this release writes nothing new and changes no schema, none of that is
+on its critical path. It is listed because "the backup procedure is understood"
+should mean understood, and the honest statement is: **PITR via Neon branching
+is the recovery mechanism, its retention window is unverified, and there is no
+independent dump.** Taking one before any future schema change — the sync
+migration especially — would be worth doing.
