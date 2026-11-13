@@ -50,10 +50,27 @@ let handle: Promise<SQLite.SQLiteDatabase> | null = null;
  * against the base file. The second account on a shared phone read the
  * first's recipes while the interface said otherwise.
  */
-let openName: string = DB_NAME;
+let openName: string | null = null;
 
-/** The file currently open, so a caller can check it is the one it meant. */
-export function activeLocalStore(): string {
+/**
+ * Resolved the first time a store is chosen.
+ *
+ * Opening defaults to nothing rather than to the base library, because the
+ * default *was* the base library and that is how one account's recipes reached
+ * another's screen: the provider resolves the right store asynchronously, and
+ * until it had, every query ran against the shared file. On a shared phone the
+ * Home screen showed the owner's library to a guest for as long as that took —
+ * seen on a simulator as a list of thirteen recipes that became eight.
+ *
+ * So a query made before the decision waits for it instead of guessing. The
+ * app still mounts and renders with no account, no server and no network: the
+ * only thing that waits is a read, and reads were already asynchronous.
+ */
+let announced: (() => void) | null = null;
+const storeChosen: Promise<void> = new Promise((resolve) => { announced = resolve; });
+
+/** The file currently open, or null before any store has been chosen. */
+export function activeLocalStore(): string | null {
   return openName;
 }
 
@@ -68,6 +85,18 @@ export function activeLocalStore(): string {
  */
 export async function useLocalStore(name: string): Promise<void> {
   const next = (name || "").trim() || DB_NAME;
+
+  // The first decision is not a switch. Nothing is open yet — a query that
+  // arrived early is parked on `storeChosen` and will open this name when it
+  // is released — so there is nothing to close. Treating it as a switch closed
+  // that parked handle out from under the first reads, and the library came up
+  // empty while its file sat on disk with every recipe still in it.
+  if (openName === null) {
+    openName = next;
+    announced?.();
+    return;
+  }
+
   if (next === openName) return;
   const previous = handle;
   openName = next;
@@ -90,12 +119,14 @@ export function openDatabase(): Promise<SQLite.SQLiteDatabase> {
 
 function open(): Promise<SQLite.SQLiteDatabase> {
   if (!handle) {
-    // Captured, so a switch during the open resolves the handle it started.
-    const name = openName;
-    handle = SQLite.openDatabaseAsync(name).then(async (db) => {
-      await migrate(db);
-      await seedIfEmpty(db);
-      return db;
+    handle = storeChosen.then(() => {
+      // Captured, so a switch during the open resolves the handle it started.
+      const name = openName ?? DB_NAME;
+      return SQLite.openDatabaseAsync(name).then(async (db) => {
+        await migrate(db);
+        await seedIfEmpty(db);
+        return db;
+      });
     });
   }
   return handle;

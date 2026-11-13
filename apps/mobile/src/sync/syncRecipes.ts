@@ -23,9 +23,9 @@ export type SyncSession = {
 export async function syncRecipes(
   session: SyncSession,
   accountId: string,
-  onProgress?: (progress: SyncProgress) => void,
   /** The local library this account may write to; the pull refuses any other. */
-  expectedStore?: string,
+  expectedStore: string,
+  onProgress?: (progress: SyncProgress) => void,
 ): Promise<PullResult> {
   return pullRecipes({
     store: sqlitePullStore(expectedStore),

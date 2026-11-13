@@ -31,10 +31,25 @@ const syncedKey = (accountId: string) => "sync_last_at:" + accountId;
 
 /**
  * @param expectedStore the local library this account may write to, as
- * `src/auth/localStore.ts` resolved it. Optional so a caller with no account
- * context still works; supplied by the pull, which always has one.
+ * `src/auth/localStore.ts` resolved it. Required, and checked before every
+ * write: a guard that is skipped when the caller passes nothing is a guard
+ * that protects the paths which already knew what they were doing and lets
+ * through the ones that did not.
  */
-export function sqlitePullStore(expectedStore?: string): PullStore {
+export function sqlitePullStore(expectedStore: string): PullStore {
+  /**
+   * The library this write is allowed to touch, checked immediately before it
+   * happens — and again after the handle is open, because opening is
+   * asynchronous and a sign-in can land in between. The file a write actually
+   * arrives at is the only one worth asserting about.
+   */
+  const assertOwnLibrary = (): void => {
+    if (!expectedStore) throw new Error("no library resolved for this account; refusing to write");
+    if (activeLocalStore() !== expectedStore) {
+      throw new Error("refusing to write into a different library than this account's");
+    }
+  };
+
   return {
     async seededIds() {
       const db = await openDatabase();
@@ -58,14 +73,9 @@ export function sqlitePullStore(expectedStore?: string): PullStore {
     },
 
     async putCloudRecipe({ envelope, accountId }) {
-      // Belt and braces for the one write a pull makes. The provider opens the
-      // library this account may use before any of this runs; if that ever
-      // stops happening, a download must fail loudly rather than quietly file
-      // one account's recipes into another's library on a shared phone.
-      if (expectedStore && activeLocalStore() !== expectedStore) {
-        throw new Error("refusing to download into a different library than this account's");
-      }
+      assertOwnLibrary();
       const db = await openDatabase();
+      assertOwnLibrary();
       // Together or not at all. A recipe stored without its provenance would
       // look local on the next pull and be refused for ever after.
       await db.withTransactionAsync(async () => {
@@ -92,7 +102,9 @@ export function sqlitePullStore(expectedStore?: string): PullStore {
     },
 
     async setCursor(accountId, cursor) {
+      assertOwnLibrary();
       const db = await openDatabase();
+      assertOwnLibrary();
       if (cursor === null) {
         await db.runAsync("DELETE FROM meta WHERE key = ?", cursorKey(accountId));
         return;
@@ -104,7 +116,9 @@ export function sqlitePullStore(expectedStore?: string): PullStore {
     },
 
     async setLastSyncedAt(accountId, syncedAt) {
+      assertOwnLibrary();
       const db = await openDatabase();
+      assertOwnLibrary();
       await db.runAsync(
         "INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
         [syncedKey(accountId), syncedAt],

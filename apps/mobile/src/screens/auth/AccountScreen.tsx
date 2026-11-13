@@ -57,12 +57,20 @@ export function AccountScreen() {
   // Pull-only: this downloads, and there is no endpoint it could upload to.
   const runSync = useCallback(async () => {
     if (syncing || state.status !== "active") return;
+    // No resolved library means we do not yet know which one belongs to this
+    // account, and a download has to go somewhere. It waits rather than
+    // guessing.
+    const library = auth.localStore?.name;
+    if (!library) {
+      setSyncMessage({ title: "One moment — still opening your library.", tone: "attention" });
+      return;
+    }
     setSyncing(true);
     setSyncMessage({ title: "Looking for your recipes…", tone: "info" });
     try {
-      const result = await syncRecipes(auth, state.user.id, (p) => {
+      const result = await syncRecipes(auth, state.user.id, library, (p) => {
         setSyncMessage({ title: "Downloaded " + (p.stored + p.updated) + " so far…", tone: "info" });
-      }, auth.localStore?.name);
+      });
       setSyncMessage(describeResult(result));
     } catch (err) {
       // The whole message, not just its title. A download that failed used to

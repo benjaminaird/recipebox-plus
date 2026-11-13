@@ -17,7 +17,7 @@ import { sqliteDeviceState as createDeviceState } from "./sqliteDeviceState.ts";
 import { afterSignIn, afterSignOut, restoreSession } from "./restore.ts";
 import { apiBaseUrl, deviceName } from "./config.ts";
 import { AuthApiError, type DeviceSummary } from "./types.ts";
-import { applyLocalStore, type LocalStoreResolution } from "./localStore.ts";
+import { applyLocalStore, BASE_LOCAL_STORE, type LocalStoreResolution } from "./localStore.ts";
 import type { CredentialStore } from "./credentialStore.ts";
 
 type Manager = ReturnType<typeof createSessionManager>;
@@ -90,7 +90,27 @@ export function AuthProvider({
   useEffect(() => {
     let live = true;
     (async () => {
-      if (!baseUrl) { if (live) setReady(true); return; }
+      // A library must be chosen on every path out of here, because a read
+      // now waits for one rather than assuming the base file. Without an
+      // account or a server that decision comes from the device alone, which
+      // is what afterSignOut resolves: nobody signed in, and a guest who
+      // signed out stays in their own store rather than the owner's.
+      const fromDeviceAlone = async () => {
+        try {
+          return await afterSignOut(deviceRef.current);
+        } catch {
+          // The device store itself is unreadable, so there is no claim to
+          // honour and no credential to restore either: this is, to the extent
+          // anything can be known, a device nobody has signed in on.
+          return { name: BASE_LOCAL_STORE, claimedBy: null, isolated: false };
+        }
+      };
+
+      if (!baseUrl) {
+        const store = await applyLocalStore(await fromDeviceAlone(), openStore);
+        if (live) { setLocalStore(store); setReady(true); }
+        return;
+      }
       try {
         const credentials = await deviceCredentialStore();
         const installId = await deviceRef.current.getInstallId();
@@ -123,7 +143,15 @@ export function AuthProvider({
         setLocalStore(await applyLocalStore(outcome.store, openStore));
         setDropped(outcome.droppedForeignCredential);
       } catch {
-        // Opening the app must not depend on any of this working.
+        // Opening the app must not depend on any of this working — but it does
+        // depend on a library being chosen, so that still happens, from the
+        // device state rather than from a session that could not be restored.
+        try {
+          const store = await applyLocalStore(await fromDeviceAlone(), openStore);
+          if (live) setLocalStore(store);
+        } catch {
+          // Nothing further can be done here.
+        }
       } finally {
         if (live) setReady(true);
       }

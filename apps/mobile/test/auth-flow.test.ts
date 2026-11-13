@@ -301,3 +301,22 @@ test("opening the app opens the library before anything could read a recipe", as
   assert.deepEqual(opener.opened, [resolved.name]);
   assert.equal(opener.opened.length, 1, "and exactly once");
 });
+
+test("a library is chosen even when there is no server, no session and no network", async () => {
+  // A read now waits for a library rather than assuming the base one, so every
+  // path out of start-up has to choose one — including the paths where none of
+  // the account machinery works. Otherwise the cookbook never loads at all,
+  // which is a worse failure than the one this guards against.
+  const opener = recordingOpener();
+
+  // No account has ever been used here: the local-first library, as always.
+  const fresh = memoryDeviceState({ fresh: false, claim: null, lastUser: null });
+  await applyLocalStore(await afterSignOut(fresh), opener.open);
+  assert.deepEqual(opener.opened, [BASE_LOCAL_STORE]);
+
+  // A borrowed phone whose owner is signed out: still not the owner's library.
+  const borrowed = memoryDeviceState({ fresh: false, claim: "user-alice", lastUser: "user-bob" });
+  const guest = await applyLocalStore(await afterSignOut(borrowed), opener.open);
+  assert.equal(guest.isolated, true);
+  assert.equal(opener.opened[1], guest.name, "and not the base one: " + opener.opened.join(", "));
+});
