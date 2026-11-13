@@ -205,3 +205,101 @@ PostgreSQL instance in a throwaway container. Specifically —
 - Any change to `/api/recipes`, which the web app uses today.
 
 None of these is in this plan's scope to execute.
+
+---
+
+# Audit: what exists today, and what the first pull needs
+
+Written after reading the server rather than the plan. Three findings decide
+the shape of stage one.
+
+## 1. The read path already exists, and is already correct
+
+`readVisibleRecipesPage(userId, { limit, cursor })` (`server.js`) is what
+`GET /api/recipes?limit=&cursor=` uses. It is exactly what a pull needs:
+
+- **Keyset pagination** on `(created_at, id) DESC` with an opaque cursor, so a
+  page is stable and resumable rather than an offset that shifts under writes.
+- **Authorization is in the query**: a row is visible if the caller owns it, or
+  if it is `recipe_json->>'shared' = 'true'` *and* the owner shares a household
+  with the caller. There is no second rule to get wrong, and the native client
+  must not write one.
+- Household rows come back annotated `householdShared`, `ownerId`, `ownerName`,
+  which is precisely the distinction the phone needs to avoid treating someone
+  else's recipe as its own.
+
+**So the pull reuses this function unchanged.** No new authorization path, no
+second notion of who may see what.
+
+## 2. What it does not return, and therefore what is missing
+
+The function returns the canonicalised `recipe_json` and nothing about the row.
+The payload carries no `recipes.id`, no `updated_at`, no revision. For a pull
+that is survivable — the recipe's own `id` is the identity — but the phone
+cannot record *when* it saw a version, and a later delta sync has no watermark.
+
+The gap, precisely:
+
+| Needed | Exists? |
+| --- | --- |
+| A versioned endpoint under `/api/v1` | **no** — the web route is unversioned and cookie-authenticated |
+| Per-recipe `updatedAt` in the payload | **no** — the column exists, it is not returned |
+| The server row id, for provenance | **no** — same |
+| A `since` watermark for deltas | **no** — the cursor is a snapshot position, not a watermark |
+| Tombstones | **no** — deletes are hard today |
+
+Stage one needs the first three. The last two belong to the delta and upload
+stages and are designed above.
+
+**The endpoint therefore returns an envelope, not a bare recipe:**
+
+```
+GET /api/v1/recipes?limit=100&cursor=<opaque>
+→ { recipes: [ { recipe, serverId, ownerId, shared, updatedAt } ],
+    nextCursor, syncedAt }
+```
+
+and the envelope is produced by the *same* `readVisibleRecipesPage` call, with
+an option that changes the presentation and not the query. One authorization
+rule, one recipe model, two shapes — the web's response stays byte-identical.
+
+## 3. Three kinds of recipe have to stay apart on the device
+
+The phone will hold recipes from three places, and conflating any two of them
+loses data or leaks it:
+
+| Origin | Where it came from | May it be uploaded? |
+| --- | --- | --- |
+| `sample` | Seeded by `db.ts` on first launch | **never** |
+| `local` | Made on the phone, signed out or not yet reconciled | only by explicit choice, later |
+| `cloud` | Pulled from an account | it is already there |
+
+`db.ts` already records exactly which recipes it seeded, in `meta.seeded_ids`,
+so samples are identifiable today without guessing. That list is the reason a
+first sync must pull and not push: every install seeds the *same ids*, so two
+phones pushing samples would collide on `lemon-posset` as though it were one
+recipe being edited in two places.
+
+**Provenance is stored apart from content**, in its own table keyed by the
+recipe's product id:
+
+```sql
+CREATE TABLE IF NOT EXISTS recipe_origin (
+  recipe_id         TEXT PRIMARY KEY,   -- matches recipes.id, the product id
+  origin            TEXT NOT NULL,      -- 'sample' | 'local' | 'cloud'
+  account_id        TEXT,               -- the account that pulled it
+  owner_id          TEXT,               -- the cloud owner; differs when shared
+  shared            INTEGER NOT NULL DEFAULT 0,
+  server_updated_at TEXT,
+  pulled_at         TEXT
+);
+```
+
+Nothing about sync is written into `recipes.json`, so a recipe's content is
+still only what the recipe is. Dropping the table loses bookkeeping, never a
+recipe.
+
+**Account switching is already handled and needs nothing new here.**
+`localStore.ts` gives a second account its own SQLite file, so one account's
+library cannot appear under another; provenance lives inside each store and
+inherits that isolation.
