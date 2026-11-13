@@ -100,6 +100,25 @@ export function sqlitePullStore(): PullStore {
   };
 }
 
+/**
+ * Mark a recipe as made on this device.
+ *
+ * Called after an import or a hand-written recipe is saved. It matters for one
+ * reason: a recipe with no provenance row would be indistinguishable from one
+ * a pull had never seen, and the upload stage decides what to offer by exactly
+ * this field. Writing it down at the moment of creation is how a local recipe
+ * stays recognisably local.
+ */
+export async function markRecipeLocal(recipeId: string): Promise<void> {
+  const db = await openDatabase();
+  await db.runAsync(
+    `INSERT INTO recipe_origin (recipe_id, origin, shared)
+     VALUES (?, 'local', 0)
+     ON CONFLICT(recipe_id) DO NOTHING`,
+    recipeId,
+  );
+}
+
 /** What the app shows: when this account last finished a pull. */
 export async function lastSyncedAt(accountId: string): Promise<string | null> {
   const db = await openDatabase();

@@ -58,6 +58,14 @@ export type AuthErrorCode =
   | "email_taken"
   | "invalid_signup"
   | "email_unavailable"
+  // Import (/api/v1/import/fetch). Each says something different about the
+  // page, and the review screen says a different thing back.
+  | "bad_url"
+  | "not_html"
+  | "too_large"
+  | "blocked"
+  | "upstream_timeout"
+  | "upstream_unreachable"
   | "database_unavailable"
   | "not_found"
   | "server_error"
@@ -108,6 +116,12 @@ const KNOWN_CODES = new Set<AuthErrorCode>([
   "email_taken",
   "invalid_signup",
   "email_unavailable",
+  "bad_url",
+  "not_html",
+  "too_large",
+  "blocked",
+  "upstream_timeout",
+  "upstream_unreachable",
   "database_unavailable",
   "not_found",
   "server_error",

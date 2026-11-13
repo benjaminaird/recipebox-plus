@@ -135,18 +135,18 @@ function AddScreen() {
           navigation.navigate("ImportReview", {});
         }}
         accessibilityRole="button"
-        accessibilityLabel="Import from a link, and see what import review will look like"
+        accessibilityLabel="Import a recipe from a link"
         style={({ pressed }) => [
           addStyles.card,
-          { backgroundColor: c.surface, borderRadius: t.radius.md, opacity: pressed ? 0.8 : 1 },
+          { backgroundColor: c.accentSoft, borderRadius: t.radius.md, opacity: pressed ? 0.8 : 1 },
         ]}
       >
-        <Ionicons name="link-outline" size={24} color={c.textSecondary} />
+        <Ionicons name="link-outline" size={24} color={c.accentText} />
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
           <Text style={[textStyle("cardTitle"), { color: c.text }]}>Import from a link</Text>
           <Text style={[textStyle("footnote"), { color: c.textSecondary }]}>
-            Not connected yet. You can see exactly how a reviewed import will look, on a stored
-            example.
+            Paste a recipe link and RecipeBox reads the page. You see what it found, and can fix
+            it, before anything is saved.
           </Text>
         </View>
       </Pressable>
