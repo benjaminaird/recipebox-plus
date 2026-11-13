@@ -193,6 +193,40 @@ async function run() {
   assert.strictEqual(wrongMethod.status, 404, 'the wrong method on a real endpoint is a coded 404');
   assert.strictEqual(wrongMethod.json.code, 'not_found', 'and still JSON');
 
+  // ── The authenticated import endpoint refuses what it should ────────────
+  //
+  // Only the refusals are checked here, and deliberately: the success path
+  // fetches a real page, and the guard this endpoint is built on exists to
+  // stop anything local being reachable — so there is no address a test could
+  // serve from that it is allowed to fetch. What the success path runs is
+  // `safeFetch` and `buildPageResult`, which the import suites already cover
+  // on the web route.
+  const importBody = { url: 'https://example.com/recipe' };
+  const importNoToken = await call('POST', '/api/v1/import/fetch', { body: importBody });
+  assert.strictEqual(importNoToken.status, 401, 'import needs a device token');
+  assert.strictEqual(importNoToken.json.code, 'unauthorized', 'and says so with a code');
+
+  const sixth = await call('POST', '/api/v1/auth/signin', { body: signinBody({ device: { name: 'Sixth', platform: 'ios', installId: 'route-test-6' } }) });
+  const importToken = sixth.json.accessToken;
+
+  const noUrl = await call('POST', '/api/v1/import/fetch', { token: importToken, body: {} });
+  assert.strictEqual(noUrl.status, 400, 'a missing url is refused');
+  assert.strictEqual(noUrl.json.code, 'bad_url');
+
+  for (const [label, url] of [
+    ['loopback by name', 'http://localhost/recipe'],
+    ['loopback by address', 'http://127.0.0.1:8080/recipe'],
+    ['cloud metadata', 'http://169.254.169.254/latest/meta-data/'],
+    ['an IPv6 spelling of loopback', 'http://[::ffff:7f00:1]/recipe'],
+    ['a private range', 'http://10.1.2.3/recipe'],
+    ['a non-http scheme', 'file:///etc/passwd'],
+  ]) {
+    const refused = await call('POST', '/api/v1/import/fetch', { token: importToken, body: { url } });
+    assert.strictEqual(refused.status, 400, label + ' is refused');
+    assert.strictEqual(refused.json.code, 'bad_url', label + ' is refused as a bad url');
+    assert.ok(!/private|internal|loopback|metadata/i.test(refused.json.message), label + ' does not explain why, which would be a probe oracle');
+  }
+
   // ── Rate limiting, shared with the web ───────────────────────────────────
   // One budget per IP+email across both surfaces, not one each: ten attempts at
   // the web's sign-in and then the native one crosses the single limit of 20.

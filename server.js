@@ -55,6 +55,14 @@ const PASSWORD_MIN_LENGTH = 6;
 const AUTH_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const AUTH_LIMIT_MAX = 20;
 const DEVICE_REFRESH_LIMIT_MAX = 120; // refreshes per IP per quarter-hour (/api/v1)
+// Imports per account per quarter-hour. An authenticated endpoint that fetches
+// arbitrary URLs on request is an open proxy unless it is bounded; 30 is far
+// more than a cook importing recipes and far less than anything useful to
+// somebody using it as one.
+const DEVICE_IMPORT_LIMIT_MAX = 30;
+// A page the phone has to read over a mobile connection. The shared cap is
+// 6 MB; this is tighter because the whole document crosses the wire.
+const DEVICE_IMPORT_MAX_BYTES = 2000000;
 const RESET_TOKEN_MINUTES = 60;
 const VERIFY_TOKEN_MINUTES = 60 * 24; // email verification links last 24h
 const AI_MONTHLY_LIMIT = Number(process.env.AI_MONTHLY_LIMIT || 50);
@@ -3175,6 +3183,103 @@ app.get('/api/v1/recipes', requireDeviceAuth, async (req, res) => {
       return res.status(400).json({ code: 'bad_request', message: err.message });
     }
     sendV1Error(res, err);
+  }
+});
+
+// Fetch a recipe page for the phone to read.
+//
+// It returns HTML, not a recipe, and that is the point of the shape
+// (docs/native-import-contract.md). The device runs the SAME extractor and the
+// SAME grounding — packages/recipe-core, loaded through Metro — so there is one
+// implementation of what a recipe says rather than two that can disagree. It
+// also means a correction in the review screen can re-extract from the page
+// already in hand, with no second round trip.
+//
+// The server does the fetching for three reasons that have not changed: sites
+// block unknown clients and this can fall back to the proxy, a direct fetch
+// would put the cook's IP on every recipe site they import from, and the
+// hardened fetch lives here.
+//
+// It stores nothing. There is no write in this handler, so an import cannot
+// overwrite a recipe — saving happens on the device, after the cook has looked
+// at it (ADR 0014).
+app.post('/api/v1/import/fetch', requireDeviceAuth, async (req, res) => {
+  const target = String((req.body && req.body.url) || '');
+  if (!/^https?:\/\//i.test(target)) {
+    return res.status(400).json({ code: 'bad_url', message: 'Enter a public recipe link.' });
+  }
+  try {
+    const db = await getPool();
+    if (db) {
+      const rl = await checkRateLimit('import:' + req.user.user_id, 'device-import', DEVICE_IMPORT_LIMIT_MAX, 'quarterhour');
+      if (!rl.allowed) {
+        return res.status(429).json({ code: 'rate_limited', message: 'Too many imports. Try again shortly.', retryAfter: retryAfterSeconds(rl.resetAt) });
+      }
+    }
+
+    const r = await safeFetch(target, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+      },
+    }, 9000);
+
+    const contentType = String(r.headers.get('content-type') || '');
+    if (contentType && !/text\/html|application\/(xhtml|xml)|text\/plain/i.test(contentType)) {
+      return res.status(422).json({ code: 'not_html', message: 'That link is not a readable recipe page. Paste the recipe text instead.' });
+    }
+
+    let html = await readBodyCapped(r, DEVICE_IMPORT_MAX_BYTES);
+    if (html === null) {
+      return res.status(422).json({ code: 'too_large', message: 'That page is too large to read automatically. Paste the recipe text instead.' });
+    }
+
+    const finalUrl = r.url || target;
+    // buildPageResult is used here only to judge whether the page is a
+    // bot-challenge stub and to hash it. The extraction it also does is
+    // discarded: the device does that part.
+    let judged = buildPageResult(html, finalUrl, target);
+    let via = 'direct';
+    if (judged.blocked) {
+      const proxied = await fetchViaProxy(target);
+      if (proxied) {
+        const retry = buildPageResult(proxied, finalUrl, target);
+        if (!retry.blocked) { html = proxied; judged = retry; via = 'proxy'; }
+      }
+    }
+    if (judged.blocked) {
+      return res.status(422).json({
+        code: 'blocked',
+        message: 'That site is blocking automated access. Paste the recipe text instead.',
+        finalUrl,
+        title: judged.title || null,
+      });
+    }
+
+    res.json({
+      url: target,
+      finalUrl,
+      html,
+      htmlHash: judged.htmlHash,
+      blocked: false,
+      via,
+      fetchedAt: Date.now(),
+    });
+  } catch (err) {
+    if (err && err.ssrf) {
+      return res.status(400).json({ code: 'bad_url', message: 'That link cannot be imported. Enter a public recipe link.' });
+    }
+    if (isAbortError(err)) {
+      return res.status(504).json({ code: 'upstream_timeout', message: 'That site took too long to respond. Try again, or paste the recipe text.' });
+    }
+    console.error('api/v1 import fetch failed:', err && err.message);
+    return res.status(502).json({ code: 'upstream_unreachable', message: 'RecipeBox could not reach that page. Check the link, or paste the recipe text.' });
   }
 });
 
