@@ -528,3 +528,53 @@ with PostgreSQL behind it.
 collection reaches the phone. Its first rule is that the first sync pulls and
 does not push, because the phone arrives holding seeded samples whose ids are
 identical on every install.
+
+### Milestone 14 — a release candidate, and recipes on the phone
+
+**The security release candidate exists** and is documented in
+[security-release-candidate.md](./security-release-candidate.md): a local
+branch off `origin/main`, eight commits, three files, not pushed. Seven are
+cherry-picks of the reviewed fetch-hardening work; the eighth is the
+transaction fix, applied to `main`'s own four routes by hand because two of
+them were also edited on this branch. Eight security functions hash
+byte-identical to this branch's, so the candidate is the reviewed code rather
+than a re-typing of it, and a new `transaction-test.js` proves the fix against
+real PostgreSQL 16 — including a deterministic negative control that holds one
+client so the pool must serve the next query from another backend, which is
+the defect modelled exactly rather than waited for.
+
+**Pull-only sync works end to end.** The server side is one option on
+`readVisibleRecipesPage`, so `/api/v1/recipes` reuses the authorization rule
+the web already has and the web's two response shapes are unchanged. The device
+side keeps every decision that could lose a recipe in a pure module: a recipe
+the cook made here is never overwritten, a seeded sample is never overwritten
+and never becomes a cloud recipe, a re-pull updates in place, an interrupted
+pull resumes from the page it reached, and a recipe it may not store is skipped
+and reported. Provenance lives in its own table, so nothing about sync is
+written into a recipe's JSON.
+
+Ten journeys pass against real PostgreSQL with representative recipes — metric
+and US customary, a divided quantity with per-step shares, two sections, source
+attribution, an image. On the simulator, against a local server and that
+database: signed in, tapped Download, **"Up to date — 3 new"**, and the library
+went from 7 to 10. The pulled Rye Loaf renders both sections with 150 g, 150 ml,
+1.2 kg and 20 g intact, scales to 2×, converts to US, and shows its source as
+"A Baker · Example Bakes" with the URL. After a relaunch the library still
+reads 10, which is the SQLite persistence claim.
+
+**The upload path is decided and switched off.** `src/sync/upload.ts` holds the
+judgements — samples never upload, the first upload sends nothing by default,
+conflicts are detected on revisions and resolved by keeping the loser, an edit
+beats a delete in both directions, retries are made harmless by a derived key —
+each tested, and a test walks `src/` to prove nothing imports it.
+
+**The authenticated import endpoint is built** now that all four of its
+blockers are answered. It returns HTML, not a recipe, so the device runs the
+same extractor and the same grounding; it stores nothing; and production's
+importer hashes byte-identical to `main`.
+
+One observation rather than a defect: 1.2 kg of flour at 2× converts to
+"19.3 cups", which is arithmetically right and not a measurement anybody uses.
+That is the existing conversion module's behaviour for large metric weights,
+not something this milestone introduced, and changing it would alter what every
+recipe shows — so it is recorded here for a decision rather than changed.

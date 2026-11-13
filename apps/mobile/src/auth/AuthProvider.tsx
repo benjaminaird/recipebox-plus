@@ -42,6 +42,9 @@ export type AuthValue = {
   requestPasswordReset(email: string): Promise<void>;
   retry(): Promise<void>;
   devices(): Promise<DeviceSummary[]>;
+  /** Any authenticated call, refreshing once on a 401. Sync uses this so the
+   *  session manager stays the only thing that knows about tokens. */
+  authorized(path: string, init?: { method?: string; body?: unknown }): Promise<unknown>;
   revokeDevice(id: string): Promise<void>;
 };
 
@@ -150,6 +153,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return manager.devices();
   }, []);
 
+  const authorized = useCallback(async (path: string, init: { method?: string; body?: unknown } = {}) => {
+    const manager = managerRef.current;
+    if (!manager) notConfigured();
+    return manager.authorized(path, init);
+  }, []);
+
   const revokeDevice = useCallback(async (id: string) => {
     const manager = managerRef.current;
     if (!manager) notConfigured();
@@ -164,8 +173,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persistentCredentials: persistent,
     localStore,
     droppedForeignCredential,
-    signIn, signUp, signOut, resendVerification, requestPasswordReset, retry, devices, revokeDevice,
-  }), [state, ready, baseUrl, persistent, localStore, droppedForeignCredential, signIn, signUp, signOut, resendVerification, requestPasswordReset, retry, devices, revokeDevice]);
+    signIn, signUp, signOut, resendVerification, requestPasswordReset, retry, devices, revokeDevice, authorized,
+  }), [state, ready, baseUrl, persistent, localStore, droppedForeignCredential, signIn, signUp, signOut, resendVerification, requestPasswordReset, retry, devices, revokeDevice, authorized]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

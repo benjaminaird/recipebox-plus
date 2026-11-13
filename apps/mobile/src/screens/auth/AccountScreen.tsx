@@ -21,6 +21,7 @@ import { useAuth } from "../../auth/AuthProvider";
 import { describeAuthError, staleMessage, type Message } from "../../auth/messages";
 import type { DeviceSummary } from "../../auth/types";
 import type { RootStackParamList } from "../../navigation/types";
+import { syncRecipes, describeResult } from "../../sync/syncRecipes";
 import { AuthScreen, Notice, Panel, PanelRow, PrimaryButton, QuietButton } from "./AuthKit";
 
 function when(iso: string): string {
@@ -36,6 +37,8 @@ export function AccountScreen() {
   const [devices, setDevices] = useState<DeviceSummary[] | null>(null);
   const [message, setMessage] = useState<Message | null>(null);
   const [busy, setBusy] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   const state = auth.state;
   const signedIn = state.status === "active" || state.status === "stale";
@@ -50,6 +53,23 @@ export function AccountScreen() {
   }, [auth, state.status]);
 
   useFocusEffect(useCallback(() => { void loadDevices(); }, [loadDevices]));
+
+  // Pull-only: this downloads, and there is no endpoint it could upload to.
+  const runSync = useCallback(async () => {
+    if (syncing || state.status !== "active") return;
+    setSyncing(true);
+    setSyncMessage("Looking for your recipes…");
+    try {
+      const result = await syncRecipes(auth, state.user.id, (p) => {
+        setSyncMessage("Downloaded " + (p.stored + p.updated) + " so far…");
+      });
+      setSyncMessage(describeResult(result));
+    } catch (err) {
+      setSyncMessage(describeAuthError(err, "devices").title);
+    } finally {
+      setSyncing(false);
+    }
+  }, [auth, state, syncing]);
 
   const confirmRevoke = useCallback((entry: DeviceSummary) => {
     const isThis = entry.current;
@@ -167,6 +187,26 @@ export function AccountScreen() {
       {state.status === "stale" ? (
         <QuietButton label="Try to reconnect" onPress={() => { void auth.retry(); }} disabled={busy} />
       ) : null}
+
+      <View style={{ gap: t.space.sm }}>
+        <Text accessibilityRole="header" style={[textStyle("sectionTitle"), { color: t.colors.text }]}>
+          Your recipes
+        </Text>
+        {syncMessage ? <Notice message={{ title: syncMessage, tone: "info" }} /> : null}
+        <Panel>
+          <PanelRow
+            first
+            label={syncing ? "Downloading…" : "Download from your account"}
+            detail={
+              syncing
+                ? "Leaving this screen will not stop it."
+                : "Copies the recipes in your account onto this phone. Nothing on the phone is uploaded, and nothing here is overwritten."
+            }
+            action={syncing ? undefined : "Download"}
+            onPress={syncing ? undefined : runSync}
+          />
+        </Panel>
+      </View>
 
       <View style={{ gap: t.space.sm }}>
         <Text accessibilityRole="header" style={[textStyle("sectionTitle"), { color: t.colors.text }]}>
