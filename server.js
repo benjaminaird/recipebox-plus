@@ -1646,7 +1646,7 @@ async function readVisibleRecipesPage(userId, options = {}) {
   }
   params.push(limit + 1);
   const result = await db.query(
-    `SELECT r.recipe_json, r.user_id, r.created_at, r.id AS row_id, p.display_name
+    `SELECT r.recipe_json, r.user_id, r.created_at, r.updated_at, r.id AS row_id, p.display_name
        FROM recipes r
        LEFT JOIN profiles p ON p.user_id = r.user_id
       WHERE (
@@ -1669,6 +1669,31 @@ async function readVisibleRecipesPage(userId, options = {}) {
   );
   const hasMore = result.rows.length > limit;
   const rows = hasMore ? result.rows.slice(0, limit) : result.rows;
+  // Two presentations of one query.
+  //
+  // The web gets what it has always got: the recipe, with the household
+  // annotations mixed into it. `/api/v1` gets an envelope instead — the recipe
+  // untouched, and everything *about* the recipe beside it. That is the
+  // difference between a client that renders a library and one that stores a
+  // copy: the phone must not write "householdShared" into a recipe's own JSON
+  // and then wonder later whether it is part of the recipe.
+  //
+  // Same rows, same authorization, same canonicalisation. Only the shape.
+  if (options.envelope === true) {
+    return {
+      recipes: rows.map((row) => ({
+        recipe: canonicalizeRecipeRecord(row.recipe_json),
+        serverId: row.row_id,
+        ownerId: row.user_id,
+        ownerName: row.user_id === userId ? null : (row.display_name || 'A household member'),
+        shared: row.user_id !== userId,
+        updatedAt: new Date(row.updated_at).toISOString(),
+        createdAt: new Date(row.created_at).toISOString(),
+      })),
+      nextCursor: hasMore && rows.length ? encodeRecipeCursor(rows[rows.length - 1]) : null,
+    };
+  }
+
   return {
     recipes: rows.map((row) => row.user_id === userId ? canonicalizeRecipeRecord(row.recipe_json) : {
       ...canonicalizeRecipeRecord(row.recipe_json),
@@ -3120,6 +3145,37 @@ app.post('/api/v1/auth/password-reset', async (req, res) => {
 
 app.get('/api/v1/me', requireDeviceAuth, async (req, res) => {
   res.json({ user: deviceAuth.publicUser(req.user), device: deviceAuth.publicDevice(req.device, req.device.id) });
+});
+
+// Pull a page of the library.
+//
+// Read-only, and there is no write counterpart under /api/v1 — a pull cannot
+// overwrite or delete a cloud recipe because no endpoint exists that would.
+//
+// Authorization is `readVisibleRecipesPage`'s, unchanged: the caller's own
+// recipes, plus household recipes their owner marked shared. The device gets
+// the same rows the browser would, in an envelope that keeps what the server
+// knows *about* a recipe out of the recipe itself.
+app.get('/api/v1/recipes', requireDeviceAuth, async (req, res) => {
+  try {
+    const page = await readVisibleRecipesPage(req.user.user_id, {
+      limit: req.query.limit,
+      cursor: req.query.cursor,
+      envelope: true,
+    });
+    res.json({
+      recipes: page.recipes,
+      nextCursor: page.nextCursor,
+      // When this page was read, so a client can say how fresh its copy is.
+      // Not a watermark: deltas need a revision, which is a later stage.
+      syncedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    if (/recipe (page limit|cursor)/.test(err.message)) {
+      return res.status(400).json({ code: 'bad_request', message: err.message });
+    }
+    sendV1Error(res, err);
+  }
 });
 
 // The household a device may see is decided by the same function the web route

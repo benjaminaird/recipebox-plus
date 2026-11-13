@@ -33,10 +33,17 @@ const DB_NAME = "recipebox.db";
  *
  * 4 — planned_meals (meal planning).
  * 5 — shopping_lists, shopping_items.
+ * 6 — recipe_origin (where a recipe came from; see src/sync/pull.ts).
  */
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 
 let handle: Promise<SQLite.SQLiteDatabase> | null = null;
+
+/** The one handle. Exported so the sync store writes through the same
+ *  migrations and the same connection as everything else. */
+export function openDatabase(): Promise<SQLite.SQLiteDatabase> {
+  return open();
+}
 
 function open(): Promise<SQLite.SQLiteDatabase> {
   if (!handle) handle = SQLite.openDatabaseAsync(DB_NAME).then(async (db) => {
@@ -156,6 +163,20 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
       measurement TEXT NOT NULL,
       updated_at  INTEGER NOT NULL
     );
+    -- Added in schema 6. Where a recipe came from, kept apart from what the
+    -- recipe IS: nothing about sync is written into recipes.json, so losing
+    -- this table costs bookkeeping and never a recipe.
+    CREATE TABLE IF NOT EXISTS recipe_origin (
+      recipe_id         TEXT PRIMARY KEY NOT NULL,
+      origin            TEXT NOT NULL,
+      account_id        TEXT,
+      owner_id          TEXT,
+      shared            INTEGER NOT NULL DEFAULT 0,
+      server_id         TEXT,
+      server_updated_at TEXT,
+      pulled_at         TEXT
+    );
+    CREATE INDEX IF NOT EXISTS recipe_origin_account ON recipe_origin (account_id);
   `);
   await db.runAsync(
     `INSERT INTO meta (key, value) VALUES ('schema_version', ?)
@@ -220,6 +241,12 @@ async function seedIfEmpty(db: SQLite.SQLiteDatabase): Promise<void> {
        ON CONFLICT(key) DO UPDATE SET value = '1'`,
     );
   });
+}
+
+/** Insert or update one recipe row. Exported for the sync store, which has
+ *  to write the recipe and its provenance inside one transaction. */
+export async function upsertRecipeRow(db: SQLite.SQLiteDatabase, recipe: Recipe): Promise<void> {
+  return upsert(db, recipe);
 }
 
 async function upsert(db: SQLite.SQLiteDatabase, recipe: Recipe): Promise<void> {

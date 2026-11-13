@@ -72,6 +72,8 @@ jobs:
           done
       - name: Native client against the real server (no device, no database)
         run: npm run native-auth-e2e-test
+      - name: Pull-only sync (skips without a database)
+        run: npm run native-sync-test
       - name: No tracked files changed
         run: git diff --exit-code
 
