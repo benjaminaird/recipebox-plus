@@ -28,9 +28,25 @@ export type Density = {
   matched: string;
   /** A note where the figure depends on a convention worth stating. */
   note?: string;
+  /**
+   * True for the things a metric recipe pours rather than weighs.
+   *
+   * Metric recipes weigh dry goods and measure liquids, which is why "250 g
+   * flour, 500 ml stock" is an ordinary line and "505 g stock" is not one
+   * anybody writes. Both directions of that conversion are arithmetically
+   * sound; only one of them is a recipe. The flag is on the ingredient rather
+   * than inferred from its density, because density does not separate them:
+   * stock is 0.98 and double cream 1.01, while honey at 1.44 and yogurt at
+   * 1.04 are both normally weighed. Cream is poured, yogurt is spooned, and no
+   * number in this table knows the difference.
+   *
+   * It does not affect the other direction: a US recipe asks for a cup of
+   * stock, so grams still become cups going that way.
+   */
+  pourable?: boolean;
 };
 
-type Entry = { gPerCup: number; note?: string };
+type Entry = { gPerCup: number; note?: string; pourable?: boolean };
 
 /**
  * Grams per US cup.
@@ -77,27 +93,27 @@ const PER_CUP: Readonly<Record<string, Entry>> = {
 
   // Fats
   butter: { gPerCup: 227 },
-  "olive oil": { gPerCup: 216 },
-  "vegetable oil": { gPerCup: 218 },
-  "sunflower oil": { gPerCup: 218 },
-  oil: { gPerCup: 218 },
+  "olive oil": { gPerCup: 216, pourable: true },
+  "vegetable oil": { gPerCup: 218, pourable: true },
+  "sunflower oil": { gPerCup: 218, pourable: true },
+  oil: { gPerCup: 218, pourable: true },
   "peanut butter": { gPerCup: 258 },
 
   // Dairy and liquids
-  water: { gPerCup: 236.6 },
-  milk: { gPerCup: 244 },
-  buttermilk: { gPerCup: 245 },
-  "double cream": { gPerCup: 238 },
-  "heavy cream": { gPerCup: 238 },
-  "single cream": { gPerCup: 240 },
-  cream: { gPerCup: 238 },
+  water: { gPerCup: 236.6, pourable: true },
+  milk: { gPerCup: 244, pourable: true },
+  buttermilk: { gPerCup: 245, pourable: true },
+  "double cream": { gPerCup: 238, pourable: true },
+  "heavy cream": { gPerCup: 238, pourable: true },
+  "single cream": { gPerCup: 240, pourable: true },
+  cream: { gPerCup: 238, pourable: true },
   yoghurt: { gPerCup: 245 },
   yogurt: { gPerCup: 245 },
   "sour cream": { gPerCup: 230 },
   "creme fraiche": { gPerCup: 230 },
-  stock: { gPerCup: 240 },
-  broth: { gPerCup: 240 },
-  wine: { gPerCup: 236 },
+  stock: { gPerCup: 240, pourable: true },
+  broth: { gPerCup: 240, pourable: true },
+  wine: { gPerCup: 236, pourable: true },
 
   // Grains, pulses, other
   "long grain rice": { gPerCup: 185, note: "uncooked" },
@@ -180,6 +196,7 @@ export function densityFor(name: string | undefined | null): Density | null {
         gPerMl: entry.gPerCup / VOLUME_ML.cup,
         matched: key.original,
         ...(entry.note ? { note: entry.note } : {}),
+        ...(entry.pourable ? { pourable: true } : {}),
       };
     }
   }

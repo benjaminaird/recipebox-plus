@@ -66,9 +66,16 @@ test("an ingredient with no known density is kept as written, with a reason", ()
 });
 
 test("scaling and conversion compose, and pick a sensible unit", () => {
-  // Four cups of stock in metric is a litre's worth, not 946 millilitres.
+  // Four cups of stock is 946 ml, and in metric it stays a volume: stock is
+  // poured. It reads in millilitres rather than as "0.9 L", because litres
+  // start at a litre and rounding 946 up to one would be a 6% lie about a
+  // quantity the cook is about to measure.
   const stock = presentAmount("1", "cup", "stock", { scale: 4, measurement: "metric" });
-  assert.ok(/kg|g$/.test(stock.unit), stock.text);
+  assert.equal(stock.unit, "ml", stock.text);
+  assert.equal(stock.approximate, false, "volume to volume needs no density");
+  // Past a litre it does climb.
+  const lots = presentAmount("2", "quart", "stock", { scale: 2, measurement: "metric" });
+  assert.equal(lots.unit, "L", lots.text);
   const flour = presentAmount("1", "cup", "plain flour", { scale: 4, measurement: "metric" });
   assert.equal(flour.text, "500 g");
 });

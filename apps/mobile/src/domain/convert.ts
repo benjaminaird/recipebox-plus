@@ -67,7 +67,12 @@ function targetVolume(system: "us" | "metric", ml: number): string {
   // is not how anybody writes it.
   if (ml >= VOLUME_ML.gallon) return "gallon";
   if (ml >= VOLUME_ML.quart * 2) return "quart";
-  if (ml >= VOLUME_ML.cup * 0.75) return "cup";
+  // Eight tablespoons is half a cup, and that is where a recipe switches.
+  // "6 1/2 Tbsp" is an instruction; "9 1/2 Tbsp" is a counting exercise.
+  // Below half a cup the spoon wins even so, because the cup fractions down
+  // there are not measures either -- nobody owns a 3/8 cup, and offering one
+  // trades a tedious number for an impossible one.
+  if (ml >= VOLUME_ML.cup * 0.5) return "cup";
   if (ml >= VOLUME_ML.tbsp) return "tbsp";
   return "tsp";
 }
@@ -157,17 +162,21 @@ export function convertIngredient(
     return { ok: true, quantity: scaleBy(q, factor), unit: to, approximate: false };
   }
 
-  // Metric: weigh it if we can, since that is how metric recipes are written.
+  // Metric: weigh it if we can, since that is how metric recipes are written
+  // -- but only the things a metric recipe actually weighs. It writes "500 ml
+  // stock", not "505 g stock", so a pourable ingredient keeps its volume and
+  // takes the volume-to-volume path below, which is exact and needs no
+  // density at all.
   const density = densityFor(ingredientName);
-  if (density) {
+  if (density && !density.pourable) {
     const grams = ml * density.gPerMl;
     const to = targetWeight("metric", grams);
     const factor = (VOLUME_ML[from] * density.gPerMl) / WEIGHT_G[to];
     return { ok: true, quantity: scaleBy(q, factor), unit: to, via: density, approximate: true };
   }
 
-  // No density. A metric volume is still an honest answer for a liquid-ish
-  // amount, but only because volume-to-volume needs no ingredient knowledge.
+  // No density, or a liquid that stays a liquid. Either way this is
+  // volume-to-volume, which needs no ingredient knowledge and is exact.
   const to = targetVolume("metric", ml);
   if (to === from) return { ok: false, reason: "already" };
   const factor = VOLUME_ML[from] / VOLUME_ML[to];

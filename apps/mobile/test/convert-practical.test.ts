@@ -91,14 +91,12 @@ test("a conversion that needs an ingredient is marked approximate; one that does
   const metricEstimate = convertIngredient("2", "cup", "all-purpose flour", "metric");
   assert.equal(metricEstimate.ok && metricEstimate.approximate, true, "cups to grams depends on the flour too");
 
-  // Water is in the density table, so converting cups of it to metric goes
-  // through a density and is marked approximate like any other. The flag is
-  // about the mechanism, not about how confident the number happens to be:
-  // water's density really is ~1, but the code consulted the table to learn
-  // that, and a flag that tried to judge which densities are "exact enough"
-  // would be a worse thing to maintain than one that says what it did.
+  // Water is in the density table, but a metric recipe pours water rather
+  // than weighing it, so this never reaches the density at all: it is
+  // volume to volume, and exact.
   const water = convertIngredient("2", "cup", "water", "metric");
-  assert.equal(water.ok && water.approximate, true, "it consulted a density, so it says so");
+  assert.equal(water.ok && water.unit, "ml", "a liquid stays a liquid");
+  assert.equal(water.ok && water.approximate, false, "and needs no density, so it is not hedged");
 });
 
 test("the screen is told, and told in words, when a number is an estimate", () => {
@@ -168,4 +166,58 @@ test("the mark is added to the text and not to the number behind it", () => {
 test("the quantity that started this is not marked, because pounds are exact", () => {
   const shown = presentAmount("1.2", "kg", "strong flour", { scale: 2, measurement: "us" });
   assert.equal(presentedText(shown), shown.text, "no hedge on exact arithmetic: " + shown.text);
+});
+
+// ---------------------------------------------------------------------------
+// Metric weighs dry goods and pours liquids
+// ---------------------------------------------------------------------------
+
+test("a metric recipe weighs the flour and pours the stock", () => {
+  // The two halves of the same convention. Both conversions are sound; only
+  // one of each pair is a line a recipe would contain.
+  const flour = convertIngredient("2", "cup", "plain flour", "metric");
+  assert.equal(flour.ok && flour.unit, "g", "250 g flour is an ordinary line");
+  assert.equal(flour.ok && flour.approximate, true, "and it rests on how flour packs");
+
+  const stock = convertIngredient("2", "cup", "chicken stock", "metric");
+  assert.equal(stock.ok && stock.unit, "ml", "500 ml stock is an ordinary line; 480 g stock is not");
+  assert.equal(stock.ok && stock.approximate, false, "and it needed no density");
+});
+
+test("the things that are poured are poured, and the things that are spooned are not", () => {
+  for (const name of ["water", "whole milk", "double cream", "chicken stock", "olive oil", "red wine"]) {
+    const r = convertIngredient("1", "cup", name, "metric");
+    assert.equal(r.ok && r.unit, "ml", name + " is poured: " + JSON.stringify(r));
+  }
+  // Thick, sticky or spooned: a metric recipe gives these in grams, which is
+  // easier than scraping a measuring jug and is how they are written.
+  for (const name of ["honey", "maple syrup", "greek yogurt", "sour cream", "peanut butter"]) {
+    const r = convertIngredient("1", "cup", name, "metric");
+    assert.equal(r.ok && r.unit, "g", name + " is weighed: " + JSON.stringify(r));
+  }
+});
+
+test("pouring in metric does not stop a US recipe asking for a cup of it", () => {
+  // The flag is about the metric direction only. US recipes measure stock by
+  // the cup, so grams still become cups going the other way.
+  const stock = convertIngredient("240", "g", "chicken stock", "us");
+  assert.equal(stock.ok && stock.unit, "cup", JSON.stringify(stock));
+  assert.equal(stock.ok && stock.approximate, true, "grams to cups went through the density");
+});
+
+// ---------------------------------------------------------------------------
+// Spoons stop before they become a counting exercise
+// ---------------------------------------------------------------------------
+
+test("a US amount is never nine and a half tablespoons", () => {
+  // 120 g of caster sugar is about 141 ml: 9 1/2 Tbsp, or 5/8 cup.
+  const sugar = us("120", "g", "caster sugar");
+  assert.equal(sugar.ok && sugar.unit, "cup", JSON.stringify(sugar));
+
+  // But small amounts stay on the spoon, because the cup fractions down there
+  // are not measures either.
+  const less = us("80", "g", "caster sugar");
+  assert.equal(less.ok && less.unit, "tbsp", "6 1/2 Tbsp beats 3/8 cup: " + JSON.stringify(less));
+  const little = convertIngredient("15", "ml", "water", "us");
+  assert.equal(little.ok && little.unit, "tbsp");
 });

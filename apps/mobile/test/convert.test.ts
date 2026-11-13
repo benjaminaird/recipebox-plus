@@ -109,8 +109,12 @@ test("weight converts within its own kind when no density is known", () => {
 });
 
 test("a system picks a unit of a sensible size", () => {
-  // Small metric volumes stay in ml, large ones become litres.
-  assert.equal((convertIngredient("2", "cup", "stock", "metric") as { unit: string }).unit, "g");
+  // Small metric volumes stay in ml, large ones become litres. Stock is
+  // poured, not weighed, so this stays a volume -- it used to assert "g",
+  // which is how "505 g stock" reached the screen.
+  assert.equal((convertIngredient("2", "cup", "stock", "metric") as { unit: string }).unit, "ml");
+  // A dry good in the same breath, so the weighing path stays covered.
+  assert.equal((convertIngredient("2", "cup", "plain flour", "metric") as { unit: string }).unit, "g");
   assert.equal((convertIngredient("2", "quart", "gochujang", "metric") as { unit: string }).unit, "L");
   // Small US volumes do not become a fraction of a cup.
   assert.equal((convertIngredient("15", "ml", "gochujang", "us") as { unit: string }).unit, "tbsp");
