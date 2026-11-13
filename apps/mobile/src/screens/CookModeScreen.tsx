@@ -32,7 +32,7 @@ import { clearProgress, DEFAULT_VIEW, getProgress, getRecipe, getRecipeView, sav
 import { useSettings } from "../settings/SettingsProvider";
 import { openingView } from "../data/query";
 import { flattenSteps, stepIngredientUses, type Recipe } from "../data/types";
-import { presentAmount, scaleLabel } from "../domain/present";
+import { presentAmount, presentedText, scaleLabel } from "../domain/present";
 import { durationsInText } from "../domain/timer";
 import { TimerButton } from "../timers/TimerButton";
 import { TimerSheet } from "../timers/TimerSheet";
@@ -283,7 +283,7 @@ export function CookModeScreen() {
                   >
                     {(() => {
                       const shown = use.amount
-                        ? presentAmount(use.amount, use.unit, use.ingredient.name, view).text
+                        ? presentedText(presentAmount(use.amount, use.unit, use.ingredient.name, view))
                         : use.quantity;
                       if (!shown) return "";
                       return use.isTotal ? `${shown} total` : shown;
@@ -323,7 +323,7 @@ export function CookModeScreen() {
                       >
                         <Text style={[textStyle("body"), { color: c.text, flex: 1, minWidth: 0 }]}>{ing.name}</Text>
                         <Text style={[textStyle("body"), { color: c.textSecondary, fontVariant: ["tabular-nums"] }]}>
-                          {presentAmount(ing.amount, ing.unit, ing.name, view).text}
+                          {presentedText(presentAmount(ing.amount, ing.unit, ing.name, view))}
                         </Text>
                       </View>
                     ))}

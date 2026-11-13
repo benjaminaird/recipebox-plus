@@ -36,6 +36,13 @@ export type Presented = {
   /** Shown where the interface needs to justify or qualify the number:
    *  the density convention used, or why no conversion happened. */
   note?: string;
+  /**
+   * True when the number rests on an ingredient's density rather than on
+   * unit arithmetic — a cup of flour weighing about 125 g, rather than a cup
+   * being exactly 16 tablespoons. The interface marks these so an estimate
+   * does not read as a measurement.
+   */
+  approximate: boolean;
 };
 
 export type PresentOptions = {
@@ -68,6 +75,7 @@ export function presentAmount(
   let finalUnit = original;
   let converted = false;
   let note: string | undefined;
+  let approximate = false;
 
   const wantsConversion =
     measurement !== "original" && (kind === "volume" || kind === "weight");
@@ -90,10 +98,13 @@ export function presentAmount(
           : snapToKitchenFraction(roundForUnit(result.quantity, result.unit), result.unit);
         finalUnit = result.unit;
         converted = true;
+        approximate = result.approximate;
         if (result.via) {
+          // Said as an estimate, because it is one: the same weight of a
+          // differently packed flour fills a different number of cups.
           note = result.via.note
-            ? `using ${result.via.matched} (${result.via.note})`
-            : `using ${result.via.matched}`;
+            ? `approximate, using ${result.via.matched} (${result.via.note})`
+            : `approximate, using ${result.via.matched}`;
         }
       } else if (result.reason === "unknown-ingredient") {
         note = "kept as written: this ingredient has no weight conversion";
@@ -123,8 +134,22 @@ export function presentAmount(
     amount: amountText,
     unit: unitText,
     converted: converted || (scaled && q.kind !== "opaque" && q.kind !== "none"),
+    approximate,
     ...(note ? { note } : {}),
   };
+}
+
+/**
+ * The measure as a screen should print it, marked when it is an estimate.
+ *
+ * `text` stays the measurement itself, so a column of numbers can be aligned
+ * or re-read from it. The tilde is presentation: it is the shortest honest way
+ * to say "about", it costs no second line in a list that is mostly numbers,
+ * and a cook already reads it that way on a packet. What it means is explained
+ * once per screen rather than once per row.
+ */
+export function presentedText(p: Presented): string {
+  return p.approximate ? `~${p.text}` : p.text;
 }
 
 /**

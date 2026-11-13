@@ -26,13 +26,47 @@ export type ConversionFailure =
   | "shared-unit";
 
 export type Converted =
-  | { ok: true; quantity: Quantity; unit: string; via?: Density }
+  | {
+      ok: true;
+      quantity: Quantity;
+      unit: string;
+      via?: Density;
+      /**
+       * True when the answer rests on an ingredient's density rather than on
+       * unit arithmetic.
+       *
+       * `1 cup → 16 tbsp` is exact and always will be. `500 g of flour →
+       * 4 cups` is an estimate about flour: it depends on how the flour is
+       * packed, and a different flour or a heavier hand gives a different
+       * number. The two should not look alike on screen, so the caller is told
+       * which it got.
+       */
+      approximate: boolean;
+    }
   | { ok: false; reason: ConversionFailure };
+
+/**
+ * Above this, a volume stops being something a cook measures and becomes a
+ * number they would have to read twice.
+ *
+ * Eight US cups is two quarts. A big bake still reads in cups — four cups of
+ * flour for a loaf, eight for a double batch — and past that a US recipe
+ * weighs it or writes it in pounds. Converting 2.4 kg of flour to "19.3 cups"
+ * is arithmetically right and useless, which is the same objection this module
+ * already makes to "14.1 oz" of brown sugar, applied at the other end of the
+ * scale.
+ */
+const PRACTICAL_VOLUME_CEILING_ML = VOLUME_ML.cup * 8;
 
 /** The unit a system prefers for a given magnitude. */
 function targetVolume(system: "us" | "metric", ml: number): string {
   if (system === "metric") return ml >= 1000 ? "L" : "ml";
   // US: climb only when the amount is a clean handful of the larger unit.
+  // Quarts and gallons start late on purpose — recipes say "5 cups of stock",
+  // not "1 1/4 quarts" — but a gallon of stock is a gallon, and sixteen cups
+  // is not how anybody writes it.
+  if (ml >= VOLUME_ML.gallon) return "gallon";
+  if (ml >= VOLUME_ML.quart * 2) return "quart";
   if (ml >= VOLUME_ML.cup * 0.75) return "cup";
   if (ml >= VOLUME_ML.tbsp) return "tbsp";
   return "tsp";
@@ -87,16 +121,21 @@ export function convertIngredient(
       const density = densityFor(ingredientName);
       if (density) {
         const ml = grams / density.gPerMl;
-        const to = targetVolume("us", ml);
-        const factor = WEIGHT_G[from] / (density.gPerMl * VOLUME_ML[to]);
-        return { ok: true, quantity: scaleBy(q, factor), unit: to, via: density };
+        // ...but only while the result is something a cook would measure.
+        // Past the ceiling the weight is the more useful answer, and it is
+        // also the exact one, so a big quantity falls through to pounds.
+        if (ml <= PRACTICAL_VOLUME_CEILING_ML) {
+          const to = targetVolume("us", ml);
+          const factor = WEIGHT_G[from] / (density.gPerMl * VOLUME_ML[to]);
+          return { ok: true, quantity: scaleBy(q, factor), unit: to, via: density, approximate: true };
+        }
       }
     }
 
     const to = targetWeight(system, grams);
     if (to === from) return { ok: false, reason: "already" };
     const factor = WEIGHT_G[from] / WEIGHT_G[to];
-    return { ok: true, quantity: scaleBy(q, factor), unit: to };
+    return { ok: true, quantity: scaleBy(q, factor), unit: to, approximate: false };
   }
 
   // Volume.
@@ -115,7 +154,7 @@ export function convertIngredient(
     const to = targetVolume("us", ml);
     if (to === from) return { ok: false, reason: "already" };
     const factor = VOLUME_ML[from] / VOLUME_ML[to];
-    return { ok: true, quantity: scaleBy(q, factor), unit: to };
+    return { ok: true, quantity: scaleBy(q, factor), unit: to, approximate: false };
   }
 
   // Metric: weigh it if we can, since that is how metric recipes are written.
@@ -124,7 +163,7 @@ export function convertIngredient(
     const grams = ml * density.gPerMl;
     const to = targetWeight("metric", grams);
     const factor = (VOLUME_ML[from] * density.gPerMl) / WEIGHT_G[to];
-    return { ok: true, quantity: scaleBy(q, factor), unit: to, via: density };
+    return { ok: true, quantity: scaleBy(q, factor), unit: to, via: density, approximate: true };
   }
 
   // No density. A metric volume is still an honest answer for a liquid-ish
@@ -132,7 +171,7 @@ export function convertIngredient(
   const to = targetVolume("metric", ml);
   if (to === from) return { ok: false, reason: "already" };
   const factor = VOLUME_ML[from] / VOLUME_ML[to];
-  return { ok: true, quantity: scaleBy(q, factor), unit: to };
+  return { ok: true, quantity: scaleBy(q, factor), unit: to, approximate: false };
 }
 
 /** Re-exported so callers need one import for the conversion surface. */

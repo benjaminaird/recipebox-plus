@@ -28,7 +28,7 @@ import { collectCategories, collectTags } from "../data/types";
 import { listRecipes, saveRecipe } from "../data/db";
 import { stepIngredientUses, type Recipe, type Source } from "../data/types";
 import { ServingControls } from "../components/ServingControls";
-import { detectSystem, measuresAgree, presentAmount, scaleLabel } from "../domain/present";
+import { detectSystem, measuresAgree, presentAmount, presentedText, scaleLabel } from "../domain/present";
 import { batchAdvisories } from "../domain/timing";
 import { durationsInText } from "../domain/timer";
 import { TimerButton } from "../timers/TimerButton";
@@ -288,7 +288,7 @@ export function RecipeDetailScreen() {
                           },
                         ]}
                       >
-                        {shown.text}
+                        {presentedText(shown)}
                       </Text>
                       {/* The gram weight a source sometimes gives alongside a
                           cup measure. It goes through presentAmount like
@@ -317,6 +317,22 @@ export function RecipeDetailScreen() {
           </View>
         </View>
       ))}
+
+      {/* What the tilde means, said once for the whole list rather than on
+          every row. Only drawn when something on screen is actually an
+          estimate, so a recipe read in its own units never explains a mark it
+          does not use. */}
+      {recipe.sections.some((section) =>
+        section.ingredients.some(
+          (ing) => presentAmount(ing.amount, ing.unit, ing.name, view).approximate,
+        ),
+      ) ? (
+        <Text style={[textStyle("footnote"), { color: c.textTertiary }]}>
+          ~ marks an estimate. Weight and volume only convert through the
+          ingredient — a cup of flour is about 125 g — so those numbers move
+          with how it is packed.
+        </Text>
+      ) : null}
 
       {recipe.sections.map((section, si) => (
         <View key={`steps-${si}`} style={{ gap: t.space.md }}>
@@ -359,7 +375,7 @@ export function RecipeDetailScreen() {
                             const shown = presentAmount(use.amount, use.unit, use.ingredient.name, view);
                             // A share given as words ("the rest") has no
                             // amount to scale, so its own text stands.
-                            const amount = use.amount ? shown.text : use.quantity;
+                            const amount = use.amount ? presentedText(shown) : use.quantity;
                             if (!amount) return use.ingredient.name;
                             return use.isTotal
                               ? `${use.ingredient.name} · ${amount} total`
