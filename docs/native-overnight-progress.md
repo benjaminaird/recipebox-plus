@@ -578,3 +578,96 @@ One observation rather than a defect: 1.2 kg of flour at 2× converts to
 That is the existing conversion module's behaviour for large metric weights,
 not something this milestone introduced, and changing it would alter what every
 recipe shows — so it is recorded here for a decision rather than changed.
+
+## The native journey, end to end on a device
+
+The nine-step journey now runs on a simulator against a local server backed by
+a throwaway PostgreSQL container, with two isolated test accounts and no
+production credentials anywhere: start the app, sign in, download, cook
+offline, import from a link, review and save, relaunch, scale and build a
+shopping list, sign out and switch accounts. Running it found five defects that
+every passing test had missed, each now fixed with coverage that fails without
+the fix.
+
+**Measurements a cook can act on.** The 19.3-cups observation above is closed.
+The weight-to-volume path stops at eight cups, so a commercial quantity reads
+in pounds while a double batch still reads in cups, and large volumes climb to
+quarts and gallons instead of stacking sixteen cups. Two more of the same kind
+turned up on the real screen: 500 ml of stock displayed as "505 g", because the
+rule that metric recipes weigh dry goods is right for flour and wrong for
+anything poured; and 120 g of caster sugar displayed as "9 1/2 Tbsp", because
+the ladder only reached for a cup at three quarters of one. The density table
+now records which ingredients a metric recipe pours — density cannot decide it,
+since stock is 0.98 and cream 1.01 while honey and yogurt are both weighed —
+and tablespoons give way to cups at half a cup, not below, because the cup
+fractions under that are not measures either.
+
+Conversions also now say which kind they are. A cup being sixteen tablespoons
+is exact; a cup of flour weighing about 125 g is a claim about flour. An
+estimate is marked "~" wherever it appears, with one line at the foot of the
+list explaining the mark, drawn only on a recipe that has one.
+
+**Three defects in the work this milestone had already declared done.**
+
+*Nothing downloaded at all.* The first real pull failed on its first recipe:
+the server keeps a recipe's body and its timestamps separately, so the body
+carries no createdAt, and the local row writer read them off the recipe and
+wrote nulls into a NOT NULL column. The in-memory store the pull tests use has
+no columns and so no constraints to violate, which is why three hundred passing
+tests never saw it.
+
+*A failed download looked like a successful one.* The Account screen took only
+the title off the error and drew it with `tone: "info"`, so "Something went
+wrong" arrived in the same calm green as "Up to date".
+
+*An amount written against its unit was not an amount.* A real import of BBC
+Good Food's scones arrived with four of its nine ingredients having no amount —
+"350g self-raising flour", "175ml milk" — because the deterministic split
+required whitespace after the quantity. British sites write almost every weight
+that way. The fix is a second, stricter attempt rather than a looser first one,
+so "100% dark chocolate" and "2cm piece of ginger" still keep their text.
+
+**Two accounts on one phone shared a library.** Found by an automated security
+review and confirmed on the device. `src/auth/localStore.ts` decides which
+SQLite file an account may open, separating accounts rather than erasing
+anything; `src/data/db.ts` had a hardcoded name and never opened the resolved
+one. The Account screen already said "your recipes are kept apart", so the
+interface claimed an isolation that did not exist. Each half passed its own
+tests; nothing tested that they were connected.
+
+The device showed what it cost: `recipebox.db`, the first account's library,
+holds three cloud recipes belonging to a different account, downloaded there
+while nothing opened the resolved store. Nothing was lost and nothing reached
+the server, which is pull-only.
+
+Opening the resolved library was itself asynchronous, so the first screen still
+read the wrong file — thirteen recipes that became eight. The default is now no
+library at all: a read made before the decision waits for it, and every path
+out of start-up chooses one, including the ones where the account machinery
+fails. The app still mounts with no account, no server and no network, because
+only reads wait and reads were already asynchronous.
+
+Verified on the device: three separate libraries, the second account's freshly
+seeded seven containing none of the first's, a download landing in the right
+one, and signing out while offline costing nothing.
+
+## What is verified, and what is not
+
+Verified on the simulator, against a local server and an isolated database:
+every step of the nine-step journey, including Cook Mode and a scaled shopping
+list built from the imported recipe, with its amounts parsed.
+
+Not verified: any of this on a physical iPhone. The backend it would need is
+documented in `native-staging-environment.md` and still waits on the four
+owner actions recorded there. `app.json` no longer has to be edited between
+builds — the API origin comes from `RECIPEBOX_API_BASE_URL` through a new
+`app.config.ts` — which removes that prerequisite for a device build, but the
+build itself is still gated on a backend the phone can reach.
+
+Also not verified: the recorded import corpus under
+`tests/results/imports/`. It fetches a hundred live pages and its figures move
+with the sites, with whether a server is running and with whether an AI key is
+present, so a run today is not comparable with the recorded one and its
+artifacts were deliberately not committed. The one deterministic failure in
+today's run, nr-092, parses all seven of its quantified lines through the
+unchanged spaced path, so the import change cannot have caused it.
