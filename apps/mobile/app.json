@@ -58,7 +58,7 @@
     ],
     "extra": {
       "apiBaseUrl": "",
-      "notes": "Design-system test build. apiBaseUrl is empty on purpose: /api/v1 is not deployed, so the app says it has no sign-in server rather than sending a password to one that would not use it. Set it to the server origin to enable signing in. Provisional identifiers (.dev); the permanent bundle identifier is not yet chosen. No auth, database, AI or sync.",
+      "notes": "Device-test build. apiBaseUrl is set at build time from RECIPEBOX_API_BASE_URL (see app.config.ts), so the origin is never committed; empty remains a supported state, in which the app says it has no sign-in server rather than sending a password to one that would not use it. Provisional identifiers (.dev); the permanent bundle identifier is not yet chosen.",
       "eas": {
         "projectId": "06ab1d4f-79eb-4e7b-8e55-fc94b5ef2c56"
       }
