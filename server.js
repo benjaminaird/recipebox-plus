@@ -1773,27 +1773,72 @@ async function replaceUserRecipes(userId, recipes) {
     await client.query('BEGIN');
     transactionStarted = true;
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [userId]);
-    // The whole-library replace the web has always done. It stays a replace,
-    // because changing what it means would change the web's behaviour — but
-    // the rows it writes now carry revisions, so a phone syncing afterwards
-    // sees a library that moved rather than one that silently differs.
+    // The web's whole-library save. It used to delete every row and insert the
+    // payload; it reconciles now, and the difference matters in three ways.
     //
-    // recipe_versions survives this deliberately: its reference to a recipe
-    // row is nullable and SET NULL, so the history of a recipe outlives the
-    // row being swapped underneath it. A cascade here would delete every
-    // version this account has ever had, which is the one thing ADR 0015 says
-    // cannot happen.
-    await client.query('DELETE FROM recipes WHERE user_id=$1', [userId]);
+    // A recipe the payload omits is how the web deletes one. Deleting the row
+    // left no trace, so a phone could never learn the recipe was gone — the
+    // delta feed reports deletions from tombstones, and there was nothing to
+    // report. Omitted recipes are soft-deleted instead, which is the same
+    // thing to a browser (every reader filters tombstones) and a fact that
+    // syncs.
+    //
+    // A recipe the payload still contains keeps its row, so its created_at
+    // survives. That is a behaviour change, and an improvement: a bulk save
+    // used to reset every timestamp to now and scramble "Recently added".
+    //
+    // And a row that is not destroyed keeps its version history attached
+    // rather than orphaned.
+    const existing = await client.query(
+      `SELECT id, recipe_json->>'id' AS recipe_id, deleted_at FROM recipes WHERE user_id=$1 FOR UPDATE`,
+      [userId]
+    );
+    const byRecipeId = new Map();
+    for (const row of existing.rows) {
+      if (row.recipe_id) byRecipeId.set(row.recipe_id, row);
+    }
+
+    const seen = new Set();
     for (const recipe of recipes) {
       const r = normalizeRecipeForDb(recipe);
+      const recipeId = r.json && r.json.id ? String(r.json.id) : null;
       const revision = await recipeSync.nextRevision(client, userId);
-      const inserted = await client.query(
-        `INSERT INTO recipes(user_id, title, category, hero_image_url, recipe_json, favorite, rating, revision)
-         VALUES($1, $2, $3, $4, $5::jsonb, $6, $7, $8) RETURNING id`,
-        [userId, r.title, r.category, r.heroImage, JSON.stringify(r.json), r.favorite, r.rating, revision]
+      const prior = recipeId ? byRecipeId.get(recipeId) : null;
+      if (recipeId) seen.add(recipeId);
+
+      if (prior) {
+        await client.query(
+          `UPDATE recipes SET title=$3, category=$4, hero_image_url=$5, recipe_json=$6::jsonb,
+             favorite=$7, rating=$8, revision=$9, updated_at=now(), deleted_at=NULL, deleted_by=NULL
+           WHERE id=$1 AND user_id=$2`,
+          [prior.id, userId, r.title, r.category, r.heroImage, JSON.stringify(r.json), r.favorite, r.rating, revision]
+        );
+        await recipeSync.recordWebVersion(client, {
+          rowId: prior.id, userId, recipe: r.json, revision, cause: 'edited',
+        });
+      } else {
+        const inserted = await client.query(
+          `INSERT INTO recipes(user_id, title, category, hero_image_url, recipe_json, favorite, rating, revision)
+           VALUES($1, $2, $3, $4, $5::jsonb, $6, $7, $8) RETURNING id`,
+          [userId, r.title, r.category, r.heroImage, JSON.stringify(r.json), r.favorite, r.rating, revision]
+        );
+        await recipeSync.recordWebVersion(client, {
+          rowId: inserted.rows[0].id, userId, recipe: r.json, revision, cause: 'imported',
+        });
+      }
+    }
+
+    for (const [recipeId, row] of byRecipeId) {
+      if (seen.has(recipeId) || row.deleted_at) continue;
+      const revision = await recipeSync.nextRevision(client, userId);
+      await client.query(
+        `UPDATE recipes SET deleted_at=now(), deleted_by=$3, revision=$4, updated_at=now()
+          WHERE id=$1 AND user_id=$2`,
+        [row.id, userId, 'web', revision]
       );
+      const body = await client.query('SELECT recipe_json FROM recipes WHERE id=$1', [row.id]);
       await recipeSync.recordWebVersion(client, {
-        rowId: inserted.rows[0].id, userId, recipe: r.json, revision, cause: 'edited',
+        rowId: row.id, userId, recipe: body.rows[0].recipe_json, revision, cause: 'deleted',
       });
     }
     await client.query('COMMIT');

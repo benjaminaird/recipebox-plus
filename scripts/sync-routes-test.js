@@ -43,6 +43,7 @@ async function call(method, path, options) {
   const headers = Object.assign(
     o.body ? { 'Content-Type': 'application/json' } : {},
     o.token ? { Authorization: 'Bearer ' + o.token } : {},
+    o.cookie ? { Cookie: o.cookie } : {},
     o.headers || {}
   );
   const res = await fetch(base + path, {
@@ -54,7 +55,7 @@ async function call(method, path, options) {
   const text = await res.text();
   let json = null;
   try { json = JSON.parse(text); } catch { /* the assertion will say so */ }
-  return { status: res.status, json, text };
+  return { status: res.status, json, text, setCookie: res.headers.get('set-cookie') || '' };
 }
 
 function recipe(id, title) {
@@ -311,6 +312,94 @@ async function run(pool) {
   step('an oversized push is refused before anything is written');
 
   // ── Bad input ────────────────────────────────────────────────────────────
+  // ── The web, against the same revision infrastructure ───────────────────
+  //
+  // The brief asks for this specifically, and it was right to: the web deletes
+  // a recipe by saving its whole library without it, which used to delete the
+  // row outright. A deleted row leaves no tombstone, so a phone could never
+  // learn the recipe was gone. Everything below goes through the endpoints a
+  // browser actually uses.
+
+  const webSignIn = await call('POST', '/api/auth/signin', {
+    body: { email: aliceEmail, password: PASSWORD },
+  });
+  assert.strictEqual(webSignIn.status, 200, 'the web session still signs in: ' + webSignIn.text.slice(0, 120));
+  const cookie = (/rb_session=([^;]+)/.exec(webSignIn.setCookie || '') || [])[0]
+    ? 'rb_session=' + /rb_session=([^;]+)/.exec(webSignIn.setCookie)[1] : '';
+  assert.ok(cookie, 'and hands back a session cookie');
+  step('the existing web session is unaffected by any of this');
+
+  const headBeforeWeb = (await call('GET', '/api/v1/sync/recipes?since=0', { token: alice })).json.headRevision;
+
+  const webCreate = await call('POST', '/api/recipes/save', {
+    cookie,
+    body: { operation: 'create', recipe: { id: 'w1', title: 'Made in a browser', sections: [{ name: '', ingredients: [], steps: [] }] } },
+  });
+  assert.strictEqual(webCreate.status, 200, webCreate.text.slice(0, 160));
+  const afterWebCreate = await call('GET', '/api/v1/sync/recipes?since=' + headBeforeWeb, { token: alice });
+  assert.ok(afterWebCreate.json.recipes.some((r) => r.recipe.id === 'w1'),
+    'a recipe created in a browser reaches the phone through the delta feed');
+  step('web create: assigned a revision, and visible to a phone');
+
+  const webEdit = await call('POST', '/api/recipes/save', {
+    cookie,
+    body: { operation: 'update', recipe: { id: 'w1', title: 'Edited in a browser', sections: [{ name: '', ingredients: [], steps: [] }] } },
+  });
+  assert.strictEqual(webEdit.status, 200);
+  const webVersions = await call('GET', '/api/v1/recipes/w1/versions', { token: alice });
+  assert.ok(webVersions.json.versions.length >= 2, 'the edit appended a version');
+  const firstWebVersion = await pool.query(
+    `SELECT recipe_json->>'title' AS t FROM recipe_versions WHERE user_id=$1 AND recipe_id='w1' ORDER BY revision ASC LIMIT 1`,
+    [aliceId]);
+  assert.strictEqual(firstWebVersion.rows[0].t, 'Made in a browser', 'and the version before it is still readable');
+  step('web edit: history kept, as for any other client');
+
+  // The web deletes by saving the library without the recipe.
+  const headBeforeWebDelete = (await call('GET', '/api/v1/sync/recipes?since=0', { token: alice })).json.headRevision;
+  const browserLibrary = await call('GET', '/api/recipes', { cookie });
+  const kept = (browserLibrary.json.recipes || browserLibrary.json || []).filter((r) => r && r.id && r.id !== 'w1');
+  const webDelete = await call('PUT', '/api/recipes', { cookie, body: { recipes: kept } });
+  assert.strictEqual(webDelete.status, 200, webDelete.text.slice(0, 160));
+
+  const tombstone = await pool.query(
+    `SELECT deleted_at FROM recipes WHERE user_id=$1 AND recipe_json->>'id'='w1'`, [aliceId]);
+  assert.strictEqual(tombstone.rows.length, 1, 'the row survives as a tombstone rather than being destroyed');
+  assert.ok(tombstone.rows[0].deleted_at, 'and is marked deleted');
+  const deltaAfterWebDelete = await call('GET', '/api/v1/sync/recipes?since=' + headBeforeWebDelete, { token: alice });
+  assert.ok(deltaAfterWebDelete.json.deletions.some((d) => d.id === 'w1'),
+    'a deletion made in a browser is announced to the phone');
+  step('web delete: leaves a tombstone, and the phone is told');
+
+  const webLibraryAfter = await call('GET', '/api/recipes', { cookie });
+  const stillThere = (webLibraryAfter.json.recipes || webLibraryAfter.json || []).some((r) => r && r.id === 'w1');
+  assert.strictEqual(stillThere, false, 'and the browser no longer shows it, exactly as before');
+  step('web delete looks identical in a browser: the recipe is gone from the library');
+
+  // Restoring it: the recipe is in the Trash, and comes back.
+  const webTrash = await call('GET', '/api/v1/trash', { token: alice });
+  assert.ok(webTrash.json.recipes.some((r) => r.recipe.id === 'w1'), 'a web deletion is recoverable');
+  const webRestore = await call('POST', '/api/v1/trash/w1/restore', { token: alice });
+  assert.strictEqual(webRestore.json.status, 'applied');
+  const restoredInWeb = await call('GET', '/api/recipes', { cookie });
+  assert.ok((restoredInWeb.json.recipes || restoredInWeb.json || []).some((r) => r && r.id === 'w1'),
+    'and the browser sees it again');
+  step('web delete is recoverable from the Trash, and the browser sees the restore');
+
+  // Surviving recipes keep their identity across a whole-library save.
+  const survivorBefore = await pool.query(
+    `SELECT id, created_at FROM recipes WHERE user_id=$1 AND recipe_json->>'id'='r1'`, [aliceId]);
+  const libForResave = await call('GET', '/api/recipes', { cookie });
+  await call('PUT', '/api/recipes', { cookie, body: { recipes: (libForResave.json.recipes || libForResave.json || []) } });
+  const survivorAfter = await pool.query(
+    `SELECT id, created_at FROM recipes WHERE user_id=$1 AND recipe_json->>'id'='r1'`, [aliceId]);
+  assert.strictEqual(survivorAfter.rows[0].id, survivorBefore.rows[0].id,
+    'a whole-library save keeps the row, so history stays attached to it');
+  assert.strictEqual(
+    new Date(survivorAfter.rows[0].created_at).getTime(),
+    new Date(survivorBefore.rows[0].created_at).getTime(),
+    'and keeps created_at, so a bulk save no longer scrambles "Recently added"');
+  step('a whole-library save reconciles rather than recreating');
+
   const badSince = await call('GET', '/api/v1/sync/recipes?since=yesterday', { token: alice });
   assert.strictEqual(badSince.status, 400, 'a revision is a number, not a date');
   const anon = await call('GET', '/api/v1/sync/recipes?since=0');
