@@ -17,6 +17,7 @@ import { buildList } from "../src/domain/shoppingList.ts";
 import { presentAmount } from "../src/domain/present.ts";
 import { matches } from "../src/data/query.ts";
 import { collectTags } from "../src/data/types.ts";
+import { ADDED_COLUMNS } from "../src/data/schema.ts";
 
 const draft = (): Draft => ({
   ...emptyDraft("r-new", 1000),
@@ -155,34 +156,111 @@ test("removing a planned meal leaves the others alone", () => {
 // Migration safety
 // ---------------------------------------------------------------------------
 
-test("the migration can only ever add, never destroy", () => {
-  // The rule that has kept every upgrade from costing a recipe is that
-  // migrate() contains nothing but CREATE ... IF NOT EXISTS. This reads the
-  // real file and holds it to that, because the day someone reaches for an
-  // ALTER or a DROP is the day it needs a copy-and-swap and a test that the
-  // old rows arrived -- not a quiet edit here.
-  const source = readFileSync(join(import.meta.dirname, "..", "src", "data", "db.ts"), "utf8");
-  const start = source.indexOf("async function migrate(");
-  assert.ok(start > -1, "migrate() not found");
-  const end = source.indexOf("\n}", start);
-  const body = source.slice(start, end);
+test("the schema can only ever add, never destroy", () => {
+  // The rule that has kept every upgrade from costing a recipe is that the
+  // migration only ever adds. For four schema versions that meant nothing but
+  // CREATE ... IF NOT EXISTS, and this test said so by banning ALTER outright.
+  //
+  // Schema 7 needs columns on two tables that already hold rows, and
+  // ALTER TABLE ... ADD COLUMN is the one schema change SQLite offers that
+  // cannot touch an existing row: it appends a column with a default and
+  // rewrites nothing. Banning it did not make upgrades safer — the
+  // alternative is a copy-and-swap, which reads every row and writes it
+  // somewhere else, and is strictly more dangerous than what was avoided.
+  //
+  // So the rule is narrowed rather than dropped. The created tables may not
+  // contain an ALTER at all; added columns go through ADDED_COLUMNS and
+  // addColumn(), which the next two tests hold to adding and nothing else.
+  const schema = withoutComments(
+    readFileSync(join(import.meta.dirname, "..", "src", "data", "schema.ts"), "utf8"),
+  );
 
-  for (const forbidden of [/\bDROP\s+TABLE\b/i, /\bDROP\s+COLUMN\b/i, /\bALTER\s+TABLE\b/i, /\bTRUNCATE\b/i]) {
-    assert.doesNotMatch(body, forbidden, `migrate() contains ${forbidden}`);
+  for (const forbidden of [
+    /\bDROP\s+TABLE\b/i, /\bDROP\s+COLUMN\b/i, /\bTRUNCATE\b/i,
+    /\bALTER\s+TABLE\b/i, /\bRENAME\s+(TO|COLUMN)\b/i,
+  ]) {
+    assert.doesNotMatch(schema, forbidden, `schema.ts contains ${forbidden}`);
   }
   // DELETE and UPDATE would rewrite a user's rows on upgrade.
-  assert.doesNotMatch(body, /\bDELETE\s+FROM\b/i, "migrate() deletes rows");
-  assert.doesNotMatch(body, /\bUPDATE\s+\w+\s+SET\b/i, "migrate() rewrites rows");
+  assert.doesNotMatch(schema, /\bDELETE\s+FROM\b/i, "schema.ts deletes rows");
+  assert.doesNotMatch(schema, /\bUPDATE\s+\w+\s+SET\b/i, "schema.ts rewrites rows");
 
   // Every table it creates is guarded.
-  const creates = body.match(/CREATE\s+TABLE[^(]*/gi) ?? [];
-  assert.ok(creates.length > 0, "migrate() creates no tables");
+  const creates = schema.match(/CREATE\s+TABLE[^(]*/gi) ?? [];
+  assert.ok(creates.length > 0, "schema.ts creates no tables");
   for (const stmt of creates) {
     assert.match(stmt, /IF\s+NOT\s+EXISTS/i, `unguarded: ${stmt.trim()}`);
   }
-  const indexes = body.match(/CREATE\s+INDEX[^(]*/gi) ?? [];
+  const indexes = schema.match(/CREATE\s+INDEX[^(]*/gi) ?? [];
   for (const stmt of indexes) {
     assert.match(stmt, /IF\s+NOT\s+EXISTS/i, `unguarded: ${stmt.trim()}`);
+  }
+
+  // And migrate() itself runs the schema and adds columns, and does nothing
+  // else of its own: a statement smuggled in there would not be covered above.
+  const source = readFileSync(join(import.meta.dirname, "..", "src", "data", "db.ts"), "utf8");
+  const start = source.indexOf("async function migrate(");
+  assert.ok(start > -1, "migrate() not found");
+  const body = withoutComments(source.slice(start, source.indexOf("\n}", start)));
+  for (const forbidden of [/\bDROP\b/i, /\bDELETE\s+FROM\b/i, /\bALTER\b/i, /\bTRUNCATE\b/i]) {
+    assert.doesNotMatch(body, forbidden, `migrate() contains ${forbidden}`);
+  }
+});
+
+/** TypeScript line and block comments, removed. Strings here hold SQL, not quotes. */
+function withoutComments(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
+}
+
+test("a column is only ever added, and only after asking the table", () => {
+  // The helper every new column goes through. Two properties make it safe,
+  // and both are worth holding: it asks PRAGMA table_info before it acts, so
+  // a half-finished upgrade cannot make it add a column twice; and the only
+  // statement it issues is ADD COLUMN.
+  const source = readFileSync(join(import.meta.dirname, "..", "src", "data", "db.ts"), "utf8");
+  const start = source.indexOf("async function addColumn(");
+  assert.ok(start > -1, "addColumn() not found");
+  const body = withoutComments(source.slice(start, source.indexOf("\n}", start)));
+
+  assert.match(body, /PRAGMA\s+table_info/i, "addColumn() does not ask the table what it has");
+  assert.match(body, /ALTER\s+TABLE\s+\$\{table\}\s+ADD\s+COLUMN/i, "addColumn() does not add a column");
+  for (const forbidden of [/\bDROP\b/i, /\bDELETE\b/i, /\bUPDATE\b/i, /\bRENAME\b/i]) {
+    assert.doesNotMatch(body, forbidden, `addColumn() contains ${forbidden}`);
+  }
+
+  // Every column schema 7 added is declared where the migration will find it,
+  // rather than added by hand somewhere that escapes the check above.
+  for (const [table, column] of [
+    ["recipes", "deleted_at"], ["recipe_origin", "server_revision"], ["recipe_origin", "adopted"],
+  ]) {
+    assert.ok(
+      ADDED_COLUMNS.some((c) => c.table === table && c.column === column),
+      `${table}.${column} is not in ADDED_COLUMNS`,
+    );
+  }
+  // And nothing in that list is a column on a table the schema does not have.
+  const schema = readFileSync(join(import.meta.dirname, "..", "src", "data", "schema.ts"), "utf8");
+  for (const { table } of ADDED_COLUMNS) {
+    assert.ok(schema.includes(`CREATE TABLE IF NOT EXISTS ${table}`), `${table} is not created`);
+  }
+});
+
+test("the outbox survives a migration", () => {
+  // A queued change is a promise to the cook that something they wrote will
+  // reach their account. Losing the table on an upgrade would break that
+  // silently -- the recipe is still on the phone, so nothing looks wrong, and
+  // it simply never arrives. The guarantee is structural: every statement in
+  // migrate() either creates something that is not there or adds a column, so
+  // there is no path through it that can empty a table.
+  const schema = withoutComments(
+    readFileSync(join(import.meta.dirname, "..", "src", "data", "schema.ts"), "utf8"),
+  );
+
+  for (const table of ["sync_outbox", "sync_conflicts"]) {
+    assert.ok(
+      schema.includes(`CREATE TABLE IF NOT EXISTS ${table}`),
+      `${table} is not created, or is not guarded`,
+    );
   }
 });
 
@@ -191,7 +269,7 @@ test("every table the app writes carries what a later sync will need", () => {
   // with deletions that lose to concurrent edits. All three need per-row
   // identity, per-row timestamps and soft deletes. Getting this wrong is not
   // visible until sync is built, by which point it is a migration.
-  const source = readFileSync(join(import.meta.dirname, "..", "src", "data", "db.ts"), "utf8");
+  const source = readFileSync(join(import.meta.dirname, "..", "src", "data", "schema.ts"), "utf8");
   for (const table of ["planned_meals", "shopping_lists", "shopping_items"]) {
     const start = source.indexOf(`CREATE TABLE IF NOT EXISTS ${table}`);
     assert.ok(start > -1, `${table} not found`);

@@ -19,23 +19,11 @@ import type { Scale } from "../domain/present";
 import type { Timer } from "../domain/timer";
 import { buildSearchText, byNewest, type LibraryFilters } from "./query";
 import { SAMPLE_RECIPES } from "./sampleRecipes";
+import { ADDED_COLUMNS, SCHEMA_SQL, SCHEMA_VERSION } from "./schema.ts";
 
 const DB_NAME = "recipebox.db";
 
-/**
- * Bump when the table shape changes; `migrate` is additive and idempotent.
- *
- * Every migration so far is a `CREATE TABLE IF NOT EXISTS`, which is why
- * upgrading has never cost a user a recipe: there is no path through this
- * function that drops, renames or rewrites an existing row. Keep it that way.
- * A change that genuinely cannot be expressed additively needs a copy-and-swap
- * with a test that proves the old rows arrived, not an ALTER in the dark.
- *
- * 4 — planned_meals (meal planning).
- * 5 — shopping_lists, shopping_items.
- * 6 — recipe_origin (where a recipe came from; see src/sync/pull.ts).
- */
-const SCHEMA_VERSION = 6;
+
 
 let handle: Promise<SQLite.SQLiteDatabase> | null = null;
 
@@ -133,134 +121,38 @@ function open(): Promise<SQLite.SQLiteDatabase> {
 }
 
 async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
-  await db.execAsync(`
-    PRAGMA journal_mode = WAL;
-    CREATE TABLE IF NOT EXISTS recipes (
-      id          TEXT PRIMARY KEY NOT NULL,
-      title       TEXT NOT NULL,
-      category    TEXT,
-      tags        TEXT NOT NULL DEFAULT '[]',
-      search      TEXT NOT NULL DEFAULT '',
-      created_at  INTEGER NOT NULL,
-      updated_at  INTEGER NOT NULL,
-      json        TEXT NOT NULL
-    );
-    CREATE INDEX IF NOT EXISTS recipes_created_at ON recipes (created_at DESC);
-    CREATE TABLE IF NOT EXISTS cook_progress (
-      recipe_id   TEXT PRIMARY KEY NOT NULL,
-      step_index  INTEGER NOT NULL,
-      updated_at  INTEGER NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS meta (
-      key   TEXT PRIMARY KEY NOT NULL,
-      value TEXT NOT NULL
-    );
-    -- Added in schema 2. How the cook chose to VIEW a recipe: the batch scale
-    -- and the measurement system. Stored, not derived, because resuming a
-    -- cooking session at 1x after someone set 2x would hand them the wrong
-    -- quantities for a dish already in the oven.
-    -- Added in schema 3. Timers outlive the app: a deadline is absolute, so
-    -- a row written before a force-quit is still correct when it is read back,
-    -- with no catching up to do.
-    CREATE TABLE IF NOT EXISTS timers (
-      id           TEXT PRIMARY KEY NOT NULL,
-      label        TEXT NOT NULL,
-      duration_ms  INTEGER NOT NULL,
-      ends_at      INTEGER,
-      remaining_ms INTEGER,
-      status       TEXT NOT NULL,
-      recipe_id    TEXT,
-      step_index   INTEGER,
-      created_at   INTEGER NOT NULL
-    );
-    CREATE INDEX IF NOT EXISTS timers_created_at ON timers (created_at);
-    /* Meal planning.
-     *
-     * The shape is the one ADR 0006 can merge, even though sync is not built:
-     * it specifies last-write-wins per day-and-meal slot, so each planned meal
-     * carries its own stable id and its own updated_at rather than inheriting a
-     * document-level timestamp. Deletes are soft (deleted_at), because that ADR
-     * also says a deletion must lose to a concurrent edit -- which is only
-     * decidable if the deletion is a row rather than an absence.
-     *
-     * The date column is TEXT in YYYY-MM-DD form: a calendar day, not an
-     * instant. An epoch would move a meal across a timezone change or a
-     * daylight-saving boundary; see domain/plan.ts. */
-    CREATE TABLE IF NOT EXISTS planned_meals (
-      id          TEXT PRIMARY KEY NOT NULL,
-      date        TEXT NOT NULL,
-      slot        TEXT NOT NULL,
-      recipe_id   TEXT NOT NULL,
-      scale       REAL NOT NULL DEFAULT 1,
-      position    INTEGER NOT NULL DEFAULT 0,
-      created_at  INTEGER NOT NULL,
-      updated_at  INTEGER NOT NULL,
-      deleted_at  INTEGER
-    );
-    CREATE INDEX IF NOT EXISTS planned_meals_date ON planned_meals (date);
-    /* Shopping lists.
-     *
-     * Same sync-ready shape as planned_meals, for the same reason: ADR 0006
-     * merges a shopping list as a UNION OF ITEMS, with checked state resolved
-     * last-write-wins per item and a deletion that loses to a concurrent edit.
-     * All three need per-item identity and per-item timestamps, so items are
-     * rows with their own ids and their own updated_at, and nothing is hard
-     * deleted.
-     *
-     * A list keeps its sources as JSON so the generated portion can be rebuilt
-     * when a recipe is added. Items record whether they are generated or the
-     * cook's own; see ItemOrigin in domain/shoppingList.ts for why editing a
-     * generated line adopts it. */
-    CREATE TABLE IF NOT EXISTS shopping_lists (
-      id          TEXT PRIMARY KEY NOT NULL,
-      title       TEXT NOT NULL,
-      sources     TEXT NOT NULL DEFAULT '[]',
-      created_at  INTEGER NOT NULL,
-      updated_at  INTEGER NOT NULL,
-      deleted_at  INTEGER
-    );
-    CREATE TABLE IF NOT EXISTS shopping_items (
-      id          TEXT PRIMARY KEY NOT NULL,
-      list_id     TEXT NOT NULL,
-      text        TEXT NOT NULL,
-      category    TEXT NOT NULL DEFAULT 'Uncategorized',
-      checked     INTEGER NOT NULL DEFAULT 0,
-      origin      TEXT NOT NULL DEFAULT 'generated',
-      optional    INTEGER NOT NULL DEFAULT 0,
-      warning     TEXT,
-      sources     TEXT NOT NULL DEFAULT '[]',
-      position    INTEGER NOT NULL DEFAULT 0,
-      created_at  INTEGER NOT NULL,
-      updated_at  INTEGER NOT NULL,
-      deleted_at  INTEGER
-    );
-    CREATE INDEX IF NOT EXISTS shopping_items_list ON shopping_items (list_id);
-    CREATE TABLE IF NOT EXISTS recipe_view (
-      recipe_id   TEXT PRIMARY KEY NOT NULL,
-      scale       REAL NOT NULL,
-      measurement TEXT NOT NULL,
-      updated_at  INTEGER NOT NULL
-    );
-    -- Added in schema 6. Where a recipe came from, kept apart from what the
-    -- recipe IS: nothing about sync is written into recipes.json, so losing
-    -- this table costs bookkeeping and never a recipe.
-    CREATE TABLE IF NOT EXISTS recipe_origin (
-      recipe_id         TEXT PRIMARY KEY NOT NULL,
-      origin            TEXT NOT NULL,
-      account_id        TEXT,
-      owner_id          TEXT,
-      shared            INTEGER NOT NULL DEFAULT 0,
-      server_id         TEXT,
-      server_updated_at TEXT,
-      pulled_at         TEXT
-    );
-    CREATE INDEX IF NOT EXISTS recipe_origin_account ON recipe_origin (account_id);
-  `);
+  await db.execAsync(SCHEMA_SQL);
+
+  // Columns on tables that already carry rows. See schema.ts for why these are
+  // separate from the creations, and test/cross-feature.test.ts for the rule
+  // they are held to.
+  for (const { table, column, definition } of ADDED_COLUMNS) {
+    await addColumn(db, table, column, definition);
+  }
+
   await db.runAsync(
     `INSERT INTO meta (key, value) VALUES ('schema_version', ?)
      ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
     [String(SCHEMA_VERSION)],
   );
+}
+
+
+/**
+ * Add a column if it is not already there.
+ *
+ * Asked of the table rather than inferred from the stored schema version,
+ * because the stored version is a claim and PRAGMA table_info is the fact. An
+ * install that was interrupted half way through a migration has a version
+ * number that is wrong in one direction or the other; the column either exists
+ * or it does not.
+ */
+async function addColumn(
+  db: SQLite.SQLiteDatabase, table: string, column: string, definition: string,
+): Promise<void> {
+  const columns = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${table})`);
+  if (columns.some((c) => c.name === column)) return;
+  await db.execAsync(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
 }
 
 /**
@@ -381,12 +273,120 @@ async function upsert(
  */
 export async function saveRecipe(recipe: Recipe): Promise<void> {
   const db = await open();
-  await upsert(db, {
+  const saved: Recipe = {
     ...recipe,
     category: normalizeCategory(recipe.category),
     tags: normalizeRecipeTags(recipe.tags),
     updatedAt: recipe.updatedAt || Date.now(),
+  };
+  await db.withTransactionAsync(async () => {
+    const existing = await db.getFirstAsync<{ id: string }>(
+      `SELECT id FROM recipes WHERE id = ?`, [saved.id],
+    );
+    await upsert(db, saved);
+    // Saving a recipe that was in the Trash brings it back. Editing is a
+    // clearer undelete than any button, and leaving deleted_at set would hide
+    // the recipe the cook has just written.
+    await db.runAsync(`UPDATE recipes SET deleted_at = NULL WHERE id = ?`, [saved.id]);
+    await record(db, { recipeId: saved.id, kind: "write", recipe: saved, created: !existing });
   });
+}
+
+// --- local changes the sync layer has to hear about ------------------------
+
+/**
+ * What a change to a recipe looks like to whoever is queuing it.
+ *
+ * `recipe` is the whole body for a write and null for a delete, which is the
+ * same shape the outbox stores and the server accepts.
+ */
+export type LocalRecipeChange = {
+  recipeId: string;
+  kind: "write" | "delete";
+  recipe: Recipe | null;
+  /**
+   * This save created the recipe rather than changing one that was there.
+   *
+   * It decides adoption. A recipe written while signed in belongs to the
+   * account whose library it was written into — that is what the cook means
+   * by writing it there. A recipe that predates the sign-in does not: it was
+   * on the phone before the account was, and uploading it because somebody
+   * fixed a typo would put a library into an account nobody offered it to.
+   * Those are reconciled deliberately, from the Account screen.
+   */
+  created: boolean;
+};
+
+/**
+ * Called inside the transaction that makes the change.
+ *
+ * Inside, not after. A queue entry written after the commit is a window in
+ * which the app can die having saved a recipe nobody will ever upload, and
+ * the cook has no way of seeing that it happened. One transaction means the
+ * change and the promise to send it are the same event.
+ *
+ * It is a registered callback rather than an import because this module knows
+ * nothing about accounts, sessions or the network, and should not start to:
+ * the sync layer reaches down, not the other way around. Nothing is registered
+ * when signed out, and the recorder then does nothing at all.
+ */
+export type ChangeRecorder = (
+  db: SQLite.SQLiteDatabase, change: LocalRecipeChange,
+) => Promise<void>;
+
+let recorder: ChangeRecorder | null = null;
+
+/** Install the recorder, or clear it with null on sign-out. */
+export function recordLocalChanges(next: ChangeRecorder | null): void {
+  recorder = next;
+}
+
+async function record(db: SQLite.SQLiteDatabase, change: LocalRecipeChange): Promise<void> {
+  if (recorder) await recorder(db, change);
+}
+
+/**
+ * Move a recipe to the Trash.
+ *
+ * Soft, always. The row stays, the body stays, and `deleted_at` is what makes
+ * it leave the library — so "undo" is a column going back to NULL rather than
+ * a restore from somewhere, and a deletion that has not reached the server yet
+ * is still a recipe this phone can give back.
+ */
+export async function deleteRecipe(id: string, now = Date.now()): Promise<void> {
+  const db = await open();
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(`UPDATE recipes SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL`, [now, id]);
+    await db.runAsync(`DELETE FROM cook_progress WHERE recipe_id = ?`, [id]);
+    await record(db, { recipeId: id, kind: "delete", recipe: null, created: false });
+  });
+}
+
+/** Take a recipe back out of the Trash. */
+export async function restoreRecipe(id: string): Promise<Recipe | null> {
+  const db = await open();
+  let restored: Recipe | null = null;
+  await db.withTransactionAsync(async () => {
+    const row = await db.getFirstAsync<{ json: string }>(
+      `SELECT json FROM recipes WHERE id = ? AND deleted_at IS NOT NULL`, [id],
+    );
+    if (!row) return;
+    restored = JSON.parse(row.json) as Recipe;
+    await db.runAsync(`UPDATE recipes SET deleted_at = NULL WHERE id = ?`, [id]);
+    await record(db, { recipeId: id, kind: "write", recipe: restored, created: false });
+  });
+  return restored;
+}
+
+export type TrashedRecipe = { recipe: Recipe; deletedAt: number };
+
+/** The Trash, most recently deleted first. */
+export async function listTrash(): Promise<TrashedRecipe[]> {
+  const db = await open();
+  const rows = await db.getAllAsync<{ json: string; deleted_at: number }>(
+    `SELECT json, deleted_at FROM recipes WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC`,
+  );
+  return rows.map((r) => ({ recipe: JSON.parse(r.json) as Recipe, deletedAt: r.deleted_at }));
 }
 
 // --- reads -----------------------------------------------------------------
@@ -410,13 +410,18 @@ export async function listRecipes(filters: LibraryFilters = {}): Promise<Recipe[
   const where: string[] = [];
   const args: (string | number)[] = [];
 
+  // A recipe in the Trash is not in the library. Every read filters it out
+  // here rather than each screen remembering to: a deleted recipe surfacing
+  // in search, on Home, or in a shopping list is the same bug four times.
+  where.push("deleted_at IS NULL");
+
   for (const term of (filters.query ?? "").trim().toLowerCase().split(/\s+/).filter(Boolean)) {
     where.push("search LIKE ?");
     args.push(`%${term}%`);
   }
 
   const rows = await db.getAllAsync<{ json: string }>(
-    `SELECT json FROM recipes ${where.length ? "WHERE " + where.join(" AND ") : ""}
+    `SELECT json FROM recipes WHERE ${where.join(" AND ")}
      ORDER BY created_at DESC`,
     args,
   );
@@ -432,13 +437,17 @@ export async function listRecipes(filters: LibraryFilters = {}): Promise<Recipe[
 
 export async function getRecipe(id: string): Promise<Recipe | null> {
   const db = await open();
-  const row = await db.getFirstAsync<{ json: string }>(`SELECT json FROM recipes WHERE id = ?`, [id]);
+  const row = await db.getFirstAsync<{ json: string }>(
+    `SELECT json FROM recipes WHERE id = ? AND deleted_at IS NULL`, [id],
+  );
   return row ? (JSON.parse(row.json) as Recipe) : null;
 }
 
 export async function countRecipes(): Promise<number> {
   const db = await open();
-  const row = await db.getFirstAsync<{ n: number }>(`SELECT COUNT(*) AS n FROM recipes`);
+  const row = await db.getFirstAsync<{ n: number }>(
+    `SELECT COUNT(*) AS n FROM recipes WHERE deleted_at IS NULL`,
+  );
   return row?.n ?? 0;
 }
 
@@ -472,7 +481,10 @@ export async function clearProgress(recipeId: string): Promise<void> {
 export async function activeSessions(limit = 3): Promise<CookProgress[]> {
   const db = await open();
   const rows = await db.getAllAsync<{ recipe_id: string; step_index: number; updated_at: number }>(
-    `SELECT recipe_id, step_index, updated_at FROM cook_progress ORDER BY updated_at DESC LIMIT ?`,
+    `SELECT p.recipe_id, p.step_index, p.updated_at
+       FROM cook_progress p
+       JOIN recipes r ON r.id = p.recipe_id AND r.deleted_at IS NULL
+      ORDER BY p.updated_at DESC LIMIT ?`,
     [limit],
   );
   return rows.map((r) => ({ recipeId: r.recipe_id, stepIndex: r.step_index, updatedAt: r.updated_at }));
