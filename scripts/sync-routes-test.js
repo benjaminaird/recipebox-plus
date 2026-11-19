@@ -400,6 +400,63 @@ async function run(pool) {
     'and keeps created_at, so a bulk save no longer scrambles "Recently added"');
   step('a whole-library save reconciles rather than recreating');
 
+  // ── The rows a reconcile keyed by recipe id would have missed ───────────
+  //
+  // Two kinds of row never entered that map, and both are rows the cook asked
+  // to be rid of: one whose JSON carries no id, and the earlier of two sharing
+  // an id. Either would have survived every future delete and stayed in the
+  // library for good.
+
+  await pool.query(
+    `INSERT INTO recipes (user_id, title, recipe_json, revision)
+     VALUES ($1, 'No id inside', $2::jsonb, 9000)`,
+    [aliceId, JSON.stringify({ title: 'No id inside', sections: [] })]
+  );
+  await pool.query(
+    `INSERT INTO recipes (user_id, title, recipe_json, revision)
+     VALUES ($1, 'Duplicate A', $2::jsonb, 9001), ($1, 'Duplicate B', $2::jsonb, 9002)`,
+    [aliceId, JSON.stringify({ id: 'dupe', title: 'Duplicate', sections: [] })]
+  );
+  const beforeReconcile = await pool.query(
+    `SELECT count(*)::int AS n FROM recipes WHERE user_id=$1 AND deleted_at IS NULL`, [aliceId]);
+
+  // Save a library that mentions none of them: the browser's way of deleting.
+  const keepOnly = await call('GET', '/api/recipes', { cookie });
+  const withoutOddities = (keepOnly.json.recipes || keepOnly.json || [])
+    .filter((r) => r && r.id && r.id !== 'dupe');
+  await call('PUT', '/api/recipes', { cookie, body: { recipes: withoutOddities } });
+
+  const idless = await pool.query(
+    `SELECT deleted_at FROM recipes WHERE user_id=$1 AND recipe_json->>'id' IS NULL`, [aliceId]);
+  assert.ok(idless.rows.length && idless.rows.every((r) => r.deleted_at),
+    'a row with no id inside it is still deleted when the payload omits it');
+  const dupes = await pool.query(
+    `SELECT deleted_at FROM recipes WHERE user_id=$1 AND recipe_json->>'id' = 'dupe'`, [aliceId]);
+  assert.strictEqual(dupes.rows.length, 2, 'both duplicate rows are still there as tombstones');
+  assert.ok(dupes.rows.every((r) => r.deleted_at), 'and both are deleted, not just the last one seen');
+  const afterReconcile = await pool.query(
+    `SELECT count(*)::int AS n FROM recipes WHERE user_id=$1 AND deleted_at IS NULL`, [aliceId]);
+  assert.strictEqual(afterReconcile.rows[0].n, beforeReconcile.rows[0].n - 3,
+    'exactly the three unaccounted rows went, and nothing else');
+  step('a whole-library save deletes rows with no id and duplicate rows too');
+
+  // And a payload naming one recipe twice updates one row rather than growing one.
+  const twiceBody = [
+    { id: 'twice', title: 'First', sections: [{ name: '', ingredients: [], steps: [] }] },
+    { id: 'twice', title: 'Second', sections: [{ name: '', ingredients: [], steps: [] }] },
+  ];
+  const libNow = await call('GET', '/api/recipes', { cookie });
+  await call('PUT', '/api/recipes', {
+    cookie,
+    body: { recipes: [...(libNow.json.recipes || libNow.json || []), ...twiceBody] },
+  });
+  const twiceRows = await pool.query(
+    `SELECT recipe_json->>'title' AS t FROM recipes WHERE user_id=$1 AND recipe_json->>'id'='twice' AND deleted_at IS NULL`,
+    [aliceId]);
+  assert.strictEqual(twiceRows.rows.length, 1, 'one row, not two');
+  assert.strictEqual(twiceRows.rows[0].t, 'Second', 'and the later entry wins');
+  step('a payload naming one recipe twice writes one row');
+
   const badSince = await call('GET', '/api/v1/sync/recipes?since=yesterday', { token: alice });
   assert.strictEqual(badSince.status, 400, 'a revision is a number, not a date');
   const anon = await call('GET', '/api/v1/sync/recipes?since=0');

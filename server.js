@@ -1793,18 +1793,35 @@ async function replaceUserRecipes(userId, recipes) {
       `SELECT id, recipe_json->>'id' AS recipe_id, deleted_at FROM recipes WHERE user_id=$1 FOR UPDATE`,
       [userId]
     );
-    const byRecipeId = new Map();
+    // Reconciled over rows, not over a map keyed by recipe id. Keying by id
+    // loses two kinds of row, and both of them are rows the cook asked to be
+    // rid of: one with no id inside its JSON at all, and the earlier of two
+    // rows that share an id. Either would survive every future "delete" and
+    // stay in the library for ever.
+    const unmatchedById = new Map();
     for (const row of existing.rows) {
-      if (row.recipe_id) byRecipeId.set(row.recipe_id, row);
+      if (!row.recipe_id) continue;
+      if (!unmatchedById.has(row.recipe_id)) unmatchedById.set(row.recipe_id, []);
+      unmatchedById.get(row.recipe_id).push(row);
     }
+    const matchedRowIds = new Set();
+    // A payload that names the same recipe twice updates one row twice rather
+    // than growing a duplicate.
+    const writtenThisPass = new Map();
 
-    const seen = new Set();
     for (const recipe of recipes) {
       const r = normalizeRecipeForDb(recipe);
       const recipeId = r.json && r.json.id ? String(r.json.id) : null;
       const revision = await recipeSync.nextRevision(client, userId);
-      const prior = recipeId ? byRecipeId.get(recipeId) : null;
-      if (recipeId) seen.add(recipeId);
+
+      let prior = null;
+      if (recipeId && writtenThisPass.has(recipeId)) {
+        prior = { id: writtenThisPass.get(recipeId) };
+      } else if (recipeId) {
+        const candidates = unmatchedById.get(recipeId) || [];
+        prior = candidates.shift() || null;
+      }
+      if (prior) matchedRowIds.add(prior.id);
 
       if (prior) {
         await client.query(
@@ -1816,6 +1833,7 @@ async function replaceUserRecipes(userId, recipes) {
         await recipeSync.recordWebVersion(client, {
           rowId: prior.id, userId, recipe: r.json, revision, cause: 'edited',
         });
+        if (recipeId) writtenThisPass.set(recipeId, prior.id);
       } else {
         const inserted = await client.query(
           `INSERT INTO recipes(user_id, title, category, hero_image_url, recipe_json, favorite, rating, revision)
@@ -1825,21 +1843,28 @@ async function replaceUserRecipes(userId, recipes) {
         await recipeSync.recordWebVersion(client, {
           rowId: inserted.rows[0].id, userId, recipe: r.json, revision, cause: 'imported',
         });
+        matchedRowIds.add(inserted.rows[0].id);
+        if (recipeId) writtenThisPass.set(recipeId, inserted.rows[0].id);
       }
     }
 
-    for (const [recipeId, row] of byRecipeId) {
-      if (seen.has(recipeId) || row.deleted_at) continue;
+    // Every row the payload did not account for, by row identity. That
+    // includes rows whose JSON carries no id and duplicates beyond the one
+    // matched — the cases a map keyed by recipe id silently skipped.
+    for (const row of existing.rows) {
+      if (matchedRowIds.has(row.id) || row.deleted_at) continue;
       const revision = await recipeSync.nextRevision(client, userId);
+      const body = await client.query('SELECT recipe_json FROM recipes WHERE id=$1', [row.id]);
       await client.query(
         `UPDATE recipes SET deleted_at=now(), deleted_by=$3, revision=$4, updated_at=now()
           WHERE id=$1 AND user_id=$2`,
         [row.id, userId, 'web', revision]
       );
-      const body = await client.query('SELECT recipe_json FROM recipes WHERE id=$1', [row.id]);
-      await recipeSync.recordWebVersion(client, {
-        rowId: row.id, userId, recipe: body.rows[0].recipe_json, revision, cause: 'deleted',
-      });
+      if (body.rows[0]) {
+        await recipeSync.recordWebVersion(client, {
+          rowId: row.id, userId, recipe: body.rows[0].recipe_json, revision, cause: 'deleted',
+        });
+      }
     }
     await client.query('COMMIT');
     return true;
