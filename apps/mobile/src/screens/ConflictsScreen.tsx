@@ -62,7 +62,9 @@ export function ConflictsScreen() {
                 key={conflict.id}
                 first={index === 0}
                 label={conflict.mine?.title ?? conflict.theirs?.title ?? "A recipe"}
-                detail={`${summarise(conflict.mine, conflict.theirs)} Noticed ${when(conflict.detectedAt)}.`}
+                detail={`${conflict.kind === "delete"
+                  ? "You deleted it; your account has changed it since."
+                  : summarise(conflict.mine, conflict.theirs)} Noticed ${when(conflict.detectedAt)}.`}
                 action="Compare"
                 onPress={() => navigation.navigate("ConflictDetail", { conflictId: conflict.id })}
               />

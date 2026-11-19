@@ -194,6 +194,16 @@ export function isRetryable(status: number | null): boolean {
  */
 export type ConflictRecord = {
   recipeId: string;
+  /**
+   * What this device was trying to do.
+   *
+   * A refused DELETE has no version of its own — there is no body in a
+   * deletion — so a record without this field reads as "my version is
+   * missing" and every choice becomes a no-op. The cook deleted a recipe and
+   * was told it was settled while the recipe stayed. The kind is what makes
+   * "delete it anyway" expressible.
+   */
+  kind: "write" | "delete";
   mine: Recipe | null;
   theirs: Recipe | null;
   serverRevision: number | null;
@@ -207,7 +217,10 @@ export type ConflictChoice = "keep-mine" | "keep-theirs" | "keep-both";
 export type ConflictResolution = {
   conflict: ConflictRecord;
   /** A change to queue, if the choice implies one. */
-  enqueue: { recipeId: string; kind: "write"; recipe: Recipe; baseRevision: number | null } | null;
+  enqueue: {
+    recipeId: string; kind: "write" | "delete";
+    recipe: Recipe | null; baseRevision: number | null;
+  } | null;
   /** A recipe to create on this device, for "keep both". */
   create: Recipe | null;
 };
@@ -244,9 +257,27 @@ export function resolve(
   newId?: string,
 ): ConflictResolution {
   const resolved = { ...conflict, resolvedAt: now };
-  if (!conflict.mine) return { conflict: resolved, enqueue: null, create: null };
 
   if (choice === "keep-theirs") return { conflict: resolved, enqueue: null, create: null };
+
+  // A refused deletion. "Keep mine" means delete it after all, now citing the
+  // revision the account actually holds — the cook's answer to "somebody
+  // changed this since you deleted it", not a forced removal.
+  if (conflict.kind === "delete") {
+    if (choice === "keep-both") {
+      throw new Error("there is no second version of a deleted recipe to keep");
+    }
+    return {
+      conflict: resolved,
+      enqueue: {
+        recipeId: conflict.recipeId, kind: "delete",
+        recipe: null, baseRevision: conflict.serverRevision,
+      },
+      create: null,
+    };
+  }
+
+  if (!conflict.mine) return { conflict: resolved, enqueue: null, create: null };
 
   if (choice === "keep-both") {
     if (!newId) throw new Error("keeping both versions needs an id for the copy");

@@ -150,7 +150,7 @@ test("a conflict leaves the queue, so it is not retried against a revision that 
 
 test("keeping my version re-sends it against the revision that beat it", () => {
   const conflict: ConflictRecord = {
-    recipeId: "r1", mine: recipe("r1", "Mine"), theirs: recipe("r1", "Theirs"),
+    recipeId: "r1", kind: "write", mine: recipe("r1", "Mine"), theirs: recipe("r1", "Theirs"),
     serverRevision: 7, reason: "server-moved", detectedAt: 1, resolvedAt: null,
   };
   const kept = resolve(conflict, "keep-mine", 2);
@@ -165,7 +165,7 @@ test("keeping my version re-sends it against the revision that beat it", () => {
 
 test("keeping both makes a recipe of its own, and asks for an id to do it", () => {
   const conflict: ConflictRecord = {
-    recipeId: "r1", mine: recipe("r1", "Mine"), theirs: recipe("r1", "Theirs"),
+    recipeId: "r1", kind: "write", mine: recipe("r1", "Mine"), theirs: recipe("r1", "Theirs"),
     serverRevision: 7, reason: "server-moved", detectedAt: 1, resolvedAt: null,
   };
 
@@ -188,7 +188,7 @@ test("a conflict with nothing of mine in it resolves to nothing, whatever is cho
   // harmless, and in particular "keep both" must not try to make a copy of
   // something that is not there.
   const empty: ConflictRecord = {
-    recipeId: "r1", mine: null, theirs: recipe("r1", "Theirs"),
+    recipeId: "r1", kind: "write", mine: null, theirs: recipe("r1", "Theirs"),
     serverRevision: 3, reason: "x", detectedAt: 1, resolvedAt: null,
   };
   for (const choice of ["keep-mine", "keep-theirs", "keep-both"] as const) {
@@ -201,7 +201,7 @@ test("a conflict with nothing of mine in it resolves to nothing, whatever is cho
 
 test("unresolved conflicts are the ones a person still has to answer", () => {
   const base: ConflictRecord = {
-    recipeId: "r1", mine: null, theirs: null, serverRevision: 1,
+    recipeId: "r1", kind: "write", mine: null, theirs: null, serverRevision: 1,
     reason: "x", detectedAt: 1, resolvedAt: null,
   };
   const list = [base, { ...base, recipeId: "r2", resolvedAt: 5 }];
@@ -620,4 +620,54 @@ test("holding the watermark back ends the pull rather than asking for ever", asy
     },
   }));
   assert.equal(calls, 1, "one page, then stop");
+});
+
+test("a refused deletion is a question a cook can actually answer", () => {
+  // Found by deleting a recipe on a simulator. A deletion carries no recipe
+  // body, so the conflict record's `mine` is null -- and resolve() used to
+  // return early on that, making every choice a no-op. The cook was told the
+  // conflict was settled and the recipe stayed exactly where it was.
+  const deletion: ConflictRecord = {
+    recipeId: "r1", kind: "delete", mine: null, theirs: recipe("r1", "Changed since"),
+    serverRevision: 9, reason: "revision_mismatch", detectedAt: 1, resolvedAt: null,
+  };
+
+  // "Delete it anyway" re-issues the deletion against the revision the
+  // account actually holds -- an answer to "somebody changed this since you
+  // deleted it", not a forced removal.
+  const anyway = resolve(deletion, "keep-mine", 2);
+  assert.equal(anyway.enqueue?.kind, "delete");
+  assert.equal(anyway.enqueue?.baseRevision, 9);
+  assert.equal(anyway.enqueue?.recipe, null, "there is no body in a deletion");
+  assert.equal(anyway.conflict.resolvedAt, 2);
+
+  // "Keep it after all" sends nothing; the caller takes it out of the Trash.
+  const kept = resolve(deletion, "keep-theirs", 2);
+  assert.equal(kept.enqueue, null);
+  assert.equal(kept.create, null);
+
+  // And there is no second version of a deleted recipe to keep.
+  assert.throws(() => resolve(deletion, "keep-both", 2, "r1-copy"), /no second version/);
+});
+
+test("the conflict record says what this device was trying to do", async () => {
+  // Without the kind, a refused deletion is indistinguishable from a write
+  // whose body happens to be missing, and the screen asks the wrong question.
+  const store = memoryStore("alice");
+  store._setOutbox([entry({ recipeId: "r1", kind: "delete", recipe: null, baseRevision: 2 })]);
+
+  await runSync(store, transport({
+    push: async () => ({
+      applied: [], rejected: [], skipped: [], revision: 9,
+      conflicts: [{
+        recipeId: "r1", status: "conflict", serverRevision: 9,
+        server: recipe("r1", "Changed since"),
+      } as PushOutcome],
+    }),
+  }), { uploads: true });
+
+  assert.equal(store._conflicts.length, 1);
+  assert.equal(store._conflicts[0].kind, "delete");
+  assert.equal(store._conflicts[0].mine, null);
+  assert.equal(store._conflicts[0].theirs?.title, "Changed since");
 });

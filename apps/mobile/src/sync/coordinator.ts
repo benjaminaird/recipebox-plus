@@ -307,6 +307,7 @@ export async function runSync(
         const entry = ready.find((e) => e.recipeId === conflict.recipeId);
         await store.recordConflict({
           recipeId: conflict.recipeId,
+          kind: entry?.kind ?? "write",
           mine: entry ? entry.recipe : null,
           theirs: conflict.server ?? null,
           serverRevision: conflict.serverRevision ?? null,
@@ -353,17 +354,30 @@ function messageOf(err: unknown): string {
 }
 
 /** What the Account screen says about a finished run. */
-export function describeSync(report: SyncReport): { title: string; tone: "info" | "attention" | "danger" } {
+export function describeSync(
+  report: SyncReport,
+): { title: string; detail?: string; tone: "info" | "attention" | "danger" } {
   if (report.stoppedBy === "network") {
     return {
       tone: "attention",
+      // The reason, underneath. The headline stays calm because the cook has
+      // lost nothing; the detail is there because "no connection" covers a
+      // timeout, a wrong address and a server that answered with something
+      // unreadable, and those are not the same problem to anybody trying to
+      // fix one. Without it a developer — or a cook on a support call — has
+      // nothing to go on at all.
+      detail: report.error ?? undefined,
       title: report.pulled || report.pushed
         ? `Stopped — no connection. ${report.pulled + report.pushed} saved so far; it will carry on from here.`
         : "No connection. Nothing was synced, and nothing was lost.",
     };
   }
   if (report.stoppedBy === "server") {
-    return { tone: "danger", title: "RecipeBox could not finish. Nothing already synced was affected." };
+    return {
+      tone: "danger",
+      detail: report.error ?? undefined,
+      title: "RecipeBox could not finish. Nothing already synced was affected.",
+    };
   }
   if (report.conflicts > 0) {
     return {

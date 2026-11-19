@@ -363,6 +363,7 @@ async function conflicted(): Promise<{ raw: DatabaseSync; db: SqliteLike }> {
   const store = sqliteSyncStore(db, ALICE, LIBRARY, here);
   await store.recordConflict({
     recipeId: "r1",
+    kind: "write",
     mine: recipe("r1", "Mine"),
     theirs: recipe("r1", "Theirs"),
     serverRevision: 9,
@@ -696,4 +697,58 @@ test("a deletion from the server only ever reaches a recipe that came from it", 
   // creating a tombstone for somebody else's row.
   await store.applyRemoteDeletion("unknown", 9);
   assert.equal(await store.getLocal("unknown"), null);
+});
+
+test("a column added after a table shipped reaches a database that already has it", async () => {
+  // The failure this prevents: a column added to a `CREATE TABLE IF NOT
+  // EXISTS` does nothing on a device that already ran the app once. The table
+  // is there, the creation is skipped, and the column never appears. Every
+  // write then fails, and the app reports it as whatever the error looks like
+  // from a distance — in this case "no connection".
+  //
+  // So the test builds the table as it was BEFORE, runs the migration, and
+  // checks the columns are there. Only ADDED_COLUMNS can make that true.
+  const raw = new DatabaseSync(":memory:");
+  raw.exec(`
+    CREATE TABLE recipes (
+      id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, category TEXT,
+      tags TEXT NOT NULL DEFAULT '[]', search TEXT NOT NULL DEFAULT '',
+      created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, json TEXT NOT NULL
+    );
+    CREATE TABLE recipe_origin (
+      recipe_id TEXT PRIMARY KEY NOT NULL, origin TEXT NOT NULL, account_id TEXT,
+      owner_id TEXT, shared INTEGER NOT NULL DEFAULT 0, server_id TEXT,
+      server_updated_at TEXT, pulled_at TEXT
+    );
+    CREATE TABLE sync_conflicts (
+      id TEXT PRIMARY KEY NOT NULL, recipe_id TEXT NOT NULL, account_id TEXT NOT NULL,
+      mine_json TEXT, theirs_json TEXT, server_revision INTEGER, reason TEXT NOT NULL,
+      detected_at INTEGER NOT NULL, resolved_at INTEGER, resolution TEXT
+    );
+  `);
+
+  migrate(raw);
+
+  const columnsOf = (table: string) =>
+    (raw.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>).map((c) => c.name);
+
+  assert.ok(columnsOf("recipes").includes("deleted_at"));
+  assert.ok(columnsOf("recipe_origin").includes("server_revision"));
+  assert.ok(columnsOf("recipe_origin").includes("adopted"));
+  assert.ok(columnsOf("sync_conflicts").includes("kind"), "the column the app reads must be there");
+
+  // And the store can actually write through it, which is the thing that
+  // broke: a column check that passes while a write still fails proves little.
+  const db = adapt(raw);
+  await sqliteSyncStore(db, ALICE, LIBRARY, here).recordConflict({
+    recipeId: "r1", kind: "delete", mine: null, theirs: recipe("r1", "Theirs"),
+    serverRevision: 3, reason: "revision_mismatch", detectedAt: 1, resolvedAt: null,
+  });
+  const [open] = await listOpenConflicts(db, ALICE);
+  assert.equal(open.kind, "delete");
+
+  // Running it again changes nothing, because a half-finished upgrade must be
+  // safe to re-run.
+  migrate(raw);
+  assert.equal((await listOpenConflicts(db, ALICE)).length, 1);
 });

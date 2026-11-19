@@ -86,13 +86,22 @@ export function ConflictDetailScreen() {
 
   const choose = useCallback((choice: ConflictChoice) => {
     if (!conflict || busy) return;
+    const deleting = conflict.kind === "delete";
     const prompts: Record<ConflictChoice, { title: string; body: string; verb: string }> = {
-      "keep-theirs": {
+      "keep-theirs": deleting ? {
+        title: "Keep this recipe?",
+        body: "It comes back out of the Trash on this phone, with the changes made in your account.",
+        verb: "Keep it",
+      } : {
         title: "Keep the account's version?",
         body: "Your version stops being the current one. It stays in this record, and the account keeps its own history of the recipe, so nothing is thrown away.",
         verb: "Keep the account's",
       },
-      "keep-mine": {
+      "keep-mine": deleting ? {
+        title: "Delete it anyway?",
+        body: "It moves to the Trash on every device, including the changes somebody made since. Your account keeps its history of the recipe, so it can still be put back.",
+        verb: "Delete it",
+      } : {
         title: "Keep your version?",
         body: "Your version is sent to the account and becomes the current one everywhere. The account's version stays in its history.",
         verb: "Keep mine",
@@ -146,6 +155,43 @@ export function ConflictDetailScreen() {
 
   const list = differences(conflict.mine, conflict.theirs);
   const name = conflict.mine?.title ?? conflict.theirs?.title ?? "This recipe";
+
+  // A refused deletion is a different question, and asking the usual one
+  // would be nonsense: there is no second version of a deleted recipe. What
+  // happened is that somebody changed the recipe after this phone deleted it,
+  // so the choice is whether that changes the cook's mind.
+  if (conflict.kind === "delete") {
+    return (
+      <AuthScreen
+        title={name}
+        lead="You deleted this recipe on this phone. Someone changed it in your account before the two had spoken, so it has not been deleted there."
+      >
+        <Notice
+          message={{
+            title: "It is still in your account",
+            detail: conflict.serverRevision === null
+              ? "What your account holds is below."
+              : `What your account holds, as of change ${conflict.serverRevision}, is below.`,
+            tone: "attention",
+          }}
+        />
+
+        <Version
+          title="What your account holds"
+          recipe={conflict.theirs}
+          caption="Changed after you deleted it here."
+        />
+
+        <View style={{ gap: t.space.sm }}>
+          <PrimaryButton label="Keep it after all" onPress={() => choose("keep-theirs")} disabled={busy} />
+          <QuietButton label="Delete it anyway" tone="danger" onPress={() => choose("keep-mine")} disabled={busy} />
+          <Text style={[textStyle("footnote"), { color: t.colors.textTertiary }]}>
+            Deleting it moves it to the Trash on every device. Your account keeps its history of the recipe either way.
+          </Text>
+        </View>
+      </AuthScreen>
+    );
+  }
 
   return (
     <AuthScreen

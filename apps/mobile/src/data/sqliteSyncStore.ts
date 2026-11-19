@@ -329,7 +329,8 @@ export async function unadoptedRecipes(db: SqliteLike, accountId: string): Promi
 export type StoredConflict = ConflictRecord & { id: string; resolution: string | null };
 
 type ConflictRow = {
-  id: string; recipe_id: string; mine_json: string | null; theirs_json: string | null;
+  id: string; recipe_id: string; kind: string | null;
+  mine_json: string | null; theirs_json: string | null;
   server_revision: number | null; reason: string; detected_at: number;
   resolved_at: number | null; resolution: string | null;
 };
@@ -338,6 +339,7 @@ function toConflict(row: ConflictRow): StoredConflict {
   return {
     id: row.id,
     recipeId: row.recipe_id,
+    kind: row.kind === "delete" ? "delete" : "write",
     mine: row.mine_json ? (JSON.parse(row.mine_json) as Recipe) : null,
     theirs: row.theirs_json ? (JSON.parse(row.theirs_json) as Recipe) : null,
     serverRevision: row.server_revision,
@@ -597,12 +599,12 @@ export function sqliteSyncStore(
       assertOwnLibrary();
       await db.runAsync(
         `INSERT INTO sync_conflicts
-           (id, recipe_id, account_id, mine_json, theirs_json, server_revision, reason,
+           (id, recipe_id, account_id, kind, mine_json, theirs_json, server_revision, reason,
             detected_at, resolved_at, resolution)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)`,
         [
           conflict.recipeId + ":" + conflict.detectedAt,
-          conflict.recipeId, accountId,
+          conflict.recipeId, accountId, conflict.kind,
           conflict.mine ? JSON.stringify(conflict.mine) : null,
           conflict.theirs ? JSON.stringify(conflict.theirs) : null,
           conflict.serverRevision, conflict.reason, conflict.detectedAt,
@@ -664,7 +666,7 @@ export async function applyResolution(
       const queued = resolution.enqueue;
       await writeEntry(db, accountId, {
         recipeId: queued.recipeId,
-        kind: "write",
+        kind: queued.kind,
         baseRevision: queued.baseRevision,
         idempotencyKey: newKey(),
         recipe: queued.recipe,
@@ -680,4 +682,16 @@ export async function applyResolution(
 function resolutionName(resolution: ConflictResolution): string {
   if (resolution.create) return "keep-both";
   return resolution.enqueue ? "keep-mine" : "keep-theirs";
+}
+
+/**
+ * Taking a recipe out of the Trash after choosing the account's version.
+ *
+ * Keeping the account's copy of a recipe this device deleted means the
+ * deletion does not happen — so the row must come back out of the Trash, or
+ * the cook is told the account's version won, and the recipe is still gone
+ * from their library.
+ */
+export async function undeleteLocally(db: SqliteLike, recipeId: string): Promise<void> {
+  await db.runAsync(`UPDATE recipes SET deleted_at = NULL WHERE id = ?`, [recipeId]);
 }

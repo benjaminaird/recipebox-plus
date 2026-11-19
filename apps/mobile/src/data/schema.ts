@@ -223,4 +223,11 @@ export const ADDED_COLUMNS: ReadonlyArray<{ table: string; column: string; defin
   // Whether the cook has put this recipe into their account. Signing in is
   // not a request to upload everything on the phone.
   { table: "recipe_origin", column: "adopted", definition: "INTEGER NOT NULL DEFAULT 0" },
+  // What a refused change was trying to do. Added here rather than to the
+  // CREATE above, which is the whole reason this list exists: sync_conflicts
+  // had already been created on every device that had run the app once, so
+  // `CREATE TABLE IF NOT EXISTS` skipped it and the column never appeared.
+  // Every write to the table then failed with "no column named kind", and
+  // the app reported it, accurately but unhelpfully, as "no connection".
+  { table: "sync_conflicts", column: "kind", definition: "TEXT NOT NULL DEFAULT 'write'" },
 ];
