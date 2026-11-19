@@ -34,6 +34,7 @@
     "device-auth-db-test": "node scripts/device-auth-db-test.js",
     "recipe-sync-test": "node scripts/recipe-sync-test.js",
     "sync-routes-test": "node scripts/sync-routes-test.js",
+    "native-bidirectional-test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/native-bidirectional-test.mjs",
     "native-sync-test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/native-sync-test.mjs",
     "native-auth-e2e-test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/native-auth-e2e-test.mjs",
     "security-headers-test": "node scripts/security-headers-test.js",

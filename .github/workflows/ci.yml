@@ -80,6 +80,8 @@ jobs:
         run: npm run recipe-sync-test
       - name: Sync routes (skips without a database)
         run: npm run sync-routes-test
+      - name: Full bidirectional sync (skips without a database)
+        run: npm run native-bidirectional-test
       - name: No tracked files changed
         run: git diff --exit-code
 

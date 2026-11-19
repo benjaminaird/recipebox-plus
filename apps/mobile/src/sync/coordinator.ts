@@ -222,13 +222,22 @@ export async function runSync(
     const ready: OutboxEntry[] = [];
     for (const entry of dueNow(queue, now())) {
       const local = await store.getLocal(entry.recipeId);
-      // Re-checked at the moment of sending, not only when queued. Origin can
-      // change between the two — a pull can turn a local recipe into a cloud
-      // one — and the rule that matters is the one true now.
-      const permission = mayUpload({
-        origin: local ? local.origin : "local",
-        adopted: local ? local.adopted : false,
-      });
+
+      // A delete the server already knows about is always sendable. It cannot
+      // leak content — there is no content in it — and gating it the way a
+      // write is gated would silently drop the deletion whenever the local row
+      // had already gone, which is exactly when a delete most needs sending.
+      const isKnownDelete = entry.kind === "delete" && entry.baseRevision !== null;
+
+      // Writes are re-checked at the moment of sending, not only when queued.
+      // Origin can change between the two — a pull can turn a local recipe
+      // into a cloud one — and the rule that matters is the one true now.
+      const permission = isKnownDelete
+        ? { allowed: true, reason: "cloud" as const }
+        : mayUpload({
+          origin: local ? local.origin : "local",
+          adopted: local ? local.adopted : false,
+        });
       if (!permission.allowed) {
         // Not an error and not a retry: this change is not ours to send. It
         // leaves the queue so it stops being attempted every run.

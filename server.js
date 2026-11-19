@@ -1802,7 +1802,11 @@ async function replaceUserRecipes(userId, recipes) {
     for (const row of existing.rows) {
       if (!row.recipe_id) continue;
       if (!unmatchedById.has(row.recipe_id)) unmatchedById.set(row.recipe_id, []);
-      unmatchedById.get(row.recipe_id).push(row);
+      // Live rows first. With a live row and a tombstone sharing an id,
+      // matching the tombstone would resurrect the deleted one and then
+      // tombstone the live one — the save would swap which copy exists.
+      if (row.deleted_at) unmatchedById.get(row.recipe_id).push(row);
+      else unmatchedById.get(row.recipe_id).unshift(row);
     }
     const matchedRowIds = new Set();
     // A payload that names the same recipe twice updates one row twice rather
