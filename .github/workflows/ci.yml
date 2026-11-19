@@ -74,6 +74,12 @@ jobs:
         run: npm run native-auth-e2e-test
       - name: Pull-only sync (skips without a database)
         run: npm run native-sync-test
+      # The write path. Both skip without a database, so CI stays credential-free;
+      # they are run against a throwaway container locally before anything merges.
+      - name: Versioned write API (skips without a database)
+        run: npm run recipe-sync-test
+      - name: Sync routes (skips without a database)
+        run: npm run sync-routes-test
       - name: No tracked files changed
         run: git diff --exit-code
 

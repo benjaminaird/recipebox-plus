@@ -671,3 +671,98 @@ present, so a run today is not comparable with the recorded one and its
 artifacts were deliberately not committed. The one deterministic failure in
 today's run, nr-092, parses all seven of its quantified lines through the
 unchanged spaced path, so the import change cannot have caused it.
+
+---
+
+# Milestone A1 — the versioned write API
+
+Prepared, tested, and switched off. The server can now accept a recipe from a
+phone; nothing sends one yet, and a deployment has to ask before it will be
+listened to.
+
+## What exists
+
+`lib/recipe-sync.js` holds the write side. A client cites the revision it
+believed it was editing; the server either applies the change and assigns the
+next revision, or refuses and hands back what it holds. There is no third
+outcome, and in particular there is no merge — an ingredient list assembled
+from two versions is a recipe nobody wrote.
+
+Revisions are a per-account counter, assigned under the advisory lock
+`upsertUserRecipe` already took, so the web and the phone serialise against
+each other rather than each against itself. Recipes written before any of this
+have a null revision and are stamped on that account's first sync, inside the
+lock it already holds; no migration sweeps a table it was not asked to.
+
+Deletes are soft. The row stays with `deleted_at` set, the 30-day Trash reads
+from it, and a restore moves forward as a new revision rather than rewinding.
+Every applied change appends to `recipe_versions` with a cause — imported,
+edited, deleted, restored, reverted — so ADR 0015's "what did the source
+actually say" has an answer after any amount of editing.
+
+Retries are recognised by an idempotency key, so a push that timed out and was
+sent again is applied once and reports the revision the first attempt got.
+
+Routes: `GET/POST /api/v1/sync/recipes`, `GET /api/v1/recipes/:id/versions`,
+`POST /api/v1/recipes/:id/revert`, `GET /api/v1/trash`,
+`POST /api/v1/trash/:id/restore`. Writes answer 503 unless
+`RECIPEBOX_SYNC_WRITES=on`.
+
+## What reviewing it found
+
+Three defects, each caught by an automated review of the commit before it, and
+each a case of a new column not reaching the code that should have cared.
+
+Adding `deleted_at` is only half a delete: four existing readers still returned
+tombstoned rows, so a recipe deleted on the phone would have stayed in the web
+library. The version history cascaded off the recipe row, so the web's
+whole-library replace would have destroyed every version an account had. And
+the resync guard looked for tombstones that still existed, so it would have
+started warning at the moment a purge removed the evidence and stayed quiet
+until then.
+
+Fixing those surfaced a fourth that nothing had flagged: the web's save path
+assigned no revision at all, so a recipe edited in a browser would never have
+reached any phone. It does now, and appends a version like any other write.
+
+## Tests
+
+32 checks in `recipe-sync-test` against real PostgreSQL, 19 in
+`sync-routes-test` through HTTP against a real server. Both skip without a
+database, so CI stays credential-free, and both run against a throwaway
+container locally.
+
+Verified the tests fail when the behaviour is removed: dropping conflict
+detection, disabling idempotency, removing the sample guard and omitting the
+tombstone marker each fail and each names what it lost. A hard delete turned
+out to be structurally impossible rather than merely checked.
+
+Two route assertions were wrong when first written — they asserted that one
+account could not read "r1" when that account had an r1 of its own, so they
+proved nothing. Both now prove scoping in both directions.
+
+## Still open
+
+- Uploads are not wired on the device. `UPLOAD_ENABLED` is still false and no
+  coordinator exists; that is A2.
+- Household members can read a shared recipe and cannot write it. That matches
+  what the web does today, and the write API enforces it by scoping every
+  query to the caller. Whether a household should be able to *edit* a shared
+  recipe is a product decision, not an implementation gap, and it belongs to
+  A3 rather than being invented here.
+- Nothing purges tombstones. `purgeTombstones` exists and maintains the
+  watermark; what calls it, and how often, is a retention policy that has not
+  been set.
+- Media is untouched: ADR 0008's object storage is Milestone B.
+
+## Deferred by request, 18 November
+
+Noted while testing on the device, and deliberately not addressed in this
+pass:
+
+- Real hero images in the library, Home and Recipe Detail — Milestone B, where
+  media is the subject.
+- A better no-image fallback than the single letter. Also Milestone B, and
+  explicitly without stock food photography.
+- Email-verification and timer-permission wording. A design pass, not a
+  one-off edit to two strings.
