@@ -99,9 +99,29 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const [conflicts, setConflicts] = useState(0);
   const [ranAt, setRanAt] = useState<number | null>(null);
 
-  const accountId = auth.state.status === "active" ? auth.state.user.id : null;
-  const library = auth.localStore?.name ?? null;
+  /**
+   * The account and the library it may use, taken together or not at all.
+   *
+   * These are two pieces of state in AuthProvider, set one after the other,
+   * and comparing file names does not notice when a render falls between
+   * them: a new account beside the previous account's library has two
+   * different names, both perfectly valid, and the mismatch is invisible.
+   * That is how one person's recipes reached another person's screen the
+   * first time. So the resolution says who it was resolved FOR, and nothing
+   * here runs unless that is this account.
+   */
+  const active = auth.state.status === "active" ? auth.state.user : null;
+  const resolution = auth.localStore;
+  const settled = active && resolution && resolution.forUserId === active.id;
+  const accountId = settled ? active.id : null;
+  const library = settled ? resolution.name : null;
   const uploads = uploadsEnabled();
+
+  /** The guard every write carries: this account's library, checked as it writes. */
+  const guard = useMemo(
+    () => (library ? { expected: library, active: activeLocalStore } : null),
+    [library],
+  );
 
   // One run at a time. Two concurrent runs would push the same queue entries
   // twice — safe, because of the idempotency keys, and still pointless.
@@ -119,26 +139,30 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   // not. Signed out, a saved recipe queues nothing, which is the whole of what
   // "RecipeBox works without an account" means for this layer.
   useEffect(() => {
-    if (!accountId || !library) {
+    if (!accountId || !guard) {
       recordLocalChanges(null);
       return;
     }
     recordLocalChanges(async (handle, change: LocalRecipeChange) => {
       // Inside the caller's transaction, and against the caller's handle, so
-      // the recipe and the promise to send it commit together.
-      await queueLocalChange(handle as unknown as SqliteLike, accountId, change);
+      // the recipe and the promise to send it commit together. The guard is
+      // checked there, not here: this is the busiest write path in the app,
+      // and a sign-in can land between the save starting and the row being
+      // written.
+      await queueLocalChange(handle as unknown as SqliteLike, accountId, change, Date.now(), guard);
     });
     return () => recordLocalChanges(null);
-  }, [accountId, library]);
+  }, [accountId, guard]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 
   const sync = useCallback(async () => {
     if (running.current) return;
     if (!accountId || !library || !auth.configured) return;
-    // A library that is not this account's is not one to write into. The
-    // store asserts this too, immediately before each write; refusing here as
-    // well just means the run does not start rather than failing part-way.
+    // The library open is not this account's: the run does not start, rather
+    // than failing part-way. The store asserts the same thing immediately
+    // before each write, because opening is asynchronous and this answer can
+    // stop being true between here and there.
     if (activeLocalStore() !== library) return;
 
     running.current = true;
@@ -199,22 +223,22 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     if (!accountId) return null;
     const now = Date.now();
     const newId = choice === "keep-both" ? copyId(conflict.recipeId, now) : undefined;
-    const resolution = resolve(conflict, choice, now, newId);
-    await applyResolution(await db(), accountId, conflict, resolution, now);
+    const chosen = resolve(conflict, choice, now, newId);
+    await applyResolution(await db(), accountId, conflict, chosen, now, guard ?? undefined);
     await refresh();
-    return resolution.create;
-  }, [accountId, refresh]);
+    return chosen.create;
+  }, [accountId, guard, refresh]);
 
   const unadopted = useCallback(async () => {
     if (!accountId) return [];
-    return unadoptedRecipes(await db());
+    return unadoptedRecipes(await db(), accountId);
   }, [accountId]);
 
   const adopt = useCallback(async (recipeId: string) => {
     if (!accountId) return;
-    await adoptRecipe(await db(), accountId, recipeId);
+    await adoptRecipe(await db(), accountId, recipeId, Date.now(), guard ?? undefined);
     await refresh();
-  }, [accountId, refresh]);
+  }, [accountId, guard, refresh]);
 
   const status: SyncStatus = !accountId || !auth.configured
     ? "off"

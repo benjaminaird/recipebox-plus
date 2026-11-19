@@ -189,11 +189,11 @@ test("a recipe that predates the account is not uploaded by being edited", async
   await queueLocalChange(db, ALICE, write("old", recipe("old", "Tweaked")));
   assert.equal(await countQueued(db, ALICE), 0, "fixing a typo is not a request to publish");
 
-  assert.deepEqual((await unadoptedRecipes(db)).map((r) => r.id), ["old"]);
+  assert.deepEqual((await unadoptedRecipes(db, ALICE)).map((r) => r.id), ["old"]);
 
   assert.equal(await adoptRecipe(db, ALICE, "old"), true);
   assert.equal(await countQueued(db, ALICE), 1, "asked for, and only then");
-  assert.deepEqual(await unadoptedRecipes(db), []);
+  assert.deepEqual(await unadoptedRecipes(db, ALICE), []);
 
   // And from then on an edit does queue, because it is now the account's.
   await queueLocalChange(db, ALICE, write("old", recipe("old", "Tweaked again")));
@@ -210,7 +210,7 @@ test("a recipe written while signed in belongs to the account", async () => {
   const row = raw.prepare(`SELECT origin, account_id, adopted FROM recipe_origin WHERE recipe_id = 'new'`)
     .get() as { origin: string; account_id: string; adopted: number };
   assert.deepEqual(plain(row), { origin: "local", account_id: ALICE, adopted: 1 });
-  assert.deepEqual(await unadoptedRecipes(db), [], "it is not waiting to be reconciled");
+  assert.deepEqual(await unadoptedRecipes(db, ALICE), [], "it is not waiting to be reconciled");
 });
 
 test("a delete swallows a pending write, and an unsent create simply vanishes", async () => {
@@ -498,4 +498,107 @@ test("the coordinator runs against this store, pulls, pushes and conflicts", asy
   assert.equal(open.mine?.title, "Changed here");
   assert.equal(open.theirs?.title, "Changed there");
   assert.equal(open.serverRevision, 21);
+});
+
+// ---------------------------------------------------------------------------
+// The library guard
+// ---------------------------------------------------------------------------
+
+test("a write into a library that is not this account's is refused, not misdirected", async () => {
+  const { raw, db } = fresh();
+  put(raw, recipe("r1"));
+  origin(raw, "r1", "cloud", 1, 1);
+
+  // Opening a library is asynchronous, so a sign-in can land between a save
+  // starting and its row being written. The name that was expected and the
+  // name actually open are compared AT the write, which is the only moment
+  // worth asserting about.
+  const elsewhere = { expected: "recipebox-someone-else.db", active: here };
+
+  await assert.rejects(
+    () => queueLocalChange(db, ALICE, write("r1", recipe("r1", "Changed")), 1_000, elsewhere),
+    /different library/,
+  );
+  assert.equal(await countQueued(db, ALICE), 0, "and nothing was written on the way out");
+
+  await assert.rejects(() => adoptRecipe(db, ALICE, "r1", 1_000, elsewhere), /different library/);
+
+  // An unresolved library is refused too. "We do not know yet" is not a
+  // reason to write somewhere and find out.
+  await assert.rejects(
+    () => queueLocalChange(db, ALICE, write("r1", recipe("r1")), 1_000, { expected: "", active: here }),
+    /no library resolved/,
+  );
+
+  // And the guard is permissive only when there is none to apply, which is
+  // what the store's own methods have always done.
+  await queueLocalChange(db, ALICE, write("r1", recipe("r1", "Changed")), 1_000, { expected: LIBRARY, active: here });
+  assert.equal(await countQueued(db, ALICE), 1);
+});
+
+test("one account's queued change is never taken over by another's", async () => {
+  const { raw, db } = fresh();
+  put(raw, recipe("r1"));
+  origin(raw, "r1", "cloud", 1, 1);
+  await queueLocalChange(db, ALICE, write("r1", recipe("r1", "Alice's unsent edit")));
+
+  // Updating is already account-scoped, so Bob's attempt finds nothing and
+  // does nothing. Harmless, and worth pinning down.
+  const bobsStore = sqliteSyncStore(db, "bob", LIBRARY, here);
+  await bobsStore.updateOutboxEntry({
+    recipeId: "r1", kind: "write", baseRevision: 1, idempotencyKey: "k",
+    recipe: recipe("r1", "Bob's"), attempts: 9, nextAttemptAt: 0, queuedAt: 1, lastError: "bob",
+  });
+  const store = sqliteSyncStore(db, ALICE, LIBRARY, here);
+  assert.equal((await store.listOutbox())[0].recipe?.title, "Alice's unsent edit");
+  assert.equal((await store.listOutbox())[0].attempts, 0);
+
+  // Queuing is the path that could take the row over: the primary key is the
+  // recipe id alone, so an upsert would quietly rewrite account_id and
+  // Alice's promise to send her edit would disappear with nothing to show it
+  // ever existed. Each account has its own database file, so it cannot happen
+  // today — refusing says so out loud, and is honest in a way that silently
+  // overwriting, or silently dropping Bob's write, would not be.
+  raw.prepare(
+    `INSERT INTO recipe_origin (recipe_id, origin, account_id, shared, adopted)
+     VALUES ('r1', 'local', 'bob', 0, 1) ON CONFLICT(recipe_id) DO NOTHING`,
+  ).run();
+  await assert.rejects(
+    () => queueLocalChange(db, "bob", write("r1", recipe("r1", "Bob's own"), true)),
+    /another account's queued change/,
+  );
+  assert.equal((await store.listOutbox())[0].recipe?.title, "Alice's unsent edit");
+});
+
+test("a resync clears this account's cloud recipes and nobody else's", async () => {
+  const { raw, db } = fresh();
+  put(raw, recipe("alice-cloud"));
+  origin(raw, "alice-cloud", "cloud", 1, 2);
+  put(raw, recipe("bob-cloud"));
+  raw.prepare(
+    `INSERT INTO recipe_origin (recipe_id, origin, account_id, shared, adopted, server_revision)
+     VALUES ('bob-cloud', 'cloud', 'bob', 0, 1, 2)`,
+  ).run();
+
+  await sqliteSyncStore(db, ALICE, LIBRARY, here).clearCloudRecipes();
+
+  const ids = (raw.prepare(`SELECT id FROM recipes ORDER BY id`).all() as Array<{ id: string }>)
+    .map((r) => r.id);
+  assert.deepEqual(ids, ["bob-cloud"], "Alice's rebuild is not Bob's data loss");
+});
+
+test("a recipe another account adopted is not this account's to upload", async () => {
+  const { raw, db } = fresh();
+  put(raw, recipe("shared-id"));
+  raw.prepare(
+    `INSERT INTO recipe_origin (recipe_id, origin, account_id, shared, adopted, server_revision)
+     VALUES ('shared-id', 'local', 'bob', 0, 1, 4)`,
+  ).run();
+
+  // Alice sees a recipe with no provenance of her own. Reading Bob's row
+  // would make it look adopted, and would cite a revision from an account she
+  // cannot see — a write against a revision that means nothing to her.
+  assert.deepEqual((await unadoptedRecipes(db, ALICE)).map((r) => r.id), ["shared-id"]);
+  await queueLocalChange(db, ALICE, write("shared-id", recipe("shared-id", "Alice edits it")));
+  assert.equal(await countQueued(db, ALICE), 0, "editing it is not adopting it");
 });

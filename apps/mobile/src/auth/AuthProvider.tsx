@@ -102,7 +102,7 @@ export function AuthProvider({
           // The device store itself is unreadable, so there is no claim to
           // honour and no credential to restore either: this is, to the extent
           // anything can be known, a device nobody has signed in on.
-          return { name: BASE_LOCAL_STORE, claimedBy: null, isolated: false };
+          return { name: BASE_LOCAL_STORE, claimedBy: null, isolated: false, forUserId: null };
         }
       };
 

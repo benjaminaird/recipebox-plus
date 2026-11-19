@@ -37,6 +37,32 @@ export type SqliteLike = {
   withTransactionAsync(body: () => Promise<void>): Promise<void>;
 };
 
+/**
+ * Which local library this write is allowed to touch.
+ *
+ * Every method the store returns has always checked this. The three exported
+ * functions below did not, and that was an inconsistency rather than a
+ * decision: they are reached from the provider while a sign-in may be in
+ * flight, and opening a library is asynchronous, so the file a write arrives
+ * at is not necessarily the one the caller had in mind when it started. The
+ * recorder in particular runs on EVERY save, which is the busiest path there
+ * is. They take the same guard now.
+ */
+export type LibraryGuard = {
+  /** The library this account may write to, as src/auth/localStore.ts resolved it. */
+  expected: string;
+  /** The library actually open, read at the moment of the write. */
+  active: () => string | null;
+};
+
+function assertLibrary(guard: LibraryGuard | undefined): void {
+  if (!guard) return;
+  if (!guard.expected) throw new Error("no library resolved for this account; refusing to write");
+  if (guard.active() !== guard.expected) {
+    throw new Error("refusing to write into a different library than this account's");
+  }
+}
+
 const watermarkKey = (accountId: string) => "sync_revision:" + accountId;
 const lastRunKey = (accountId: string) => "sync_last_run:" + accountId;
 
@@ -95,6 +121,19 @@ function newKey(): string {
 }
 
 async function writeEntry(db: SqliteLike, accountId: string, entry: OutboxEntry): Promise<void> {
+  // recipe_id is the primary key, so an upsert would quietly rewrite
+  // account_id if a row for this recipe belonged to someone else — and that
+  // account's promise to send a change would vanish with no trace. Each
+  // account has its own database file, so it cannot happen; a guard that says
+  // so out loud is better than an upsert that would silently do the wrong
+  // thing if the file boundary ever moved. Refusing is honest. Taking the row
+  // over, or dropping the write with a WHERE clause, would not be.
+  const owner = await db.getFirstAsync<{ account_id: string }>(
+    `SELECT account_id FROM sync_outbox WHERE recipe_id = ?`, [entry.recipeId],
+  );
+  if (owner && owner.account_id !== accountId) {
+    throw new Error("refusing to overwrite another account's queued change");
+  }
   await db.runAsync(
     `INSERT INTO sync_outbox
        (recipe_id, account_id, kind, base_revision, idempotency_key, recipe_json,
@@ -131,16 +170,24 @@ export async function queueLocalChange(
   accountId: string,
   change: LocalRecipeChange,
   now = Date.now(),
+  guard?: LibraryGuard,
 ): Promise<OutboxEntry | null> {
+  assertLibrary(guard);
   const existingRow = await db.getFirstAsync<OutboxRow>(
     `SELECT * FROM sync_outbox WHERE recipe_id = ? AND account_id = ?`,
     [change.recipeId, accountId],
   );
+  // Scoped to this account, and to rows that belong to no account yet: a
+  // recipe adopted by somebody else is not adopted by us, and reading their
+  // server_revision would cite a revision from an account we cannot see.
+  // Within one database file per account this cannot arise — the query says
+  // so anyway, because the file boundary is an arrangement and this is the
+  // rule the arrangement exists to produce.
   const origin = await db.getFirstAsync<OriginRow>(
     `SELECT o.recipe_id, o.origin, o.adopted, o.server_revision, r.deleted_at
        FROM recipe_origin o LEFT JOIN recipes r ON r.id = o.recipe_id
-      WHERE o.recipe_id = ?`,
-    [change.recipeId],
+      WHERE o.recipe_id = ? AND (o.account_id IS NULL OR o.account_id = ?)`,
+    [change.recipeId, accountId],
   );
 
   // A sample is never queued, however it was changed. Every install ships the
@@ -180,7 +227,10 @@ export async function queueLocalChange(
   if (!next.length) {
     // A create that was deleted before it was ever sent. The server never
     // heard of it, so there is nothing to tell it.
-    await db.runAsync(`DELETE FROM sync_outbox WHERE recipe_id = ?`, [change.recipeId]);
+    await db.runAsync(
+      `DELETE FROM sync_outbox WHERE recipe_id = ? AND account_id = ?`,
+      [change.recipeId, accountId],
+    );
     return null;
   }
   await writeEntry(db, accountId, next[0]);
@@ -196,14 +246,17 @@ export async function queueLocalChange(
  */
 export async function adoptRecipe(
   db: SqliteLike, accountId: string, recipeId: string, now = Date.now(),
+  guard?: LibraryGuard,
 ): Promise<boolean> {
   let adopted = false;
   await db.withTransactionAsync(async () => {
+    assertLibrary(guard);
     const row = await db.getFirstAsync<{ origin: string; json: string }>(
       `SELECT COALESCE(o.origin, 'local') AS origin, r.json
          FROM recipes r LEFT JOIN recipe_origin o ON o.recipe_id = r.id
-        WHERE r.id = ? AND r.deleted_at IS NULL`,
-      [recipeId],
+        WHERE r.id = ? AND r.deleted_at IS NULL
+          AND (o.account_id IS NULL OR o.account_id = ?)`,
+      [recipeId, accountId],
     );
     if (!row || row.origin === "sample") return;
     await db.runAsync(
@@ -215,7 +268,7 @@ export async function adoptRecipe(
     await queueLocalChange(
       db, accountId,
       { recipeId, kind: "write", recipe: JSON.parse(row.json) as Recipe, created: false },
-      now,
+      now, guard,
     );
     adopted = true;
   });
@@ -223,14 +276,16 @@ export async function adoptRecipe(
 }
 
 /** Recipes on this phone that this account has not taken on. */
-export async function unadoptedRecipes(db: SqliteLike): Promise<Recipe[]> {
+export async function unadoptedRecipes(db: SqliteLike, accountId: string): Promise<Recipe[]> {
   const rows = await db.getAllAsync<{ json: string }>(
     `SELECT r.json FROM recipes r
        LEFT JOIN recipe_origin o ON o.recipe_id = r.id
+        AND (o.account_id IS NULL OR o.account_id = ?)
       WHERE r.deleted_at IS NULL
         AND COALESCE(o.origin, 'local') = 'local'
         AND COALESCE(o.adopted, 0) = 0
       ORDER BY r.created_at DESC`,
+    [accountId],
   );
   return rows.map((r) => JSON.parse(r.json) as Recipe);
 }
@@ -318,12 +373,8 @@ export function sqliteSyncStore(
   expectedStore: string,
   activeStore: () => string | null,
 ): SyncStore {
-  const assertOwnLibrary = (): void => {
-    if (!expectedStore) throw new Error("no library resolved for this account; refusing to write");
-    if (activeStore() !== expectedStore) {
-      throw new Error("refusing to write into a different library than this account's");
-    }
-  };
+  const guard: LibraryGuard = { expected: expectedStore, active: activeStore };
+  const assertOwnLibrary = (): void => assertLibrary(guard);
 
   return {
     accountId: () => accountId,
@@ -432,12 +483,16 @@ export function sqliteSyncStore(
           `DELETE FROM recipes WHERE id IN (
              SELECT o.recipe_id FROM recipe_origin o
               WHERE o.origin = 'cloud'
-                AND o.recipe_id NOT IN (SELECT recipe_id FROM sync_outbox)
+                AND o.account_id = ?
+                AND o.recipe_id NOT IN (SELECT recipe_id FROM sync_outbox WHERE account_id = ?)
            )`,
+          [accountId, accountId],
         );
         await db.runAsync(
           `DELETE FROM recipe_origin
-            WHERE origin = 'cloud' AND recipe_id NOT IN (SELECT recipe_id FROM sync_outbox)`,
+            WHERE origin = 'cloud' AND account_id = ?
+              AND recipe_id NOT IN (SELECT recipe_id FROM sync_outbox WHERE account_id = ?)`,
+          [accountId, accountId],
         );
       });
     },
@@ -522,8 +577,10 @@ export async function applyResolution(
   conflict: StoredConflict,
   resolution: ConflictResolution,
   now = Date.now(),
+  guard?: LibraryGuard,
 ): Promise<void> {
   await db.withTransactionAsync(async () => {
+    assertLibrary(guard);
     await db.runAsync(
       `UPDATE sync_conflicts SET resolved_at = ?, resolution = ? WHERE id = ? AND account_id = ?`,
       [resolution.conflict.resolvedAt ?? now, resolutionName(resolution), conflict.id, accountId],

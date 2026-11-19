@@ -20,6 +20,20 @@ export type LocalStoreResolution = {
   claimedBy: string | null;
   /** True when this account is reading a store of its own, apart from the base one. */
   isolated: boolean;
+  /**
+   * The account this library was resolved FOR, or null when nobody is signed
+   * in. Null is also what a signed-out resolution carries even though it may
+   * name a store resolved from `lastUserId`: nobody is signed in, so nothing
+   * should be writing to an account.
+   *
+   * It is here because a file name is not an identity. A caller holding an
+   * account id and a library name has two pieces of React state that are set
+   * one after the other, and between the two a render can see the new account
+   * beside the old account's library — which is precisely how one person's
+   * recipes reached another's screen once already. Comparing names cannot
+   * catch that; comparing who the name was resolved for can.
+   */
+  forUserId: string | null;
 };
 
 /**
@@ -51,17 +65,20 @@ export function resolveLocalStore(input: {
 
   // Nobody has ever signed in here: the local-first library, exactly as the
   // app has always opened it.
-  if (!effective) return { name: BASE_LOCAL_STORE, claimedBy, isolated: false };
+  if (!effective) return { name: BASE_LOCAL_STORE, claimedBy, isolated: false, forUserId: signedInUserId };
 
   // First account to sign in on this device adopts what is already here — it
   // was theirs before they had an account. Only an actual sign-in claims it.
-  if (!claimedBy) return { name: BASE_LOCAL_STORE, claimedBy: signedInUserId ?? null, isolated: false };
+  if (!claimedBy) return { name: BASE_LOCAL_STORE, claimedBy: signedInUserId ?? null, isolated: false, forUserId: signedInUserId };
 
-  if (claimedBy === effective) return { name: BASE_LOCAL_STORE, claimedBy, isolated: false };
+  if (claimedBy === effective) return { name: BASE_LOCAL_STORE, claimedBy, isolated: false, forUserId: signedInUserId };
 
   // Somebody else, signed in or just signed out. Their own store, and the
   // owner's is left exactly where it was.
-  return { name: "recipebox-" + storeSuffix(effective) + ".db", claimedBy, isolated: true };
+  return {
+    name: "recipebox-" + storeSuffix(effective) + ".db", claimedBy, isolated: true,
+    forUserId: signedInUserId,
+  };
 }
 
 /**

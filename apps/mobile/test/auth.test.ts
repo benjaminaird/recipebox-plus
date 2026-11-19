@@ -322,6 +322,30 @@ test("a second account on the same phone gets its own store, and cannot see the 
   assert.equal(resolveLocalStore({ claimedBy: "user-alice", signedInUserId: "user-bob" }).name, second.name, "and a store is stable across launches");
 });
 
+test("a resolution says who it was resolved for, so a name is never mistaken for an identity", () => {
+  // Two pieces of state in a provider, set one after the other. Between them
+  // a render can see the new account beside the previous account's library:
+  // two different file names, both perfectly valid, and the mismatch is
+  // invisible to anything comparing names. That is how one account's recipes
+  // reached another's screen once. A caller compares this instead.
+  assert.equal(resolveLocalStore({ claimedBy: null, signedInUserId: "user-alice" }).forUserId, "user-alice");
+  assert.equal(
+    resolveLocalStore({ claimedBy: "user-alice", signedInUserId: "user-bob" }).forUserId, "user-bob",
+    "the guest's own store is resolved for the guest",
+  );
+  assert.equal(
+    resolveLocalStore({ claimedBy: "user-alice", signedInUserId: "user-alice" }).forUserId, "user-alice",
+  );
+
+  // Signed out, it is nobody's — even though the store resolved from
+  // lastUserId is still the guest's, so their recipes stay in front of them.
+  const out = resolveLocalStore({ claimedBy: "user-alice", signedInUserId: null, lastUserId: "user-bob" });
+  assert.equal(out.forUserId, null, "nothing may write to an account when nobody is signed in");
+  assert.equal(out.isolated, true, "and the guest is still not looking at the owner's recipes");
+
+  assert.equal(resolveLocalStore({ claimedBy: null, signedInUserId: null }).forUserId, null);
+});
+
 test("signing back in as the owner returns to the same library", () => {
   const back = resolveLocalStore({ claimedBy: "user-alice", signedInUserId: "user-alice" });
   assert.equal(back.name, BASE_LOCAL_STORE);
