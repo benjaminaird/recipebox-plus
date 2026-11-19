@@ -22,6 +22,9 @@ import { RecipeEditorScreen } from "../screens/RecipeEditorScreen";
 import { ImportReviewScreen } from "../screens/ImportReviewScreen";
 import { AddTabButton } from "./AddTabButton";
 import { AccountScreen } from "../screens/auth/AccountScreen";
+import { ConflictsScreen } from "../screens/ConflictsScreen";
+import { ConflictDetailScreen } from "../screens/ConflictDetailScreen";
+import { TrashScreen } from "../screens/TrashScreen";
 import { SignInScreen } from "../screens/auth/SignInScreen";
 import { CreateAccountScreen } from "../screens/auth/CreateAccountScreen";
 import { VerifyEmailScreen } from "../screens/auth/VerifyEmailScreen";
@@ -337,6 +340,23 @@ export function RootNavigator() {
             headerTintColor: c.accentText,
           }}
         />
+        {/* Sync's two screens. Pushed, like Account: both are places a cook
+            goes to deal with something and then comes back from, and both are
+            reached from Account rather than being in anybody's way. */}
+        <Stack.Group
+          screenOptions={{
+            headerShown: true,
+            title: "",
+            headerBackTitle: "Account",
+            headerStyle: { backgroundColor: c.canvas },
+            headerShadowVisible: false,
+            headerTintColor: c.accentText,
+          }}
+        >
+          <Stack.Screen name="Conflicts" component={ConflictsScreen} />
+          <Stack.Screen name="ConflictDetail" component={ConflictDetailScreen} />
+          <Stack.Screen name="Trash" component={TrashScreen} />
+        </Stack.Group>
         <Stack.Group
           screenOptions={{
             presentation: "modal",

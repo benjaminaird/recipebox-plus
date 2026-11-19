@@ -49,6 +49,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     extra: {
       ...config.extra,
       apiBaseUrl: fromEnv || (config.extra?.apiBaseUrl ?? ""),
+      // Uploading is off unless a build says otherwise. See src/sync/flags.ts
+      // for why this is a build switch and not a setting, and why the server
+      // has a second one that does not trust this.
+      syncUploads: (process.env.RECIPEBOX_SYNC_UPLOADS ?? "").trim() === "1",
     },
   });
 };

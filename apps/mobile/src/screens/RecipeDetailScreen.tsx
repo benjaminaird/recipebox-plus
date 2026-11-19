@@ -11,7 +11,7 @@
 // saying how, the chip says "total" rather than implying the whole amount
 // belongs to that step. The list above keeps the undivided total either way.
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
@@ -25,7 +25,7 @@ import { OrganiseSheet } from "../components/OrganiseSheet";
 import { AddToListSheet } from "../components/AddToListSheet";
 import { displayTag } from "../domain/tags";
 import { collectCategories, collectTags } from "../data/types";
-import { listRecipes, saveRecipe } from "../data/db";
+import { deleteRecipe, listRecipes, saveRecipe } from "../data/db";
 import { stepIngredientUses, type Recipe, type Source } from "../data/types";
 import { ServingControls } from "../components/ServingControls";
 import { detectSystem, measuresAgree, presentAmount, presentedText, scaleLabel } from "../domain/present";
@@ -427,6 +427,43 @@ export function RecipeDetailScreen() {
         ).sort((a, b) => a - b)}
         defaultLabel={recipe.title}
       />
+
+      {/* Deleting. Last on the page, quiet, and never destructive: the recipe
+          goes to the Trash, where it stays until somebody takes it out. The
+          confirmation says that rather than warning about something that does
+          not happen. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Delete ${recipe.title}`}
+        accessibilityHint="Moves it to the Trash"
+        onPress={() => {
+          Alert.alert(
+            `Delete “${recipe.title}”?`,
+            "It moves to the Trash, where you can put it back. If you are signed in, it is removed from your other devices too.",
+            [
+              { text: "Cancel", style: "cancel" },
+              {
+                text: "Delete",
+                style: "destructive",
+                onPress: async () => {
+                  await deleteRecipe(recipe.id);
+                  navigation.goBack();
+                },
+              },
+            ],
+          );
+        }}
+        style={({ pressed }) => ({
+          alignSelf: "center",
+          paddingVertical: 12,
+          paddingHorizontal: 20,
+          minHeight: t.minTouch,
+          justifyContent: "center",
+          opacity: pressed ? 0.6 : 1,
+        })}
+      >
+        <Text style={[textStyle("body"), { color: c.danger }]}>Delete recipe</Text>
+      </Pressable>
 
       <AddToListSheet
         visible={listOpen}

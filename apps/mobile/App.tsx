@@ -14,6 +14,7 @@ import { TimerProvider } from "./src/timers/TimerProvider";
 import { SettingsProvider } from "./src/settings/SettingsProvider";
 import { AuthProvider } from "./src/auth/AuthProvider";
 import { useLocalStore } from "./src/data/db";
+import { SyncProvider } from "./src/sync/SyncProvider";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -37,6 +38,11 @@ export default function App() {
               gates a render, and the navigator mounts whether or not there is
               a session, a server or a network. */}
           <AuthProvider openLocalStore={useLocalStore}>
+          {/* Sync sits below accounts and above everything that saves a
+              recipe: it needs the session to reach the server, and the
+              recipe store to write what comes back. The auth layer knows
+              about neither, which is what keeps it unable to lose a recipe. */}
+          <SyncProvider>
           <SettingsProvider>
             {/* Above the navigator: a timer belongs to the session, not to the
                 screen that started it, and has to survive moving between them. */}
@@ -45,6 +51,7 @@ export default function App() {
               <RootNavigator />
             </TimerProvider>
           </SettingsProvider>
+          </SyncProvider>
           </AuthProvider>
         </ThemeProvider>
       </SafeAreaProvider>

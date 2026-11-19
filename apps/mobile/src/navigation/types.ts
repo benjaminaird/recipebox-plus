@@ -23,6 +23,11 @@ export type RootStackParamList = {
   // Accounts. Reached from Settings, never in anyone's way: the app opens to
   // the same recipes whether or not any of these are ever visited.
   Account: undefined;
+  // Sync, which only ever appears when there is something to say about it:
+  // recipes changed in two places, and recipes deleted.
+  Conflicts: undefined;
+  ConflictDetail: { conflictId: string };
+  Trash: undefined;
   SignIn: { reason?: "expired"; email?: string } | undefined;
   CreateAccount: undefined;
   VerifyEmail: { email: string; emailSent: boolean };

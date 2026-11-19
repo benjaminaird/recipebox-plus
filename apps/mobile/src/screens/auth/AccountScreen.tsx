@@ -21,7 +21,7 @@ import { useAuth } from "../../auth/AuthProvider";
 import { describeAuthError, staleMessage, type Message } from "../../auth/messages";
 import type { DeviceSummary } from "../../auth/types";
 import type { RootStackParamList } from "../../navigation/types";
-import { syncRecipes, describeResult } from "../../sync/syncRecipes";
+import { useSync } from "../../sync/SyncProvider";
 import { AuthScreen, Notice, Panel, PanelRow, PrimaryButton, QuietButton } from "./AuthKit";
 
 function when(iso: string): string {
@@ -34,11 +34,11 @@ export function AccountScreen() {
   const t = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const auth = useAuth();
+  const sync = useSync();
   const [devices, setDevices] = useState<DeviceSummary[] | null>(null);
   const [message, setMessage] = useState<Message | null>(null);
   const [busy, setBusy] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-  const [syncMessage, setSyncMessage] = useState<Message | null>(null);
+  const [unadopted, setUnadopted] = useState<number>(0);
 
   const state = auth.state;
   const signedIn = state.status === "active" || state.status === "stale";
@@ -52,35 +52,46 @@ export function AccountScreen() {
     }
   }, [auth, state.status]);
 
-  useFocusEffect(useCallback(() => { void loadDevices(); }, [loadDevices]));
+  const countUnadopted = useCallback(async () => {
+    if (state.status !== "active") { setUnadopted(0); return; }
+    setUnadopted((await sync.unadopted()).length);
+  }, [sync, state.status]);
 
-  // Pull-only: this downloads, and there is no endpoint it could upload to.
-  const runSync = useCallback(async () => {
-    if (syncing || state.status !== "active") return;
-    // No resolved library means we do not yet know which one belongs to this
-    // account, and a download has to go somewhere. It waits rather than
-    // guessing.
-    const library = auth.localStore?.name;
-    if (!library) {
-      setSyncMessage({ title: "One moment — still opening your library.", tone: "attention" });
-      return;
-    }
-    setSyncing(true);
-    setSyncMessage({ title: "Looking for your recipes…", tone: "info" });
-    try {
-      const result = await syncRecipes(auth, state.user.id, library, (p) => {
-        setSyncMessage({ title: "Downloaded " + (p.stored + p.updated) + " so far…", tone: "info" });
-      });
-      setSyncMessage(describeResult(result));
-    } catch (err) {
-      // The whole message, not just its title. A download that failed used to
-      // be drawn in the same calm green as one that succeeded, because the
-      // tone was thrown away here and replaced with "info" at the call site.
-      setSyncMessage(describeAuthError(err, "devices"));
-    } finally {
-      setSyncing(false);
-    }
-  }, [auth, state, syncing]);
+  useFocusEffect(useCallback(() => {
+    void loadDevices();
+    void sync.refresh();
+    void countUnadopted();
+  }, [loadDevices, sync, countUnadopted]));
+
+  /**
+   * Put this phone's own recipes into the account, at the cook's request.
+   *
+   * Signing in is not a request to publish everything on the phone — a shared
+   * tablet has somebody else's cooking on it — so this is a deliberate action
+   * with a count in front of it, and it is the only path by which a recipe
+   * that predates the account becomes something this device will upload.
+   */
+  const confirmAdopt = useCallback(() => {
+    Alert.alert(
+      unadopted === 1 ? "Add 1 recipe to your account?" : `Add ${unadopted} recipes to your account?`,
+      "These were on this phone before you signed in. Adding them copies them to your account, where your other devices will see them. Nothing is removed from this phone.",
+      [
+        { text: "Not now", style: "cancel" },
+        {
+          text: "Add them",
+          onPress: async () => {
+            setBusy(true);
+            try {
+              for (const recipe of await sync.unadopted()) await sync.adopt(recipe.id);
+              await countUnadopted();
+            } finally {
+              setBusy(false);
+            }
+          },
+        },
+      ],
+    );
+  }, [sync, unadopted, countUnadopted]);
 
   const confirmRevoke = useCallback((entry: DeviceSummary) => {
     const isThis = entry.current;
@@ -203,19 +214,33 @@ export function AccountScreen() {
         <Text accessibilityRole="header" style={[textStyle("sectionTitle"), { color: t.colors.text }]}>
           Your recipes
         </Text>
-        {syncMessage ? <Notice message={syncMessage} /> : null}
+        {sync.message ? <Notice message={sync.message} /> : null}
         <Panel>
           <PanelRow
             first
-            label={syncing ? "Downloading…" : "Download from your account"}
-            detail={
-              syncing
-                ? "Leaving this screen will not stop it."
-                : "Copies the recipes in your account onto this phone. Nothing on the phone is uploaded, and nothing here is overwritten."
-            }
-            action={syncing ? undefined : "Download"}
-            onPress={syncing ? undefined : runSync}
+            label={sync.status === "syncing" ? "Syncing…" : "Sync now"}
+            detail={syncDetail(sync.status, sync.queued, sync.lastRunAt, sync.uploads)}
+            action={sync.status === "syncing" ? undefined : "Sync"}
+            onPress={sync.status === "syncing" ? undefined : () => { void sync.sync(); }}
           />
+          {sync.conflicts > 0 ? (
+            <PanelRow
+              label={sync.conflicts === 1 ? "1 recipe changed in two places" : `${sync.conflicts} recipes changed in two places`}
+              detail="Both versions of each are kept. Choose which to keep."
+              action="Review"
+              tone="danger"
+              onPress={() => navigation.navigate("Conflicts")}
+            />
+          ) : null}
+          {unadopted > 0 ? (
+            <PanelRow
+              label={unadopted === 1 ? "1 recipe is only on this phone" : `${unadopted} recipes are only on this phone`}
+              detail="They were here before you signed in, so they are not in your account."
+              action="Add them"
+              onPress={confirmAdopt}
+            />
+          ) : null}
+          <PanelRow label="Trash" detail="Recipes you have deleted." action="Open" onPress={() => navigation.navigate("Trash")} />
         </Panel>
       </View>
 
@@ -260,4 +285,37 @@ export function AccountScreen() {
       <QuietButton label="Sign out" tone="danger" onPress={confirmSignOut} disabled={busy} />
     </AuthScreen>
   );
+}
+
+/**
+ * What the Sync row says underneath itself.
+ *
+ * It answers the question a cook actually has, which is not "what is the
+ * state machine in" but "is my cooking safe". So it leads with what is owed
+ * and when it last worked, and says plainly when this build cannot upload —
+ * because a build that only downloads, saying nothing, looks exactly like one
+ * that is uploading and failing.
+ */
+function syncDetail(
+  status: string, queued: number, lastRunAt: number | null, uploads: boolean,
+): string {
+  const owed = queued === 0 ? "" : queued === 1
+    ? "1 change is waiting to go up. "
+    : `${queued} changes are waiting to go up. `;
+
+  if (!uploads) {
+    return owed
+      + "This build downloads from your account and keeps what you change here safe on the phone; "
+      + "uploading is not switched on yet, and nothing is lost by waiting.";
+  }
+  if (status === "offline") {
+    return owed + "The last attempt could not reach your account. It will carry on from where it stopped.";
+  }
+  if (status === "pending") return owed + "Tap to send them now.";
+  if (lastRunAt) {
+    const mins = Math.floor((Date.now() - lastRunAt) / 60_000);
+    const ago = mins < 1 ? "a moment ago" : mins < 60 ? `${mins} minutes ago` : "earlier today";
+    return `Everything is in step. Last checked ${ago}.`;
+  }
+  return "Copies changes both ways between this phone and your account.";
 }
