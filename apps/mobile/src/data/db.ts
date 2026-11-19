@@ -195,11 +195,25 @@ async function seedIfEmpty(db: SQLite.SQLiteDatabase): Promise<void> {
     }
   }
 
+  // Every seeded id is recorded as a sample, whether or not it was seeded
+  // just now. Nothing used to write this down: the fact lived only in
+  // `seeded_ids`, so a sample looked exactly like a recipe the cook had
+  // written on the phone — and the Account screen offered to put all seven
+  // into their account. Every install ships the same ids, so accepting that
+  // would mean two phones claiming one recipe, which is the one thing the
+  // upload rules exist to prevent. Those rules were right and simply never
+  // had the fact to act on.
+  //
+  // Done on every open, cheaply, rather than only when something is seeded:
+  // installs that already have their samples need it most.
+  await markSamples(db, seeded);
+
   const missing = SAMPLE_RECIPES.filter((r) => !seeded.includes(r.id));
   if (missing.length === 0) return;
 
   await db.withTransactionAsync(async () => {
     for (const recipe of missing) await upsert(db, recipe);
+    await markSamples(db, missing.map((r) => r.id));
     const next = JSON.stringify([...seeded, ...missing.map((r) => r.id)]);
     await db.runAsync(
       `INSERT INTO meta (key, value) VALUES ('seeded_ids', ?)
@@ -211,6 +225,26 @@ async function seedIfEmpty(db: SQLite.SQLiteDatabase): Promise<void> {
        ON CONFLICT(key) DO UPDATE SET value = '1'`,
     );
   });
+}
+
+/**
+ * Record which recipes came from the sample library.
+ *
+ * `ON CONFLICT DO NOTHING`, so a recipe whose provenance is already known
+ * keeps it. A sample never becomes a cloud recipe, but an id present in
+ * `seeded_ids` and absent from the library is a sample the cook deleted, and
+ * writing a row for it is harmless: nothing reads provenance for a recipe
+ * that is not there.
+ */
+async function markSamples(db: SQLite.SQLiteDatabase, ids: readonly string[]): Promise<void> {
+  for (const id of ids) {
+    await db.runAsync(
+      `INSERT INTO recipe_origin (recipe_id, origin, shared, adopted)
+       VALUES (?, 'sample', 0, 0)
+       ON CONFLICT(recipe_id) DO NOTHING`,
+      [id],
+    );
+  }
 }
 
 /**

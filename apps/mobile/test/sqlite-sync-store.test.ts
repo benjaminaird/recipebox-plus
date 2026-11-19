@@ -553,19 +553,19 @@ test("one account's queued change is never taken over by another's", async () =>
   assert.equal((await store.listOutbox())[0].recipe?.title, "Alice's unsent edit");
   assert.equal((await store.listOutbox())[0].attempts, 0);
 
-  // Queuing is the path that could take the row over: the primary key is the
-  // recipe id alone, so an upsert would quietly rewrite account_id and
+  // Queuing is the path that could take the row over: both tables are keyed
+  // by the recipe id alone, so an upsert would quietly rewrite account_id and
   // Alice's promise to send her edit would disappear with nothing to show it
-  // ever existed. Each account has its own database file, so it cannot happen
-  // today — refusing says so out loud, and is honest in a way that silently
-  // overwriting, or silently dropping Bob's write, would not be.
-  raw.prepare(
-    `INSERT INTO recipe_origin (recipe_id, origin, account_id, shared, adopted)
-     VALUES ('r1', 'local', 'bob', 0, 1) ON CONFLICT(recipe_id) DO NOTHING`,
-  ).run();
+  // ever existed.
+  //
+  // Two guards now stand in the way, and the provenance one happens to fire
+  // first — so this asserts the property rather than which guard produced it.
+  // The one in writeEntry is still worth keeping: it is the last thing before
+  // the row is written, and it does not depend on recipe_origin having been
+  // got right.
   await assert.rejects(
     () => queueLocalChange(db, "bob", write("r1", recipe("r1", "Bob's own"), true)),
-    /another account's queued change/,
+    /another account's/,
   );
   assert.equal((await store.listOutbox())[0].recipe?.title, "Alice's unsent edit");
 });
@@ -601,4 +601,73 @@ test("a recipe another account adopted is not this account's to upload", async (
   assert.deepEqual((await unadoptedRecipes(db, ALICE)).map((r) => r.id), ["shared-id"]);
   await queueLocalChange(db, ALICE, write("shared-id", recipe("shared-id", "Alice edits it")));
   assert.equal(await countQueued(db, ALICE), 0, "editing it is not adopting it");
+});
+
+test("a sample is recognisable as one, which is what makes the rules work", async () => {
+  // The rules about samples were all in place and all dead: nothing ever
+  // wrote origin = 'sample', so every check for it compared against a row
+  // that did not exist. On a real phone the seven seeded recipes therefore
+  // looked exactly like recipes the cook had written, and the Account screen
+  // offered to put all seven into their account.
+  //
+  // This is the shape of that bug in miniature. A sample without its
+  // provenance row is indistinguishable from a local recipe, which is why the
+  // provenance is written down at seed time rather than inferred.
+  const { raw, db } = fresh();
+  put(raw, recipe("sample-1", "Seeded"));
+
+  assert.deepEqual(
+    (await unadoptedRecipes(db, ALICE)).map((r) => r.id), ["sample-1"],
+    "with no provenance it is, correctly, just a recipe nobody has claimed",
+  );
+
+  origin(raw, "sample-1", "sample");
+
+  assert.deepEqual(await unadoptedRecipes(db, ALICE), [], "and with it, it is never offered");
+  assert.equal(await adoptRecipe(db, ALICE, "sample-1"), false, "nor adoptable");
+  await queueLocalChange(db, ALICE, write("sample-1", recipe("sample-1", "Edited"), true));
+  assert.equal(await countQueued(db, ALICE), 0, "nor uploadable by any path");
+});
+
+test("provenance is never written over another account's, on any path", async () => {
+  // Scoping the reads by account is what made this reachable: a row owned by
+  // somebody else stopped being FOUND, so the code concluded there was no
+  // provenance and wrote its own — taking the row over. A read that sees less
+  // than the write touches is how an access check comes to protect nothing.
+  const { raw, db } = fresh();
+  put(raw, recipe("theirs"));
+  raw.prepare(
+    `INSERT INTO recipe_origin (recipe_id, origin, account_id, shared, adopted, server_revision)
+     VALUES ('theirs', 'local', 'bob', 0, 1, 3)`,
+  ).run();
+
+  const owner = () =>
+    (raw.prepare(`SELECT account_id FROM recipe_origin WHERE recipe_id = 'theirs'`)
+      .get() as { account_id: string }).account_id;
+
+  await assert.rejects(
+    () => queueLocalChange(db, ALICE, write("theirs", recipe("theirs", "Alice's"), true)),
+    /another account's recipe/,
+  );
+  assert.equal(owner(), "bob");
+
+  const store = sqliteSyncStore(db, ALICE, LIBRARY, here);
+  await assert.rejects(() => store.markSynced("theirs", 9, false), /another account's recipe/);
+  await assert.rejects(
+    () => store.putRemote({
+      envelope: {
+        recipe: recipe("theirs", "From Alice's account"), serverId: "s1", ownerId: ALICE,
+        ownerName: null, shared: false,
+        createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z",
+      },
+      revision: 9,
+    }),
+    /another account's recipe/,
+  );
+  assert.equal(owner(), "bob");
+  assert.equal(
+    (raw.prepare(`SELECT title FROM recipes WHERE id = 'theirs'`).get() as { title: string }).title,
+    "Soda bread",
+    "and the recipe body was not rewritten on the way out either",
+  );
 });

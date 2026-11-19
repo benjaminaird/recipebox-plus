@@ -120,6 +120,36 @@ function newKey(): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/**
+ * Refuse to write provenance over another account's.
+ *
+ * recipe_origin's primary key is the recipe id alone, so every upsert here is
+ * `ON CONFLICT(recipe_id) DO UPDATE SET account_id = excluded.account_id` —
+ * which takes the row over if it belonged to someone else. That was harmless
+ * while the reads were unscoped, because a foreign row was simply found and
+ * respected. Scoping the reads by account made the row INVISIBLE instead, so
+ * the code concluded there was no provenance and wrote its own: a read that
+ * sees less than the write touches is how an access check comes to protect
+ * nothing.
+ *
+ * Deliberately unscoped, because the question is "whose is this row", and a
+ * query that cannot see the other account's row cannot answer it.
+ *
+ * Each account has its own database file, so this cannot happen today. It
+ * throws rather than silently skipping, because a recipe whose provenance was
+ * quietly not written is one that will be treated as new for ever after.
+ */
+async function assertOriginOwner(
+  db: SqliteLike, recipeId: string, accountId: string,
+): Promise<void> {
+  const row = await db.getFirstAsync<{ account_id: string | null }>(
+    `SELECT account_id FROM recipe_origin WHERE recipe_id = ?`, [recipeId],
+  );
+  if (row && row.account_id !== null && row.account_id !== accountId) {
+    throw new Error("refusing to take over another account's recipe");
+  }
+}
+
 async function writeEntry(db: SqliteLike, accountId: string, entry: OutboxEntry): Promise<void> {
   // recipe_id is the primary key, so an upsert would quietly rewrite
   // account_id if a row for this recipe belonged to someone else — and that
@@ -206,6 +236,7 @@ export async function queueLocalChange(
   if (change.created && !origin) {
     // Written into this account's own library while signed in: it is this
     // account's recipe, and recording that is what makes it uploadable.
+    await assertOriginOwner(db, change.recipeId, accountId);
     await db.runAsync(
       `INSERT INTO recipe_origin (recipe_id, origin, account_id, shared, adopted)
        VALUES (?, 'local', ?, 0, 1)
@@ -259,6 +290,7 @@ export async function adoptRecipe(
       [recipeId, accountId],
     );
     if (!row || row.origin === "sample") return;
+    await assertOriginOwner(db, recipeId, accountId);
     await db.runAsync(
       `INSERT INTO recipe_origin (recipe_id, origin, account_id, shared, adopted)
        VALUES (?, 'local', ?, 0, 1)
@@ -422,6 +454,7 @@ export function sqliteSyncStore(
       const recipe = envelope.recipe;
       // The recipe and its provenance go in together. A recipe stored without
       // its revision would be uploaded next time as if it were new.
+      await assertOriginOwner(db, recipe.id, accountId);
       await db.withTransactionAsync(async () => {
         await db.runAsync(
           `INSERT INTO recipes (id, title, category, tags, search, created_at, updated_at, json, deleted_at)
@@ -526,6 +559,7 @@ export function sqliteSyncStore(
 
     async markSynced(recipeId, revision, deleted) {
       assertOwnLibrary();
+      await assertOriginOwner(db, recipeId, accountId);
       await db.withTransactionAsync(async () => {
         await db.runAsync(
           `INSERT INTO recipe_origin (recipe_id, origin, account_id, shared, server_revision, adopted)
@@ -602,6 +636,7 @@ export async function applyResolution(
       );
       // The copy is this account's: it was made here, deliberately, while
       // signed in, which is the same thing that makes any new recipe theirs.
+      await assertOriginOwner(db, copy.id, accountId);
       await db.runAsync(
         `INSERT INTO recipe_origin (recipe_id, origin, account_id, shared, adopted)
          VALUES (?, 'local', ?, 0, 1)

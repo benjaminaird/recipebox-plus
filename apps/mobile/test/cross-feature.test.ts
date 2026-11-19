@@ -279,3 +279,27 @@ test("every table the app writes carries what a later sync will need", () => {
     assert.match(body, /deleted_at\s+INTEGER/i, `${table} has no tombstone column`);
   }
 });
+
+test("every seeded sample is recorded as a sample", () => {
+  // Not a behavioural test -- seeding needs a database -- but a check that the
+  // one line which writes the fact down is still there and still says
+  // 'sample'. It was missing entirely, and because every consumer of it was
+  // written first and correctly, nothing failed: the checks simply never
+  // matched, and all seven samples were offered for upload on a real phone.
+  const source = readFileSync(join(import.meta.dirname, "..", "src", "data", "db.ts"), "utf8");
+  const start = source.indexOf("async function markSamples(");
+  assert.ok(start > -1, "markSamples() not found: samples would have no provenance");
+  const body = source.slice(start, source.indexOf("\n}", start));
+  assert.match(body, /INSERT INTO recipe_origin[\s\S]*'sample'/i);
+  assert.match(body, /ON CONFLICT\(recipe_id\) DO NOTHING/i, "it must not overwrite known provenance");
+
+  // And seeding calls it for the ids already seeded, not only for new ones:
+  // an install that already has its samples is the case that needs it.
+  const seed = source.slice(source.indexOf("async function seedIfEmpty("));
+  const seedBody = seed.slice(0, seed.indexOf("\n}"));
+  assert.match(seedBody, /await markSamples\(db, seeded\)/, "existing installs are not backfilled");
+  assert.ok(
+    seedBody.indexOf("await markSamples(db, seeded)") < seedBody.indexOf("if (missing.length === 0) return;"),
+    "the backfill must run before the early return, or it never runs at all",
+  );
+});
