@@ -796,18 +796,84 @@ it, which is the edit the cook would have made had they pulled first.
 ## The gate
 
 `native-bidirectional-test` runs the real coordinator against the real server
-and a throwaway PostgreSQL database: thirteen checks covering conflict
+and a throwaway PostgreSQL database: fourteen checks covering conflict
 handling, queued retries across failure and restart, account isolation, and
 recovery from a watermark the server can no longer serve. Writes are enabled
 inside that test and nowhere else.
 
+## The device half
+
+The coordinator is wired into the app. `src/data/sqliteSyncStore.ts` is the
+`SyncStore` in SQLite, `src/sync/SyncProvider.tsx` decides when a run happens
+and what the interface is told about it, and two screens let a person settle a
+conflict. Deleting a recipe and taking one back out of the Trash exist for the
+first time.
+
+The store takes the database handle rather than opening one, so the same code
+runs against Expo's SQLite on the phone and node's in a test. Twenty-four
+tests create the real schema and drive the real store through it, because the
+defects that cost data here are SQL ones and none of them are visible without
+a database that enforces the constraints.
+
+A change and the promise to send it are written in ONE transaction. The sync
+layer registers a recorder that `saveRecipe` and `deleteRecipe` call from
+inside their own transaction; `src/data/db.ts` still knows nothing about
+accounts, sessions or the network.
+
+Uploading remains off by default. `RECIPEBOX_SYNC_UPLOADS=1` turns it on for a
+build; the server's `RECIPEBOX_SYNC_WRITES=on` is independent and does not
+trust it, so neither side can enable writes alone.
+
+## What running the app found
+
+Five defects that the tests did not, and would not have.
+
+**Samples were never recorded as samples.** Every check for `origin =
+'sample'` — in the outbox, the coordinator, the pull, the store — was correct
+and compared against a row nothing ever wrote. Signing in offered to put all
+seven seeded recipes into the account, and every install ships the same ids.
+
+**A recipe held back during a pull was lost for ever.** The pull correctly
+skips a recipe the device still owes a change for, but the watermark advanced
+anyway, so the server never mentioned that recipe again and the two sides
+stayed diverged permanently. The watermark now stops short of anything a page
+declined to apply.
+
+**A refused deletion could not be answered.** It carries no recipe body, so
+every choice was a no-op: the cook was told it was settled and the recipe
+stayed.
+
+**A new column went into `CREATE TABLE IF NOT EXISTS`**, which does nothing on
+a device that has run the app once. Every write to that table then failed, and
+the app reported it as "No connection".
+
+**And three things the screen said were untrue**: a stale "Up to date" in calm
+green beside a pending change, "everything is in step" beside an open
+conflict, and a label squeezed to one letter per line by a long value.
+
+A failed run now says underneath what went wrong. That is how the fourth
+defect was found in one attempt rather than by bisecting the stack.
+
+## Verified on a simulator, against the isolated PostgreSQL
+
+Create offline and upload on reconnect; survive force-quit with a change
+pending; two devices editing one recipe; resolving that conflict as "keep
+both" and watching the copy arrive as its own recipe; deleting; the Trash;
+a refused deletion resolved as "delete it anyway" and reaching the account.
+Samples refused throughout.
+
 ## Still open in A2
 
-The coordinator is not wired into the app. There is no SQLite implementation
-of `SyncStore` yet and no interface for resolving a conflict — the Account
-screen still runs the pull-only path from the previous milestone. That is the
-next piece of work, and it is a device task rather than a protocol one: the
-rules are settled and tested.
+Account switching on one phone is covered by the isolation tests but has not
+been walked through on a device in this milestone.
+
+A device that was already diverged by the watermark defect stays diverged: the
+fix prevents new occurrences but cannot re-fetch what an advanced watermark
+skipped. Those devices need a full resync.
+
+The local Trash is not purged on a timer. The account clears its own after
+thirty days; nothing on the phone throws a recipe away, which is deliberate —
+a local-only recipe has nowhere else to have been kept.
 
 ## What reviewing it found
 
