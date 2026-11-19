@@ -766,3 +766,56 @@ pass:
   explicitly without stock food photography.
 - Email-verification and timer-permission wording. A design pass, not a
   one-off edit to two strings.
+
+---
+
+# Milestone A2 — the sync coordinator
+
+The algorithm, the queue and the gate. Uploads remain off everywhere except
+the integration test, which is the condition the brief set.
+
+## What exists
+
+`src/sync/outbox.ts` is the queue of changes the phone owes the server, and
+`src/sync/coordinator.ts` is one run: pull, then push, then record what could
+not be done. Both are pure — the device's database and the network are
+parameters — so the unit tests exercise the shipped algorithm rather than a
+restatement, which is the arrangement that made the pull's rules survive
+contact with a real phone.
+
+An entry is written before the request and removed only once the server has
+answered, and holds nothing unserialisable, so it survives the OS killing the
+app. One entry per recipe: five offline edits are one upload against the
+revision the server last agreed with. A delete replaces a pending write rather
+than queueing behind it; a delete of something never sent just disappears.
+
+A conflict leaves the queue and enters a record holding both versions.
+Resolving in favour of the local one re-sends it citing the revision that beat
+it, which is the edit the cook would have made had they pulled first.
+
+## The gate
+
+`native-bidirectional-test` runs the real coordinator against the real server
+and a throwaway PostgreSQL database: thirteen checks covering conflict
+handling, queued retries across failure and restart, account isolation, and
+recovery from a watermark the server can no longer serve. Writes are enabled
+inside that test and nowhere else.
+
+## Still open in A2
+
+The coordinator is not wired into the app. There is no SQLite implementation
+of `SyncStore` yet and no interface for resolving a conflict — the Account
+screen still runs the pull-only path from the previous milestone. That is the
+next piece of work, and it is a device task rather than a protocol one: the
+rules are settled and tested.
+
+## What reviewing it found
+
+A queued delete was gated by provenance the way a write is, so it would have
+been dropped at exactly the moment it mattered — when the local row had
+already gone. The whole-library reconcile could match a tombstone instead of a
+live row sharing an id, swapping which copy existed. Both fixed.
+
+Three of my own assertions in the integration test were wrong before the code
+was: being offline fails the pull so no push is attempted and no backoff is
+owed, and a delete cannot reach a device that never held the recipe.
