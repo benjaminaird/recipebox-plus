@@ -51,7 +51,15 @@ export type SyncStore = {
   putRemote(input: { envelope: RecipeEnvelope; revision: number }): Promise<void>;
   /** Apply a deletion the server reported. */
   applyRemoteDeletion(recipeId: string, revision: number): Promise<void>;
-  /** Throw away every local recipe that came from the cloud, for a full resync. */
+  /**
+   * Throw away every local recipe that came from the cloud, for a full resync.
+   *
+   * Except any with a change still in the queue. A resync is a bookkeeping
+   * problem — this device's watermark is older than the server's memory — and
+   * solving it by discarding an edit nobody has sent yet would turn it into
+   * lost work. Those recipes stay, their queued change stays, and the push
+   * below settles them properly.
+   */
   clearCloudRecipes(): Promise<void>;
   /** The queue. */
   listOutbox(): Promise<OutboxEntry[]>;

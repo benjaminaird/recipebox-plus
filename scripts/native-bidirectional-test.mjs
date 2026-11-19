@@ -103,8 +103,12 @@ function deviceStore(accountId) {
       recipes.delete(id);
     },
     clearCloudRecipes: async () => {
+      // Everything the account sent goes, so a resync can put it back —
+      // except anything this device still owes. A resync is a bookkeeping
+      // problem; discarding an unsent edit would make it lost work.
+      const owed = new Set(outbox.map((e) => e.recipeId));
       for (const [id, row] of [...local]) {
-        if (row.origin === 'cloud') { local.delete(id); recipes.delete(id); }
+        if (row.origin === 'cloud' && !owed.has(id)) { local.delete(id); recipes.delete(id); }
       }
     },
     listOutbox: async () => outbox.slice(),
@@ -383,12 +387,37 @@ async function run(pool) {
   const stranded = deviceStore(aliceId);
   stranded._write(recipe('kept-local', 'Written here, never uploaded'), 'local', false);
   await stranded.setWatermark(5);
-  stranded._write(recipe('mine', 'A stale cloud copy'), 'cloud', true, 5);
+  // And a cloud recipe this device has edited but not sent. It is the case
+  // that costs real work: the recipe came FROM the account, so a rebuild would
+  // throw it away, and the edit on it has never been anywhere else.
+  //
+  // It has to be a recipe the account really holds, cited against the revision
+  // the account really has — an invented id, or a stale base, would be
+  // refused for reasons that have nothing to do with the resync and would
+  // prove nothing about it.
+  const minesRevision = await pool.query(
+    `SELECT revision FROM recipes WHERE user_id=$1 AND recipe_json->>'id'='mine'`, [aliceId]);
+  stranded._write(recipe('mine', 'Edited on the stranded phone'), 'cloud', true, minesRevision.rows[0].revision);
+  stranded._enqueue({
+    recipeId: 'mine', kind: 'write',
+    recipe: recipe('mine', 'Edited on the stranded phone'),
+    baseRevision: Number(minesRevision.rows[0].revision), idempotencyKey: key(),
+  });
 
   report = await runSync(stranded, deviceTransport(await token(aliceEmail, 'phone-stale')), { uploads: true });
   assert.strictEqual(report.resynced, true, 'a device too far behind is rebuilt rather than lied to');
   assert.ok(stranded._recipes.has('kept-local'), 'and its own work is not collateral damage');
   assert.strictEqual(stranded._recipes.get('kept-local').title, 'Written here, never uploaded');
+  assert.ok(stranded._recipes.has('mine'), 'nor is an unsent edit to a cloud recipe');
+  assert.strictEqual(
+    stranded._recipes.get('mine').title, 'Edited on the stranded phone',
+    "the rebuild did not replace it with the account's copy behind the cook's back");
+  const strandedPending = await pool.query(
+    `SELECT recipe_json->>'title' AS t FROM recipes WHERE user_id=$1 AND recipe_json->>'id'='mine'`,
+    [aliceId]);
+  assert.strictEqual(
+    strandedPending.rows[0].t, 'Edited on the stranded phone',
+    'and it reached the account rather than being dropped as unsendable');
   step('a device past the tombstone horizon resyncs without losing local work');
 
   // ── 8. Uploads stay off unless asked ─────────────────────────────────────

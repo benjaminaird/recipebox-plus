@@ -163,6 +163,42 @@ test("keeping my version re-sends it against the revision that beat it", () => {
   assert.equal(theirs.conflict.mine?.title, "Mine", "and still does not throw mine away");
 });
 
+test("keeping both makes a recipe of its own, and asks for an id to do it", () => {
+  const conflict: ConflictRecord = {
+    recipeId: "r1", mine: recipe("r1", "Mine"), theirs: recipe("r1", "Theirs"),
+    serverRevision: 7, reason: "server-moved", detectedAt: 1, resolvedAt: null,
+  };
+
+  const both = resolve(conflict, "keep-both", 2, "r1-copy");
+  assert.equal(both.create?.id, "r1-copy");
+  assert.equal(both.create?.title, "Mine (my version)", "nameable on a shelf beside the other");
+  // A create, not a write over the account's copy: the whole point of the
+  // choice is that the account's version is left exactly as it is.
+  assert.equal(both.enqueue?.recipeId, "r1-copy");
+  assert.equal(both.enqueue?.baseRevision, null);
+  assert.equal(both.conflict.theirs?.title, "Theirs", "and theirs is untouched");
+
+  // Inventing identity silently is how two taps become two recipes. It is the
+  // caller's to supply, and refusing is better than guessing.
+  assert.throws(() => resolve(conflict, "keep-both", 2), /needs an id/);
+});
+
+test("a conflict with nothing of mine in it resolves to nothing, whatever is chosen", () => {
+  // A delete that conflicted carries no recipe body. Every choice has to be
+  // harmless, and in particular "keep both" must not try to make a copy of
+  // something that is not there.
+  const empty: ConflictRecord = {
+    recipeId: "r1", mine: null, theirs: recipe("r1", "Theirs"),
+    serverRevision: 3, reason: "x", detectedAt: 1, resolvedAt: null,
+  };
+  for (const choice of ["keep-mine", "keep-theirs", "keep-both"] as const) {
+    const out = resolve(empty, choice, 9, "r1-copy");
+    assert.equal(out.enqueue, null, choice);
+    assert.equal(out.create, null, choice);
+    assert.equal(out.conflict.resolvedAt, 9, choice);
+  }
+});
+
 test("unresolved conflicts are the ones a person still has to answer", () => {
   const base: ConflictRecord = {
     recipeId: "r1", mine: null, theirs: null, serverRevision: 1,

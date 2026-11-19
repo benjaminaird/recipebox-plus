@@ -202,23 +202,70 @@ export type ConflictRecord = {
   resolvedAt: number | null;
 };
 
-export type ConflictChoice = "keep-mine" | "keep-theirs";
+export type ConflictChoice = "keep-mine" | "keep-theirs" | "keep-both";
+
+export type ConflictResolution = {
+  conflict: ConflictRecord;
+  /** A change to queue, if the choice implies one. */
+  enqueue: { recipeId: string; kind: "write"; recipe: Recipe; baseRevision: number | null } | null;
+  /** A recipe to create on this device, for "keep both". */
+  create: Recipe | null;
+};
 
 /**
  * What resolving a conflict does.
  *
- * Keeping mine is a fresh write against the revision that beat it — not a
- * forced overwrite, just an edit made with current information, which is what
- * the cook would have done had they pulled first. Keeping theirs discards
- * nothing either: the losing version is already in this record, and the server
- * keeps its own history.
+ * Three choices, and none of them destroys anything.
+ *
+ *   Keeping mine is a fresh write against the revision that beat it — not a
+ *   forced overwrite, just an edit made with current information, which is
+ *   what the cook would have done had they pulled first.
+ *
+ *   Keeping theirs discards nothing either: the losing version is in this
+ *   record, whole, and the server keeps its own history besides.
+ *
+ *   Keeping both makes the local version a recipe in its own right, with its
+ *   own id, and leaves the account's copy as it is. It is the honest answer
+ *   when the two versions are both wanted and neither is a correction of the
+ *   other — two cooks, two ways of making the same thing.
+ *
+ * There is deliberately no fourth choice that merges. ADR 0006 rules it out,
+ * and the reason is that a merge of two recipes is a guess about which
+ * quantities belong together, which is precisely the guess that ruins a dish.
+ *
+ * @param newId the id the kept-both copy takes. Passed in rather than
+ * generated, because a function that invents identity cannot be tested for
+ * what it does with it.
  */
-export function resolve(conflict: ConflictRecord, choice: ConflictChoice, now: number): {
-  conflict: ConflictRecord;
-  enqueue: { recipeId: string; kind: "write"; recipe: Recipe; baseRevision: number | null } | null;
-} {
+export function resolve(
+  conflict: ConflictRecord,
+  choice: ConflictChoice,
+  now: number,
+  newId?: string,
+): ConflictResolution {
   const resolved = { ...conflict, resolvedAt: now };
-  if (choice === "keep-theirs" || !conflict.mine) return { conflict: resolved, enqueue: null };
+  if (!conflict.mine) return { conflict: resolved, enqueue: null, create: null };
+
+  if (choice === "keep-theirs") return { conflict: resolved, enqueue: null, create: null };
+
+  if (choice === "keep-both") {
+    if (!newId) throw new Error("keeping both versions needs an id for the copy");
+    const copy: Recipe = {
+      ...conflict.mine,
+      id: newId,
+      title: conflict.mine.title + " (my version)",
+      createdAt: now,
+      updatedAt: now,
+    };
+    return {
+      conflict: resolved,
+      // The copy is a new recipe, so it is created rather than written over
+      // anything: base revision null, which is what a create means.
+      enqueue: { recipeId: newId, kind: "write", recipe: copy, baseRevision: null },
+      create: copy,
+    };
+  }
+
   return {
     conflict: resolved,
     enqueue: {
@@ -227,6 +274,7 @@ export function resolve(conflict: ConflictRecord, choice: ConflictChoice, now: n
       recipe: conflict.mine,
       baseRevision: conflict.serverRevision,
     },
+    create: null,
   };
 }
 
