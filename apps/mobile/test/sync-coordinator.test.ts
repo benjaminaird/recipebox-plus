@@ -671,3 +671,50 @@ test("the conflict record says what this device was trying to do", async () => {
   assert.equal(store._conflicts[0].mine, null);
   assert.equal(store._conflicts[0].theirs?.title, "Changed since");
 });
+
+test("a failure reason is attributed, not spoken in the app's own voice", () => {
+  // Some of these strings come from the server's `message` field, which is
+  // text RecipeBox did not write. Rendered plainly it reads as something the
+  // app is telling the cook — "Your session has expired, sign in at …" would
+  // be indistinguishable from RecipeBox's own words.
+  const spoof = "Your RecipeBox session has expired.\nSign in again at http://not-recipebox.example";
+  const message = describeSync({
+    pulled: 0, deletionsApplied: 0, pushed: 0, conflicts: 0, rejected: 0,
+    stillQueued: 1, resynced: false, stoppedBy: "server", error: spoof,
+  });
+
+  assert.match(message.detail ?? "", /^The server said: “/, "attributed to whoever said it");
+  assert.doesNotMatch(message.detail ?? "", /\n/, "and cannot lay itself out as several lines");
+
+  // Capped, so it cannot push the app's own words off the screen.
+  const long = describeSync({
+    pulled: 0, deletionsApplied: 0, pushed: 0, conflicts: 0, rejected: 0,
+    stillQueued: 0, resynced: false, stoppedBy: "network", error: "x".repeat(500),
+  });
+  assert.ok((long.detail ?? "").length < 200);
+
+  // And a run with nothing to say says nothing, rather than empty quotation marks.
+  const quiet = describeSync({
+    pulled: 0, deletionsApplied: 0, pushed: 0, conflicts: 0, rejected: 0,
+    stillQueued: 0, resynced: false, stoppedBy: "network", error: "   ",
+  });
+  assert.equal(quiet.detail, undefined);
+});
+
+test("keeping the account's version of a deleted recipe puts the account's version back", () => {
+  // Not the one this phone happened to be holding. The account CHANGED the
+  // recipe — that is why the deletion was refused — and the watermark has
+  // already moved past that change, so no later pull would correct it.
+  const deletion: ConflictRecord = {
+    recipeId: "r1", kind: "delete", mine: null, theirs: recipe("r1", "Changed since"),
+    serverRevision: 9, reason: "revision_mismatch", detectedAt: 1, resolvedAt: null,
+  };
+  const kept = resolve(deletion, "keep-theirs", 2);
+  assert.equal(kept.restore?.title, "Changed since");
+  assert.equal(kept.restoreRevision, 9);
+  assert.equal(kept.enqueue, null, "and nothing is sent: the account already has it");
+
+  // A write conflict restores nothing; the pull handles those.
+  const write: ConflictRecord = { ...deletion, kind: "write", mine: recipe("r1", "Mine") };
+  assert.equal(resolve(write, "keep-theirs", 2).restore, null);
+});

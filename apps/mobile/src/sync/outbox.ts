@@ -223,6 +223,17 @@ export type ConflictResolution = {
   } | null;
   /** A recipe to create on this device, for "keep both". */
   create: Recipe | null;
+  /**
+   * A recipe to put back as the current local copy, with `restoreRevision`.
+   *
+   * Keeping the account's version of a recipe this device deleted is not just
+   * "stop deleting it": the account CHANGED it, which is the whole reason the
+   * deletion was refused. Clearing the deletion alone leaves the cook with the
+   * version they had before, told that the account's won — and the watermark
+   * has already moved past the change, so no later pull corrects it.
+   */
+  restore: Recipe | null;
+  restoreRevision: number | null;
 };
 
 /**
@@ -257,8 +268,16 @@ export function resolve(
   newId?: string,
 ): ConflictResolution {
   const resolved = { ...conflict, resolvedAt: now };
+  const nothing = { conflict: resolved, enqueue: null, create: null, restore: null, restoreRevision: null };
 
-  if (choice === "keep-theirs") return { conflict: resolved, enqueue: null, create: null };
+  if (choice === "keep-theirs") {
+    // Keeping the account's version of a DELETED recipe puts the account's
+    // version back, not the one this phone happened to be holding.
+    if (conflict.kind === "delete") {
+      return { ...nothing, restore: conflict.theirs, restoreRevision: conflict.serverRevision };
+    }
+    return nothing;
+  }
 
   // A refused deletion. "Keep mine" means delete it after all, now citing the
   // revision the account actually holds — the cook's answer to "somebody
@@ -268,16 +287,15 @@ export function resolve(
       throw new Error("there is no second version of a deleted recipe to keep");
     }
     return {
-      conflict: resolved,
+      ...nothing,
       enqueue: {
         recipeId: conflict.recipeId, kind: "delete",
         recipe: null, baseRevision: conflict.serverRevision,
       },
-      create: null,
     };
   }
 
-  if (!conflict.mine) return { conflict: resolved, enqueue: null, create: null };
+  if (!conflict.mine) return nothing;
 
   if (choice === "keep-both") {
     if (!newId) throw new Error("keeping both versions needs an id for the copy");
@@ -289,7 +307,7 @@ export function resolve(
       updatedAt: now,
     };
     return {
-      conflict: resolved,
+      ...nothing,
       // The copy is a new recipe, so it is created rather than written over
       // anything: base revision null, which is what a create means.
       enqueue: { recipeId: newId, kind: "write", recipe: copy, baseRevision: null },
@@ -298,14 +316,13 @@ export function resolve(
   }
 
   return {
-    conflict: resolved,
+    ...nothing,
     enqueue: {
       recipeId: conflict.recipeId,
       kind: "write",
       recipe: conflict.mine,
       baseRevision: conflict.serverRevision,
     },
-    create: null,
   };
 }
 

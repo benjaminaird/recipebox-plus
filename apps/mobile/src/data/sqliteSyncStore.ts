@@ -662,6 +662,36 @@ export async function applyResolution(
       );
     }
 
+    if (resolution.restore) {
+      // The account's version, put back as the current local copy. Clearing
+      // `deleted_at` alone would leave the cook with whatever this phone was
+      // holding before — told that the account's version won — and the
+      // watermark has already moved past the change, so no later pull would
+      // ever correct it.
+      const back = resolution.restore;
+      await assertOriginOwner(db, back.id, accountId);
+      await db.runAsync(
+        `INSERT INTO recipes (id, title, category, tags, search, created_at, updated_at, json, deleted_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)
+         ON CONFLICT(id) DO UPDATE SET
+           title = excluded.title, category = excluded.category, tags = excluded.tags,
+           search = excluded.search, updated_at = excluded.updated_at,
+           json = excluded.json, deleted_at = NULL`,
+        [
+          back.id, back.title, back.category ?? null, JSON.stringify(back.tags ?? []),
+          buildSearchText(back), back.createdAt ?? now, back.updatedAt ?? now, JSON.stringify(back),
+        ],
+      );
+      await db.runAsync(
+        `INSERT INTO recipe_origin (recipe_id, origin, account_id, shared, server_revision, adopted)
+         VALUES (?, 'cloud', ?, 0, ?, 1)
+         ON CONFLICT(recipe_id) DO UPDATE SET
+           origin = 'cloud', account_id = excluded.account_id,
+           server_revision = excluded.server_revision, adopted = 1`,
+        [back.id, accountId, resolution.restoreRevision],
+      );
+    }
+
     if (resolution.enqueue) {
       const queued = resolution.enqueue;
       await writeEntry(db, accountId, {
@@ -684,14 +714,4 @@ function resolutionName(resolution: ConflictResolution): string {
   return resolution.enqueue ? "keep-mine" : "keep-theirs";
 }
 
-/**
- * Taking a recipe out of the Trash after choosing the account's version.
- *
- * Keeping the account's copy of a recipe this device deleted means the
- * deletion does not happen — so the row must come back out of the Trash, or
- * the cook is told the account's version won, and the recipe is still gone
- * from their library.
- */
-export async function undeleteLocally(db: SqliteLike, recipeId: string): Promise<void> {
-  await db.runAsync(`UPDATE recipes SET deleted_at = NULL WHERE id = ?`, [recipeId]);
-}
+

@@ -23,7 +23,7 @@ import {
 } from "../data/db.ts";
 import {
   adoptRecipe, applyResolution, countOpenConflicts, countQueued, lastRunAt,
-  listOpenConflicts, queueLocalChange, setLastRunAt, sqliteSyncStore, undeleteLocally,
+  listOpenConflicts, queueLocalChange, setLastRunAt, sqliteSyncStore,
   unadoptedRecipes, type SqliteLike, type StoredConflict,
 } from "../data/sqliteSyncStore.ts";
 import { resolve, type ConflictChoice } from "./outbox.ts";
@@ -224,14 +224,11 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     const now = Date.now();
     const newId = choice === "keep-both" ? copyId(conflict.recipeId, now) : undefined;
     const chosen = resolve(conflict, choice, now, newId);
-    const handle = await db();
-    await applyResolution(handle, accountId, conflict, chosen, now, guard ?? undefined);
-    // Keeping the account's copy of a recipe this device deleted means the
-    // deletion does not happen. Without this the cook is told the account's
-    // version won while the recipe stays missing from their library.
-    if (conflict.kind === "delete" && choice === "keep-theirs") {
-      await undeleteLocally(handle, conflict.recipeId);
-    }
+    // Everything the choice implies — the record, the copy, the queued change
+    // and putting a deleted recipe back — happens in one transaction inside
+    // applyResolution. Doing any of it out here was a write with none of the
+    // gates its siblings have, and it put back the wrong version besides.
+    await applyResolution(await db(), accountId, conflict, chosen, now, guard ?? undefined);
     await refresh();
     return chosen.create;
   }, [accountId, guard, refresh]);

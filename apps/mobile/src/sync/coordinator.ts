@@ -342,6 +342,29 @@ export async function runSync(
   return report;
 }
 
+/**
+ * A failure reason, marked as somebody else's words.
+ *
+ * Some of these come from the server, whose `message` field is text RecipeBox
+ * did not write. Rendered plainly it sits in the app's own voice, where
+ * "Your session has expired — sign in at …" would read as something RecipeBox
+ * was telling the cook. So it is attributed, capped, and stripped of the
+ * control characters and line breaks that would let it lay itself out as
+ * several convincing lines.
+ *
+ * Kept rather than replaced with a fixed list, because the reason is what
+ * makes a failure diagnosable at all — a mapped code says "something went
+ * wrong" twice. Attribution is the honest fix: the cook can see whose words
+ * they are.
+ */
+function quoteReason(error: string | null): string | undefined {
+  if (!error) return undefined;
+  const flat = error.replace(/[\u0000-\u001f\u007f-\u009f]+/g, " ").replace(/\s+/g, " ").trim();
+  if (!flat) return undefined;
+  const capped = flat.length > 160 ? flat.slice(0, 159) + "…" : flat;
+  return `The server said: “${capped}”`;
+}
+
 function classifyFailure(err: unknown): "network" | "server" {
   const status = (err as { status?: number } | null)?.status;
   if (typeof status === "number" && !isRetryable(status)) return "server";
@@ -366,7 +389,7 @@ export function describeSync(
       // unreadable, and those are not the same problem to anybody trying to
       // fix one. Without it a developer — or a cook on a support call — has
       // nothing to go on at all.
-      detail: report.error ?? undefined,
+      detail: quoteReason(report.error),
       title: report.pulled || report.pushed
         ? `Stopped — no connection. ${report.pulled + report.pushed} saved so far; it will carry on from here.`
         : "No connection. Nothing was synced, and nothing was lost.",
@@ -375,7 +398,7 @@ export function describeSync(
   if (report.stoppedBy === "server") {
     return {
       tone: "danger",
-      detail: report.error ?? undefined,
+      detail: quoteReason(report.error),
       title: "RecipeBox could not finish. Nothing already synced was affected.",
     };
   }

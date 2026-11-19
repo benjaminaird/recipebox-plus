@@ -752,3 +752,31 @@ test("a column added after a table shipped reaches a database that already has i
   migrate(raw);
   assert.equal((await listOpenConflicts(db, ALICE)).length, 1);
 });
+
+test("restoring the account's version writes it, with its revision, in one transaction", async () => {
+  const { raw, db } = fresh();
+  put(raw, recipe("r1", "What this phone was holding"), 5_000);
+  origin(raw, "r1", "cloud", 1, 2);
+
+  const store = sqliteSyncStore(db, ALICE, LIBRARY, here);
+  await store.recordConflict({
+    recipeId: "r1", kind: "delete", mine: null, theirs: recipe("r1", "Changed in the account"),
+    serverRevision: 9, reason: "revision_mismatch", detectedAt: 5_000, resolvedAt: null,
+  });
+  const [open] = await listOpenConflicts(db, ALICE);
+
+  await applyResolution(db, ALICE, open, resolve(open, "keep-theirs", 6_000), 6_000);
+
+  // Out of the Trash, AND holding what the account holds. Clearing the
+  // deletion alone would leave the old body with the watermark already past
+  // the change, so no later pull would ever put it right.
+  const local = await store.getLocal("r1");
+  assert.equal(local?.deletedLocally, false);
+  assert.equal(local?.serverRevision, 9);
+  assert.equal(
+    (raw.prepare(`SELECT title FROM recipes WHERE id = 'r1'`).get() as { title: string }).title,
+    "Changed in the account",
+  );
+  assert.equal(await countQueued(db, ALICE), 0, "the account already has it; nothing to send");
+  assert.equal(await countOpenConflicts(db, ALICE), 0);
+});
