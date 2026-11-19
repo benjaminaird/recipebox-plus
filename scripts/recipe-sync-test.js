@@ -473,6 +473,67 @@ async function main() {
   assert.notEqual(finalTitle.rows[0].t, 'a merge of both', 'nothing is merged');
   step('the losing edit is preserved as history, never blended into the winner');
 
+  // -------------------------------------------------------------------------
+  // The tombstone horizon, and the resync it forces
+  // -------------------------------------------------------------------------
+  //
+  // The first version of this check looked for tombstones older than the
+  // retention window that were still present — which meant it started passing
+  // at the exact moment a purge deleted the evidence. A watermark cannot fail
+  // that way: it is raised by whatever forgets, and read by whoever asks.
+
+  const fresh = await tx((c) => sync.readChangesSince(c, { userId: ALICE, since: 1 }));
+  assert.equal(fresh.resyncRequired, false, 'nothing purged yet, so a delta is serviceable');
+
+  const beforePurge = await tx((c) => sync.currentAccountRevision(c, ALICE));
+  const purgeNothing = await tx(async (c) => {
+    await sync.lockAccount(c, ALICE);
+    return sync.purgeTombstones(c, ALICE);
+  });
+  assert.equal(purgeNothing.purged, 0, 'a recent tombstone is not forgotten');
+  const afterNoPurge = await tx((c) => sync.readChangesSince(c, { userId: ALICE, since: 1 }));
+  assert.equal(afterNoPurge.resyncRequired, false);
+  step('a tombstone inside the retention window is kept, and deltas keep working');
+
+  // Age the tombstone past the horizon, then forget it.
+  await pool.query(
+    `UPDATE recipes SET deleted_at = now() - ($1 || ' days')::interval
+      WHERE user_id = $2 AND deleted_at IS NOT NULL`,
+    [String(sync.TOMBSTONE_RETENTION_DAYS + 10), ALICE]
+  );
+  const purged = await tx(async (c) => {
+    await sync.lockAccount(c, ALICE);
+    return sync.purgeTombstones(c, ALICE);
+  });
+  assert.ok(purged.purged > 0, 'a tombstone past the horizon is forgotten');
+  assert.ok(purged.watermark > 0, 'and the watermark records where memory now begins');
+  step('tombstones past the horizon are purged, and the watermark is raised');
+
+  const stalePull = await tx((c) => sync.readChangesSince(c, { userId: ALICE, since: 1 }));
+  assert.equal(stalePull.resyncRequired, true,
+    'a client syncing from before the purge is told to start again, not handed an incomplete delta');
+  const currentPull = await tx((c) => sync.readChangesSince(c, { userId: ALICE, since: beforePurge }));
+  assert.equal(currentPull.resyncRequired, false, 'a client that is up to date is unaffected');
+  step('a long-offline client is told to resync rather than silently resurrecting deletions');
+
+  // -------------------------------------------------------------------------
+  // History outlives the row
+  // -------------------------------------------------------------------------
+
+  const bobHistoryBefore = await pool.query(
+    `SELECT count(*)::int AS n FROM recipe_versions WHERE user_id = $1`, [BOB]);
+  assert.ok(bobHistoryBefore.rows[0].n > 0);
+  // What the web's "replace my whole library" path does to the recipes table.
+  await pool.query('DELETE FROM recipes WHERE user_id = $1', [BOB]);
+  const bobHistoryAfter = await pool.query(
+    `SELECT count(*)::int AS n FROM recipe_versions WHERE user_id = $1`, [BOB]);
+  assert.equal(bobHistoryAfter.rows[0].n, bobHistoryBefore.rows[0].n,
+    'deleting every recipe row leaves the version history intact');
+  const orphaned = await pool.query(
+    `SELECT count(*)::int AS n FROM recipe_versions WHERE user_id = $1 AND recipe_row_id IS NULL`, [BOB]);
+  assert.equal(orphaned.rows[0].n, bobHistoryBefore.rows[0].n, 'the row reference is cleared, not cascaded');
+  step('a whole-library replace cannot destroy the version history');
+
   await pool.end();
 
   const cleanup = new Pool({ connectionString: ADMIN_URL });

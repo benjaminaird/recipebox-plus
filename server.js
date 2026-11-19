@@ -18,6 +18,7 @@ const RecipeBoxLibrary = require('./packages/recipe-core/src/recipe-library');
 // Device sessions for the native client. Token lifecycle + storage only; it
 // reads the web app's `profiles` and owns no identity of its own (ADR 0010).
 const deviceAuth = require('./lib/device-auth');
+const recipeSync = require('./lib/recipe-sync');
 
 const app = express();
 app.disable('x-powered-by');
@@ -645,6 +646,11 @@ async function getPool() {
     )`);
     // device_sessions / device_tokens: additive, nothing existing is altered.
     await deviceAuth.ensureSchema(pool);
+    // Revisions, tombstones, version history and idempotency keys. Additive in
+    // the same sense: columns are added, nothing existing is dropped or
+    // rewritten, and recipes written before sync existed keep a null revision
+    // until their own account first syncs.
+    await recipeSync.ensureSyncSchema(pool);
     await seedAppControlKnowledge(pool);
     await ensureConfiguredMasterAdmin(pool);
   }
@@ -1537,17 +1543,34 @@ async function upsertUserRecipe(userId, input, dbOverride) {
       [userId, recipe.id]
     );
     if (existing.rows[0]) {
+      // A web save takes a revision from the same per-account counter the
+      // phone's writes use. Without it the browser could edit a recipe and no
+      // device would ever hear: a delta is "everything after N", and an edit
+      // that did not move N is an edit that did not happen as far as sync is
+      // concerned.
+      //
+      // It also clears any tombstone. Saving a recipe that is in the Trash is
+      // a request to have it back, not a request to update something invisible.
+      const revision = await recipeSync.nextRevision(client, userId);
       await client.query(
         `UPDATE recipes SET title=$3, category=$4, hero_image_url=$5, recipe_json=$6::jsonb,
-          favorite=$7, rating=$8, updated_at=now() WHERE id=$1 AND user_id=$2`,
-        [existing.rows[0].id, userId, r.title, r.category, r.heroImage, JSON.stringify(r.json), r.favorite, r.rating]
+          favorite=$7, rating=$8, updated_at=now(), revision=$9,
+          deleted_at=NULL, deleted_by=NULL WHERE id=$1 AND user_id=$2`,
+        [existing.rows[0].id, userId, r.title, r.category, r.heroImage, JSON.stringify(r.json), r.favorite, r.rating, revision]
       );
+      await recipeSync.recordWebVersion(client, {
+        rowId: existing.rows[0].id, userId, recipe: r.json, revision, cause: 'edited',
+      });
     } else {
-      await client.query(
-        `INSERT INTO recipes(user_id, title, category, hero_image_url, recipe_json, favorite, rating)
-         VALUES($1, $2, $3, $4, $5::jsonb, $6, $7)`,
-        [userId, r.title, r.category, r.heroImage, JSON.stringify(r.json), r.favorite, r.rating]
+      const revision = await recipeSync.nextRevision(client, userId);
+      const inserted = await client.query(
+        `INSERT INTO recipes(user_id, title, category, hero_image_url, recipe_json, favorite, rating, revision)
+         VALUES($1, $2, $3, $4, $5::jsonb, $6, $7, $8) RETURNING id`,
+        [userId, r.title, r.category, r.heroImage, JSON.stringify(r.json), r.favorite, r.rating, revision]
       );
+      await recipeSync.recordWebVersion(client, {
+        rowId: inserted.rows[0].id, userId, recipe: r.json, revision, cause: 'imported',
+      });
     }
     await client.query('COMMIT');
     return r.json;
@@ -1605,7 +1628,9 @@ async function readUserRecipes(userId) {
   const db = await getPool();
   if (!db) return [];
   const result = await db.query(
-    'SELECT recipe_json FROM recipes WHERE user_id=$1 ORDER BY created_at DESC',
+    // deleted_at IS NULL everywhere a recipe is read: a soft delete that the
+    // library still shows is not a delete, it is a bug with a tombstone.
+    'SELECT recipe_json FROM recipes WHERE user_id=$1 AND deleted_at IS NULL ORDER BY created_at DESC',
     [userId]
   );
   return result.rows.map((row) => canonicalizeRecipeRecord(row.recipe_json));
@@ -1657,7 +1682,7 @@ async function readVisibleRecipesPage(userId, options = {}) {
     `SELECT r.recipe_json, r.user_id, r.created_at, r.updated_at, r.id AS row_id, p.display_name
        FROM recipes r
        LEFT JOIN profiles p ON p.user_id = r.user_id
-      WHERE (
+      WHERE r.deleted_at IS NULL AND (
         r.user_id = $1
         OR (
           r.user_id <> $1
@@ -1727,7 +1752,7 @@ async function readHouseholdSharedRecipes(userId) {
        FROM recipes r
        JOIN household_members m ON m.user_id = r.user_id AND m.household_id = $1
        JOIN profiles p ON p.user_id = r.user_id
-      WHERE r.user_id <> $2 AND (r.recipe_json->>'shared') = 'true'
+      WHERE r.user_id <> $2 AND r.deleted_at IS NULL AND (r.recipe_json->>'shared') = 'true'
       ORDER BY r.created_at DESC`,
     [householdId, userId]
   );
@@ -1748,14 +1773,28 @@ async function replaceUserRecipes(userId, recipes) {
     await client.query('BEGIN');
     transactionStarted = true;
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [userId]);
+    // The whole-library replace the web has always done. It stays a replace,
+    // because changing what it means would change the web's behaviour — but
+    // the rows it writes now carry revisions, so a phone syncing afterwards
+    // sees a library that moved rather than one that silently differs.
+    //
+    // recipe_versions survives this deliberately: its reference to a recipe
+    // row is nullable and SET NULL, so the history of a recipe outlives the
+    // row being swapped underneath it. A cascade here would delete every
+    // version this account has ever had, which is the one thing ADR 0015 says
+    // cannot happen.
     await client.query('DELETE FROM recipes WHERE user_id=$1', [userId]);
     for (const recipe of recipes) {
       const r = normalizeRecipeForDb(recipe);
-      await client.query(
-        `INSERT INTO recipes(user_id, title, category, hero_image_url, recipe_json, favorite, rating)
-         VALUES($1, $2, $3, $4, $5::jsonb, $6, $7)`,
-        [userId, r.title, r.category, r.heroImage, JSON.stringify(r.json), r.favorite, r.rating]
+      const revision = await recipeSync.nextRevision(client, userId);
+      const inserted = await client.query(
+        `INSERT INTO recipes(user_id, title, category, hero_image_url, recipe_json, favorite, rating, revision)
+         VALUES($1, $2, $3, $4, $5::jsonb, $6, $7, $8) RETURNING id`,
+        [userId, r.title, r.category, r.heroImage, JSON.stringify(r.json), r.favorite, r.rating, revision]
       );
+      await recipeSync.recordWebVersion(client, {
+        rowId: inserted.rows[0].id, userId, recipe: r.json, revision, cause: 'edited',
+      });
     }
     await client.query('COMMIT');
     return true;
@@ -2855,6 +2894,13 @@ app.post('/api/auth/delete-account', async (req, res) => {
     const profile = result.rows[0];
     if (!profile || !verifyPassword(req.body.password, profile.password_hash)) return res.status(401).json({ error: 'Password did not match.' });
     await withTransaction(db, async (tx) => {
+      // Explicitly, not by cascade: recipe_versions deliberately survives a
+      // row being deleted (the bulk-replace path relies on that), so deleting
+      // an account has to say so. Closing an account must not leave its
+      // recipes readable in a history table.
+      await tx.query('DELETE FROM recipe_versions WHERE user_id=$1', [user.user_id]);
+      await tx.query('DELETE FROM sync_write_keys WHERE user_id=$1', [user.user_id]);
+      await tx.query('DELETE FROM account_revisions WHERE user_id=$1', [user.user_id]);
       await tx.query('DELETE FROM recipes WHERE user_id=$1', [user.user_id]);
       await tx.query('DELETE FROM meal_plans WHERE user_id=$1', [user.user_id]);
       await tx.query('DELETE FROM user_settings WHERE user_id=$1', [user.user_id]);
@@ -3186,6 +3232,211 @@ app.get('/api/v1/recipes', requireDeviceAuth, async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// Bidirectional sync: the delta read, and the write that can be told "no"
+// ---------------------------------------------------------------------------
+//
+// Writes are off unless RECIPEBOX_SYNC_WRITES=on. A deployment that has not
+// asked for them answers 503 and explains itself, rather than quietly
+// accepting a phone's first upload into a library nobody has agreed to change
+// yet. The read half is always available: it cannot lose anything.
+
+// Read when asked rather than captured at load, so the setting is the
+// deployment's and not a snapshot of whatever the process started with.
+function syncWritesEnabled() {
+  return String(process.env.RECIPEBOX_SYNC_WRITES || '').toLowerCase() === 'on';
+}
+
+function syncWritesAvailable(res) {
+  if (syncWritesEnabled()) return true;
+  res.status(503).json({
+    code: 'sync_writes_disabled',
+    message: 'This server is not accepting recipe uploads yet.',
+  });
+  return false;
+}
+
+/**
+ * Everything this account has changed since a revision it names.
+ *
+ * Only the caller's own recipes. Household recipes are readable through
+ * /api/v1/recipes, which is a library view; this is a replica feed, and a
+ * replica of somebody else's recipe would be a copy this account could then
+ * be asked to write back.
+ */
+app.get('/api/v1/sync/recipes', requireDeviceAuth, async (req, res) => {
+  try {
+    const since = recipeSync.parseRevision(req.query.since, 'since');
+    const limit = recipeSync.parsePullLimit(req.query.limit);
+    const db = await getPool();
+    if (!db) return res.status(503).json({ code: 'database_unavailable', message: 'Not available right now.' });
+
+    const out = await withTransaction(db, async (client) => {
+      await recipeSync.lockAccount(client, req.user.user_id);
+      // A first sync stamps this account's older rows, inside the lock it
+      // already holds, so a delta has something to be relative to.
+      await recipeSync.backfillRevisions(client, req.user.user_id);
+      return recipeSync.readChangesSince(client, { userId: req.user.user_id, since, limit });
+    });
+    res.json(out);
+  } catch (err) {
+    if (/must be a non-negative integer|sync limit/.test(err.message)) {
+      return res.status(400).json({ code: 'bad_request', message: err.message });
+    }
+    sendV1Error(res, err);
+  }
+});
+
+/**
+ * Apply a batch of writes and deletions, or refuse the ones that conflict.
+ *
+ * Partial success is the normal outcome and the useful one: one stale edit in
+ * a batch of twenty must not reject the other nineteen. Each entry comes back
+ * applied, conflicted, skipped or rejected, and a conflict carries the server's
+ * version so the client can show a person both rather than guess.
+ *
+ * Ownership is enforced by the queries themselves — every read and write is
+ * scoped to the caller's user_id, so a write aimed at somebody else's recipe
+ * finds nothing to update rather than needing a separate check to remember.
+ */
+app.post('/api/v1/sync/recipes', requireDeviceAuth, async (req, res) => {
+  if (!syncWritesAvailable(res)) return;
+  try {
+    const writes = Array.isArray(req.body && req.body.writes) ? req.body.writes : [];
+    const deletions = Array.isArray(req.body && req.body.deletions) ? req.body.deletions : [];
+    if (writes.length + deletions.length > recipeSync.MAX_WRITES_PER_PUSH) {
+      return res.status(400).json({
+        code: 'too_many_writes',
+        message: `Send at most ${recipeSync.MAX_WRITES_PER_PUSH} changes at a time.`,
+      });
+    }
+    const db = await getPool();
+    if (!db) return res.status(503).json({ code: 'database_unavailable', message: 'Not available right now.' });
+
+    const deviceId = req.device && req.device.id ? String(req.device.id) : null;
+
+    const result = await withTransaction(db, async (client) => {
+      await recipeSync.lockAccount(client, req.user.user_id);
+      await recipeSync.backfillRevisions(client, req.user.user_id);
+
+      const applied = [];
+      const conflicts = [];
+      const rejected = [];
+      const skipped = [];
+
+      const record = (outcome) => {
+        if (outcome.status === 'applied') applied.push(outcome);
+        else if (outcome.status === 'conflict') conflicts.push(outcome);
+        else if (outcome.status === 'rejected') rejected.push(outcome);
+        else skipped.push(outcome);
+      };
+
+      // Creates before updates before deletes is the client's ordering
+      // (orderForUpload); the server applies what it is given in order so the
+      // two agree about what "first" meant.
+      for (const entry of writes) {
+        record(await recipeSync.applyWrite(client, {
+          userId: req.user.user_id,
+          recipe: entry && entry.recipe,
+          baseRevision: entry && entry.baseRevision,
+          idempotencyKey: entry && entry.idempotencyKey,
+          cause: (entry && entry.cause) || 'edited',
+          deviceId,
+        }));
+      }
+      for (const entry of deletions) {
+        record(await recipeSync.applyDelete(client, {
+          userId: req.user.user_id,
+          recipeId: entry && entry.id,
+          baseRevision: entry && entry.baseRevision,
+          idempotencyKey: entry && entry.idempotencyKey,
+          deviceId,
+        }));
+      }
+
+      return {
+        applied, conflicts, rejected, skipped,
+        revision: await recipeSync.currentAccountRevision(client, req.user.user_id),
+      };
+    });
+
+    res.json(result);
+  } catch (err) {
+    sendV1Error(res, err);
+  }
+});
+
+/** What this recipe has been, newest first (ADR 0015). */
+app.get('/api/v1/recipes/:recipeId/versions', requireDeviceAuth, async (req, res) => {
+  try {
+    const db = await getPool();
+    if (!db) return res.status(503).json({ code: 'database_unavailable', message: 'Not available right now.' });
+    const versions = await recipeSync.readVersions(db, req.user.user_id, req.params.recipeId);
+    res.json({ versions });
+  } catch (err) {
+    sendV1Error(res, err);
+  }
+});
+
+/** Make an earlier version current again, as a new revision. */
+app.post('/api/v1/recipes/:recipeId/revert', requireDeviceAuth, async (req, res) => {
+  if (!syncWritesAvailable(res)) return;
+  try {
+    const target = recipeSync.parseRevision(req.body && req.body.revision, 'revision');
+    if (target === null) return res.status(400).json({ code: 'bad_request', message: 'revision is required' });
+    const db = await getPool();
+    if (!db) return res.status(503).json({ code: 'database_unavailable', message: 'Not available right now.' });
+
+    const out = await withTransaction(db, async (client) => {
+      await recipeSync.lockAccount(client, req.user.user_id);
+      return recipeSync.revertToVersion(client, {
+        userId: req.user.user_id,
+        recipeId: req.params.recipeId,
+        targetRevision: target,
+        deviceId: req.device && req.device.id ? String(req.device.id) : null,
+      });
+    });
+    if (out.status === 'rejected') return res.status(404).json({ code: out.reason, message: 'Not available.' });
+    res.json(out);
+  } catch (err) {
+    if (/must be a non-negative integer/.test(err.message)) {
+      return res.status(400).json({ code: 'bad_request', message: err.message });
+    }
+    sendV1Error(res, err);
+  }
+});
+
+/** The 30-day Trash: what was deleted and can still be had back. */
+app.get('/api/v1/trash', requireDeviceAuth, async (req, res) => {
+  try {
+    const db = await getPool();
+    if (!db) return res.status(503).json({ code: 'database_unavailable', message: 'Not available right now.' });
+    res.json({ recipes: await recipeSync.listTrash(db, req.user.user_id) });
+  } catch (err) {
+    sendV1Error(res, err);
+  }
+});
+
+app.post('/api/v1/trash/:recipeId/restore', requireDeviceAuth, async (req, res) => {
+  if (!syncWritesAvailable(res)) return;
+  try {
+    const db = await getPool();
+    if (!db) return res.status(503).json({ code: 'database_unavailable', message: 'Not available right now.' });
+    const out = await withTransaction(db, async (client) => {
+      await recipeSync.lockAccount(client, req.user.user_id);
+      return recipeSync.restoreRecipe(client, {
+        userId: req.user.user_id,
+        recipeId: req.params.recipeId,
+        deviceId: req.device && req.device.id ? String(req.device.id) : null,
+      });
+    });
+    if (out.status === 'rejected') return res.status(404).json({ code: out.reason, message: 'Not available.' });
+    res.json(out);
+  } catch (err) {
+    sendV1Error(res, err);
+  }
+});
+
 // Fetch a recipe page for the phone to read.
 //
 // It returns HTML, not a recipe, and that is the point of the shape
@@ -3458,6 +3709,7 @@ app.get('/api/admin/users', requireAuth, requireMasterAdmin, async (req, res) =>
        LEFT JOIN (
          SELECT user_id, count(*) AS recipe_count
          FROM recipes
+         WHERE deleted_at IS NULL
          GROUP BY user_id
        ) r ON r.user_id = p.user_id
        LEFT JOIN (

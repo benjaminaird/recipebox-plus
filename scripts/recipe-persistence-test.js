@@ -35,6 +35,8 @@ class MemoryRecipeDb {
     this.lockCalls = 0;
     this.releaseCalls = 0;
     this.failRecipeId = null;
+    this.revisions = {};
+    this.versions = [];
   }
 
   async connect() {
@@ -59,17 +61,35 @@ class MemoryRecipeDb {
       const row = this.rows.find((item) => item.row_id === params[0] && item.user_id === params[1]);
       if (!row) return { rows:[] };
       row.title = params[2]; row.category = params[3]; row.recipe_json = JSON.parse(params[5]);
+      if (params[8] !== undefined) row.revision = Number(params[8]);
+      return { rows:[] };
+    }
+    // The per-account revision counter. Modelled rather than ignored: a save
+    // that does not move the revision is a save no device would ever hear
+    // about, so a double that quietly returned nothing would hide exactly the
+    // bug this counter exists to prevent.
+    if (sql.includes('INSERT INTO account_revisions')) {
+      const userId = params[0];
+      this.revisions[userId] = (this.revisions[userId] || 0) + 1;
+      return { rows:[{ revision:this.revisions[userId] }] };
+    }
+    if (sql.includes('INSERT INTO recipe_versions')) {
+      this.versions.push({
+        row_id:params[0], user_id:params[1], recipe_id:params[2],
+        revision:Number(params[3]), recipe_json:JSON.parse(params[4]), cause:params[5],
+      });
       return { rows:[] };
     }
     if (sql.includes('INSERT INTO recipes')) {
       const parsed = JSON.parse(params[4]);
       if (parsed.id === this.failRecipeId) throw new Error('simulated database failure');
+      const rowId = rowUuid(this.rows.length + 1);
       this.rows.push({
-        row_id:rowUuid(this.rows.length + 1), user_id:params[0], title:params[1], category:params[2],
-        recipe_json:parsed, display_name:'Owner',
+        row_id:rowId, user_id:params[0], title:params[1], category:params[2],
+        recipe_json:parsed, display_name:'Owner', revision:params[7] === undefined ? null : Number(params[7]),
         created_at:new Date(Date.UTC(2026, 6, 1, 1, this.rows.length)),
       });
-      return { rows:[] };
+      return { rows:[{ id:rowId }] };
     }
     if (sql.includes('FROM recipes r') && sql.includes('ORDER BY r.created_at DESC, r.id DESC')) {
       const userId = params[0];
@@ -176,6 +196,19 @@ class MemoryRecipeDb {
   assert.deepStrictEqual(RECIPE_CATEGORIES, Library.CANONICAL_CATEGORIES, 'client and server share one canonical category list');
   assert.strictEqual(parseRecipePageLimit(undefined), 50);
   assert.throws(() => parseRecipePageLimit('0'), /between 1 and 100/);
+
+  // Every web save moves the account's revision and leaves a version behind.
+  // A delta is "everything after N", so a browser edit that did not move N is
+  // an edit no phone would ever hear about; and ADR 0015's history is about
+  // the recipe, not about which client happened to touch it.
+  assert.ok(db.revisions[userId] > 0, 'web saves assign revisions from the per-account counter');
+  const revisions = db.rows.map((row) => row.revision);
+  assert.ok(revisions.every((r) => Number.isInteger(r) && r > 0), 'every saved row carries a revision');
+  assert.strictEqual(new Set(revisions).size, revisions.length, 'and no two rows share one');
+  assert.ok(db.versions.length >= db.rows.length, 'every save appended a version');
+  const editedHistory = db.versions.filter((v) => v.recipe_id === recipes[12].id);
+  assert.ok(editedHistory.length >= 2, 'an edited recipe keeps the version it had before the edit');
+  assert.strictEqual(editedHistory[0].recipe_json.title, 'Recipe 13', 'the earlier version is still readable');
 
   const root = path.join(__dirname, '..');
   const source = fs.readFileSync(path.join(root, 'src/app.jsx'), 'utf8');
