@@ -554,3 +554,70 @@ test("a successful run says what it did, and what is still waiting", () => {
   assert.match(out.title, /1 removed/);
   assert.match(out.title, /1 still waiting to send/);
 });
+
+test("a recipe held back during a pull is not lost once the queue clears", async () => {
+  // The defect this protects against was found by running the app, not the
+  // tests. A recipe with a queued change is skipped by the pull — correctly,
+  // because the push decides whether it conflicts — but the watermark used to
+  // advance past it anyway. The next pull then asked for changes AFTER a
+  // revision it had never applied, so the server never mentioned that recipe
+  // again: the phone kept its own version for ever, silently diverged from
+  // the account, and no amount of syncing put it right.
+  const store = memoryStore("alice");
+  store._local.set("r1", {
+    recipeId: "r1", origin: "cloud", adopted: true, serverRevision: 1, deletedLocally: false,
+  });
+  store._recipes.set("r1", recipe("r1", "Mine, unsent"));
+  store._setOutbox([entry({ recipeId: "r1", baseRevision: 1 })]);
+
+  const held = {
+    recipes: [{
+      recipe: recipe("r1", "Theirs"), serverId: "s1", revision: 5,
+      createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z",
+    }],
+    deletions: [], revision: 5, more: false, resyncRequired: false,
+  };
+
+  // First run: the recipe is held back, and so is the watermark.
+  let report = await runSync(store, transport({ pull: async () => held }));
+  assert.equal(report.pulled, 0, "not overwritten while this device owes a change");
+  assert.equal(store._watermark(), 4, "and the watermark stops short of it");
+  assert.equal(store._recipes.get("r1")?.title, "Mine, unsent");
+
+  // The queue clears — the change was sent, or resolved as a conflict.
+  store._setOutbox([]);
+
+  // Second run: the server offers it again, because the watermark never
+  // claimed to have seen it, and now it is applied.
+  report = await runSync(store, transport({ pull: async () => held }));
+  assert.equal(report.pulled, 1);
+  assert.equal(store._recipes.get("r1")?.title, "Theirs");
+  assert.equal(store._watermark(), 5);
+});
+
+test("holding the watermark back ends the pull rather than asking for ever", async () => {
+  // Holding the watermark and carrying on would re-fetch the same page, which
+  // the watermark no longer moves past: the loop would run to its page limit
+  // every single sync. Stopping is right -- the push is what clears the queue
+  // that caused the hold.
+  const store = memoryStore("alice");
+  store._local.set("r1", {
+    recipeId: "r1", origin: "cloud", adopted: true, serverRevision: 1, deletedLocally: false,
+  });
+  store._setOutbox([entry({ recipeId: "r1", baseRevision: 1 })]);
+
+  let calls = 0;
+  await runSync(store, transport({
+    pull: async () => {
+      calls += 1;
+      return {
+        recipes: [{
+          recipe: recipe("r1", "Theirs"), serverId: "s1", revision: 5,
+          createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z",
+        }],
+        deletions: [], revision: 5, more: true, resyncRequired: false,
+      };
+    },
+  }));
+  assert.equal(calls, 1, "one page, then stop");
+});

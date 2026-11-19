@@ -454,8 +454,10 @@ export function sqliteSyncStore(
       const recipe = envelope.recipe;
       // The recipe and its provenance go in together. A recipe stored without
       // its revision would be uploaded next time as if it were new.
-      await assertOriginOwner(db, recipe.id, accountId);
       await db.withTransactionAsync(async () => {
+        // Inside, not before: a check that runs outside the transaction it
+        // guards is a check another write can slip past.
+        await assertOriginOwner(db, recipe.id, accountId);
         await db.runAsync(
           `INSERT INTO recipes (id, title, category, tags, search, created_at, updated_at, json, deleted_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)
@@ -492,14 +494,27 @@ export function sqliteSyncStore(
       // Soft, like every other deletion here. The server's Trash and this
       // phone's are the same Trash as far as the cook is concerned, and a row
       // that is still here is one they can have back.
+      //
+      // Scoped to a recipe this account actually got from the cloud. A
+      // deletion is the most destructive thing the server can ask of this
+      // device, so it is the last place to take the recipe id on trust: a
+      // local recipe, or another account's, is not the server's to delete.
       await db.withTransactionAsync(async () => {
+        await assertOriginOwner(db, recipeId, accountId);
+        const mine = await db.getFirstAsync<{ recipe_id: string }>(
+          `SELECT recipe_id FROM recipe_origin
+            WHERE recipe_id = ? AND account_id = ? AND origin = 'cloud'`,
+          [recipeId, accountId],
+        );
+        if (!mine) return;
         await db.runAsync(
           `UPDATE recipes SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL`,
           [Date.now(), recipeId],
         );
         await db.runAsync(`DELETE FROM cook_progress WHERE recipe_id = ?`, [recipeId]);
         await db.runAsync(
-          `UPDATE recipe_origin SET server_revision = ? WHERE recipe_id = ?`, [revision, recipeId],
+          `UPDATE recipe_origin SET server_revision = ? WHERE recipe_id = ? AND account_id = ?`,
+          [revision, recipeId, accountId],
         );
       });
     },
@@ -559,8 +574,8 @@ export function sqliteSyncStore(
 
     async markSynced(recipeId, revision, deleted) {
       assertOwnLibrary();
-      await assertOriginOwner(db, recipeId, accountId);
       await db.withTransactionAsync(async () => {
+        await assertOriginOwner(db, recipeId, accountId);
         await db.runAsync(
           `INSERT INTO recipe_origin (recipe_id, origin, account_id, shared, server_revision, adopted)
            VALUES (?, 'cloud', ?, 0, ?, 1)

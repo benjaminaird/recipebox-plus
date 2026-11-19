@@ -206,7 +206,17 @@ async function seedIfEmpty(db: SQLite.SQLiteDatabase): Promise<void> {
   //
   // Done on every open, cheaply, rather than only when something is seeded:
   // installs that already have their samples need it most.
-  await markSamples(db, seeded);
+  //
+  // Filtered to the ids this app actually ships, which matters more than it
+  // looks. The legacy branch above sets `seeded` to EVERY recipe id on the
+  // phone -- that is its honest best guess at "already offered once", and it
+  // was harmless while the list only gated re-seeding. Handing it to
+  // markSamples unfiltered would stamp a long-standing user's entire
+  // cookbook as sample data, and a sample can never be uploaded: their
+  // recipes would quietly stop being able to reach their account, for ever,
+  // with nothing on screen to say why.
+  const sampleIds = new Set(SAMPLE_RECIPES.map((r) => r.id));
+  await markSamples(db, seeded.filter((id) => sampleIds.has(id)));
 
   const missing = SAMPLE_RECIPES.filter((r) => !seeded.includes(r.id));
   if (missing.length === 0) return;

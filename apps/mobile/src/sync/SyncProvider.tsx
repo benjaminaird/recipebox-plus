@@ -248,12 +248,26 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     : queued > 0 ? "pending"
     : "up-to-date";
 
+  /**
+   * A finished run describes what it did. It stops describing where things
+   * stand the moment anything changes after it — and "Up to date, nothing
+   * new" in calm green, beside a row saying a change is waiting to go up, is
+   * worse than saying nothing: it is the same wrong reassurance that an
+   * earlier version of this screen gave for a download that had failed.
+   */
+  const stale = report !== null && (
+    // It reported conflicts, and they have since been settled.
+    (report.conflicts > 0 && conflicts === 0)
+    // Or it reported everything done, and something has happened since.
+    || (report.conflicts === 0 && report.stoppedBy === "done" && (queued > 0 || conflicts > 0))
+  );
+
   const value = useMemo<SyncValue>(() => ({
     ...idle,
     status, queued, conflicts, lastRunAt: ranAt, uploads,
-    message: report ? describeSync(report) : null,
+    message: report && !stale ? describeSync(report) : null,
     sync, openConflicts, resolveConflict, unadopted, adopt, refresh,
-  }), [status, queued, conflicts, ranAt, uploads, report, sync, openConflicts, resolveConflict, unadopted, adopt, refresh]);
+  }), [status, queued, conflicts, ranAt, uploads, report, stale, sync, openConflicts, resolveConflict, unadopted, adopt, refresh]);
 
   return <SyncContext.Provider value={value}>{children}</SyncContext.Provider>;
 }

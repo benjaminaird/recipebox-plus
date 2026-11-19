@@ -281,6 +281,53 @@ async function run(pool) {
   assert.ok(history.json.versions.length >= 2, 'the server kept its own history of the winner');
   step('the server’s version history holds every applied change');
 
+  // A recipe the pull declines to apply must not be lost.
+  //
+  // The pull skips a recipe this device still owes a change for -- correctly,
+  // because the push decides whether it conflicts. What must not happen is
+  // that the watermark advances past it anyway: the next pull would ask for
+  // changes AFTER a revision it never applied, the server would never mention
+  // that recipe again, and the two sides would stay diverged for ever with no
+  // way back. Found by running the app on a simulator, where a recipe held
+  // back during a conflict kept its old title after the conflict was settled.
+  //
+  // On a recipe of its own, so the scenario disturbs nothing else here.
+  phoneB._write(recipe('held', 'As phone B wrote it'), 'local', true);
+  phoneB._enqueue({ recipeId: 'held', kind: 'write', recipe: recipe('held', 'As phone B wrote it'), baseRevision: null, idempotencyKey: key() });
+  report = await runSync(phoneB, transportB, { uploads: true });
+  assert.strictEqual(report.pushed, 1);
+
+  const phoneHeld = deviceStore(aliceId);
+  const transportHeld = deviceTransport(await token(aliceEmail, 'phone-held'));
+  await runSync(phoneHeld, transportHeld, { uploads: true });
+  assert.strictEqual(phoneHeld._recipes.get('held').title, 'As phone B wrote it');
+  const heldBase = phoneHeld._local.get('held').serverRevision;
+
+  // Phone B moves it on.
+  phoneB._write(recipe('held', 'Moved on by phone B'), 'cloud', true, heldBase);
+  phoneB._enqueue({ recipeId: 'held', kind: 'write', recipe: recipe('held', 'Moved on by phone B'), baseRevision: heldBase, idempotencyKey: key() });
+  report = await runSync(phoneB, transportB, { uploads: true });
+  assert.strictEqual(report.pushed, 1);
+
+  // And this device has an unsent change of its own for the same recipe, so
+  // the pull holds it back. Pull-only, so the push does not settle it.
+  phoneHeld._enqueue({ recipeId: 'held', kind: 'write', recipe: recipe('held', 'Held back here'), baseRevision: heldBase, idempotencyKey: key() });
+  report = await runSync(phoneHeld, transportHeld);
+  assert.strictEqual(report.pulled, 0, 'not overwritten while this device owes a change');
+  assert.strictEqual(
+    phoneHeld._recipes.get('held').title, 'As phone B wrote it', 'its own copy is untouched');
+  assert.ok(
+    (await phoneHeld.getWatermark()) < heldBase + 1,
+    'and the watermark did not step over what it declined to apply');
+
+  // The change is settled, and the server's version arrives after all.
+  for (const e of [...phoneHeld._outbox()]) await phoneHeld.removeFromOutbox(e.recipeId);
+  report = await runSync(phoneHeld, transportHeld, { uploads: true });
+  assert.strictEqual(
+    phoneHeld._recipes.get('held').title, 'Moved on by phone B',
+    'once nothing is owed, the account’s version is delivered rather than skipped for ever');
+  step('a recipe held back during a pull is not lost once the queue clears');
+
   // ── 4. Queued retries across failure and restart ─────────────────────────
   const phoneC = deviceStore(aliceId);
   const transportC = deviceTransport(await token(aliceEmail, 'phone-c'));

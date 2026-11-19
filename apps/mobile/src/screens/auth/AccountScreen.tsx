@@ -219,7 +219,7 @@ export function AccountScreen() {
           <PanelRow
             first
             label={sync.status === "syncing" ? "Syncing…" : "Sync now"}
-            detail={syncDetail(sync.status, sync.queued, sync.lastRunAt, sync.uploads)}
+            detail={syncDetail(sync.status, sync.queued, sync.lastRunAt, sync.uploads, sync.conflicts)}
             action={sync.status === "syncing" ? undefined : "Sync"}
             onPress={sync.status === "syncing" ? undefined : () => { void sync.sync(); }}
           />
@@ -298,8 +298,10 @@ export function AccountScreen() {
  */
 function syncDetail(
   status: string, queued: number, lastRunAt: number | null, uploads: boolean,
+  conflicts = 0,
 ): string {
-  const owed = queued === 0 ? "" : queued === 1
+  const one = queued === 1;
+  const owed = queued === 0 ? "" : one
     ? "1 change is waiting to go up. "
     : `${queued} changes are waiting to go up. `;
 
@@ -309,9 +311,18 @@ function syncDetail(
       + "uploading is not switched on yet, and nothing is lost by waiting.";
   }
   if (status === "offline") {
-    return owed + "The last attempt could not reach your account. It will carry on from where it stopped.";
+    return owed + "The last attempt could not reach your account. "
+      + (queued ? "Nothing is lost; it will carry on from where it stopped." : "Nothing on this phone has changed.");
   }
-  if (status === "pending") return owed + "Tap to send them now.";
+  if (status === "pending") return owed + (one ? "Tap to send it now." : "Tap to send them now.");
+  if (conflicts > 0) {
+    // Not "everything is in step": a recipe exists in two versions and one of
+    // them is this cook's. Saying it is settled is the calm-green problem in
+    // another costume.
+    return owed + (conflicts === 1
+      ? "One recipe is waiting on you to choose a version."
+      : `${conflicts} recipes are waiting on you to choose a version.`);
+  }
   if (lastRunAt) {
     const mins = Math.floor((Date.now() - lastRunAt) / 60_000);
     const ago = mins < 1 ? "a moment ago" : mins < 60 ? `${mins} minutes ago` : "earlier today";

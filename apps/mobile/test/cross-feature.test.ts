@@ -297,9 +297,24 @@ test("every seeded sample is recorded as a sample", () => {
   // an install that already has its samples is the case that needs it.
   const seed = source.slice(source.indexOf("async function seedIfEmpty("));
   const seedBody = seed.slice(0, seed.indexOf("\n}"));
-  assert.match(seedBody, /await markSamples\(db, seeded\)/, "existing installs are not backfilled");
+  assert.match(
+    seedBody, /await markSamples\(db, seeded\.filter\(/,
+    "existing installs are not backfilled",
+  );
   assert.ok(
-    seedBody.indexOf("await markSamples(db, seeded)") < seedBody.indexOf("if (missing.length === 0) return;"),
+    seedBody.indexOf("await markSamples(db, seeded") < seedBody.indexOf("if (missing.length === 0) return;"),
     "the backfill must run before the early return, or it never runs at all",
+  );
+
+  // And it is filtered to the ids this app ships. The legacy branch above
+  // sets `seeded` to EVERY recipe id on the phone as its best guess at
+  // "already offered once" -- fine while the list only gated re-seeding, and
+  // ruinous as a provenance source: it would stamp a long-standing user's
+  // whole cookbook as sample data, and a sample can never be uploaded. Their
+  // recipes would quietly stop being able to reach their account, for ever.
+  assert.match(seedBody, /sampleIds\.has\(id\)/, "the backfill is not filtered to shipped samples");
+  assert.match(
+    source, /const sampleIds = new Set\(SAMPLE_RECIPES\.map\(/,
+    "the filter must come from the shipped sample set, not from the seeded list",
   );
 });

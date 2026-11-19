@@ -671,3 +671,29 @@ test("provenance is never written over another account's, on any path", async ()
     "and the recipe body was not rewritten on the way out either",
   );
 });
+
+test("a deletion from the server only ever reaches a recipe that came from it", async () => {
+  // The most destructive thing the server can ask of this device, so it is
+  // the last place to take a recipe id on trust. The coordinator already
+  // refuses to pass on a deletion for anything but a cloud recipe; the store
+  // refuses too, because two independent refusals is the right number for an
+  // operation that removes a cook's recipe from their library.
+  const { raw, db } = fresh();
+  put(raw, recipe("mine", "Written on this phone"));
+  origin(raw, "mine", "local", 1);
+  put(raw, recipe("theirs", "From the account"));
+  origin(raw, "theirs", "cloud", 1, 3);
+
+  const store = sqliteSyncStore(db, ALICE, LIBRARY, here);
+  await store.applyRemoteDeletion("mine", 9);
+  assert.equal((await store.getLocal("mine"))?.deletedLocally, false, "not the server's to delete");
+
+  await store.applyRemoteDeletion("theirs", 9);
+  assert.equal((await store.getLocal("theirs"))?.deletedLocally, true);
+  assert.equal((await store.getLocal("theirs"))?.serverRevision, 9);
+
+  // And a recipe this account has never heard of is left alone rather than
+  // creating a tombstone for somebody else's row.
+  await store.applyRemoteDeletion("unknown", 9);
+  assert.equal(await store.getLocal("unknown"), null);
+});

@@ -279,5 +279,8 @@ const styles = StyleSheet.create({
   primary: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 },
   row: { flexDirection: "row", alignItems: "center", gap: 12 },
   rowStacked: { flexDirection: "column", alignItems: "flex-start", gap: 6 },
-  valueRight: { textAlign: "right", flexShrink: 1 },
+  // Capped, and allowed to wrap. Without the cap a long value takes its full
+  // intrinsic width and the label beside it is squeezed to nothing — on a
+  // real screen, "Name" came out as four lines of one letter each.
+  valueRight: { textAlign: "right", flexShrink: 1, maxWidth: "65%" },
 });

@@ -167,13 +167,20 @@ export async function runSync(
         continue;
       }
 
+      // The lowest revision this page declined to apply. The watermark must
+      // not move past it; see below.
+      let heldBack: number | null = null;
+
       for (const entry of page.recipes) {
         // A recipe with an unsent local edit is not overwritten by the pull.
         // The push below will cite its base revision and find out properly
         // whether it conflicts; clobbering it here would decide that question
         // by arrival order.
         const queued = (await store.listOutbox()).some((e) => e.recipeId === entry.recipe.id);
-        if (queued) continue;
+        if (queued) {
+          heldBack = heldBack === null ? entry.revision : Math.min(heldBack, entry.revision);
+          continue;
+        }
 
         const local = await store.getLocal(entry.recipe.id);
         if (local && (local.origin === "sample" || (local.origin === "local" && !local.adopted))) {
@@ -207,8 +214,27 @@ export async function runSync(
         report.deletionsApplied += 1;
       }
 
-      since = page.revision;
+      // The watermark may not pass anything this page declined to apply.
+      //
+      // Skipping a recipe and then advancing anyway loses it: the next pull
+      // asks for changes after a revision it never applied, so the server
+      // never mentions that recipe again. The phone keeps its own version for
+      // ever, silently diverged from the account, and no amount of syncing
+      // puts it right — seen on a simulator, where a recipe held back during
+      // a conflict kept its old title after the conflict was settled.
+      //
+      // Holding the watermark means re-reading that page until the queue
+      // clears. The re-reads are cheap and idempotent, and they stop by
+      // themselves; silent divergence does not stop at all.
+      since = heldBack === null ? page.revision : Math.min(page.revision, heldBack - 1);
       await store.setWatermark(since);
+
+      // And stop pulling for this run. Carrying on would ask for the same
+      // page again — the watermark did not move past it — and keep asking
+      // until the page limit. The push below is what clears the queue that
+      // caused the hold, so the next run gets further.
+      if (heldBack !== null) break;
+
       if (!page.more) break;
       if (pages >= MAX_PAGES) report.stoppedBy = "limit";
     }

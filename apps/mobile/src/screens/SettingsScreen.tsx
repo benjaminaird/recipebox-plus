@@ -307,8 +307,8 @@ export function SettingsScreen() {
           />
         </Group>
         <Text style={[textStyle("footnote"), { color: c.textTertiary }]}>
-          RecipeBox works without an account. Signing in is how your recipes will reach your other
-          devices; nothing syncs yet.
+          RecipeBox works without an account. Signing in is how your recipes reach your other
+          devices.
         </Text>
       </View>
 
