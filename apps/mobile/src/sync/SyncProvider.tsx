@@ -75,7 +75,7 @@ export type SyncValue = {
   /** Re-read the counts, after something outside a run changed them. */
   refresh(): Promise<void>;
   /** Whether a recipe is somebody else's, and whose. */
-  provenance(recipeId: string): Promise<{ shared: boolean; ownerId: string | null }>;
+  provenance(recipeId: string): Promise<{ shared: boolean; ownerId: string | null; ownerName: string | null }>;
   /** Save a household recipe as this account's own. Returns the copy. */
   saveMyCopy(original: Recipe, ownerName: string | null): Promise<Recipe | null>;
   /** Forget everything from the account and fetch it again. */
@@ -201,7 +201,11 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         try {
           const visible = await readLibrary(auth.authorized);
           const plan = planHouseholdRead(visible, await heldRecipes(handle, accountId));
-          for (const envelope of plan.store) await putSharedRecipe(handle, accountId, envelope);
+          for (const envelope of plan.store) {
+            // One refusal — a shared recipe whose id collides with one of this
+            // cook's own — must not cost them every shared recipe after it.
+            try { await putSharedRecipe(handle, accountId, envelope); } catch { /* keep going */ }
+          }
           setRevoked(await revokeSharedRecipes(handle, accountId, plan.revoke));
         } catch {
           // The account's own recipes are already synced and safe. A household
@@ -272,7 +276,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   }, [accountId, guard, refresh]);
 
   const provenance = useCallback(async (recipeId: string) => {
-    if (!accountId) return { shared: false, ownerId: null };
+    if (!accountId) return { shared: false, ownerId: null, ownerName: null };
     return sharedBy(await db(), recipeId);
   }, [accountId]);
 

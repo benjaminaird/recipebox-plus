@@ -762,6 +762,28 @@ export async function putSharedRecipe(
   const recipe = envelope.recipe;
   await db.withTransactionAsync(async () => {
     await assertOriginOwner(db, recipe.id, accountId);
+
+    // A shared recipe never writes over something that is not already shared.
+    //
+    // Both tables are keyed by the recipe's id, and the id belongs to whoever
+    // made it: nothing stops another account's recipe from colliding with one
+    // of this cook's. Upserting on it would replace their recipe with somebody
+    // else's content, mark it shared — and then a later revocation would
+    // delete it outright, because by then it would look like a cached copy.
+    //
+    // A collision is vanishingly unlikely and the consequence is somebody's
+    // recipe, so this refuses rather than resolves. The cook keeps what is
+    // theirs, and the only cost is not seeing one shared recipe.
+    const existing = await db.getFirstAsync<{ shared: number | null }>(
+      `SELECT shared FROM recipe_origin WHERE recipe_id = ?`, [recipe.id],
+    );
+    const alreadyHere = await db.getFirstAsync<{ id: string }>(
+      `SELECT id FROM recipes WHERE id = ?`, [recipe.id],
+    );
+    if (alreadyHere && existing?.shared !== 1) {
+      throw new Error("refusing to replace this cook's own recipe with a shared one");
+    }
+
     await db.runAsync(
       `INSERT INTO recipes (id, title, category, tags, search, created_at, updated_at, json, deleted_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)
@@ -777,16 +799,16 @@ export async function putSharedRecipe(
     await db.runAsync(
       `INSERT INTO recipe_origin
          (recipe_id, origin, account_id, owner_id, shared, server_id, server_updated_at, pulled_at,
-          server_revision, adopted)
-       VALUES (?, 'cloud', ?, ?, 1, ?, ?, ?, NULL, 0)
+          server_revision, adopted, owner_name)
+       VALUES (?, 'cloud', ?, ?, 1, ?, ?, ?, NULL, 0, ?)
        ON CONFLICT(recipe_id) DO UPDATE SET
          origin = 'cloud', account_id = excluded.account_id, owner_id = excluded.owner_id,
          shared = 1, server_id = excluded.server_id,
          server_updated_at = excluded.server_updated_at, pulled_at = excluded.pulled_at,
-         server_revision = NULL, adopted = 0`,
+         server_revision = NULL, adopted = 0, owner_name = excluded.owner_name`,
       [
         recipe.id, accountId, envelope.ownerId, envelope.serverId,
-        envelope.updatedAt, new Date().toISOString(),
+        envelope.updatedAt, new Date().toISOString(), envelope.ownerName,
       ],
     );
   });
@@ -828,11 +850,17 @@ export async function revokeSharedRecipes(
 /** Who shared a recipe, for the screen that has to say so. */
 export async function sharedBy(
   db: SqliteLike, recipeId: string,
-): Promise<{ shared: boolean; ownerId: string | null }> {
-  const row = await db.getFirstAsync<{ shared: number | null; owner_id: string | null }>(
-    `SELECT shared, owner_id FROM recipe_origin WHERE recipe_id = ?`, [recipeId],
+): Promise<{ shared: boolean; ownerId: string | null; ownerName: string | null }> {
+  const row = await db.getFirstAsync<{
+    shared: number | null; owner_id: string | null; owner_name: string | null;
+  }>(
+    `SELECT shared, owner_id, owner_name FROM recipe_origin WHERE recipe_id = ?`, [recipeId],
   );
-  return { shared: row?.shared === 1, ownerId: row?.owner_id ?? null };
+  return {
+    shared: row?.shared === 1,
+    ownerId: row?.owner_id ?? null,
+    ownerName: row?.owner_name ?? null,
+  };
 }
 
 /**

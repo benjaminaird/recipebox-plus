@@ -113,8 +113,18 @@ export function copyForMyself(
   newId: string,
   now: number,
 ): Recipe {
+  // Sharing does not come with the recipe.
+  //
+  // `shared` is a field on the recipe body, and it is the field the server
+  // reads to decide who may see it. Copying the body wholesale carried it
+  // across, so a copy saved from a household recipe would publish ITSELF to
+  // the household the moment it was uploaded — something the cook never asked
+  // for and would have no reason to expect. A copy starts private; sharing it
+  // is a decision of its own.
+  const { shared: _wasShared, ...body } = original as Recipe & { shared?: boolean };
+
   return {
-    ...original,
+    ...body,
     id: newId,
     createdAt: now,
     updatedAt: now,

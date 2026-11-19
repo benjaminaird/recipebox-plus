@@ -244,7 +244,17 @@ async function run(pool) {
   assert.deepStrictEqual(copy.sections[0].steps[0].ingredientRefs, ['i1']);
   assert.deepStrictEqual(copy.tags, ['Quick']);
   assert.match(copy.source.reference, /Copied from/, 'and it says where it came from');
-  step('save my own copy: a new recipe, this account’s, with everything carried over');
+
+  // And it is PRIVATE. `shared` is a field on the recipe body and the field
+  // the server reads to decide who may see it, so copying the body wholesale
+  // used to publish the copy to the household the moment it was uploaded --
+  // something the cook never asked for. Checked at the server, because that
+  // is where the consequence would be.
+  assert.ok(!copy.shared, 'the copy is not marked shared');
+  const bobsView = await readLibrary(bobToken);
+  assert.ok(!bobsView.some((e) => e.recipe.id === copy.id),
+    "and Bob cannot see Alice's copy of his own recipe");
+  step('save my own copy: a new recipe, this account’s, private, with everything carried over');
 
   // ── The two are independent in both directions ───────────────────────────
   const bobsRevision = (await pool.query(

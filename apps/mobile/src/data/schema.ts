@@ -230,4 +230,8 @@ export const ADDED_COLUMNS: ReadonlyArray<{ table: string; column: string; defin
   // Every write to the table then failed with "no column named kind", and
   // the app reported it, accurately but unhelpfully, as "no connection".
   { table: "sync_conflicts", column: "kind", definition: "TEXT NOT NULL DEFAULT 'write'" },
+  // Who shared a recipe, by name. The id alone cannot be shown to anybody:
+  // "Copied from someone in your household" is a worse answer than "Copied
+  // from Bob's recipe", and attribution is the whole point of recording it.
+  { table: "recipe_origin", column: "owner_name", definition: "TEXT" },
 ];

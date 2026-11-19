@@ -21,7 +21,7 @@ import { ADDED_COLUMNS, SCHEMA_SQL } from "../src/data/schema.ts";
 import {
   adoptRecipe, applyResolution, countOpenConflicts, countQueued, fullResync, heldRecipes,
   listOpenConflicts, putSharedRecipe, queueLocalChange, revokeSharedRecipes, saveMyOwnCopy,
-  sqliteSyncStore, unadoptedRecipes, type SqliteLike,
+  sharedBy, sqliteSyncStore, unadoptedRecipes, type SqliteLike,
 } from "../src/data/sqliteSyncStore.ts";
 import { planHouseholdRead } from "../src/sync/household.ts";
 import { resolve } from "../src/sync/outbox.ts";
@@ -977,4 +977,47 @@ test("a resync refuses a library that is not this account's", async () => {
     () => fullResync(db, ALICE, { expected: "recipebox-someone-else.db", active: here }),
     /different library/,
   );
+});
+
+test("a shared recipe never writes over one of this cook's own", async () => {
+  // Both tables are keyed by the recipe's id, and an id belongs to whoever
+  // made it. Upserting a shared recipe onto a colliding id would replace this
+  // cook's recipe with somebody else's content and mark it shared — and a
+  // later revocation would then delete it outright, because by then it would
+  // look like nothing but a cached copy.
+  const { raw, db } = fresh();
+  put(raw, recipe("collides", "Written on this phone"));
+  origin(raw, "collides", "local", 1);
+
+  await assert.rejects(
+    () => putSharedRecipe(db, ALICE, sharedEnvelope(recipe("collides", "Bob's, by coincidence"))),
+    /refusing to replace/,
+  );
+
+  assert.equal(
+    (raw.prepare(`SELECT title FROM recipes WHERE id='collides'`).get() as { title: string }).title,
+    "Written on this phone",
+  );
+  const store = sqliteSyncStore(db, ALICE, LIBRARY, here);
+  assert.equal((await store.getLocal("collides"))?.shared, false);
+
+  // And refreshing a recipe that really is shared still works, which is the
+  // whole point of the upsert.
+  await putSharedRecipe(db, ALICE, sharedEnvelope(recipe("theirs", "Bob's bread")));
+  await putSharedRecipe(db, ALICE, sharedEnvelope(recipe("theirs", "Bob's bread, revised")));
+  assert.equal(
+    (raw.prepare(`SELECT title FROM recipes WHERE id='theirs'`).get() as { title: string }).title,
+    "Bob's bread, revised",
+  );
+});
+
+test("who shared a recipe is remembered by name, so a copy can say so", async () => {
+  const { db } = fresh();
+  await putSharedRecipe(db, ALICE, sharedEnvelope(recipe("theirs", "Bob's bread")));
+  const who = await sharedBy(db, "theirs");
+  assert.equal(who.shared, true);
+  assert.equal(who.ownerName, "Bob");
+
+  const copy = await saveMyOwnCopy(db, ALICE, recipe("theirs", "Bob's bread"), who.ownerName, "c1", 9_000);
+  assert.match(copy.source?.reference ?? "", /Copied from Bob’s recipe/);
 });

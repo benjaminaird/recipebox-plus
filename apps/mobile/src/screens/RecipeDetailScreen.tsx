@@ -72,9 +72,9 @@ export function RecipeDetailScreen() {
   // account's recipe finds nothing to update — and this is the half that says
   // so before the cook has typed anything.
   const sync = useSync();
-  const [shared, setShared] = useState<{ shared: boolean; ownerId: string | null }>(
-    { shared: false, ownerId: null },
-  );
+  const [shared, setShared] = useState<{
+    shared: boolean; ownerId: string | null; ownerName: string | null;
+  }>({ shared: false, ownerId: null, ownerName: null });
   const [copying, setCopying] = useState(false);
 
   // On focus, not on mount. The editor is a modal over this screen, so
@@ -464,11 +464,12 @@ export function RecipeDetailScreen() {
             ]}
           >
             <Text style={[textStyle("headline"), { color: c.accentText }]}>
-              Shared with your household
+              {shared.ownerName ? `Shared by ${shared.ownerName}` : "Shared with your household"}
             </Text>
             <Text style={[textStyle("footnote"), { color: c.textSecondary }]}>
-              Cook from it, scale it, plan with it and add it to a list, all as usual. Only the
-              person who wrote it can change it — save your own copy if you want to.
+              Cook from it, scale it, plan with it and add it to a list, all as usual. Only
+              {shared.ownerName ? ` ${shared.ownerName}` : " the person who wrote it"} can change
+              it — save your own copy if you want to.
             </Text>
           </View>
           <Pressable
@@ -479,7 +480,7 @@ export function RecipeDetailScreen() {
             onPress={() => {
               if (copying) return;
               setCopying(true);
-              sync.saveMyCopy(recipe, null)
+              sync.saveMyCopy(recipe, shared.ownerName)
                 .then((copy) => {
                   if (copy) navigation.replace("RecipeDetail", { recipeId: copy.id });
                 })

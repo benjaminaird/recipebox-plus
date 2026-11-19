@@ -138,3 +138,20 @@ test("copying does not touch the original", () => {
   copyForMyself(original, { ownerName: "Bob" }, "mine-1", 9_000);
   assert.equal(JSON.stringify(original), before);
 });
+
+test("a copy is private, however the recipe it came from was shared", () => {
+  // `shared` is a field on the recipe body, and it is the field the SERVER
+  // reads to decide who may see it. Copying the body wholesale carried it
+  // across, so a copy saved from a household recipe would have published
+  // itself to the household the moment it was uploaded — something the cook
+  // never asked for and had no reason to expect.
+  const original = { ...recipe("theirs", "Bob's bread"), shared: true } as Recipe & { shared: boolean };
+  const copy = copyForMyself(original, { ownerName: "Bob" }, "mine-1", 9_000) as Recipe & { shared?: boolean };
+
+  assert.ok(!copy.shared, "a copy starts private; sharing it is a decision of its own");
+  assert.equal(original.shared, true, "and the original is untouched");
+
+  // Everything that is actually the recipe still comes across.
+  assert.equal(copy.title, "Bob's bread");
+  assert.deepEqual(copy.sections, original.sections);
+});
