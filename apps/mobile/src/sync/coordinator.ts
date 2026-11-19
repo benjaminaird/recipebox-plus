@@ -36,6 +36,14 @@ export type LocalRecipeRow = {
   adopted: boolean;
   serverRevision: number | null;
   deletedLocally: boolean;
+  /**
+   * Somebody else's recipe, cached for this account to read.
+   *
+   * A household recipe is a VIEW, not a replica — it comes down the library
+   * read rather than the delta feed, and there is nothing this account could
+   * legitimately say about it. So it is never sent, by any path.
+   */
+  shared: boolean;
 };
 
 /** Everything the coordinator needs from the device's own storage. */
@@ -266,12 +274,17 @@ export async function runSync(
       // Writes are re-checked at the moment of sending, not only when queued.
       // Origin can change between the two — a pull can turn a local recipe
       // into a cloud one — and the rule that matters is the one true now.
-      const permission = isKnownDelete
-        ? { allowed: true, reason: "cloud" as const }
-        : mayUpload({
-          origin: local ? local.origin : "local",
-          adopted: local ? local.adopted : false,
-        });
+      // Somebody else's recipe is never sent, not even as a deletion: a
+      // member deleting their cached copy is not the owner deleting the
+      // recipe, and the server would refuse it anyway.
+      const permission = local?.shared
+        ? { allowed: false, reason: "shared" as const }
+        : isKnownDelete
+          ? { allowed: true, reason: "cloud" as const }
+          : mayUpload({
+            origin: local ? local.origin : "local",
+            adopted: local ? local.adopted : false,
+          });
       if (!permission.allowed) {
         // Not an error and not a retry: this change is not ours to send. It
         // leaves the queue so it stops being attempted every run.

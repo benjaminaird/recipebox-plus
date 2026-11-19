@@ -23,12 +23,14 @@ import {
 } from "../data/db.ts";
 import {
   adoptRecipe, applyResolution, countOpenConflicts, countQueued, lastRunAt,
-  listOpenConflicts, queueLocalChange, setLastRunAt, sqliteSyncStore,
-  unadoptedRecipes, type SqliteLike, type StoredConflict,
+  fullResync, heldRecipes, listOpenConflicts, putSharedRecipe, queueLocalChange,
+  revokeSharedRecipes, saveMyOwnCopy, setLastRunAt, sharedBy, sqliteSyncStore,
+  unadoptedRecipes, type ResyncOutcome, type SqliteLike, type StoredConflict,
 } from "../data/sqliteSyncStore.ts";
+import { planHouseholdRead } from "./household.ts";
 import { resolve, type ConflictChoice } from "./outbox.ts";
 import { describeSync, runSync, type SyncReport } from "./coordinator.ts";
-import { httpTransport } from "./transport.ts";
+import { httpTransport, readLibrary } from "./transport.ts";
 import { uploadsEnabled } from "./flags.ts";
 import type { Recipe } from "../data/types.ts";
 import type { Message } from "../auth/messages.ts";
@@ -72,12 +74,21 @@ export type SyncValue = {
   adopt(recipeId: string): Promise<void>;
   /** Re-read the counts, after something outside a run changed them. */
   refresh(): Promise<void>;
+  /** Whether a recipe is somebody else's, and whose. */
+  provenance(recipeId: string): Promise<{ shared: boolean; ownerId: string | null }>;
+  /** Save a household recipe as this account's own. Returns the copy. */
+  saveMyCopy(original: Recipe, ownerName: string | null): Promise<Recipe | null>;
+  /** Forget everything from the account and fetch it again. */
+  resync(): Promise<ResyncOutcome | null>;
+  /** Shared recipes dropped by the last run, because access went. */
+  revoked: number;
 };
 
 const SyncContext = createContext<SyncValue | null>(null);
 
-const idle: Omit<SyncValue, "sync" | "openConflicts" | "resolveConflict" | "unadopted" | "adopt" | "refresh"> = {
-  status: "off", queued: 0, conflicts: 0, lastRunAt: null, message: null, uploads: false,
+const idle = {
+  status: "off" as SyncStatus, queued: 0, conflicts: 0, lastRunAt: null as number | null,
+  message: null as Message | null, uploads: false, revoked: 0,
 };
 
 /**
@@ -98,6 +109,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const [queued, setQueued] = useState(0);
   const [conflicts, setConflicts] = useState(0);
   const [ranAt, setRanAt] = useState<number | null>(null);
+  const [revoked, setRevoked] = useState(0);
 
   /**
    * The account and the library it may use, taken together or not at all.
@@ -172,6 +184,32 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       const store = sqliteSyncStore(handle, accountId, library, activeLocalStore);
       const outcome = await runSync(store, httpTransport(auth.authorized), { uploads });
       setReport(outcome);
+
+      // The household half, after the account's own.
+      //
+      // These do not come down the delta feed and never will: that feed is a
+      // replica of this account's recipes, and a replica of somebody else's is
+      // a copy this account could be asked to write back. They come from the
+      // library view, which answers the same question the browser asks and
+      // checks household membership in the query itself.
+      //
+      // Only when the delta half actually finished. A failed run tells us
+      // nothing about who may see what, and treating silence as "access was
+      // withdrawn" would delete a cook's shared recipes every time their train
+      // went into a tunnel.
+      if (outcome.stoppedBy === "done") {
+        try {
+          const visible = await readLibrary(auth.authorized);
+          const plan = planHouseholdRead(visible, await heldRecipes(handle, accountId));
+          for (const envelope of plan.store) await putSharedRecipe(handle, accountId, envelope);
+          setRevoked(await revokeSharedRecipes(handle, accountId, plan.revoke));
+        } catch {
+          // The account's own recipes are already synced and safe. A household
+          // read that failed is worth nothing and costs nothing: next run.
+          setRevoked(0);
+        }
+      }
+
       const at = Date.now();
       await setLastRunAt(handle, accountId, at);
       setRanAt(at);
@@ -233,6 +271,38 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     return chosen.create;
   }, [accountId, guard, refresh]);
 
+  const provenance = useCallback(async (recipeId: string) => {
+    if (!accountId) return { shared: false, ownerId: null };
+    return sharedBy(await db(), recipeId);
+  }, [accountId]);
+
+  const saveMyCopy = useCallback(async (original: Recipe, ownerName: string | null) => {
+    if (!accountId) return null;
+    const now = Date.now();
+    // Derived from the original and the moment, so a double tap makes one
+    // recipe rather than two.
+    const newId = original.id + "-copy-" + now.toString(36);
+    const copy = await saveMyOwnCopy(
+      await db(), accountId, original, ownerName, newId, now, guard ?? undefined,
+    );
+    await refresh();
+    return copy;
+  }, [accountId, guard, refresh]);
+
+  const resync = useCallback(async () => {
+    if (!accountId || running.current) return null;
+    running.current = true;
+    setSyncing(true);
+    try {
+      const outcome = await fullResync(await db(), accountId, guard ?? undefined);
+      await refresh();
+      return outcome;
+    } finally {
+      running.current = false;
+      setSyncing(false);
+    }
+  }, [accountId, guard, refresh]);
+
   const unadopted = useCallback(async () => {
     if (!accountId) return [];
     return unadoptedRecipes(await db(), accountId);
@@ -268,10 +338,12 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<SyncValue>(() => ({
     ...idle,
-    status, queued, conflicts, lastRunAt: ranAt, uploads,
+    status, queued, conflicts, lastRunAt: ranAt, uploads, revoked,
     message: report && !stale ? describeSync(report) : null,
     sync, openConflicts, resolveConflict, unadopted, adopt, refresh,
-  }), [status, queued, conflicts, ranAt, uploads, report, stale, sync, openConflicts, resolveConflict, unadopted, adopt, refresh]);
+    provenance, saveMyCopy, resync,
+  }), [status, queued, conflicts, ranAt, uploads, revoked, report, stale, sync, openConflicts,
+       resolveConflict, unadopted, adopt, refresh, provenance, saveMyCopy, resync]);
 
   return <SyncContext.Provider value={value}>{children}</SyncContext.Provider>;
 }

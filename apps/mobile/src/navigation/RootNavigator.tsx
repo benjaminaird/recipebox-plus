@@ -6,8 +6,9 @@ import { NavigationContainer, useNavigation, type Theme as NavTheme, DefaultThem
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator, type NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "../theme/ThemeProvider";
+import { useSync } from "../sync/SyncProvider";
 import { maxScale, textStyle } from "../theme/fonts";
 import type { RootStackParamList, TabParamList } from "./types";
 import { HomeScreen } from "../screens/HomeScreen";
@@ -39,6 +40,21 @@ const HEADER_BUTTON_MAX_SCALE = 1.4;
 function EditRecipeButton({ recipeId }: { recipeId: string }) {
   const t = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const sync = useSync();
+  const [shared, setShared] = useState(false);
+
+  // Somebody else's recipe has no Edit. A control that is always refused is
+  // worse than no control: it offers something and then takes it back, and
+  // the cook learns nothing about why. The Recipe Detail screen says what
+  // they CAN do instead, which is save a copy of their own.
+  useEffect(() => {
+    let live = true;
+    sync.provenance(recipeId).then((p) => { if (live) setShared(p.shared); }).catch(() => {});
+    return () => { live = false; };
+  }, [recipeId, sync]);
+
+  if (shared) return null;
+
   return (
     <Pressable
       onPress={() => navigation.navigate("RecipeEditor", { recipeId })}

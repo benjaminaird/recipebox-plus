@@ -82,6 +82,8 @@ jobs:
         run: npm run sync-routes-test
       - name: Full bidirectional sync (skips without a database)
         run: npm run native-bidirectional-test
+      - name: Household sharing (skips without a database)
+        run: npm run native-household-test
       - name: No tracked files changed
         run: git diff --exit-code
 

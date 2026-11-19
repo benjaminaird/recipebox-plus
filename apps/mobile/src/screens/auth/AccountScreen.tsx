@@ -139,6 +139,55 @@ export function AccountScreen() {
     );
   }, [auth]);
 
+  /**
+   * Forget what came from the account and fetch it again.
+   *
+   * The recovery for a watermark that has drifted — too far behind for the
+   * server to answer, or past something a pull declined to apply. It is the
+   * same operation the server can ask for, reached deliberately, because a
+   * cook who can see that something is wrong should not have to wait for the
+   * server to notice.
+   *
+   * The confirmation is specific about what survives, because "rebuild" is a
+   * frightening word next to somebody's cookbook and the honest answer is
+   * that nothing of theirs is at stake.
+   */
+  const confirmResync = useCallback(() => {
+    Alert.alert(
+      "Download everything again?",
+      "Recipes you wrote on this phone stay. Anything waiting to go up stays, and so does anything you have yet to choose between. What came from your account is fetched again from scratch.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Rebuild",
+          onPress: async () => {
+            setBusy(true);
+            try {
+              const outcome = await sync.resync();
+              if (outcome) {
+                const kept: string[] = [];
+                if (outcome.keptPending) kept.push(`${outcome.keptPending} waiting to go up`);
+                if (outcome.keptLocal) kept.push(`${outcome.keptLocal} of your own`);
+                setMessage({
+                  tone: "info",
+                  title: outcome.cleared === 1
+                    ? "1 recipe will be fetched again."
+                    : `${outcome.cleared} recipes will be fetched again.`,
+                  detail: kept.length ? `Kept: ${kept.join(", ")}.` : undefined,
+                });
+              }
+              await sync.sync();
+            } catch (err) {
+              setMessage(describeAuthError(err, "devices"));
+            } finally {
+              setBusy(false);
+            }
+          },
+        },
+      ],
+    );
+  }, [sync]);
+
   if (!auth.ready) {
     return (
       <AuthScreen title="Account">
@@ -232,6 +281,14 @@ export function AccountScreen() {
               onPress={() => navigation.navigate("Conflicts")}
             />
           ) : null}
+          {sync.revoked > 0 ? (
+            <PanelRow
+              label={sync.revoked === 1
+                ? "1 shared recipe is no longer in your household"
+                : `${sync.revoked} shared recipes are no longer in your household`}
+              detail="They were somebody else's, and are no longer shared with you. Nothing you wrote has changed."
+            />
+          ) : null}
           {unadopted > 0 ? (
             <PanelRow
               label={unadopted === 1 ? "1 recipe is only on this phone" : `${unadopted} recipes are only on this phone`}
@@ -241,6 +298,12 @@ export function AccountScreen() {
             />
           ) : null}
           <PanelRow label="Trash" detail="Recipes you have deleted." action="Open" onPress={() => navigation.navigate("Trash")} />
+          <PanelRow
+            label="Download everything again"
+            detail="If your library looks wrong — a recipe out of date, or one that should be here and is not — this forgets what came from your account and fetches it afresh."
+            action="Rebuild"
+            onPress={confirmResync}
+          />
         </Panel>
       </View>
 

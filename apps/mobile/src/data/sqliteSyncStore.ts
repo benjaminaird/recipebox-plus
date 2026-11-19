@@ -19,7 +19,8 @@ import type { ConflictRecord, OutboxEntry } from "../sync/outbox.ts";
 import { enqueue } from "../sync/outbox.ts";
 import type { ConflictResolution } from "../sync/outbox.ts";
 import { envelopeTimes } from "../sync/pull.ts";
-import type { Origin } from "../sync/pull.ts";
+import type { Origin, RecipeEnvelope } from "../sync/pull.ts";
+import { copyForMyself, type HeldRecipe } from "../sync/household.ts";
 import type { LocalRecipeChange } from "./db.ts";
 import { buildSearchText } from "./query.ts";
 
@@ -88,7 +89,7 @@ function toEntry(row: OutboxRow): OutboxEntry {
 
 type OriginRow = {
   recipe_id: string; origin: string; adopted: number; server_revision: number | null;
-  deleted_at: number | null;
+  deleted_at: number | null; shared: number | null;
 };
 
 function toLocalRow(row: OriginRow): LocalRecipeRow {
@@ -98,6 +99,7 @@ function toLocalRow(row: OriginRow): LocalRecipeRow {
     adopted: row.adopted === 1 || row.origin === "cloud",
     serverRevision: row.server_revision,
     deletedLocally: row.deleted_at !== null,
+    shared: row.shared === 1,
   };
 }
 
@@ -214,7 +216,7 @@ export async function queueLocalChange(
   // so anyway, because the file boundary is an arrangement and this is the
   // rule the arrangement exists to produce.
   const origin = await db.getFirstAsync<OriginRow>(
-    `SELECT o.recipe_id, o.origin, o.adopted, o.server_revision, r.deleted_at
+    `SELECT o.recipe_id, o.origin, o.adopted, o.server_revision, o.shared, r.deleted_at
        FROM recipe_origin o LEFT JOIN recipes r ON r.id = o.recipe_id
       WHERE o.recipe_id = ? AND (o.account_id IS NULL OR o.account_id = ?)`,
     [change.recipeId, accountId],
@@ -223,6 +225,12 @@ export async function queueLocalChange(
   // A sample is never queued, however it was changed. Every install ships the
   // same ids, so an uploaded sample is two phones claiming one recipe.
   if (origin?.origin === "sample") return null;
+
+  // Nor is somebody else's. A household recipe on this phone is a cached view
+  // of a recipe another account owns; there is nothing this account could
+  // legitimately say about it, and the server would refuse it anyway. Wanting
+  // to change it is what "Save my own copy" is for.
+  if (origin?.shared === 1) return null;
 
   const cloud = origin?.origin === "cloud";
   const adopted = cloud || origin?.adopted === 1;
@@ -282,14 +290,14 @@ export async function adoptRecipe(
   let adopted = false;
   await db.withTransactionAsync(async () => {
     assertLibrary(guard);
-    const row = await db.getFirstAsync<{ origin: string; json: string }>(
-      `SELECT COALESCE(o.origin, 'local') AS origin, r.json
+    const row = await db.getFirstAsync<{ origin: string; json: string; shared: number | null }>(
+      `SELECT COALESCE(o.origin, 'local') AS origin, o.shared, r.json
          FROM recipes r LEFT JOIN recipe_origin o ON o.recipe_id = r.id
         WHERE r.id = ? AND r.deleted_at IS NULL
           AND (o.account_id IS NULL OR o.account_id = ?)`,
       [recipeId, accountId],
     );
-    if (!row || row.origin === "sample") return;
+    if (!row || row.origin === "sample" || row.shared === 1) return;
     await assertOriginOwner(db, recipeId, accountId);
     await db.runAsync(
       `INSERT INTO recipe_origin (recipe_id, origin, account_id, shared, adopted)
@@ -316,6 +324,7 @@ export async function unadoptedRecipes(db: SqliteLike, accountId: string): Promi
       WHERE r.deleted_at IS NULL
         AND COALESCE(o.origin, 'local') = 'local'
         AND COALESCE(o.adopted, 0) = 0
+        AND COALESCE(o.shared, 0) = 0
       ORDER BY r.created_at DESC`,
     [accountId],
   );
@@ -432,7 +441,7 @@ export function sqliteSyncStore(
     async getLocal(recipeId) {
       const row = await db.getFirstAsync<OriginRow>(
         `SELECT o.recipe_id, o.origin, COALESCE(o.adopted, 0) AS adopted,
-                o.server_revision, r.deleted_at
+                o.server_revision, o.shared, r.deleted_at
            FROM recipe_origin o LEFT JOIN recipes r ON r.id = o.recipe_id
           WHERE o.recipe_id = ?`,
         [recipeId],
@@ -446,7 +455,7 @@ export function sqliteSyncStore(
       if (!recipe) return null;
       return {
         recipeId, origin: "local", adopted: false, serverRevision: null,
-        deletedLocally: recipe.deleted_at !== null,
+        deletedLocally: recipe.deleted_at !== null, shared: false,
       };
     },
 
@@ -715,3 +724,239 @@ function resolutionName(resolution: ConflictResolution): string {
 }
 
 
+
+// ---------------------------------------------------------------------------
+// Household recipes
+// ---------------------------------------------------------------------------
+
+/** Everything this device holds, as the household rules need to see it. */
+export async function heldRecipes(db: SqliteLike, accountId: string): Promise<HeldRecipe[]> {
+  const rows = await db.getAllAsync<{ recipe_id: string; origin: string; shared: number | null }>(
+    `SELECT r.id AS recipe_id, COALESCE(o.origin, 'local') AS origin, o.shared
+       FROM recipes r
+       LEFT JOIN recipe_origin o ON o.recipe_id = r.id
+        AND (o.account_id IS NULL OR o.account_id = ?)
+      WHERE r.deleted_at IS NULL`,
+    [accountId],
+  );
+  return rows.map((r) => ({
+    recipeId: r.recipe_id,
+    origin: (r.origin === "cloud" || r.origin === "sample" ? r.origin : "local") as HeldRecipe["origin"],
+    shared: r.shared === 1,
+  }));
+}
+
+/**
+ * Write a recipe somebody else in the household shared.
+ *
+ * Marked shared and owned by whoever owns it, which is what every later rule
+ * reads: it is never queued, never adoptable, and never editable here. It
+ * carries no server revision because this account has no revision to cite —
+ * the delta feed does not carry it, and a revision from a library view would
+ * be a number this account could not use.
+ */
+export async function putSharedRecipe(
+  db: SqliteLike, accountId: string, envelope: RecipeEnvelope,
+): Promise<void> {
+  const times = envelopeTimes(envelope);
+  const recipe = envelope.recipe;
+  await db.withTransactionAsync(async () => {
+    await assertOriginOwner(db, recipe.id, accountId);
+    await db.runAsync(
+      `INSERT INTO recipes (id, title, category, tags, search, created_at, updated_at, json, deleted_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)
+       ON CONFLICT(id) DO UPDATE SET
+         title = excluded.title, category = excluded.category, tags = excluded.tags,
+         search = excluded.search, updated_at = excluded.updated_at,
+         json = excluded.json, deleted_at = NULL`,
+      [
+        recipe.id, recipe.title, recipe.category ?? null, JSON.stringify(recipe.tags ?? []),
+        buildSearchText(recipe), times.createdAt, times.updatedAt, JSON.stringify(recipe),
+      ],
+    );
+    await db.runAsync(
+      `INSERT INTO recipe_origin
+         (recipe_id, origin, account_id, owner_id, shared, server_id, server_updated_at, pulled_at,
+          server_revision, adopted)
+       VALUES (?, 'cloud', ?, ?, 1, ?, ?, ?, NULL, 0)
+       ON CONFLICT(recipe_id) DO UPDATE SET
+         origin = 'cloud', account_id = excluded.account_id, owner_id = excluded.owner_id,
+         shared = 1, server_id = excluded.server_id,
+         server_updated_at = excluded.server_updated_at, pulled_at = excluded.pulled_at,
+         server_revision = NULL, adopted = 0`,
+      [
+        recipe.id, accountId, envelope.ownerId, envelope.serverId,
+        envelope.updatedAt, new Date().toISOString(),
+      ],
+    );
+  });
+}
+
+/**
+ * Forget a shared recipe this account may no longer see.
+ *
+ * Hard, not soft, and deliberately so: it is not in the cook's Trash because
+ * it was never theirs to throw away. Keeping a cached copy would make this
+ * phone the one place the household's decision did not reach.
+ *
+ * It cannot touch anything of this account's own — the WHERE clause only
+ * matches a row marked shared — so a member who loses access keeps every
+ * recipe they wrote and every copy they saved.
+ */
+export async function revokeSharedRecipes(
+  db: SqliteLike, accountId: string, recipeIds: readonly string[],
+): Promise<number> {
+  let gone = 0;
+  for (const id of recipeIds) {
+    await db.withTransactionAsync(async () => {
+      const row = await db.getFirstAsync<{ recipe_id: string }>(
+        `SELECT recipe_id FROM recipe_origin
+          WHERE recipe_id = ? AND shared = 1 AND (account_id IS NULL OR account_id = ?)`,
+        [id, accountId],
+      );
+      if (!row) return;
+      await db.runAsync(`DELETE FROM recipes WHERE id = ?`, [id]);
+      await db.runAsync(`DELETE FROM recipe_origin WHERE recipe_id = ?`, [id]);
+      await db.runAsync(`DELETE FROM cook_progress WHERE recipe_id = ?`, [id]);
+      await db.runAsync(`DELETE FROM recipe_view WHERE recipe_id = ?`, [id]);
+      gone += 1;
+    });
+  }
+  return gone;
+}
+
+/** Who shared a recipe, for the screen that has to say so. */
+export async function sharedBy(
+  db: SqliteLike, recipeId: string,
+): Promise<{ shared: boolean; ownerId: string | null }> {
+  const row = await db.getFirstAsync<{ shared: number | null; owner_id: string | null }>(
+    `SELECT shared, owner_id FROM recipe_origin WHERE recipe_id = ?`, [recipeId],
+  );
+  return { shared: row?.shared === 1, ownerId: row?.owner_id ?? null };
+}
+
+/**
+ * Save a household recipe as this account's own.
+ *
+ * The copy is a new recipe with a new id, written and queued in one
+ * transaction like any other local change. The original is read and not
+ * touched: nothing in here writes to it.
+ */
+export async function saveMyOwnCopy(
+  db: SqliteLike,
+  accountId: string,
+  original: Recipe,
+  ownerName: string | null,
+  newId: string,
+  now = Date.now(),
+  guard?: LibraryGuard,
+): Promise<Recipe> {
+  const copy = copyForMyself(original, { ownerName }, newId, now);
+  await db.withTransactionAsync(async () => {
+    assertLibrary(guard);
+    await assertOriginOwner(db, copy.id, accountId);
+    await db.runAsync(
+      `INSERT INTO recipes (id, title, category, tags, search, created_at, updated_at, json, deleted_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)
+       ON CONFLICT(id) DO UPDATE SET
+         title = excluded.title, category = excluded.category, tags = excluded.tags,
+         search = excluded.search, updated_at = excluded.updated_at,
+         json = excluded.json, deleted_at = NULL`,
+      [
+        copy.id, copy.title, copy.category ?? null, JSON.stringify(copy.tags ?? []),
+        buildSearchText(copy), copy.createdAt, copy.updatedAt, JSON.stringify(copy),
+      ],
+    );
+    // Written into this account's library while signed in, so it is this
+    // account's — the same rule any new recipe follows.
+    await db.runAsync(
+      `INSERT INTO recipe_origin (recipe_id, origin, account_id, shared, adopted)
+       VALUES (?, 'local', ?, 0, 1)
+       ON CONFLICT(recipe_id) DO UPDATE SET account_id = excluded.account_id, shared = 0, adopted = 1`,
+      [copy.id, accountId],
+    );
+    await queueLocalChange(
+      db, accountId, { recipeId: copy.id, kind: "write", recipe: copy, created: true }, now,
+    );
+  });
+  return copy;
+}
+
+// ---------------------------------------------------------------------------
+// Starting again
+// ---------------------------------------------------------------------------
+
+export type ResyncOutcome = {
+  /** Cloud recipes dropped, to be fetched again. */
+  cleared: number;
+  /** Recipes kept because this device still owes the server a change. */
+  keptPending: number;
+  /** Recipes kept because they were never the server's. */
+  keptLocal: number;
+};
+
+/**
+ * Forget what came from the account, so the next sync fetches it afresh.
+ *
+ * The recovery for a watermark that has drifted — too far behind for the
+ * server to answer, or past something it declined to apply. It is the same
+ * operation the coordinator performs when the server says `resyncRequired`,
+ * reached deliberately rather than by accident, because a cook who can see
+ * that something is wrong should not have to wait for the server to notice.
+ *
+ * What it does NOT touch is the point of it:
+ *
+ *   A recipe written on this phone, and a copy saved from a household recipe.
+ *   Neither was ever the server's to send back.
+ *
+ *   Anything with a change still queued. Dropping those would turn a
+ *   bookkeeping problem into lost work, which is the one outcome none of this
+ *   is allowed to produce.
+ *
+ *   Unresolved conflicts, which hold the only copy of a refused change.
+ *
+ *   Samples, which are not the account's at all.
+ *
+ * Idempotent, and safe to interrupt: running it twice clears what is left and
+ * leaves the same things standing.
+ */
+export async function fullResync(
+  db: SqliteLike, accountId: string, guard?: LibraryGuard,
+): Promise<ResyncOutcome> {
+  const outcome: ResyncOutcome = { cleared: 0, keptPending: 0, keptLocal: 0 };
+  await db.withTransactionAsync(async () => {
+    assertLibrary(guard);
+
+    const rows = await db.getAllAsync<{ recipe_id: string; owed: number }>(
+      `SELECT o.recipe_id,
+              (SELECT COUNT(*) FROM sync_outbox q
+                WHERE q.recipe_id = o.recipe_id AND q.account_id = ?) AS owed
+         FROM recipe_origin o
+        WHERE o.origin = 'cloud' AND (o.account_id IS NULL OR o.account_id = ?)`,
+      [accountId, accountId],
+    );
+
+    for (const row of rows) {
+      if (row.owed > 0) { outcome.keptPending += 1; continue; }
+      await db.runAsync(`DELETE FROM recipes WHERE id = ?`, [row.recipe_id]);
+      await db.runAsync(`DELETE FROM recipe_origin WHERE recipe_id = ?`, [row.recipe_id]);
+      outcome.cleared += 1;
+    }
+
+    const local = await db.getFirstAsync<{ n: number }>(
+      `SELECT COUNT(*) AS n FROM recipes r
+         LEFT JOIN recipe_origin o ON o.recipe_id = r.id
+        WHERE COALESCE(o.origin, 'local') <> 'cloud'`,
+    );
+    outcome.keptLocal = local?.n ?? 0;
+
+    // Back to the beginning, so the next run asks for everything. Written
+    // last: if this is interrupted the watermark still points at something
+    // real, and running the whole thing again finishes the job.
+    await db.runAsync(
+      `INSERT INTO meta (key, value) VALUES (?, '0') ON CONFLICT(key) DO UPDATE SET value = '0'`,
+      [watermarkKey(accountId)],
+    );
+  });
+  return outcome;
+}

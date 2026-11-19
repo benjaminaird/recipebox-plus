@@ -718,3 +718,26 @@ test("keeping the account's version of a deleted recipe puts the account's versi
   const write: ConflictRecord = { ...deletion, kind: "write", mine: recipe("r1", "Mine") };
   assert.equal(resolve(write, "keep-theirs", 2).restore, null);
 });
+
+test("somebody else's recipe is never sent, not even as a deletion", async () => {
+  // A household recipe on this phone is a cached VIEW of a recipe another
+  // account owns. There is nothing this account could legitimately say about
+  // it — and a member deleting their cached copy is not the owner deleting
+  // the recipe, so even the delete path, which is otherwise always sendable,
+  // stops here.
+  const store = memoryStore("alice");
+  store._local.set("theirs", {
+    recipeId: "theirs", origin: "cloud", adopted: true,
+    serverRevision: 4, deletedLocally: false, shared: true,
+  });
+  store._setOutbox([entry({ recipeId: "theirs", kind: "delete", recipe: null, baseRevision: 4 })]);
+
+  let pushed = false;
+  const report = await runSync(store, transport({
+    push: async () => { pushed = true; return { applied: [], conflicts: [], rejected: [], skipped: [], revision: 0 }; },
+  }), { uploads: true });
+
+  assert.equal(pushed, false, "nothing was even offered");
+  assert.equal(report.rejected, 1, "and it leaves the queue rather than being retried for ever");
+  assert.equal(store._outbox().length, 0);
+});

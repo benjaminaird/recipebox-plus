@@ -26,6 +26,7 @@ import { AddToListSheet } from "../components/AddToListSheet";
 import { displayTag } from "../domain/tags";
 import { collectCategories, collectTags } from "../data/types";
 import { deleteRecipe, listRecipes, saveRecipe } from "../data/db";
+import { useSync } from "../sync/SyncProvider";
 import { stepIngredientUses, type Recipe, type Source } from "../data/types";
 import { ServingControls } from "../components/ServingControls";
 import { detectSystem, measuresAgree, presentAmount, presentedText, scaleLabel } from "../domain/present";
@@ -65,6 +66,17 @@ export function RecipeDetailScreen() {
   // already exists rather than retyping it slightly differently.
   const [library, setLibrary] = useState<Recipe[]>([]);
 
+  // Whether this recipe is somebody else's. A household member may read,
+  // search, scale, plan, shop and cook from a shared recipe; only its owner
+  // may change it. The server enforces that too — a write aimed at another
+  // account's recipe finds nothing to update — and this is the half that says
+  // so before the cook has typed anything.
+  const sync = useSync();
+  const [shared, setShared] = useState<{ shared: boolean; ownerId: string | null }>(
+    { shared: false, ownerId: null },
+  );
+  const [copying, setCopying] = useState(false);
+
   // On focus, not on mount. The editor is a modal over this screen, so
   // returning from it does not remount: loading once meant a saved edit was
   // invisible here until the recipe was closed and reopened, which reads as
@@ -73,6 +85,9 @@ export function RecipeDetailScreen() {
     useCallback(() => {
       let live = true;
       listRecipes().then((all) => { if (live) setLibrary(all); }).catch(() => {});
+      sync.provenance(params.recipeId)
+        .then((p) => { if (live) setShared(p); })
+        .catch(() => {});
       Promise.all([getRecipe(params.recipeId), getRecipeView(params.recipeId)])
         .then(([r, saved]) => {
           if (!live) return;
@@ -83,7 +98,7 @@ export function RecipeDetailScreen() {
         })
         .catch(() => { if (live) setRecipe(null); });
       return () => { live = false; };
-    }, [params.recipeId, preferred]),
+    }, [params.recipeId, preferred, sync]),
   );
 
   // Persisted, so Cook Mode opens on the batch the cook actually chose --
@@ -157,15 +172,21 @@ export function RecipeDetailScreen() {
             truth about the recipe rather than as controls: tapping one does
             not filter from here, because the cook came to this screen to
             cook, not to browse. */}
+        {/* On a shared recipe the tags are shown and nothing more. They are
+            the owner's filing, not this cook's, and the chip that invites a
+            change is left off rather than offered and refused. */}
         <Pressable
-          onPress={() => setOrganiseOpen(true)}
-          accessibilityRole="button"
+          onPress={shared.shared ? undefined : () => setOrganiseOpen(true)}
+          disabled={shared.shared}
+          accessibilityRole={shared.shared ? "text" : "button"}
           accessibilityLabel={
-            (recipe.tags ?? []).length > 0
-              ? `Category and tags: ${[recipe.category, ...(recipe.tags ?? [])].filter(Boolean).join(", ")}. Edit`
-              : "Add a category or tags"
+            shared.shared
+              ? [recipe.category, ...(recipe.tags ?? [])].filter(Boolean).join(", ") || undefined
+              : (recipe.tags ?? []).length > 0
+                ? `Category and tags: ${[recipe.category, ...(recipe.tags ?? [])].filter(Boolean).join(", ")}. Edit`
+                : "Add a category or tags"
           }
-          style={({ pressed }) => [styles.organise, { marginTop: t.space.xs, opacity: pressed ? 0.6 : 1 }]}
+          style={({ pressed }) => [styles.organise, { marginTop: t.space.xs, opacity: pressed && !shared.shared ? 0.6 : 1 }]}
         >
           {(recipe.tags ?? []).map((tag) => (
             <View
@@ -175,13 +196,15 @@ export function RecipeDetailScreen() {
               <Text style={[textStyle("footnote"), { color: c.textSecondary }]}>{displayTag(tag)}</Text>
             </View>
           ))}
-          <View style={[styles.tag, { borderRadius: t.radius.pill, borderWidth: StyleSheet.hairlineWidth, borderColor: c.separatorStrong }]}>
-            <Text style={[textStyle("footnote"), { color: c.accentText, fontWeight: "600" }]}>
-              {/* Not "Edit": the header button is Edit, and two controls with
-                  one word between them is a guess the cook has to make. */}
-              {(recipe.tags ?? []).length > 0 || recipe.category ? "Tags & category" : "Add a category or tags"}
-            </Text>
-          </View>
+          {shared.shared ? null : (
+            <View style={[styles.tag, { borderRadius: t.radius.pill, borderWidth: StyleSheet.hairlineWidth, borderColor: c.separatorStrong }]}>
+              <Text style={[textStyle("footnote"), { color: c.accentText, fontWeight: "600" }]}>
+                {/* Not "Edit": the header button is Edit, and two controls with
+                    one word between them is a guess the cook has to make. */}
+                {(recipe.tags ?? []).length > 0 || recipe.category ? "Tags & category" : "Add a category or tags"}
+              </Text>
+            </View>
+          )}
         </Pressable>
       </View>
 
@@ -428,10 +451,65 @@ export function RecipeDetailScreen() {
         defaultLabel={recipe.title}
       />
 
+      {/* Somebody else's recipe, and what can be done about that.
+          A member may cook from it exactly as they would their own; the one
+          thing they cannot do is change it, so the one thing offered is a copy
+          that is theirs. */}
+      {shared.shared ? (
+        <View style={{ gap: t.space.sm }}>
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: c.accentSoft, borderRadius: t.radius.md, padding: t.space.lg, gap: 4 },
+            ]}
+          >
+            <Text style={[textStyle("headline"), { color: c.accentText }]}>
+              Shared with your household
+            </Text>
+            <Text style={[textStyle("footnote"), { color: c.textSecondary }]}>
+              Cook from it, scale it, plan with it and add it to a list, all as usual. Only the
+              person who wrote it can change it — save your own copy if you want to.
+            </Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Save my own copy of ${recipe.title}`}
+            accessibilityHint="Makes a copy you can edit"
+            disabled={copying}
+            onPress={() => {
+              if (copying) return;
+              setCopying(true);
+              sync.saveMyCopy(recipe, null)
+                .then((copy) => {
+                  if (copy) navigation.replace("RecipeDetail", { recipeId: copy.id });
+                })
+                .catch(() => {})
+                .finally(() => setCopying(false));
+            }}
+            style={({ pressed }) => ({
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: t.minTouch,
+              borderRadius: t.radius.md,
+              backgroundColor: c.accent,
+              opacity: pressed || copying ? 0.6 : 1,
+            })}
+          >
+            <Text style={[textStyle("headline"), { color: c.onAccent }]}>
+              {copying ? "Saving…" : "Save my own copy"}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
       {/* Deleting. Last on the page, quiet, and never destructive: the recipe
           goes to the Trash, where it stays until somebody takes it out. The
           confirmation says that rather than warning about something that does
-          not happen. */}
+          not happen.
+
+          Not offered on a shared recipe: it is not this cook's to delete, and
+          a control that always refuses is worse than no control. */}
+      {shared.shared ? null : (
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Delete ${recipe.title}`}
@@ -464,6 +542,7 @@ export function RecipeDetailScreen() {
       >
         <Text style={[textStyle("body"), { color: c.danger }]}>Delete recipe</Text>
       </Pressable>
+      )}
 
       <AddToListSheet
         visible={listOpen}

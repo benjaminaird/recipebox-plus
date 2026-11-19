@@ -6,6 +6,7 @@
 // wrong file.
 
 import type { PullPage, SyncTransport } from "./coordinator.ts";
+import type { RecipeEnvelope } from "./pull.ts";
 
 export type AuthorizedCall = (
   path: string, init?: { method?: string; body?: unknown },
@@ -26,6 +27,36 @@ export class SyncHttpError extends Error {
     this.name = "SyncHttpError";
     this.status = status;
   }
+}
+
+/**
+ * Every page of the library view, which is where household recipes live.
+ *
+ * All of it, not a page: revocation is decided by absence, and absence from
+ * one page of several means nothing at all. A device that stopped reading
+ * half way would delete every shared recipe below the cut.
+ *
+ * So a read that cannot finish returns nothing and says so, rather than
+ * handing back a partial list that the rules would read as "the rest is gone".
+ */
+export async function readLibrary(
+  authorized: AuthorizedCall, pageSize = 50, maxPages = 100,
+): Promise<RecipeEnvelope[]> {
+  const all: RecipeEnvelope[] = [];
+  let cursor: string | null = null;
+
+  for (let page = 0; page < maxPages; page += 1) {
+    const query = "?limit=" + pageSize + (cursor ? "&cursor=" + encodeURIComponent(cursor) : "");
+    const body = await authorized("/api/v1/recipes" + query) as {
+      recipes?: unknown[]; nextCursor?: string | null;
+    };
+    const recipes = Array.isArray(body?.recipes) ? body.recipes as RecipeEnvelope[] : [];
+    all.push(...recipes);
+    cursor = typeof body?.nextCursor === "string" ? body.nextCursor : null;
+    if (!cursor) return all;
+  }
+
+  throw new SyncHttpError(null, "Your library is larger than RecipeBox expected to read in one go.");
 }
 
 export function httpTransport(authorized: AuthorizedCall): SyncTransport {

@@ -78,7 +78,7 @@ export function mayUpload(input: {
   origin: Origin;
   /** The cook explicitly chose to put this local recipe in their account. */
   adopted?: boolean;
-}): { allowed: boolean; reason: "sample" | "not-adopted" | "cloud" | "adopted" } {
+}): { allowed: boolean; reason: "sample" | "not-adopted" | "cloud" | "adopted" | "shared" } {
   if (input.origin === "sample") return { allowed: false, reason: "sample" };
   if (input.origin === "cloud") return { allowed: true, reason: "cloud" };
   if (input.adopted === true) return { allowed: true, reason: "adopted" };

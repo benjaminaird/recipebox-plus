@@ -19,9 +19,11 @@ import test from "node:test";
 import { DatabaseSync } from "node:sqlite";
 import { ADDED_COLUMNS, SCHEMA_SQL } from "../src/data/schema.ts";
 import {
-  adoptRecipe, applyResolution, countOpenConflicts, countQueued, listOpenConflicts,
-  queueLocalChange, sqliteSyncStore, unadoptedRecipes, type SqliteLike,
+  adoptRecipe, applyResolution, countOpenConflicts, countQueued, fullResync, heldRecipes,
+  listOpenConflicts, putSharedRecipe, queueLocalChange, revokeSharedRecipes, saveMyOwnCopy,
+  sqliteSyncStore, unadoptedRecipes, type SqliteLike,
 } from "../src/data/sqliteSyncStore.ts";
+import { planHouseholdRead } from "../src/sync/household.ts";
 import { resolve } from "../src/sync/outbox.ts";
 import { runSync } from "../src/sync/coordinator.ts";
 import type { Recipe } from "../src/data/types.ts";
@@ -294,7 +296,8 @@ test("a recipe pulled down carries its revision, and a restore undeletes it", as
 
   await store.putRemote({ envelope, revision: 11 });
   assert.deepEqual(await store.getLocal("r1"), {
-    recipeId: "r1", origin: "cloud", adopted: true, serverRevision: 11, deletedLocally: false,
+    recipeId: "r1", origin: "cloud", adopted: true, serverRevision: 11,
+    deletedLocally: false, shared: false,
   });
 
   await store.applyRemoteDeletion("r1", 12);
@@ -779,4 +782,199 @@ test("restoring the account's version writes it, with its revision, in one trans
   );
   assert.equal(await countQueued(db, ALICE), 0, "the account already has it; nothing to send");
   assert.equal(await countOpenConflicts(db, ALICE), 0);
+});
+
+// ---------------------------------------------------------------------------
+// Household recipes
+// ---------------------------------------------------------------------------
+
+const sharedEnvelope = (r: Recipe, ownerId = "bob") => ({
+  recipe: r, serverId: "srv-" + r.id, ownerId, ownerName: "Bob", shared: true,
+  createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-02T00:00:00Z",
+});
+
+test("a shared recipe is readable, and never sendable by any path", async () => {
+  const { raw, db } = fresh();
+  await putSharedRecipe(db, ALICE, sharedEnvelope(recipe("theirs", "Bob's bread")));
+
+  // It is in the library, like any other recipe.
+  assert.equal(
+    (raw.prepare(`SELECT title FROM recipes WHERE id='theirs' AND deleted_at IS NULL`)
+      .get() as { title: string }).title, "Bob's bread",
+  );
+  const store = sqliteSyncStore(db, ALICE, LIBRARY, here);
+  const local = await store.getLocal("theirs");
+  assert.equal(local?.shared, true);
+  assert.equal(local?.origin, "cloud");
+  assert.equal(local?.serverRevision, null, "this account has no revision to cite");
+
+  // And nothing this account does to it is ever sent.
+  await queueLocalChange(db, ALICE, write("theirs", recipe("theirs", "Edited"), false));
+  await queueLocalChange(db, ALICE, write("theirs", recipe("theirs", "Edited"), true));
+  await queueLocalChange(db, ALICE, remove("theirs"));
+  assert.equal(await countQueued(db, ALICE), 0);
+
+  assert.equal(await adoptRecipe(db, ALICE, "theirs"), false, "nor adoptable");
+  assert.deepEqual(await unadoptedRecipes(db, ALICE), [], "nor offered for adoption");
+});
+
+test("losing access removes the cached copy and nothing else", async () => {
+  const { raw, db } = fresh();
+  await putSharedRecipe(db, ALICE, sharedEnvelope(recipe("theirs", "Bob's bread")));
+  put(raw, recipe("written-here", "Mine"));
+  origin(raw, "written-here", "local", 1);
+  put(raw, recipe("my-cloud", "Also mine"));
+  origin(raw, "my-cloud", "cloud", 1, 4);
+
+  // A read in which the shared recipe no longer appears.
+  const plan = planHouseholdRead([], await heldRecipes(db, ALICE));
+  assert.deepEqual(plan.revoke, ["theirs"]);
+
+  assert.equal(await revokeSharedRecipes(db, ALICE, plan.revoke), 1);
+
+  const ids = (raw.prepare(`SELECT id FROM recipes ORDER BY id`).all() as Array<{ id: string }>)
+    .map((r) => r.id);
+  assert.deepEqual(ids, ["my-cloud", "written-here"], "everything of this cook's own stays");
+  assert.equal(
+    (raw.prepare(`SELECT COUNT(*) AS n FROM recipe_origin WHERE recipe_id='theirs'`)
+      .get() as { n: number }).n, 0, "and no provenance is left pointing at nothing",
+  );
+
+  // Hard, not soft: it is not in the cook's Trash, because it was never
+  // theirs to throw away.
+  assert.deepEqual(await (async () => {
+    const rows = raw.prepare(`SELECT id FROM recipes WHERE deleted_at IS NOT NULL`).all();
+    return rows;
+  })(), []);
+});
+
+test("revoking refuses to touch a recipe that is not marked shared", async () => {
+  // The guard that makes "lost access" safe to act on: if the household read
+  // were ever wrong about an id, the worst it could do is nothing.
+  const { raw, db } = fresh();
+  put(raw, recipe("mine", "Written here"));
+  origin(raw, "mine", "local", 1);
+
+  assert.equal(await revokeSharedRecipes(db, ALICE, ["mine"]), 0);
+  assert.equal((raw.prepare(`SELECT COUNT(*) AS n FROM recipes`).get() as { n: number }).n, 1);
+});
+
+test("save my own copy is a new recipe, queued, with the original untouched", async () => {
+  const { raw, db } = fresh();
+  const original = recipe("theirs", "Bob's bread");
+  await putSharedRecipe(db, ALICE, sharedEnvelope(original));
+
+  const copy = await saveMyOwnCopy(db, ALICE, original, "Bob", "theirs-copy-1", 9_000);
+
+  assert.equal(copy.id, "theirs-copy-1");
+  assert.match(copy.source?.reference ?? "", /Copied from Bob’s recipe/);
+
+  // The copy is this account's: in the library, and owed to the server.
+  const store = sqliteSyncStore(db, ALICE, LIBRARY, here);
+  const mine = await store.getLocal("theirs-copy-1");
+  assert.equal(mine?.shared, false);
+  assert.equal(mine?.adopted, true);
+  const [queued] = await store.listOutbox();
+  assert.equal(queued.recipeId, "theirs-copy-1");
+  assert.equal(queued.baseRevision, null, "a new recipe, not a write over anything");
+
+  // And the original is exactly as it was: still shared, still not sendable.
+  const theirs = await store.getLocal("theirs");
+  assert.equal(theirs?.shared, true);
+  assert.equal(
+    (raw.prepare(`SELECT title FROM recipes WHERE id='theirs'`).get() as { title: string }).title,
+    "Bob's bread",
+  );
+  assert.equal((await store.listOutbox()).length, 1, "nothing was queued for the original");
+});
+
+test("edits to a copy and to the original do not reach each other", async () => {
+  const { raw, db } = fresh();
+  const original = recipe("theirs", "Bob's bread");
+  await putSharedRecipe(db, ALICE, sharedEnvelope(original));
+  const copy = await saveMyOwnCopy(db, ALICE, original, "Bob", "theirs-copy-1", 9_000);
+
+  // Alice edits her copy.
+  await queueLocalChange(db, ALICE, write(copy.id, { ...copy, title: "My version" }));
+  raw.prepare(`UPDATE recipes SET title='My version' WHERE id=?`).run(copy.id);
+
+  // Bob changes his, and the household read brings it down.
+  await putSharedRecipe(db, ALICE, sharedEnvelope(recipe("theirs", "Bob's bread, revised")));
+
+  const titles = Object.fromEntries(
+    (raw.prepare(`SELECT id, title FROM recipes`).all() as Array<{ id: string; title: string }>)
+      .map((r) => [r.id, r.title]),
+  );
+  assert.equal(titles["theirs"], "Bob's bread, revised");
+  assert.equal(titles["theirs-copy-1"], "My version", "Bob's change did not reach Alice's copy");
+});
+
+// ---------------------------------------------------------------------------
+// Starting again
+// ---------------------------------------------------------------------------
+
+test("a full resync drops what the account sent and keeps everything else", async () => {
+  const { raw, db } = fresh();
+  put(raw, recipe("pulled", "From the account"));
+  origin(raw, "pulled", "cloud", 1, 7);
+  put(raw, recipe("edited", "Edited here, not sent"));
+  origin(raw, "edited", "cloud", 1, 8);
+  put(raw, recipe("written-here", "Mine"));
+  origin(raw, "written-here", "local", 1);
+  put(raw, recipe("sample-1", "A sample"));
+  origin(raw, "sample-1", "sample");
+  await putSharedRecipe(db, ALICE, sharedEnvelope(recipe("theirs", "Bob's")));
+
+  await queueLocalChange(db, ALICE, write("edited", recipe("edited", "Edited here, not sent")));
+  const store = sqliteSyncStore(db, ALICE, LIBRARY, here);
+  await store.setWatermark(99);
+  await store.recordConflict({
+    recipeId: "pulled", kind: "write", mine: recipe("pulled", "Mine"),
+    theirs: recipe("pulled", "Theirs"), serverRevision: 7, reason: "x",
+    detectedAt: 1, resolvedAt: null,
+  });
+
+  const outcome = await fullResync(db, ALICE);
+
+  assert.equal(outcome.keptPending, 1, "an unsent change is not collateral damage");
+  assert.equal(await store.getWatermark(), 0, "and the next run asks for everything");
+
+  const ids = (raw.prepare(`SELECT id FROM recipes ORDER BY id`).all() as Array<{ id: string }>)
+    .map((r) => r.id);
+  assert.ok(ids.includes("edited"), "kept: this device still owes a change for it");
+  assert.ok(ids.includes("written-here"), "kept: never the server's to send back");
+  assert.ok(ids.includes("sample-1"), "kept: not the account's at all");
+  assert.ok(!ids.includes("pulled"), "dropped: the account will send it again");
+
+  assert.equal(await countOpenConflicts(db, ALICE), 1, "the only copy of a refused change survives");
+  assert.equal(await countQueued(db, ALICE), 1);
+});
+
+test("a full resync is safe to run twice", async () => {
+  // Restart-safe: an interrupted rebuild must be finishable by running it
+  // again, and a completed one must not punish a second press of the button.
+  const { raw, db } = fresh();
+  put(raw, recipe("pulled", "From the account"));
+  origin(raw, "pulled", "cloud", 1, 7);
+  put(raw, recipe("mine", "Written here"));
+  origin(raw, "mine", "local", 1);
+
+  const first = await fullResync(db, ALICE);
+  const second = await fullResync(db, ALICE);
+
+  assert.equal(first.cleared, 1);
+  assert.equal(second.cleared, 0, "nothing left to clear");
+  assert.equal(second.keptLocal, 1);
+  assert.deepEqual(
+    (raw.prepare(`SELECT id FROM recipes`).all() as Array<{ id: string }>).map((r) => r.id),
+    ["mine"],
+  );
+});
+
+test("a resync refuses a library that is not this account's", async () => {
+  const { db } = fresh();
+  await assert.rejects(
+    () => fullResync(db, ALICE, { expected: "recipebox-someone-else.db", active: here }),
+    /different library/,
+  );
 });
