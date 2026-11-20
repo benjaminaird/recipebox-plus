@@ -10,7 +10,9 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.benjaminaird.recipebox.dev",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "RecipeBox uses the camera so you can photograph a dish or a handwritten recipe card and keep it with the recipe.",
+        "NSPhotoLibraryUsageDescription": "RecipeBox asks for your photos so you can choose a picture to keep with a recipe."
       }
     },
     "android": {

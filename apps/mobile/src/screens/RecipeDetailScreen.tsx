@@ -11,7 +11,10 @@
 // saying how, the chip says "total" rather than implying the whole amount
 // belongs to that step. The list above keeps the undivided total either way.
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text,
+  useWindowDimensions, View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
@@ -26,6 +29,11 @@ import { AddToListSheet } from "../components/AddToListSheet";
 import { displayTag } from "../domain/tags";
 import { collectCategories, collectTags } from "../data/types";
 import { deleteRecipe, listRecipes, saveRecipe } from "../data/db";
+import { RecipeThumb } from "../components/RecipeThumb";
+import { choosePhoto, deniedMessage, takePhoto } from "../media/photos";
+import { adoptPhoto } from "../media/store";
+import { expoMediaFiles } from "../media/expoFiles";
+import { parseImageReference } from "../media/reference";
 import { useSync } from "../sync/SyncProvider";
 import { stepIngredientUses, type Recipe, type Source } from "../data/types";
 import { ServingControls } from "../components/ServingControls";
@@ -52,6 +60,7 @@ export function RecipeDetailScreen() {
   const t = useTheme();
   const c = t.colors;
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const navigation = useNavigation<Nav>();
   const { params } = useRoute<Route>();
 
@@ -76,6 +85,7 @@ export function RecipeDetailScreen() {
     shared: boolean; ownerId: string | null; ownerName: string | null;
   }>({ shared: false, ownerId: null, ownerName: null });
   const [copying, setCopying] = useState(false);
+  const [workingOnPhoto, setWorkingOnPhoto] = useState(false);
 
   // On focus, not on mount. The editor is a modal over this screen, so
   // returning from it does not remount: loading once meant a saved edit was
@@ -100,6 +110,84 @@ export function RecipeDetailScreen() {
       return () => { live = false; };
     }, [params.recipeId, preferred, sync]),
   );
+
+  /**
+   * Put a photograph on this recipe.
+   *
+   * The bytes are taken into this app's own store BEFORE the recipe is
+   * saved. The picker hands back a path in a temporary directory that iOS is
+   * free to clear; writing that path onto the recipe would give the cook a
+   * photograph that worked until it did not, with nothing to say why.
+   */
+  const attachPhoto = useCallback(async (take: boolean) => {
+    if (!recipe || workingOnPhoto) return;
+    setWorkingOnPhoto(true);
+    try {
+      const outcome = take ? await takePhoto() : await choosePhoto();
+      if (outcome.status === "cancelled") return;
+      if (outcome.status === "denied") {
+        const message = deniedMessage(outcome.what);
+        Alert.alert(message.title, message.detail);
+        return;
+      }
+      if (outcome.status === "failed") {
+        Alert.alert("That photo could not be added", "Nothing has changed. Try again, or pick another.");
+        return;
+      }
+
+      // Derived from the recipe and the moment: the same photograph added
+      // twice in a row is one record rather than two copies of the bytes.
+      const mediaId = recipe.id + "-" + Date.now().toString(36);
+      const stored = await adoptPhoto(expoMediaFiles(), mediaId, outcome.uri);
+      const updated = { ...recipe, heroImage: stored.reference, updatedAt: Date.now() };
+      setRecipe(updated);
+      await saveRecipe(updated);
+    } catch {
+      Alert.alert("That photo could not be added", "Nothing has changed. Try again in a moment.");
+    } finally {
+      setWorkingOnPhoto(false);
+    }
+  }, [recipe, workingOnPhoto]);
+
+  /**
+   * Take the photograph off the recipe.
+   *
+   * The recipe stops naming it; the bytes stay. A photograph detached here
+   * may still be the only copy of something — the recipe may exist on another
+   * device still waiting for it — and store.ts decides separately when a file
+   * is genuinely safe to remove. Nothing is deleted from the disk here.
+   */
+  const removePhoto = useCallback(() => {
+    if (!recipe) return;
+    Alert.alert(
+      "Remove this photo?",
+      "The recipe keeps everything else. The photo itself stays on this phone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            const updated = { ...recipe, heroImage: "", updatedAt: Date.now() };
+            setRecipe(updated);
+            await saveRecipe(updated).catch(() => {});
+          },
+        },
+      ],
+    );
+  }, [recipe]);
+
+  const choosePhotoSource = useCallback(() => {
+    Alert.alert(
+      recipe?.heroImage ? "Replace this photo" : "Add a photo",
+      undefined,
+      [
+        { text: "Take a photo", onPress: () => { void attachPhoto(true); } },
+        { text: "Choose from library", onPress: () => { void attachPhoto(false); } },
+        { text: "Cancel", style: "cancel" },
+      ],
+    );
+  }, [attachPhoto, recipe?.heroImage]);
 
   // Persisted, so Cook Mode opens on the batch the cook actually chose --
   // including after a restart, when resuming at 1x would hand them the wrong
@@ -144,6 +232,12 @@ export function RecipeDetailScreen() {
     .filter(Boolean)
     .join(" · ");
 
+  // A reference this app can actually show. An unreadable one is no photo at
+  // all, and offering "Replace" above a blank would be worse than offering
+  // "Add" below the method.
+  const hasPhoto = parseImageReference(recipe.heroImage).kind !== "none";
+  const photoWidth = Math.round(width - t.space.screenGutter * 2);
+
   return (
     <ScrollView
       style={{ backgroundColor: c.canvas }}
@@ -154,6 +248,44 @@ export function RecipeDetailScreen() {
         gap: t.space.xxl,
       }}
     >
+      {/* The photograph, where there is one.
+          Above everything, full width, at the shape it was taken in up to a
+          limit — a recipe's picture is the first thing a cook recognises, and
+          cropping it to a band to save room is the magazine's instinct, not a
+          cookbook's. A shared recipe shows its owner's photograph and offers
+          no controls: it is not this cook's to change. */}
+      {hasPhoto ? (
+        <View style={{ gap: t.space.sm }}>
+          <View style={{ borderRadius: t.radius.md, overflow: "hidden", backgroundColor: c.tileGround }}>
+            <RecipeThumb title={recipe.title} category={recipe.category} uri={recipe.heroImage} size={photoWidth} />
+          </View>
+          {shared.shared ? null : (
+            <View style={styles.photoActions}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Replace this photo"
+                disabled={workingOnPhoto}
+                onPress={choosePhotoSource}
+                style={({ pressed }) => ({ minHeight: t.minTouch, justifyContent: "center", opacity: pressed || workingOnPhoto ? 0.6 : 1 })}
+              >
+                <Text style={[textStyle("footnote"), { color: c.accentText, fontWeight: "600" }]}>
+                  {workingOnPhoto ? "Working…" : "Replace photo"}
+                </Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Remove this photo"
+                disabled={workingOnPhoto}
+                onPress={removePhoto}
+                style={({ pressed }) => ({ minHeight: t.minTouch, justifyContent: "center", opacity: pressed ? 0.6 : 1 })}
+              >
+                <Text style={[textStyle("footnote"), { color: c.danger }]}>Remove photo</Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
+      ) : null}
+
       <View style={{ gap: t.space.sm }}>
         {recipe.category ? (
           <Text style={[textStyle("eyebrow"), { color: c.textTertiary }]}>{recipe.category}</Text>
@@ -451,6 +583,31 @@ export function RecipeDetailScreen() {
         defaultLabel={recipe.title}
       />
 
+      {/* No photograph yet. Offered here, at the foot, rather than as an
+          empty frame at the top: a recipe without a picture is a complete
+          recipe, and a dashed rectangle above the title would make every one
+          of them look unfinished. A shared recipe is not this cook's to
+          photograph. */}
+      {hasPhoto || shared.shared ? null : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Add a photo to ${recipe.title}`}
+          disabled={workingOnPhoto}
+          onPress={choosePhotoSource}
+          style={({ pressed }) => ({
+            alignSelf: "center",
+            minHeight: t.minTouch,
+            justifyContent: "center",
+            paddingHorizontal: 20,
+            opacity: pressed || workingOnPhoto ? 0.6 : 1,
+          })}
+        >
+          <Text style={[textStyle("body"), { color: c.accentText, fontWeight: "600" }]}>
+            {workingOnPhoto ? "Working…" : "Add a photo"}
+          </Text>
+        </Pressable>
+      )}
+
       {/* Somebody else's recipe, and what can be done about that.
           A member may cook from it exactly as they would their own; the one
           thing they cannot do is change it, so the one thing offered is a copy
@@ -588,6 +745,7 @@ const styles = StyleSheet.create({
   tag: { paddingHorizontal: 11, paddingVertical: 5 },
   ingredientRow: { flexDirection: "row", gap: 16, alignItems: "baseline", paddingVertical: 11, paddingHorizontal: 16 },
   cta: { alignItems: "center", justifyContent: "center", paddingHorizontal: 20 },
+  photoActions: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   stepHead: { flexDirection: "row", gap: 10, alignItems: "flex-start" },
   refs: { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingLeft: 38 },
   refChip: { paddingHorizontal: 10, paddingVertical: 4, maxWidth: "100%" },
