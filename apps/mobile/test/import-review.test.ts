@@ -123,3 +123,30 @@ test("a list of missing fields reads as a sentence", () => {
     "a, b and c",
   );
 });
+
+test("a page that names its logo does not get a logo for a photograph", () => {
+  // The extractor takes what the page's structured data names, which is the
+  // right source and usually correct. Plenty of sites name their logo, their
+  // author's avatar, or a tracking pixel — and a wrong image is worse than
+  // none, because it is a picture of somebody else's dinner attached to this
+  // cook's recipe, and it looks deliberate.
+  const page = (image: string) => `<!doctype html><html><head>
+    <script type="application/ld+json">${JSON.stringify({
+      "@context": "https://schema.org", "@type": "Recipe",
+      name: "Soda bread", image,
+      recipeIngredient: ["250 g plain flour", "300 ml buttermilk"],
+      recipeInstructions: ["Mix.", "Bake."],
+    })}</script></head><body><p>250 g plain flour</p><p>300 ml buttermilk</p>
+    <p>Mix.</p><p>Bake.</p></body></html>`;
+
+  const good = reviewFromHtml(page("https://site.test/recipes/soda-bread.jpg"), "https://site.test/r");
+  assert.equal(good.recipe?.heroImage, "https://site.test/recipes/soda-bread.jpg");
+  assert.equal(good.fields.image, true);
+
+  const bad = reviewFromHtml(page("https://site.test/assets/logo.png"), "https://site.test/r");
+  assert.equal(bad.recipe?.heroImage, "", "the logo does not become the recipe's photograph");
+  assert.equal(bad.fields.image, false, "and the review does not claim one was found");
+  // The recipe itself is unharmed: dropping a bad image is not a failed import.
+  assert.equal(bad.recipe?.title, "Soda bread");
+  assert.equal(bad.fields.ingredients, 2);
+});

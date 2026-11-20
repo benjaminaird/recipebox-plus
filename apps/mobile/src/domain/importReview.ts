@@ -33,6 +33,7 @@
 // bare. ADR 0014 then allows the cook to save it anyway, unresolved.
 import { web as extract } from "./webImport.ts";
 import type { Recipe } from "../data/types.ts";
+import { judgeImage } from "../media/reference.ts";
 
 /** Which fields the extractor found. Counts where a count is meaningful. */
 export type ExtractedFields = {
@@ -120,8 +121,25 @@ export function reviewFromHtml(html: string, url: string): ImportReview {
     };
   }
 
-  const recipe = raw.recipe;
-  const fields: ExtractedFields = { ...emptyFields(), ...(raw.fields ?? {}) };
+  // The publisher's own image, held to being plausibly a photograph of food.
+  //
+  // The extractor takes what the page's structured data names, which is the
+  // right source and usually correct. Usually is not always: plenty of sites
+  // name their logo, their author's avatar, or a 1×1 tracking pixel. A wrong
+  // image is worse than none — it is a picture of somebody else's dinner
+  // attached to this cook's recipe, and it looks deliberate.
+  //
+  // Dropped quietly rather than reported as a problem with the recipe. The
+  // cook did not choose it and cannot fix it; what they can do is add their
+  // own photograph, which Recipe Detail offers.
+  const found = (raw.recipe.heroImage ?? "").trim();
+  const rejected = found !== "" && !judgeImage({ url: found }).ok;
+  const recipe: Recipe = rejected ? { ...raw.recipe, heroImage: "" } : raw.recipe;
+  const fields: ExtractedFields = {
+    ...emptyFields(),
+    ...(raw.fields ?? {}),
+    ...(rejected ? { image: false } : {}),
+  };
 
   let confidence: number | null = null;
   let needsReview = false;

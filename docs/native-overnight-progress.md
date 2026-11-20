@@ -1034,9 +1034,11 @@ otherwise.
 
 ## Not done
 
-`judgeImage` is written and tested but not yet wired into the import review —
-the extractor's own choice is what gets saved, unfiltered, and there is no
-screen to review or replace the chosen image before saving.
+There is no screen to review or replace the chosen image before saving an
+import. `judgeImage` filters it — a page that names its logo does not get a
+logo for a photograph, and the review stops claiming an image was found —
+but the cook does not see the candidate until the recipe is saved, where
+Recipe Detail lets them replace it.
 
 Cache eviction is handled by `repairDerivatives`, which is tested but not
 called from anywhere yet.
