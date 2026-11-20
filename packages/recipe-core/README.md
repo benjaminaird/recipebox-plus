@@ -3,7 +3,7 @@
 RecipeBox's portable domain logic, and the reason the native client is React
 Native rather than a rewrite ([ADR 0003](../../docs/adr/0003-monorepo-with-shared-domain-package.md)).
 
-Eight modules, each pure UMD JavaScript: a string or an object goes in, a value
+Nine modules, each pure UMD JavaScript: a string or an object goes in, a value
 comes out. **No DOM, no network, no AI call, no dependencies** — not as a style
 preference but as the contract that lets the same code run in a browser, in
 Node, and inside Hermes on a phone.
@@ -18,6 +18,7 @@ Node, and inside Hermes on a phone.
 | `recipe-library` | Category canonicalization, local mirroring, page walking |
 | `shopping-list` | Ingredient parsing, aggregation, aisle grouping |
 | `nutrition` | Macro normalization, fingerprinting, the estimate prompt |
+| `recipe-adjust` | The AI Recipe Helper's proposal model: read, apply, describe, validate |
 
 ## Who consumes it
 

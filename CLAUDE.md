@@ -85,8 +85,9 @@ their names; do not rename them. ADRs 0001–0012 predate this and still say
   `packages/recipe-core` must keep its regression scripts green: `normalize-test`,
   `import-extract-test`, `grounding-test`, `recipe-schema-test`,
   `recipe-tags-test`, `shopping-list-test`, `nutrition-test`,
-  `recipe-library-test`. CI runs them with no `npm install` at all, which is how
-  the package's dependency-free contract is enforced rather than merely stated.
+  `recipe-library-test`, `recipe-adjust-test`. CI runs them with no `npm install`
+  at all, which is how the package's dependency-free contract is enforced rather
+  than merely stated.
 - `docs/roadmap.md` is a historical log and is partly stale — it still names a
   production branch that is now behind `main`. Trust the code and the ADRs over
   the roadmap.

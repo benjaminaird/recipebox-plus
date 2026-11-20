@@ -1,44 +1,12 @@
 "use strict";
-// Quantity helpers shared by the M1 scorer and validator. Pure, no dependencies.
+// Quantity helpers for the M1 scorer. Pure, no dependencies.
+//
+// `parseAmount` and `normUnit` are re-exported from the shared package rather
+// than kept here: the validator moved there and took them with it, and two
+// copies of "what does this amount mean" is exactly the drift the move was for.
+// `sameQuantity` and `writtenFaithfully` are scoring concerns and stay.
 
-const UNICODE_FRACTIONS = { "¼": "1/4", "½": "1/2", "¾": "3/4", "⅓": "1/3", "⅔": "2/3", "⅛": "1/8", "⅜": "3/8", "⅝": "5/8", "⅞": "7/8" };
-
-const UNIT_ALIASES = {
-  cup: ["cup", "cups", "c", "c."],
-  tbsp: ["tbsp", "tbsp.", "tablespoon", "tablespoons", "tbs", "tbl", "t"],
-  tsp: ["tsp", "tsp.", "teaspoon", "teaspoons"],
-  oz: ["oz", "oz.", "ounce", "ounces"],
-  lb: ["lb", "lbs", "pound", "pounds"],
-  g: ["g", "gram", "grams"],
-  kg: ["kg", "kilogram", "kilograms"],
-  ml: ["ml", "milliliter", "milliliters", "millilitre", "millilitres"],
-  can: ["can", "cans"],
-  clove: ["clove", "cloves"],
-  box: ["box", "boxes"],
-  pinch: ["pinch", "pinches"],
-};
-const UNIT_LOOKUP = {};
-for (const [canon, list] of Object.entries(UNIT_ALIASES)) for (const a of list) UNIT_LOOKUP[a] = canon;
-
-function normUnit(u) {
-  const s = String(u || "").trim().toLowerCase();
-  if (!s) return "";
-  return UNIT_LOOKUP[s] || s;
-}
-
-/** Parse "1 1/2", "1/2", "0.5", "½", "1½" → number. Returns null for words, ranges and blanks. */
-function parseAmount(a) {
-  let s = String(a == null ? "" : a).trim();
-  if (!s) return null;
-  for (const [k, v] of Object.entries(UNICODE_FRACTIONS)) s = s.replace(new RegExp("(\\d)" + k), "$1 " + v).replace(k, v);
-  let m = s.match(/^(\d+)\s+(\d+)\/(\d+)$/);
-  if (m) return +m[1] + +m[2] / +m[3];
-  m = s.match(/^(\d+)\/(\d+)$/);
-  if (m) return +m[1] / +m[2];
-  m = s.match(/^\d+(?:\.\d+)?$/);
-  if (m) return +s;
-  return null;
-}
+const { parseAmount, normUnit } = require("../../packages/recipe-core/src/recipe-adjust");
 
 /** True when two written quantities mean the same amount in the same unit. */
 function sameQuantity(aAmt, aUnit, bAmt, bUnit) {

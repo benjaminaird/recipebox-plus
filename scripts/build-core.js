@@ -16,9 +16,17 @@
 const fs = require("fs");
 const path = require("path");
 
-// Explicit rather than a glob: adding a module to the shared package is a
-// decision about what the browser downloads on every visit, so it is made here
-// and in public/index.html together.
+// Explicit rather than a glob: a module in this list gets a committed copy in
+// public/, is covered by the dependency scan below, and fails the build if the
+// two copies drift. A module the WEB APP consumes is also added to
+// public/index.html, which is the decision about what the browser downloads on
+// every visit; the two lists are therefore not identical.
+//
+// `recipe-adjust` is here and NOT in index.html on purpose: the server and the
+// native client use it, and the web app's own Recipe Adjustment still takes its
+// pre-ADR-0016 path. Adding a <script src> for code no page calls would make
+// every visitor download it for nothing. When the web Helper is built, the tag
+// goes in then.
 const MODULES = [
   "shopping-list",
   "recipe-tags",
@@ -28,6 +36,7 @@ const MODULES = [
   "recipe-schema",
   "recipe-normalize",
   "recipe-library",
+  "recipe-adjust",
 ];
 
 const root = path.join(__dirname, "..");

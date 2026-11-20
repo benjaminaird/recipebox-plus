@@ -13,7 +13,8 @@
     "./recipe-grounding": "./src/recipe-grounding.js",
     "./recipe-schema": "./src/recipe-schema.js",
     "./recipe-normalize": "./src/recipe-normalize.js",
-    "./recipe-library": "./src/recipe-library.js"
+    "./recipe-library": "./src/recipe-library.js",
+    "./recipe-adjust": "./src/recipe-adjust.js"
   },
   "dependencies": {},
   "devDependencies": {}

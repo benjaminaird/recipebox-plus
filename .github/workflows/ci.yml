@@ -40,7 +40,8 @@ jobs:
       - name: Domain regression scripts
         run: |
           for t in normalize-test import-extract-test grounding-test recipe-schema-test \
-                   recipe-tags-test shopping-list-test nutrition-test recipe-library-test; do
+                   recipe-tags-test shopping-list-test nutrition-test recipe-library-test \
+                   recipe-adjust-test; do
             echo "::group::$t"; node scripts/$t.js; echo "::endgroup::"
           done
       - name: Recipe-model scorer tests

@@ -47,6 +47,7 @@
     "scraper-fallback-test": "node scripts/scraper-fallback-test.js",
     "grounding-test": "node scripts/grounding-test.js",
     "recipe-schema-test": "node scripts/recipe-schema-test.js",
+    "recipe-adjust-test": "node scripts/recipe-adjust-test.js",
     "household-test": "node scripts/household-test.js",
     "normalize-test": "node scripts/normalize-test.js",
     "recipe-save-test": "node scripts/recipe-save-test.js",
