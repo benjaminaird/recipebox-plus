@@ -180,11 +180,15 @@ async function call(path, body, options) {
   ok(!('recipe' in proposed.json) && !('sections' in proposed.json), 'the response is a proposal, never a recipe to save');
 
   // What went to the provider: the tool was forced, and the recipe went as data.
-  eq(sent[0].tool_choice, { type: 'tool', name: 'propose_adjustment' }, 'the tool is forced, so the answer is structured');
-  eq(sent[0].tools.length, 1, 'one tool');
+  // NOT a forced tool call: `{type: "tool"}` and `{type: "any"}` return a 400
+  // on the current generation of models. One tool, told to use it, and prose
+  // treated as unusable — which is what the assertions below check.
+  eq(sent[0].tool_choice, { type: 'auto' }, 'the tool is offered, not forced');
+  eq(sent[0].tools.length, 1, 'one tool, so there is nothing to choose between');
   eq(sent[0].tools[0].name, 'propose_adjustment', 'and it is the proposal tool');
   ok(sent[0].model && Adjust.OPERATIONS.length > 0, 'a model was chosen server-side');
   ok(sent[0].system.includes('You do not change recipes'), 'the prompt is the server\'s, not the phone\'s');
+  ok(sent[0].system.includes('Every reply is a tool call'), 'and it says so, since nothing forces it');
 
   // ── A clarifying question is free ───────────────────────────────────────
   sent = [];
