@@ -20,6 +20,11 @@ import type { Timer } from "../domain/timer";
 import { buildSearchText, byNewest, type LibraryFilters } from "./query";
 import { SAMPLE_RECIPES } from "./sampleRecipes";
 import { ADDED_COLUMNS, SCHEMA_SQL, SCHEMA_VERSION } from "./schema.ts";
+import {
+  appendVersion, countVersions, getVersion, listVersions, originalVersion,
+  recordArrival, revertNote, revertedContent,
+  type RecipeVersion, type VersionCause, type VersionDb, type VersionSummary,
+} from "./versions.ts";
 
 const DB_NAME = "recipebox.db";
 
@@ -315,7 +320,10 @@ async function upsert(
  * `search` is rebuilt from the saved recipe by upsert(), so a recipe stays
  * findable by a tag the moment it is given one.
  */
-export async function saveRecipe(recipe: Recipe): Promise<void> {
+export async function saveRecipe(
+  recipe: Recipe,
+  history: { cause?: VersionCause; note?: string } = {},
+): Promise<void> {
   const db = await open();
   const saved: Recipe = {
     ...recipe,
@@ -332,8 +340,78 @@ export async function saveRecipe(recipe: Recipe): Promise<void> {
     // clearer undelete than any button, and leaving deleted_at set would hide
     // the recipe the cook has just written.
     await db.runAsync(`UPDATE recipes SET deleted_at = NULL WHERE id = ?`, [saved.id]);
+    // History, in the same transaction as the change (ADR 0015). A recipe
+    // saved without its version is a change the cook can never get back, and
+    // nothing on screen would say so.
+    //
+    // A first save records how the recipe ARRIVED, whatever the caller called
+    // the change: version 1 is the answer to "what did the source say?", and
+    // there is no earlier state for it to be a change from.
+    if (existing) {
+      await appendVersion(db as unknown as VersionDb, { recipe: saved, cause: history.cause ?? "edited", note: history.note ?? "" });
+    } else {
+      await recordArrival(db as unknown as VersionDb, saved, history.note || "As it arrived");
+    }
     await record(db, { recipeId: saved.id, kind: "write", recipe: saved, created: !existing });
   });
+}
+
+// --- history (ADR 0015) ----------------------------------------------------
+//
+// Thin wrappers that open the library and hand it to data/versions.ts. The
+// logic and the SQL are there, where a test can create the real table in a
+// real SQLite and read back what was written; these exist so a screen does
+// not have to know how the database is opened.
+
+/**
+ * The open library as data/versions.ts wants it.
+ *
+ * A cast, like the one SyncProvider makes for the sync store, and for the same
+ * reason: expo-sqlite's bind-parameter types are narrower than a plain
+ * `unknown[]`, and the alternative is importing expo's types into a module
+ * whose whole point is to run without expo.
+ */
+async function historyDb(): Promise<VersionDb> {
+  return (await open()) as unknown as VersionDb;
+}
+
+/** The history of one recipe, newest first. Bodies left behind. */
+export async function recipeHistory(recipeId: string, limit = 100): Promise<VersionSummary[]> {
+  return listVersions(await historyDb(), recipeId, limit);
+}
+
+/** How many versions a recipe has, for a "History (4)" row. */
+export async function recipeHistoryCount(recipeId: string): Promise<number> {
+  return countVersions(await historyDb(), recipeId);
+}
+
+/** One version, with its body. */
+export async function recipeVersion(recipeId: string, seq: number): Promise<RecipeVersion | null> {
+  return getVersion(await historyDb(), recipeId, seq);
+}
+
+/** The recipe as it arrived, if this device has it. */
+export async function recipeOriginal(recipeId: string): Promise<RecipeVersion | null> {
+  return originalVersion(await historyDb(), recipeId);
+}
+
+/**
+ * Make an earlier version current again.
+ *
+ * It goes through saveRecipe, so a revert queues its upload and appends its
+ * own version exactly like any other change. Writing the row here instead
+ * would be a second way to change a recipe — and the one that skipped the
+ * queue, so the cook's phone and their account would disagree with nothing to
+ * say why.
+ */
+export async function revertRecipe(recipeId: string, seq: number): Promise<Recipe | null> {
+  const target = await getVersion(await historyDb(), recipeId, seq);
+  if (!target) return null;
+  const current = await getRecipe(recipeId);
+  if (!current) return null;
+  const content = revertedContent(current, target.recipe);
+  await saveRecipe(content, { cause: "reverted", note: revertNote(seq) });
+  return content;
 }
 
 // --- local changes the sync layer has to hear about ------------------------

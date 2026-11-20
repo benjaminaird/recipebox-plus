@@ -23,6 +23,7 @@ import type { Origin, RecipeEnvelope } from "../sync/pull.ts";
 import { copyForMyself, type HeldRecipe } from "../sync/household.ts";
 import type { LocalRecipeChange } from "./db.ts";
 import { buildSearchText } from "./query.ts";
+import { appendVersion, type VersionDb } from "./versions.ts";
 
 /**
  * The slice of the database driver this module uses.
@@ -660,6 +661,12 @@ export async function applyResolution(
           buildSearchText(copy), copy.createdAt, copy.updatedAt, JSON.stringify(copy),
         ],
       );
+      // A conflict resolution is a version like any other (ADR 0015): the
+      // superseded content is not thrown away because the cook chose the
+      // other one, and "keep both" is a new recipe whose history starts here.
+      await appendVersion(db as VersionDb, {
+        recipe: copy, cause: "resolved-conflict", note: resolutionNote(resolution), at: now,
+      });
       // The copy is this account's: it was made here, deliberately, while
       // signed in, which is the same thing that makes any new recipe theirs.
       await assertOriginOwner(db, copy.id, accountId);
@@ -699,6 +706,9 @@ export async function applyResolution(
            server_revision = excluded.server_revision, adopted = 1`,
         [back.id, accountId, resolution.restoreRevision],
       );
+      await appendVersion(db as VersionDb, {
+        recipe: back, cause: "resolved-conflict", note: resolutionNote(resolution), at: now,
+      });
     }
 
     if (resolution.enqueue) {
@@ -721,6 +731,12 @@ export async function applyResolution(
 function resolutionName(resolution: ConflictResolution): string {
   if (resolution.create) return "keep-both";
   return resolution.enqueue ? "keep-mine" : "keep-theirs";
+}
+
+/** What the history row says about a conflict the cook settled. */
+function resolutionNote(resolution: ConflictResolution): string {
+  if (resolution.create) return "Kept both versions";
+  return resolution.enqueue ? "Kept this phone's version" : "Kept the version from your account";
 }
 
 

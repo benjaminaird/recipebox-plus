@@ -436,7 +436,15 @@ test("keeping both makes a second recipe, and leaves the account's alone", async
   assert.equal(queued.recipeId, "r1-copy");
   assert.equal(queued.baseRevision, null, "a new recipe is created, not written over anything");
   assert.equal(await countOpenConflicts(db, ALICE), 0);
+
+  // A resolution is a version like any other (ADR 0015), and the history says
+  // in the cook's words which way it went.
+  const history = (raw.prepare(
+    `SELECT recipe_id, cause, note FROM recipe_versions ORDER BY recipe_id`,
+  ).all() as Array<{ recipe_id: string; cause: string; note: string }>).map(plain);
+  assert.deepEqual(history, [{ recipe_id: "r1-copy", cause: "resolved-conflict", note: "Kept both versions" }]);
 });
+
 
 test("resolving the same conflict twice does not make two copies", async () => {
   const { raw, db } = await conflicted();
@@ -782,6 +790,16 @@ test("restoring the account's version writes it, with its revision, in one trans
   );
   assert.equal(await countQueued(db, ALICE), 0, "the account already has it; nothing to send");
   assert.equal(await countOpenConflicts(db, ALICE), 0);
+
+  // The content this phone was holding is replaced, so the replacement is a
+  // version (ADR 0015) and the history says why in the cook's words.
+  const history = (raw.prepare(
+    `SELECT recipe_id, seq, cause, note FROM recipe_versions`,
+  ).all() as Array<{ recipe_id: string; seq: number; cause: string; note: string }>).map(plain);
+  assert.deepEqual(history, [{
+    recipe_id: "r1", seq: 1, cause: "resolved-conflict",
+    note: "Kept the version from your account",
+  }]);
 });
 
 // ---------------------------------------------------------------------------

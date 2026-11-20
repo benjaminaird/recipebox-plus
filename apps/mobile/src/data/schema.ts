@@ -27,8 +27,9 @@
  * 7 — sync_outbox, sync_conflicts, and the columns sync needs on the two
  *     tables that already existed: recipes.deleted_at, and the server
  *     revision and adoption flag on recipe_origin.
+ * 8 — recipe_versions (ADR 0015 on the device).
  */
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 /** Everything that can be created from nothing, guarded. */
 export const SCHEMA_SQL = `
@@ -202,6 +203,36 @@ export const SCHEMA_SQL = `
       resolution      TEXT
     );
     CREATE INDEX IF NOT EXISTS sync_conflicts_open ON sync_conflicts (account_id, resolved_at);
+    /* Added in schema 8. Recipe history (ADR 0015), on the device.
+     *
+     * The server has had this since the versioned write API. The phone had
+     * none of it, which meant a change made offline — which is most of them,
+     * since uploads are off by default — could not be undone at all.
+     *
+     * Append-only: nothing in the app updates or deletes a row here. Going
+     * back to an earlier version APPENDS one holding that content, so undoing
+     * never destroys the history it undid.
+     *
+     * Each row holds the whole recipe. A chain of diffs would be smaller and
+     * is the wrong trade, because it is only readable if every link is intact
+     * and the one thing this table exists to survive is a half-finished write.
+     *
+     * The seq column is this device's ordering, 1 upward per recipe, and is
+     * not the server's revision: the two count different things, and a local
+     * history has to be complete without the network having been reachable.
+     *
+     * (No backticks in here. The whole of SCHEMA_SQL is one template literal,
+     * so a backtick in a comment ends it and the file stops parsing.) */
+    CREATE TABLE IF NOT EXISTS recipe_versions (
+      id          TEXT PRIMARY KEY NOT NULL,
+      recipe_id   TEXT NOT NULL,
+      seq         INTEGER NOT NULL,
+      cause       TEXT NOT NULL,
+      note        TEXT NOT NULL DEFAULT '',
+      created_at  INTEGER NOT NULL,
+      json        TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS recipe_versions_recipe ON recipe_versions (recipe_id, seq DESC);
   `;
 
 /**
