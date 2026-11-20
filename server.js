@@ -19,6 +19,10 @@ const RecipeBoxLibrary = require('./packages/recipe-core/src/recipe-library');
 // reads the web app's `profiles` and owns no identity of its own (ADR 0010).
 const deviceAuth = require('./lib/device-auth');
 const recipeSync = require('./lib/recipe-sync');
+// What the AI Recipe Helper is told, what it is shown, and how its answer is
+// read. Pure: the prompt and the proposal schema live on this side of the wire
+// so the model's output can be validated before it is offered (ADR 0016).
+const aiHelper = require('./lib/ai-helper');
 
 const app = express();
 app.disable('x-powered-by');
@@ -1303,6 +1307,12 @@ async function checkGlobalAiControls() {
   const monthlyCostCap = resolveMonthlyCostCap();
   if (monthlyCostCap > 0) {
     const db = await getPool();
+    // A spend cap that cannot read the spend fails closed. The alternative is
+    // a cap that silently stops capping exactly when the ledger is unreachable,
+    // which is the moment it matters most. Nothing real is lost: a deployment
+    // with no database has no accounts to sign in with, so this path is only
+    // reached by a test, and a test of AI behaviour sets the cap itself.
+    if (!db) return { allowed: false, error: 'RecipeBox AI is paused: its spending record is unavailable.' };
     const result = await db.query(
       `SELECT COALESCE(SUM(estimated_cost_usd), 0)::numeric AS total
        FROM ai_usage_events
@@ -1965,6 +1975,11 @@ async function incrementAiUsage(userId, amount = 1) {
   const period = currentAiPeriod();
   const n = Math.round(Number(amount) || 0);
   if (n === 0) return readAiUsage(userId);
+  // Every other reader and writer in here answers without a database; this one
+  // did not, and dereferenced a null pool. It was unreachable from /api/ai,
+  // because a cookie session needs the database that holds it — and reachable
+  // from the Helper endpoint, which authenticates a device token instead.
+  if (!db || !userId) return readAiUsage(userId);
   const profile = await db.query('SELECT role FROM profiles WHERE user_id=$1', [userId]);
   if (profile.rows[0]?.role === 'master_admin') return readAiUsage(userId);
   // Pooled household monthly Assists are counted against the household, not the user.
@@ -3616,6 +3631,180 @@ app.get('/api/v1/household', requireDeviceAuth, async (req, res) => {
   catch (err) { sendV1Error(res, err); }
 });
 
+// ---------------------------------------------------------------------------
+// The AI Recipe Helper (ADR 0016)
+// ---------------------------------------------------------------------------
+//
+// It proposes. It never writes. The response is a structured proposal the cook
+// reviews on the device; accepting it is a write the device makes, through the
+// ordinary sync path, as a new version (ADR 0015).
+//
+// Unlike /api/ai this is not a proxy. The prompt, the tool schema, the parse
+// and the validation are all here, because a server that forwards a body it
+// does not understand cannot do step 6 of the ADR — validate between the
+// proposal and the offer — and because a prompt shipped in the client bundle
+// can be replaced by whoever holds the phone.
+
+/**
+ * May this account ask the Helper about this recipe id?
+ *
+ * The recipe itself arrives in the body, because uploads are off by default and
+ * the device is the system of record (ADR 0004): for most recipes the cloud
+ * holds nothing to read. So this is narrower than it looks, and deliberately
+ * so — it is here to stop a recipe id that belongs to someone else being used
+ * to attribute spend or log a title against their account, not to fetch the
+ * recipe.
+ *
+ * A household member MAY ask about a recipe shared with them and may not own:
+ * accepting a proposal writes to their own copy, never to the owner's recipe.
+ */
+async function helperRecipeAccess(userId, recipeId) {
+  const db = await getPool();
+  if (!db || !recipeId) return { allowed: true, relation: 'local' };
+  const result = await db.query(
+    `SELECT r.user_id,
+            (r.recipe_json->>'shared') = 'true' AS shared,
+            EXISTS (
+              SELECT 1 FROM household_members viewer
+                JOIN household_members owner ON owner.household_id = viewer.household_id
+               WHERE viewer.user_id = $1 AND owner.user_id = r.user_id
+            ) AS same_household
+       FROM recipes r
+      WHERE r.recipe_json->>'id' = $2
+      -- The caller's own row wins when two accounts hold the same id, so a
+      -- stranger's row can never decide the answer for a recipe you own.
+      ORDER BY (r.user_id = $1) DESC
+      LIMIT 1`,
+    [userId, recipeId]
+  );
+  const row = result.rows[0];
+  if (!row) return { allowed: true, relation: 'local' };
+  if (row.user_id === userId) return { allowed: true, relation: 'own' };
+  if (row.shared && row.same_household) return { allowed: true, relation: 'household' };
+  return { allowed: false, relation: 'none' };
+}
+
+app.post('/api/v1/recipes/:recipeId/helper', requireDeviceAuth, async (req, res) => {
+  const requestId = crypto.randomUUID();
+  const feature = 'adjust';
+  const user = req.user;
+  let entitlement = null;
+  let model = '';
+  let tier = 'unknown';
+  let charged = false;
+  try {
+    const read = aiHelper.readHelperBody(req.body);
+    if (read.problem) return res.status(400).json(read.problem);
+    const { recipe, message, turns } = read.request;
+
+    const access = await helperRecipeAccess(user.user_id, req.params.recipeId);
+    if (!access.allowed) {
+      return res.status(403).json({ code: 'forbidden', message: 'That recipe is not yours.' });
+    }
+
+    entitlement = await readEntitlements(user);
+    tier = entitlement.plan;
+    const isMaster = isMasterAdminUser(user);
+    const assistCost = aiAssistCost(feature);
+    // The same gate /api/ai uses, with the same limits and the same wording:
+    // rate limits, the burst guard, the adjust kill switch, the global cost
+    // caps, and whether this account can cover the cost.
+    const allowance = await aiCallAllowance(req, {
+      user, feature, entitlement, isMaster, assistCost, dupHash: '',
+    });
+    if (allowance.refusal) return res.status(allowance.refusal.status).json(allowance.refusal.body);
+    const { billable } = allowance;
+
+    const key = process.env.ANTHROPIC_API_KEY;
+    if (!key) return res.status(503).json({ code: 'ai_unavailable', message: 'The Recipe Helper is not set up on this server.' });
+    model = ALLOWED_AI_MODELS.has(String(req.body && req.body.model)) ? String(req.body.model) : DEFAULT_AI_MODEL;
+
+    // Two attempts at most, and the second one carries what the first got
+    // wrong. ADR 0016's "return it for correction rather than silently saving
+    // it" is cheapest to honour here, where the reason is in hand: a proposal
+    // that failed its shape check or its validation goes back with the codes.
+    // A third attempt is a loop, not a repair, so there isn't one.
+    let problems = [];
+    let outcome = null;
+    let inputTokens = 0;
+    let outputTokens = 0;
+
+    for (let attempt = 0; attempt < 2 && !outcome; attempt += 1) {
+      const body = Object.assign({ model }, aiHelper.helperRequest({ recipe, turns, message, problems }));
+      let r;
+      try {
+        r = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+          body: JSON.stringify(sanitizeAiBody(body)),
+        }, 55000);
+      } catch (err) {
+        await logAiUsageEvent({ requestId, user, feature, model, tier, success: false, errorMessage: isAbortError(err) ? 'anthropic timeout' : err.message });
+        if (isAbortError(err)) return res.status(504).json({ code: 'ai_timeout', message: 'That took longer than expected. Try again — you were not charged.' });
+        throw err;
+      }
+      const d = await r.json();
+      if (!r.ok) {
+        await logAiUsageEvent({ requestId, user, feature, model, tier, success: false, errorMessage: (d && d.error && d.error.message) || 'Anthropic request failed' });
+        return res.status(502).json({ code: 'ai_provider_error', message: 'The Recipe Helper could not be reached. Nothing was charged.' });
+      }
+      inputTokens += (d.usage && d.usage.input_tokens) || 0;
+      outputTokens += (d.usage && d.usage.output_tokens) || 0;
+
+      const result = aiHelper.readHelperResponse(d, recipe);
+      if (result.kind === 'invalid') { problems = result.problems; continue; }
+      outcome = result;
+    }
+
+    if (!outcome) {
+      // Twice invalid. The cook gets nothing to accept, which is the point:
+      // better no proposal than one that would leave the recipe inconsistent.
+      await logAiUsageEvent({ requestId, user, feature, model, tier, inputTokens, outputTokens, success: false, errorMessage: 'proposal invalid after correction' });
+      return res.status(422).json({
+        code: 'proposal_invalid',
+        message: 'The Helper could not put together a change that holds together. Try asking for something smaller.',
+        problems: problems.map((p) => p.code),
+      });
+    }
+    if (outcome.kind === 'unreadable') {
+      await logAiUsageEvent({ requestId, user, feature, model, tier, inputTokens, outputTokens, success: false, errorMessage: 'no tool call' });
+      return res.status(502).json({ code: 'helper_unreadable', message: 'The Helper did not answer in a form the app can use. Nothing was charged.' });
+    }
+
+    // ADR 0016: an exchange that reaches a proposal spends an AI Assist;
+    // discussion that does not produce one does not. A clarifying question is
+    // discussion, and charging for it would teach the Helper not to ask.
+    const spends = outcome.kind === 'proposal';
+    if (billable && spends) {
+      if (!entitlement.unlimited) { await debitAiAssists(user.user_id, { requestId, cost: assistCost, actionType: feature }); charged = true; }
+      else if (!isMaster) await incrementAiUsage(user.user_id, assistCost);
+    }
+    await logAiUsageEvent({ requestId, user, feature, model, tier, inputTokens, outputTokens, success: true });
+
+    const proposal = outcome.proposal;
+    res.json({
+      kind: outcome.kind,
+      summary: proposal.summary,
+      question: proposal.question || '',
+      tradeoffs: proposal.tradeoffs,
+      uncertainties: proposal.uncertainties,
+      alternatives: proposal.alternatives,
+      operations: proposal.operations,
+      // The diff, computed here from the operations, so the device draws what
+      // the server validated rather than its own reading of it.
+      rows: outcome.rows || [],
+      assistCost: spends ? assistCost : 0,
+      credits: await readCreditStatus(user),
+      aiUsage: await readAiUsage(user.user_id),
+      requestId,
+    });
+  } catch (err) {
+    try { await logAiUsageEvent({ requestId, user, feature, model, tier, success: false, errorMessage: err.message }); } catch {}
+    if (charged && entitlement && !entitlement.unlimited) { try { await refundAiAssists(user.user_id, requestId, err.message); } catch {} }
+    sendV1Error(res, err);
+  }
+});
+
 // Anything else under /api/v1 is a 404 with a code, not the SPA's index.html —
 // a published client must be able to tell "no such endpoint" from "here is a
 // web page", which is what it would otherwise receive from the catch-all below.
@@ -4868,6 +5057,74 @@ app.put('/api/household/pantry', requireAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+/**
+ * Everything that must be true before an AI call is made, in one place.
+ *
+ * This was inline in /api/ai, which was fine while /api/ai was the only route
+ * that spent money. The native Recipe Helper is a second one, and two copies of
+ * "may this account spend an AI Assist right now" is how one of them ends up a
+ * version behind the other — with the cheaper-to-reach copy being the one an
+ * attacker uses. Extracted verbatim: same order, same limits, same wording, so
+ * the web app's behaviour is unchanged.
+ *
+ * Returns `{ refusal: { status, body } }` to send back, or `{ billable, credits }`
+ * when the call may proceed.
+ */
+async function aiCallAllowance(req, { user, feature, entitlement, isMaster, assistCost, dupHash }) {
+  const refuse = (status, body) => ({ refusal: { status, body } });
+  if (!entitlement.unlimited) {
+    const ipLimit = await checkRateLimit(`ip:${clientIp(req)}`, `ai:${feature}`, 80, 'day');
+    if (!ipLimit.allowed) return refuse(429, { error: 'Slow down a bit before using more RecipeBox AI.' });
+    const perUserLimit = await checkRateLimit(`user:${user.user_id}`, `ai:${feature}`, entitlement.aiDailyLimit || 60, 'day');
+    if (!perUserLimit.allowed) return refuse(429, { error: 'Daily AI limit reached for your account.', limit: perUserLimit.limit, resetAt: perUserLimit.resetAt });
+    // Burst guard: even a high-balance user can't script the AI endpoints.
+    const burst = await checkRateLimit(`user:${user.user_id}`, 'ai:burst', AI_BURST_MAX, AI_BURST_SCOPE);
+    if (!burst.allowed) return refuse(429, { error: 'Too many AI actions in a short time. Give it a few minutes and try again.', limit: burst.limit, resetAt: burst.resetAt });
+    if (feature === 'import' && String(process.env.AI_IMPORTS_ENABLED || 'true').toLowerCase() === 'false') return refuse(503, { error: 'Recipe imports are temporarily paused.' });
+    if (feature === 'adjust' && String(process.env.AI_ADJUST_ENABLED || 'true').toLowerCase() === 'false') return refuse(503, { error: 'Recipe adjustments are temporarily paused.' });
+  } else if (!isMaster) {
+    // Beta = unlimited AI Assists, but still abuse / rate-limit protected.
+    const ipLimit = await checkRateLimit(`ip:${clientIp(req)}`, `ai:${feature}`, 120, 'day');
+    if (!ipLimit.allowed) return refuse(429, { error: 'Slow down a bit before using more RecipeBox AI.' });
+    const betaCap = Number(process.env.AI_BETA_DAILY_ABUSE_CAP || 200);
+    const perUserLimit = await checkRateLimit(`user:${user.user_id}`, `ai:${feature}`, betaCap, 'day');
+    if (!perUserLimit.allowed) return refuse(429, { error: 'Daily AI limit reached for your account.', limit: perUserLimit.limit, resetAt: perUserLimit.resetAt });
+  }
+  // Duplicate-import guard: block an identical import only if an identical one
+  // *succeeded* in the last couple of minutes (a failed import leaves no marker,
+  // so retries after a failure are always allowed).
+  if (feature === 'import' && !isMaster) {
+    const db = await getPool();
+    if (db) {
+      const seen = await db.query(
+        `SELECT 1 FROM rate_limit_counters WHERE key=$1 AND bucket LIKE 'ai:dup:%' AND reset_at > now() LIMIT 1`,
+        [`dup:${user.user_id}:${dupHash}`]
+      );
+      if (seen.rows[0]) return refuse(429, { error: "Looks like you just imported this — check your library. Give it a moment before re-importing." });
+    }
+  }
+  // Global safety controls (emergency off, daily global cap, monthly cost cap)
+  // apply to everyone except the master admin — including beta/unlimited users,
+  // so the wallet circuit breaker actually protects during the unlimited beta.
+  const globalControls = await checkGlobalAiControls();
+  if (!isMaster && !globalControls.allowed) return refuse(503, { error: globalControls.error });
+  const billable = isBillableAiFeature(feature);
+  const credits = await readCreditStatus(user);
+  // Block a billable action when the user can't cover its AI Assist cost
+  // (monthly + bonus + purchased). Helper passes (repair) and unlimited
+  // accounts pass through. Cost varies by action (see AI_ACTION_COSTS).
+  if (billable && !credits.unlimited && credits.totalRemaining < assistCost) {
+    return refuse(429, {
+      error: `You don't have enough AI Assists for this (needs ${assistCost}). Your monthly AI Assists reset ${new Date(credits.monthly.resetsAt).toLocaleDateString()}, or add a pack that never expires.`,
+      assistCost,
+      credits,
+      aiUsage: await readAiUsage(user.user_id),
+    });
+  }
+  return { billable, credits };
+}
+
+
 app.post('/api/ai', async function(req, res) {
   const requestId = crypto.randomUUID();
   let user = null;
@@ -4888,55 +5145,9 @@ app.post('/api/ai', async function(req, res) {
     // Identical-request fingerprint (used only to guard against accidental
     // double-submits of an expensive import; see the post-success marker below).
     const dupHash = crypto.createHash('sha256').update(JSON.stringify(req.body?.messages || req.body || {})).digest('hex').slice(0, 32);
-    if (!entitlement.unlimited) {
-      const ipLimit = await checkRateLimit(`ip:${clientIp(req)}`, `ai:${feature}`, 80, 'day');
-      if (!ipLimit.allowed) return res.status(429).json({ error: 'Slow down a bit before using more RecipeBox AI.' });
-      const perUserLimit = await checkRateLimit(`user:${user.user_id}`, `ai:${feature}`, entitlement.aiDailyLimit || 60, 'day');
-      if (!perUserLimit.allowed) return res.status(429).json({ error: 'Daily AI limit reached for your account.', limit: perUserLimit.limit, resetAt: perUserLimit.resetAt });
-      // Burst guard: even a high-balance user can't script the AI endpoints.
-      const burst = await checkRateLimit(`user:${user.user_id}`, 'ai:burst', AI_BURST_MAX, AI_BURST_SCOPE);
-      if (!burst.allowed) return res.status(429).json({ error: 'Too many AI actions in a short time. Give it a few minutes and try again.', limit: burst.limit, resetAt: burst.resetAt });
-      if (feature === 'import' && String(process.env.AI_IMPORTS_ENABLED || 'true').toLowerCase() === 'false') return res.status(503).json({ error: 'Recipe imports are temporarily paused.' });
-      if (feature === 'adjust' && String(process.env.AI_ADJUST_ENABLED || 'true').toLowerCase() === 'false') return res.status(503).json({ error: 'Recipe adjustments are temporarily paused.' });
-    } else if (!isMaster) {
-      // Beta = unlimited AI Assists, but still abuse / rate-limit protected.
-      const ipLimit = await checkRateLimit(`ip:${clientIp(req)}`, `ai:${feature}`, 120, 'day');
-      if (!ipLimit.allowed) return res.status(429).json({ error: 'Slow down a bit before using more RecipeBox AI.' });
-      const betaCap = Number(process.env.AI_BETA_DAILY_ABUSE_CAP || 200);
-      const perUserLimit = await checkRateLimit(`user:${user.user_id}`, `ai:${feature}`, betaCap, 'day');
-      if (!perUserLimit.allowed) return res.status(429).json({ error: 'Daily AI limit reached for your account.', limit: perUserLimit.limit, resetAt: perUserLimit.resetAt });
-    }
-    // Duplicate-import guard: block an identical import only if an identical one
-    // *succeeded* in the last couple of minutes (a failed import leaves no marker,
-    // so retries after a failure are always allowed).
-    if (feature === 'import' && !isMaster) {
-      const db = await getPool();
-      if (db) {
-        const seen = await db.query(
-          `SELECT 1 FROM rate_limit_counters WHERE key=$1 AND bucket LIKE 'ai:dup:%' AND reset_at > now() LIMIT 1`,
-          [`dup:${user.user_id}:${dupHash}`]
-        );
-        if (seen.rows[0]) return res.status(429).json({ error: "Looks like you just imported this — check your library. Give it a moment before re-importing." });
-      }
-    }
-    // Global safety controls (emergency off, daily global cap, monthly cost cap)
-    // apply to everyone except the master admin — including beta/unlimited users,
-    // so the wallet circuit breaker actually protects during the unlimited beta.
-    const globalControls = await checkGlobalAiControls();
-    if (!isMaster && !globalControls.allowed) return res.status(503).json({ error: globalControls.error });
-    const billable = isBillableAiFeature(feature);
-    const credits = await readCreditStatus(user);
-    // Block a billable action when the user can't cover its AI Assist cost
-    // (monthly + bonus + purchased). Helper passes (repair) and unlimited
-    // accounts pass through. Cost varies by action (see AI_ACTION_COSTS).
-    if (billable && !credits.unlimited && credits.totalRemaining < assistCost) {
-      return res.status(429).json({
-        error: `You don't have enough AI Assists for this (needs ${assistCost}). Your monthly AI Assists reset ${new Date(credits.monthly.resetsAt).toLocaleDateString()}, or add a pack that never expires.`,
-        assistCost,
-        credits,
-        aiUsage: await readAiUsage(user.user_id),
-      });
-    }
+    const allowance = await aiCallAllowance(req, { user, feature, entitlement, isMaster, assistCost, dupHash });
+    if (allowance.refusal) return res.status(allowance.refusal.status).json(allowance.refusal.body);
+    const { billable, credits } = allowance;
     const key = process.env.ANTHROPIC_API_KEY;
     if (!key) return res.status(500).json({ error: 'no key' });
     let r;

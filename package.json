@@ -15,6 +15,7 @@
     "library-view-test": "node scripts/library-view-test.js",
     "meal-plan-test": "node scripts/meal-plan-test.js",
     "ai-credits-test": "node scripts/ai-credits-test.js",
+    "ai-helper-test": "node scripts/ai-helper-test.js",
     "entitlements-test": "node scripts/entitlements-test.js",
     "import-reliability-test": "node scripts/import-reliability-test.js",
     "auth-rate-limit-test": "node scripts/auth-rate-limit-test.js",
