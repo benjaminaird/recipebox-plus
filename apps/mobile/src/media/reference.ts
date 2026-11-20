@@ -26,6 +26,22 @@
 /** The scheme that means "this app's own media store". */
 const LOCAL_PREFIX = "recipebox://media/";
 
+/**
+ * What a media id may be made of.
+ *
+ * It becomes a directory name, and `heroImage` is not ours: it arrives from
+ * a web page the cook imported and from the account's sync feed. An id of
+ * `../../../Library/Preferences` would read — and, through forgetPhoto,
+ * DELETE — somewhere it has no business being. The characters this app
+ * actually generates are letters, digits and hyphens; anything else is not a
+ * media id and is treated as no photograph at all.
+ */
+const MEDIA_ID = /^[A-Za-z0-9_-]{1,128}$/;
+
+export function isMediaId(value: string): boolean {
+  return MEDIA_ID.test(value);
+}
+
 export type ImageReference =
   | { kind: "remote"; url: string }
   | { kind: "local"; mediaId: string }
@@ -38,7 +54,7 @@ export function parseImageReference(value: string | null | undefined): ImageRefe
   if (!raw) return { kind: "none" };
   if (raw.startsWith(LOCAL_PREFIX)) {
     const mediaId = raw.slice(LOCAL_PREFIX.length).trim();
-    return mediaId ? { kind: "local", mediaId } : { kind: "none" };
+    return isMediaId(mediaId) ? { kind: "local", mediaId } : { kind: "none" };
   }
   if (/^https?:\/\//i.test(raw)) return { kind: "remote", url: raw };
   // file://, ph://, content://, assets-library:// — all of them mean "somewhere

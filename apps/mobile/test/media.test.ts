@@ -244,3 +244,29 @@ test("only references this app understands may reach an image loader", () => {
   assert.equal(allowed("javascript:alert(1)"), false);
   assert.equal(allowed(""), false);
 });
+
+test("a media id cannot climb out of the store", async () => {
+  // `heroImage` arrives from imported web pages and from the sync feed, and
+  // the id inside it becomes a directory name. One of these functions
+  // deletes a directory tree. An id of "../../../Library/Preferences" would
+  // have taken somewhere it has no business being.
+  for (const nasty of [
+    "../../../etc", "..", ".", "a/b", "a\\b", "%2e%2e", ".hidden",
+    "m1/../../x", "m 1", "m1\u0000", "x".repeat(129),
+  ]) {
+    assert.equal(parseImageReference("recipebox://media/" + nasty).kind, "none", nasty);
+    assert.throws(() => pathsFor(recordingFiles(), nasty), /not a media id/, nasty);
+  }
+
+  // And the ids this app actually makes still work.
+  for (const fine of ["m1", "r-abc123-copy-xyz", "A_B-9"]) {
+    assert.equal(parseImageReference("recipebox://media/" + fine).kind, "local", fine);
+    assert.ok(pathsFor(recordingFiles(), fine).dir.startsWith("/docs/media/"), fine);
+  }
+
+  // Nothing is deleted on the way to refusing.
+  const files = recordingFiles();
+  await adoptPhoto(files, "keep", "file:///tmp/a.jpg");
+  await assert.rejects(() => forgetPhoto(files, "../keep"));
+  assert.ok(files._present.has("/docs/media/keep/original"));
+});

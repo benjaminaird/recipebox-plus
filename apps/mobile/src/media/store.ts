@@ -26,7 +26,7 @@
 // The file system is a parameter, so the rules can be tested without a
 // device: see `MediaFiles`.
 
-import { localReference } from "./reference.ts";
+import { isMediaId, localReference } from "./reference.ts";
 
 /** The slice of the file system this module uses. */
 export type MediaFiles = {
@@ -65,13 +65,25 @@ export type MediaRecord = {
   createdAt: number;
 };
 
-const folder = (files: MediaFiles, mediaId: string) => files.documents + "media/" + mediaId + "/";
-
-/** Where a media id's files live. Computed, never stored: see the header. */
+/**
+ * Where a media id's files live. Computed, never stored: see the header.
+ *
+ * The id is checked here rather than trusted, because every function in this
+ * module reaches the file system through it — and one of them deletes a
+ * directory tree. `heroImage` arrives from imported web pages and from the
+ * sync feed, so an id is untrusted input however ordinary it looks; a
+ * traversal would have `forgetPhoto` removing somewhere it has no business
+ * being. Throwing is right: there is no sensible path to return, and a
+ * caller that swallows it shows no photograph, which is the correct outcome.
+ */
 export function pathsFor(files: MediaFiles, mediaId: string): {
   dir: string; original: string; display: string; thumb: string;
 } {
-  const dir = folder(files, mediaId);
+  if (!isMediaId(mediaId)) throw new Error("not a media id");
+  const dir = files.documents + "media/" + mediaId + "/";
+  // Belt and braces: the regex already forbids every character that could
+  // climb out, and this says so at the one point where it would matter.
+  if (!dir.startsWith(files.documents + "media/")) throw new Error("media path escaped the store");
   return {
     dir,
     original: dir + "original",
