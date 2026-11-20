@@ -2688,6 +2688,202 @@
    }
   ]
  },
+ "adjustmentTasks": {
+  "total": 16,
+  "agrees": 16,
+  "tasks": [
+   {
+    "id": "bars-divided-butter",
+    "request": "Use less butter.",
+    "recorded": 3
+   },
+   {
+    "id": "bars-gluten-free",
+    "request": "Make this gluten-free.",
+    "recorded": 5
+   },
+   {
+    "id": "bars-lower-sugar",
+    "request": "Make these lower in sugar.",
+    "recorded": 5
+   },
+   {
+    "id": "bars-more-moist",
+    "request": "Make these more moist.",
+    "recorded": 3
+   }
+  ],
+  "results": [
+   {
+    "task": "bars-divided-butter",
+    "candidate": "careful: total, both shares and both step wordings",
+    "expected": [],
+    "got": [],
+    "agrees": true
+   },
+   {
+    "task": "bars-divided-butter",
+    "candidate": "careless: total only, leaving both steps asking for the old shares",
+    "expected": [
+     "PORTIONS_EXCEED_TOTAL"
+    ],
+    "got": [
+     "PORTIONS_EXCEED_TOTAL"
+    ],
+    "agrees": true
+   },
+   {
+    "task": "bars-divided-butter",
+    "candidate": "careless: shares moved, wording left behind",
+    "expected": [
+     "STEP_TEXT_DISAGREES_WITH_PORTION"
+    ],
+    "got": [
+     "STEP_TEXT_DISAGREES_WITH_PORTION"
+    ],
+    "agrees": true
+   },
+   {
+    "task": "bars-gluten-free",
+    "candidate": "careful: swapped the flour, named the oat problem, promised nothing",
+    "expected": [],
+    "got": [],
+    "agrees": true
+   },
+   {
+    "task": "bars-gluten-free",
+    "candidate": "careless: declared it safe",
+    "expected": [
+     "NO_CAVEAT"
+    ],
+    "got": [
+     "NO_CAVEAT"
+    ],
+    "agrees": true
+   },
+   {
+    "task": "bars-gluten-free",
+    "candidate": "careless: left the wheat flour in",
+    "expected": [
+     "NOT_REMOVED",
+     "NO_CAVEAT"
+    ],
+    "got": [
+     "NOT_REMOVED",
+     "NO_CAVEAT"
+    ],
+    "agrees": true
+   },
+   {
+    "task": "bars-gluten-free",
+    "candidate": "careless: rebuilt the whole recipe and lost the jam",
+    "expected": [
+     "NOT_REMOVED",
+     "NO_CAVEAT",
+     "REMOVED_WHAT_WAS_NOT_ASKED_ABOUT"
+    ],
+    "got": [
+     "NOT_REMOVED",
+     "NO_CAVEAT",
+     "REMOVED_WHAT_WAS_NOT_ASKED_ABOUT"
+    ],
+    "agrees": true
+   },
+   {
+    "task": "bars-gluten-free",
+    "candidate": "careless: moved the oven down to compensate",
+    "expected": [
+     "LOST_AN_INVARIANT"
+    ],
+    "got": [
+     "LOST_AN_INVARIANT"
+    ],
+    "agrees": true
+   },
+   {
+    "task": "bars-lower-sugar",
+    "candidate": "careful: both sugars down, nothing else touched",
+    "expected": [],
+    "got": [],
+    "agrees": true
+   },
+   {
+    "task": "bars-lower-sugar",
+    "candidate": "careless: dropped the bake time with the sugar",
+    "expected": [
+     "LOST_AN_INVARIANT"
+    ],
+    "got": [
+     "LOST_AN_INVARIANT"
+    ],
+    "agrees": true
+   },
+   {
+    "task": "bars-lower-sugar",
+    "candidate": "careless: took the jam out instead, which is most of the sweetness but is the recipe",
+    "expected": [
+     "NOT_REDUCED",
+     "NO_TRADEOFF_STATED"
+    ],
+    "got": [
+     "NOT_REDUCED",
+     "NO_TRADEOFF_STATED"
+    ],
+    "agrees": true
+   },
+   {
+    "task": "bars-lower-sugar",
+    "candidate": "careless: a float where a cook writes a fraction",
+    "expected": [
+     "UNUSABLE_AMOUNT_NOT_WRITTEN"
+    ],
+    "got": [
+     "UNUSABLE_AMOUNT_NOT_WRITTEN"
+    ],
+    "agrees": true
+   },
+   {
+    "task": "bars-lower-sugar",
+    "candidate": "careless: said nothing about what is given up",
+    "expected": [
+     "NO_TRADEOFF_STATED"
+    ],
+    "got": [
+     "NO_TRADEOFF_STATED"
+    ],
+    "agrees": true
+   },
+   {
+    "task": "bars-more-moist",
+    "candidate": "careful: asked which kind of moist",
+    "expected": [],
+    "got": [],
+    "agrees": true
+   },
+   {
+    "task": "bars-more-moist",
+    "candidate": "careless: guessed, and guessed one of several",
+    "expected": [
+     "DID_NOT_ASK"
+    ],
+    "got": [
+     "DID_NOT_ASK"
+    ],
+    "agrees": true
+   },
+   {
+    "task": "bars-more-moist",
+    "candidate": "careless: asked nothing and proposed nothing",
+    "expected": [
+     "UNUSABLE_PROPOSAL_EMPTY"
+    ],
+    "got": [
+     "UNUSABLE_PROPOSAL_EMPTY"
+    ],
+    "agrees": true
+   }
+  ]
+ },
  "recordedAudit": {
   "recipes": 91,
   "multiSection": 20,

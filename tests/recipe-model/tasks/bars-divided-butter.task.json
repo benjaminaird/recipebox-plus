@@ -1,0 +1,243 @@
+{
+ "id": "bars-divided-butter",
+ "provenance": "Synthetic, authored for RecipeBox. No copied recipe text.",
+ "request": "Use less butter.",
+ "notes": "The butter is divided: the ingredient list holds the total and each step holds its share. Changing the total without the shares leaves the recipe asking for more than it has, which is the failure PORTIONS_EXCEED_TOTAL exists for, and the step wording has to move with it.",
+ "base": {
+  "title": "Brown Butter Crumble Bars",
+  "servings": "16",
+  "source": {
+   "url": "https://testkitchen.example/bars",
+   "siteName": "Test Kitchen Fixture",
+   "originalTitle": "Brown Butter Crumble Bars"
+  },
+  "preparations": [
+   {
+    "id": "p1",
+    "name": "crumble",
+    "producedBy": "s2"
+   }
+  ],
+  "sections": [
+   {
+    "name": "Bars",
+    "ingredients": [
+     {
+      "id": "i1",
+      "name": "unsalted butter",
+      "amount": "1",
+      "unit": "cup"
+     },
+     {
+      "id": "i2",
+      "name": "all-purpose flour",
+      "amount": "2",
+      "unit": "cup"
+     },
+     {
+      "id": "i3",
+      "name": "granulated sugar",
+      "amount": "1/2",
+      "unit": "cup"
+     },
+     {
+      "id": "i4",
+      "name": "light brown sugar",
+      "amount": "1/2",
+      "unit": "cup"
+     },
+     {
+      "id": "i5",
+      "name": "fine salt",
+      "amount": "1/2",
+      "unit": "tsp"
+     },
+     {
+      "id": "i6",
+      "name": "raspberry jam",
+      "amount": "1",
+      "unit": "cup"
+     },
+     {
+      "id": "i7",
+      "name": "rolled oats",
+      "amount": "1",
+      "unit": "cup"
+     }
+    ],
+    "steps": [
+     {
+      "id": "s1",
+      "text": "Brown 1/2 cup butter in a pan and let it cool.",
+      "ingredientRefs": [
+       {
+        "id": "i1",
+        "amount": "1/2",
+        "unit": "cup"
+       }
+      ]
+     },
+     {
+      "id": "s2",
+      "text": "Rub the remaining 1/2 cup butter into the flour, sugars, salt and oats until it clumps.",
+      "ingredientRefs": [
+       {
+        "id": "i1",
+        "amount": "1/2",
+        "unit": "cup"
+       },
+       "i2",
+       "i3",
+       "i4",
+       "i5",
+       "i7"
+      ]
+     },
+     {
+      "id": "s3",
+      "text": "Press two thirds of the crumble into the tin, spread the jam, scatter the rest. Bake at 350\u00b0F for 35 minutes in a 9x9-inch tin.",
+      "ingredientRefs": [
+       "p1",
+       "i6"
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ "expect": {
+  "reduces": [
+   "unsalted butter"
+  ],
+  "keeps": [
+   "all-purpose flour",
+   "raspberry jam"
+  ],
+  "invariants": [
+   "350\u00b0F",
+   "35 minutes"
+  ],
+  "tradeoffs": true
+ },
+ "recorded": [
+  {
+   "label": "careful: total, both shares and both step wordings",
+   "expect": [],
+   "answer": {
+    "summary": "I would take the butter from a cup to three quarters, a bit off each half.",
+    "tradeoffs": [
+     "A drier, sandier crumble that clumps less. Squeeze it together in your hand as you scatter it."
+    ],
+    "operations": [
+     {
+      "kind": "set-ingredient-amount",
+      "id": "i1",
+      "amount": "3/4"
+     },
+     {
+      "kind": "set-step-refs",
+      "id": "s1",
+      "refs": [
+       {
+        "id": "i1",
+        "amount": "3/8",
+        "unit": "cup"
+       }
+      ]
+     },
+     {
+      "kind": "set-step-text",
+      "id": "s1",
+      "text": "Brown 3/8 cup butter in a pan and let it cool."
+     },
+     {
+      "kind": "set-step-refs",
+      "id": "s2",
+      "refs": [
+       {
+        "id": "i1",
+        "amount": "3/8",
+        "unit": "cup"
+       },
+       "i2",
+       "i3",
+       "i4",
+       "i5",
+       "i7"
+      ]
+     },
+     {
+      "kind": "set-step-text",
+      "id": "s2",
+      "text": "Rub the remaining 3/8 cup butter into the flour, sugars, salt and oats until it clumps."
+     }
+    ]
+   }
+  },
+  {
+   "label": "careless: total only, leaving both steps asking for the old shares",
+   "expect": [
+    "PORTIONS_EXCEED_TOTAL"
+   ],
+   "answer": {
+    "summary": "Half the butter.",
+    "tradeoffs": [
+     "Drier crumble."
+    ],
+    "operations": [
+     {
+      "kind": "set-ingredient-amount",
+      "id": "i1",
+      "amount": "1/2"
+     }
+    ]
+   }
+  },
+  {
+   "label": "careless: shares moved, wording left behind",
+   "expect": [
+    "STEP_TEXT_DISAGREES_WITH_PORTION"
+   ],
+   "answer": {
+    "summary": "Half the butter, split evenly.",
+    "tradeoffs": [
+     "Drier crumble."
+    ],
+    "operations": [
+     {
+      "kind": "set-ingredient-amount",
+      "id": "i1",
+      "amount": "1/2"
+     },
+     {
+      "kind": "set-step-refs",
+      "id": "s1",
+      "refs": [
+       {
+        "id": "i1",
+        "amount": "1/4",
+        "unit": "cup"
+       }
+      ]
+     },
+     {
+      "kind": "set-step-refs",
+      "id": "s2",
+      "refs": [
+       {
+        "id": "i1",
+        "amount": "1/4",
+        "unit": "cup"
+       },
+       "i2",
+       "i3",
+       "i4",
+       "i5",
+       "i7"
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

@@ -1,0 +1,159 @@
+{
+ "id": "bars-more-moist",
+ "provenance": "Synthetic, authored for RecipeBox. No copied recipe text.",
+ "request": "Make these more moist.",
+ "notes": "There is no single answer: more butter, more jam, less bake, or a softer sugar ratio all move 'moist' and they move the bars in different directions. A model that guesses has made a decision for the cook that the cook would have made differently half the time, so the right answer is a question.",
+ "base": {
+  "title": "Brown Butter Crumble Bars",
+  "servings": "16",
+  "source": {
+   "url": "https://testkitchen.example/bars",
+   "siteName": "Test Kitchen Fixture",
+   "originalTitle": "Brown Butter Crumble Bars"
+  },
+  "preparations": [
+   {
+    "id": "p1",
+    "name": "crumble",
+    "producedBy": "s2"
+   }
+  ],
+  "sections": [
+   {
+    "name": "Bars",
+    "ingredients": [
+     {
+      "id": "i1",
+      "name": "unsalted butter",
+      "amount": "1",
+      "unit": "cup"
+     },
+     {
+      "id": "i2",
+      "name": "all-purpose flour",
+      "amount": "2",
+      "unit": "cup"
+     },
+     {
+      "id": "i3",
+      "name": "granulated sugar",
+      "amount": "1/2",
+      "unit": "cup"
+     },
+     {
+      "id": "i4",
+      "name": "light brown sugar",
+      "amount": "1/2",
+      "unit": "cup"
+     },
+     {
+      "id": "i5",
+      "name": "fine salt",
+      "amount": "1/2",
+      "unit": "tsp"
+     },
+     {
+      "id": "i6",
+      "name": "raspberry jam",
+      "amount": "1",
+      "unit": "cup"
+     },
+     {
+      "id": "i7",
+      "name": "rolled oats",
+      "amount": "1",
+      "unit": "cup"
+     }
+    ],
+    "steps": [
+     {
+      "id": "s1",
+      "text": "Brown 1/2 cup butter in a pan and let it cool.",
+      "ingredientRefs": [
+       {
+        "id": "i1",
+        "amount": "1/2",
+        "unit": "cup"
+       }
+      ]
+     },
+     {
+      "id": "s2",
+      "text": "Rub the remaining 1/2 cup butter into the flour, sugars, salt and oats until it clumps.",
+      "ingredientRefs": [
+       {
+        "id": "i1",
+        "amount": "1/2",
+        "unit": "cup"
+       },
+       "i2",
+       "i3",
+       "i4",
+       "i5",
+       "i7"
+      ]
+     },
+     {
+      "id": "s3",
+      "text": "Press two thirds of the crumble into the tin, spread the jam, scatter the rest. Bake at 350\u00b0F for 35 minutes in a 9x9-inch tin.",
+      "ingredientRefs": [
+       "p1",
+       "i6"
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ "expect": {
+  "asks": true
+ },
+ "recorded": [
+  {
+   "label": "careful: asked which kind of moist",
+   "expect": [],
+   "answer": {
+    "summary": "There are a few ways to go, and they pull in different directions.",
+    "question": "Do you want them softer and fudgier, or just less dry at the edges?",
+    "alternatives": [
+     {
+      "label": "More jam",
+      "summary": "Wetter in the middle, and sweeter."
+     },
+     {
+      "label": "Shorter bake",
+      "summary": "Softer throughout, and harder to cut cleanly."
+     }
+    ]
+   }
+  },
+  {
+   "label": "careless: guessed, and guessed one of several",
+   "expect": [
+    "DID_NOT_ASK"
+   ],
+   "answer": {
+    "summary": "I would add a quarter cup more butter.",
+    "tradeoffs": [
+     "Greasier, and it may leak at the edges."
+    ],
+    "operations": [
+     {
+      "kind": "set-ingredient-amount",
+      "id": "i1",
+      "amount": "1 1/4"
+     }
+    ]
+   }
+  },
+  {
+   "label": "careless: asked nothing and proposed nothing",
+   "expect": [
+    "UNUSABLE_PROPOSAL_EMPTY"
+   ],
+   "answer": {
+    "summary": "Moisture is complicated in a bar cookie."
+   }
+  }
+ ]
+}

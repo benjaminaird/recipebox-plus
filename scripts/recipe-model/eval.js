@@ -24,6 +24,7 @@ const Extract = require(path.join(ROOT, "packages", "recipe-core", "src", "recip
 const Normalize = require(path.join(ROOT, "packages", "recipe-core", "src", "recipe-normalize.js"));
 const { score, referenceOutput } = require("./scorer");
 const { validate } = require("./validate");
+const { scoreRecorded } = require("./tasks");
 
 const args = new Set(process.argv.slice(2));
 
@@ -109,6 +110,31 @@ function evalAdjustments() {
   return { total: res.length, agrees: res.filter((r) => r.agrees).length, results: res };
 }
 
+/**
+ * Adjustment tasks (ADR 0017): can a model be told to change a recipe.
+ *
+ * Scored at $0 here, against the recorded answers each task file carries —
+ * careful ones and careless ones, each declaring the findings it should
+ * produce. That proves the SCORER: a careless answer is caught, a careful one
+ * is not. It proves nothing about any model, and the report says so.
+ *
+ * A live bake-off runs the same scorer against real answers. It needs a
+ * provider key and a budget, so until one is agreed the tasks are listed as
+ * pending beside the paid import paths (docs/ai-helper-evaluation-plan.md).
+ */
+function evalTasks() {
+  const dir = path.join(DIR, "tasks");
+  if (!fs.existsSync(dir)) return { total: 0, agrees: 0, tasks: [], results: [] };
+  const res = [];
+  const tasks = [];
+  for (const f of fs.readdirSync(dir).filter((x) => x.endsWith(".task.json")).sort()) {
+    const task = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
+    tasks.push({ id: task.id, request: task.request, recorded: (task.recorded || []).length });
+    for (const r of scoreRecorded(task)) res.push(r);
+  }
+  return { total: res.length, agrees: res.filter((r) => r.agrees).length, tasks, results: res };
+}
+
 // Structural audit of recorded production-pipeline outputs. The facts are read
 // from tests/recipe-model/recorded-structure.json: per-case counts only, never
 // recipe text, so the audit doesn't depend on third-party recipe content being
@@ -178,6 +204,7 @@ const report = stable({
   cases: publicCases.map((c) => ({ id: c.id, categories: c.categories, input: c.input.kind, synthetic: /synthetic/i.test(c.provenance) })),
   ...evalCases(publicCases),
   adjustments: evalAdjustments(),
+  adjustmentTasks: evalTasks(),
   recordedAudit: auditRecorded(),
 });
 
@@ -194,10 +221,15 @@ const problems = [];
 for (const [k, v] of Object.entries(report.summary.reference.metrics)) if (v.pct !== null && v.pct !== 100) problems.push(`reference output scores ${v.pct}% on "${k}" (scorer bug)`);
 for (const cls of ["detection", "modification"]) if (Object.keys(report.summary.reference[cls]).length) problems.push(`reference output has ${cls} findings (scorer bug)`);
 // Determinism: a second, independent run must produce byte-identical results.
-if (JSON.stringify(stable({ ...evalCases(loadCases(path.join(DIR, "cases"))), adjustments: evalAdjustments(), recordedAudit: auditRecorded() })) !==
-    JSON.stringify({ subjects: report.subjects, summary: report.summary, pendingPaid: report.pendingPaid, pendingServerPath: report.pendingServerPath, adjustments: report.adjustments, recordedAudit: report.recordedAudit }))
+if (JSON.stringify(stable({ ...evalCases(loadCases(path.join(DIR, "cases"))), adjustments: evalAdjustments(), adjustmentTasks: evalTasks(), recordedAudit: auditRecorded() })) !==
+    JSON.stringify({ subjects: report.subjects, summary: report.summary, pendingPaid: report.pendingPaid, pendingServerPath: report.pendingServerPath, adjustments: report.adjustments, adjustmentTasks: report.adjustmentTasks, recordedAudit: report.recordedAudit }))
   problems.push("two runs in the same process produced different results (non-deterministic)");
 if (report.adjustments.agrees !== report.adjustments.total) problems.push(`validator disagrees with ${report.adjustments.total - report.adjustments.agrees} adjustment expectation(s)`);
+if (report.adjustmentTasks.agrees !== report.adjustmentTasks.total) {
+  const off = report.adjustmentTasks.results.filter((r) => !r.agrees)
+    .map((r) => `${r.task}/${r.candidate}: wanted [${r.expected}] got [${r.got}]`);
+  problems.push(`task scorer disagrees with ${report.adjustmentTasks.total - report.adjustmentTasks.agrees} recorded answer(s):\n    ` + off.join("\n    "));
+}
 
 const baselinePath = path.join(DIR, "baseline.json");
 function printSubject(title, sx) {
@@ -213,6 +245,9 @@ function printSummary() {
   printSubject("Deterministic extractor alone (structured-data HTML cases):", sx);
   printSubject("Extractor + the app's normalisation stage (what a user gets for a free structured import):", report.summary.appDeterministic);
   console.log(`Validator on adjustment candidates: ${report.adjustments.agrees}/${report.adjustments.total} as expected`);
+  const at = report.adjustmentTasks;
+  console.log(`Adjustment tasks: ${at.tasks.length} task(s), ${at.agrees}/${at.total} recorded answer(s) scored as expected`);
+  console.log(`  No model was run. A live bake-off needs a key and a budget — see docs/ai-helper-evaluation-plan.md`);
   const ra = report.recordedAudit;
   if (ra) console.log(`Recorded outputs audited: ${ra.recipes} recipes, ${ra.stepsWithRefs}/${ra.steps} steps carry ingredient links, ${ra.unresolvedRefs} invalid references, ${ra.dividedWithoutPortions} "divided" ingredients with no portions, ${ra.floatArtefacts} float artefacts`);
   console.log(`Pending, not run: ${report.pendingPaid.length} paid AI-path case(s); ${report.pendingServerPath.length} server-path case(s)`);

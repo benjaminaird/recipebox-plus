@@ -1,0 +1,244 @@
+{
+ "id": "bars-lower-sugar",
+ "provenance": "Synthetic, authored for RecipeBox. No copied recipe text.",
+ "request": "Make these lower in sugar.",
+ "notes": "Both sugars are fair game. The oven, the tin and the bake time are not sugar, and a model that 'compensates' by moving them has done something a cook did not ask for and cannot see coming.",
+ "base": {
+  "title": "Brown Butter Crumble Bars",
+  "servings": "16",
+  "source": {
+   "url": "https://testkitchen.example/bars",
+   "siteName": "Test Kitchen Fixture",
+   "originalTitle": "Brown Butter Crumble Bars"
+  },
+  "preparations": [
+   {
+    "id": "p1",
+    "name": "crumble",
+    "producedBy": "s2"
+   }
+  ],
+  "sections": [
+   {
+    "name": "Bars",
+    "ingredients": [
+     {
+      "id": "i1",
+      "name": "unsalted butter",
+      "amount": "1",
+      "unit": "cup"
+     },
+     {
+      "id": "i2",
+      "name": "all-purpose flour",
+      "amount": "2",
+      "unit": "cup"
+     },
+     {
+      "id": "i3",
+      "name": "granulated sugar",
+      "amount": "1/2",
+      "unit": "cup"
+     },
+     {
+      "id": "i4",
+      "name": "light brown sugar",
+      "amount": "1/2",
+      "unit": "cup"
+     },
+     {
+      "id": "i5",
+      "name": "fine salt",
+      "amount": "1/2",
+      "unit": "tsp"
+     },
+     {
+      "id": "i6",
+      "name": "raspberry jam",
+      "amount": "1",
+      "unit": "cup"
+     },
+     {
+      "id": "i7",
+      "name": "rolled oats",
+      "amount": "1",
+      "unit": "cup"
+     }
+    ],
+    "steps": [
+     {
+      "id": "s1",
+      "text": "Brown 1/2 cup butter in a pan and let it cool.",
+      "ingredientRefs": [
+       {
+        "id": "i1",
+        "amount": "1/2",
+        "unit": "cup"
+       }
+      ]
+     },
+     {
+      "id": "s2",
+      "text": "Rub the remaining 1/2 cup butter into the flour, sugars, salt and oats until it clumps.",
+      "ingredientRefs": [
+       {
+        "id": "i1",
+        "amount": "1/2",
+        "unit": "cup"
+       },
+       "i2",
+       "i3",
+       "i4",
+       "i5",
+       "i7"
+      ]
+     },
+     {
+      "id": "s3",
+      "text": "Press two thirds of the crumble into the tin, spread the jam, scatter the rest. Bake at 350\u00b0F for 35 minutes in a 9x9-inch tin.",
+      "ingredientRefs": [
+       "p1",
+       "i6"
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ "expect": {
+  "reduces": [
+   "sugar"
+  ],
+  "keeps": [
+   "unsalted butter",
+   "all-purpose flour",
+   "rolled oats",
+   "fine salt"
+  ],
+  "invariants": [
+   "350\u00b0F",
+   "35 minutes",
+   "9x9-inch"
+  ],
+  "unchangedAmounts": [
+   "unsalted butter"
+  ],
+  "maxAdditions": 1,
+  "tradeoffs": true
+ },
+ "recorded": [
+  {
+   "label": "careful: both sugars down, nothing else touched",
+   "expect": [],
+   "answer": {
+    "summary": "I would halve both sugars. The bars will be less sweet and a little less chewy, since sugar holds moisture as well as sweetening.",
+    "tradeoffs": [
+     "Less chew, and they will keep for fewer days.",
+     "The crumble will brown less, so judge it by colour rather than by the clock."
+    ],
+    "uncertainties": [
+     "Sugar does more than sweeten here. Taste the crumble before you press it in."
+    ],
+    "operations": [
+     {
+      "kind": "set-ingredient-amount",
+      "id": "i3",
+      "amount": "1/4",
+      "why": "half the white sugar"
+     },
+     {
+      "kind": "set-ingredient-amount",
+      "id": "i4",
+      "amount": "1/4",
+      "why": "half the brown sugar"
+     }
+    ]
+   }
+  },
+  {
+   "label": "careless: dropped the bake time with the sugar",
+   "expect": [
+    "LOST_AN_INVARIANT"
+   ],
+   "answer": {
+    "summary": "Half the sugar, and a shorter bake so it does not dry out.",
+    "tradeoffs": [
+     "Less sweet."
+    ],
+    "operations": [
+     {
+      "kind": "set-ingredient-amount",
+      "id": "i3",
+      "amount": "1/4"
+     },
+     {
+      "kind": "set-ingredient-amount",
+      "id": "i4",
+      "amount": "1/4"
+     },
+     {
+      "kind": "set-step-text",
+      "id": "s3",
+      "text": "Press two thirds of the crumble into the tin, spread the jam, scatter the rest. Bake at 350\u00b0F for 28 minutes in a 9x9-inch tin."
+     }
+    ]
+   }
+  },
+  {
+   "label": "careless: took the jam out instead, which is most of the sweetness but is the recipe",
+   "expect": [
+    "NOT_REDUCED",
+    "NO_TRADEOFF_STATED"
+   ],
+   "answer": {
+    "summary": "I would leave the jam out.",
+    "operations": [
+     {
+      "kind": "remove-ingredient",
+      "id": "i6"
+     }
+    ]
+   }
+  },
+  {
+   "label": "careless: a float where a cook writes a fraction",
+   "expect": [
+    "UNUSABLE_AMOUNT_NOT_WRITTEN"
+   ],
+   "answer": {
+    "summary": "Reduce the sugars by a third.",
+    "tradeoffs": [
+     "Less sweet."
+    ],
+    "operations": [
+     {
+      "kind": "set-ingredient-amount",
+      "id": "i3",
+      "amount": "0.3333333"
+     }
+    ]
+   }
+  },
+  {
+   "label": "careless: said nothing about what is given up",
+   "expect": [
+    "NO_TRADEOFF_STATED"
+   ],
+   "answer": {
+    "summary": "Halved both sugars.",
+    "operations": [
+     {
+      "kind": "set-ingredient-amount",
+      "id": "i3",
+      "amount": "1/4"
+     },
+     {
+      "kind": "set-ingredient-amount",
+      "id": "i4",
+      "amount": "1/4"
+     }
+    ]
+   }
+  }
+ ]
+}

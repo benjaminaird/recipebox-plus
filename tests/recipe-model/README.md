@@ -42,6 +42,7 @@ improvement in one can never hide a regression in the other.
 | Floating-point artefacts | quantities as written; float artefacts | `fraction-fidelity`, `structured-cookies`; recorded-output audit |
 | Source attribution | source fields captured | `source-attribution-blog`, `structured-cookies`, `divided-butter-bars`, `video-source` |
 | AI adjustment validation | validator verdicts | `adjustments/crumble-bars.adjust.json` (13 candidates) |
+| AI adjustment tasks | task assertions + validator verdicts | `tasks/*.task.json` (4 tasks, 16 recorded answers) |
 | Step wording preserved | `keep` phrases (times, temperatures, pan sizes, quantities) still present | most structured cases |
 | Substitution applied by the importer | ingredient dropped plus invented | `substitution-in-notes` |
 
@@ -58,6 +59,15 @@ improvement in one can never hide a regression in the other.
   must have no findings, or the run fails as a scorer bug.
 - **Paid AI paths** (pasted text, photos, AI fallback): **not run**. They are
   listed under `pendingPaid` until a spend budget is agreed (ADR 0017).
+- **Adjustment tasks** (`tasks/`): a recipe, a request in a cook's words, and
+  deterministic assertions about what any acceptable answer must and must not
+  do — scored against the APPLIED recipe, so "lower the sugar" is scored by the
+  sugar being lower rather than by the answer saying so. Each file carries
+  recorded answers, careful and careless, every one declaring the findings it
+  should produce; that proves the scorer at $0 and says nothing about any
+  model. The live bake-off runs the same scorer through the real server prompt:
+  `node scripts/recipe-model/bakeoff.js` prints the plan and its cost and
+  spends nothing. See [docs/ai-helper-evaluation-plan.md](../../docs/ai-helper-evaluation-plan.md).
 - **Recorded outputs audit:** a structural audit of 91 recorded
   production-pipeline outputs. It reads `recorded-structure.json`: per-case
   counts derived from `tests/results/imports/nightmare-debug`, with no recipe
