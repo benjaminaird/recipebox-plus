@@ -885,3 +885,81 @@ live row sharing an id, swapping which copy existed. Both fixed.
 Three of my own assertions in the integration test were wrong before the code
 was: being offline fails the pull so no push is attempted and no backoff is
 owed, and a delete cannot reach a device that never held the recipe.
+
+---
+
+# A3 — household sharing
+
+## What it is built on
+
+Nothing new. `/api/v1/recipes` is a library view that enforces household
+membership in the query itself and already carried `ownerId`, `ownerName` and
+`shared` on every envelope. What was missing was the phone using any of it.
+
+That had become a regression: A2 replaced the Account screen's library pull
+with the delta feed, and the delta feed is a replica of this account's own
+recipes — deliberately, since a replica of somebody else's is a copy this
+account could later be asked to write back. Household recipes quietly stopped
+arriving. A run now does both halves, the library read second, and only when
+the delta half actually finished: a failed read says nothing about who may see
+what, and treating silence as "access was withdrawn" would delete a cook's
+shared recipes every time their train went into a tunnel.
+
+## What a shared recipe is
+
+A cached view, not a replica. Three things follow.
+
+**Read-only.** No Edit in the header, no tags chip, no delete — absent rather
+than disabled, because a control that always refuses offers something and then
+takes it back. The screen says what a member CAN do instead.
+
+**Never sent, by any path**, including the delete path that is otherwise
+always sendable. The store refuses to queue it, the coordinator refuses to
+push it, and the server refuses it a third time.
+
+**Gone when access is.** Revocation is decided by absence from a COMPLETE
+library read, which is why the transport refuses to return a partial one. A
+device that has been away is corrected by its first successful read, without
+having been told anything while it was gone.
+
+## Save my own copy
+
+A new id, this account's, independently editable and syncable. Quantities as
+written, sections, steps and the ids they reference, tags and category all
+carried over; measurements not converted (ADR 0021). The original's
+attribution is kept and the sharing recorded beside it, because the member who
+shared it did not write it either.
+
+A copy is **private**. `shared` is a field on the recipe body and the field the
+server reads, so copying the body wholesale published the copy to the
+household the moment it was uploaded. Fixed, and checked at the server.
+
+## Full resync
+
+Reachable from Account, not only when the server demands it. Keeps local
+recipes, pending uploads, unresolved conflicts and samples; idempotent and
+safe to interrupt.
+
+## Verified on a simulator, against the isolated PostgreSQL
+
+Bob shares a recipe; it appears in Alice's native library with its ingredients,
+step references, category, tags and source intact, and with no way to change
+it. She saves a copy, renames it, and it reaches her account while Bob's stays
+at revision 1 with its original title. Removing her from the household drops
+the cached copy on the next run and keeps her copy and everything she wrote;
+re-admitting her brings it straight back. Checked in dark mode.
+
+## Still open after A3
+
+Large-text (Dynamic Type) has not been walked through for the new screens;
+they use the same components as the rest, which handle it, but that is an
+inference rather than an observation.
+
+Alice's device still shows the Trash entry for a recipe that was deleted
+before the watermark fix. Devices already diverged by that defect need the
+Rebuild action; it exists now, and this one has not been run through it.
+
+A shared recipe whose id collides with one of this cook's own is refused
+rather than reconciled. The cook keeps their recipe and does not see that one
+shared recipe. A namespaced local id would show both, and is the better answer
+if a collision ever actually happens.

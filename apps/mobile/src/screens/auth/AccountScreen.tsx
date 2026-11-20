@@ -286,7 +286,9 @@ export function AccountScreen() {
               label={sync.revoked === 1
                 ? "1 shared recipe is no longer in your household"
                 : `${sync.revoked} shared recipes are no longer in your household`}
-              detail="They were somebody else's, and are no longer shared with you. Nothing you wrote has changed."
+              detail={sync.revoked === 1
+                ? "It was somebody else's, and is no longer shared with you. Nothing you wrote has changed."
+                : "They were somebody else's, and are no longer shared with you. Nothing you wrote has changed."}
             />
           ) : null}
           {unadopted > 0 ? (
