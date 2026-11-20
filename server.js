@@ -3650,10 +3650,23 @@ app.get('/api/v1/household', requireDeviceAuth, async (req, res) => {
  *
  * The recipe itself arrives in the body, because uploads are off by default and
  * the device is the system of record (ADR 0004): for most recipes the cloud
- * holds nothing to read. So this is narrower than it looks, and deliberately
- * so — it is here to stop a recipe id that belongs to someone else being used
- * to attribute spend or log a title against their account, not to fetch the
- * recipe.
+ * holds nothing to read.
+ *
+ * So be exact about what this buys, because an overstated security rationale is
+ * worse than none — somebody will trust it. TODAY it is not load-bearing: the
+ * content is the caller's own, the AI Assist is debited from the caller's
+ * balance, and the usage row is logged against the caller, so refusing a
+ * stranger's recipe id prevents no harm that is reachable now. It is here
+ * because the natural next version of this endpoint reads the recipe from the
+ * cloud by that id once uploads are on, and an endpoint that grew that
+ * capability without an ownership check in front of it would be an IDOR nobody
+ * had to introduce. The check goes in first.
+ *
+ * It does mean a 403 confirms that a known recipe id belongs to somebody
+ * outside the caller's household. Recipe ids are client-generated and
+ * unguessable, so that is not an enumeration path, and the alternative —
+ * treating a stranger's id as if it were local — is the shape that becomes a
+ * vulnerability later.
  *
  * A household member MAY ask about a recipe shared with them and may not own:
  * accepting a proposal writes to their own copy, never to the owner's recipe.

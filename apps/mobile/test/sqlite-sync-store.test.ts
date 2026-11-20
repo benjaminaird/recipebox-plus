@@ -791,15 +791,18 @@ test("restoring the account's version writes it, with its revision, in one trans
   assert.equal(await countQueued(db, ALICE), 0, "the account already has it; nothing to send");
   assert.equal(await countOpenConflicts(db, ALICE), 0);
 
-  // The content this phone was holding is replaced, so the replacement is a
-  // version (ADR 0015) and the history says why in the cook's words.
+  // The content this phone was holding is replaced, so BOTH are versions
+  // (ADR 0015): what it held, then what replaced it. Recording only the
+  // replacement would make the account's version winning the moment the
+  // cook's copy became unrecoverable, which is what the history is for.
   const history = (raw.prepare(
-    `SELECT recipe_id, seq, cause, note FROM recipe_versions`,
-  ).all() as Array<{ recipe_id: string; seq: number; cause: string; note: string }>).map(plain);
-  assert.deepEqual(history, [{
-    recipe_id: "r1", seq: 1, cause: "resolved-conflict",
-    note: "Kept the version from your account",
-  }]);
+    `SELECT recipe_id, seq, cause, note, json FROM recipe_versions ORDER BY seq`,
+  ).all() as Array<{ recipe_id: string; seq: number; cause: string; note: string; json: string }>)
+    .map((r) => ({ seq: r.seq, cause: r.cause, note: r.note, title: (JSON.parse(r.json) as Recipe).title }));
+  assert.deepEqual(history, [
+    { seq: 1, cause: "imported", note: "As it was before the first change this phone recorded", title: "What this phone was holding" },
+    { seq: 2, cause: "resolved-conflict", note: "Kept the version from your account", title: "Changed in the account" },
+  ]);
 });
 
 // ---------------------------------------------------------------------------

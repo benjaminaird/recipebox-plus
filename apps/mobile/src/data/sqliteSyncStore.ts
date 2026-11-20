@@ -23,7 +23,7 @@ import type { Origin, RecipeEnvelope } from "../sync/pull.ts";
 import { copyForMyself, type HeldRecipe } from "../sync/household.ts";
 import type { LocalRecipeChange } from "./db.ts";
 import { buildSearchText } from "./query.ts";
-import { appendVersion, type VersionDb } from "./versions.ts";
+import { appendVersion, recordChange, type VersionDb } from "./versions.ts";
 
 /**
  * The slice of the database driver this module uses.
@@ -686,6 +686,15 @@ export async function applyResolution(
       // ever correct it.
       const back = resolution.restore;
       await assertOriginOwner(db, back.id, accountId);
+      // What this phone is about to stop holding. Read before the write, so a
+      // recipe with no history yet still has its previous content recorded —
+      // the account's version winning must not be the moment the cook's copy
+      // becomes unrecoverable.
+      const held = await db.getFirstAsync<{ json: string }>(
+        `SELECT json FROM recipes WHERE id = ?`, [back.id],
+      );
+      let previous: Recipe | null = null;
+      if (held) { try { previous = JSON.parse(held.json) as Recipe; } catch { previous = null; } }
       await db.runAsync(
         `INSERT INTO recipes (id, title, category, tags, search, created_at, updated_at, json, deleted_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)
@@ -706,8 +715,8 @@ export async function applyResolution(
            server_revision = excluded.server_revision, adopted = 1`,
         [back.id, accountId, resolution.restoreRevision],
       );
-      await appendVersion(db as VersionDb, {
-        recipe: back, cause: "resolved-conflict", note: resolutionNote(resolution), at: now,
+      await recordChange(db as VersionDb, {
+        previous, next: back, cause: "resolved-conflict", note: resolutionNote(resolution), at: now,
       });
     }
 

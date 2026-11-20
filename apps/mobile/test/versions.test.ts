@@ -12,7 +12,7 @@ import { DatabaseSync } from "node:sqlite";
 import { ADDED_COLUMNS, SCHEMA_SQL, SCHEMA_VERSION } from "../src/data/schema.ts";
 import {
   appendVersion, causeLabel, countVersions, getVersion, listVersions, originalVersion,
-  recordArrival, revertNote, revertedContent, type VersionDb,
+  recordArrival, recordChange, revertNote, revertedContent, type VersionDb,
 } from "../src/data/versions.ts";
 import type { Recipe } from "../src/data/types.ts";
 
@@ -172,4 +172,46 @@ test("every cause has words a cook would recognise", () => {
   }
   assert.equal(causeLabel("imported"), "As it arrived");
   assert.equal(causeLabel("helper"), "Recipe Helper");
+});
+
+// The defect this file did not catch, and the app showed in one tap.
+//
+// A version holds the recipe AFTER the change, and arrival is only recorded
+// when a recipe is created. So the first change to a recipe that was already
+// on the phone — every sample, every recipe pulled from the account, every
+// recipe that predates this table — wrote one row holding the NEW content, and
+// the history screen offered nothing to go back to. One change and what it
+// used to say was gone, which is the exact thing ADR 0015 exists to prevent.
+
+test("the first change to a recipe with no history keeps what it replaced", async () => {
+  const { db } = fresh();
+  const before = recipe({ title: "As the sample shipped", updatedAt: 4_000 });
+
+  await recordChange(db, { previous: before, next: recipe({ title: "Lower in sugar" }), cause: "helper", note: "Lower in sugar", at: 9_000 });
+
+  const history = await listVersions(db, "r1");
+  assert.equal(history.length, 2, "there has to be something to go back TO");
+  assert.deepEqual(history.map((v) => [v.seq, v.cause]), [[2, "helper"], [1, "imported"]]);
+  assert.equal((await getVersion(db, "r1", 1))?.recipe.title, "As the sample shipped");
+  assert.equal((await getVersion(db, "r1", 2))?.recipe.title, "Lower in sugar");
+  assert.equal(history[1].createdAt, 4_000,
+    "dated when that content was last true, not when we noticed we had not recorded it");
+  assert.match(history[1].note, /before the first change this phone recorded/);
+});
+
+test("a recipe that already has history is not backfilled again", async () => {
+  const { db } = fresh();
+  await recordArrival(db, recipe(), "As it arrived", 1_000);
+  await recordChange(db, { previous: recipe({ title: "v1" }), next: recipe({ title: "v2" }), cause: "edited", at: 2_000 });
+  await recordChange(db, { previous: recipe({ title: "v2" }), next: recipe({ title: "v3" }), cause: "edited", at: 3_000 });
+
+  const history = await listVersions(db, "r1");
+  assert.deepEqual(history.map((v) => v.seq), [3, 2, 1], "one row per change, no duplicates of what came before");
+  assert.equal((await originalVersion(db, "r1"))?.recipe.title, "Brown Butter Crumble Bars", "and the arrival version is still the arrival version");
+});
+
+test("a change with nothing before it records only itself", async () => {
+  const { db } = fresh();
+  await recordChange(db, { previous: null, next: recipe({ title: "Brand new" }), cause: "edited", at: 1_000 });
+  assert.equal(await countVersions(db, "r1"), 1, "nothing was replaced, so nothing is backfilled");
 });

@@ -21,7 +21,7 @@
 // what it is unsure of — never flattened into the summary, where they would
 // read as reassurance.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
@@ -142,6 +142,11 @@ export function RecipeHelperScreen() {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // Clearing the box takes the ref as well as the state. Setting `value` to ""
+  // while the field is being edited leaves the typed text on screen on iOS —
+  // the send went through, the words stayed, and the next tap would have sent
+  // them again. Tapping a suggestion hid it, because nothing was being edited.
+  const input = useRef<React.ComponentRef<typeof TextInput> | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -164,6 +169,7 @@ export function RecipeHelperScreen() {
     if (!text || !recipe || busy) return;
     setError("");
     setDraft("");
+    input.current?.clear();
     const asked = withQuestion(conversation, text);
     setConversation(asked);
     setBusy(true);
@@ -350,19 +356,22 @@ export function RecipeHelperScreen() {
               disabled={busy}
             />
             <QuietButton label="No, suggest something else" onPress={() => setConversation(withRejection(conversation))} disabled={busy} />
+            {/* Each alternative keeps its sentence directly under its own
+                button. Collecting the summaries into one block below meant
+                reading the label twice and matching them up by eye, which is
+                work the layout should be doing. */}
             {pending.alternatives.map((alternative) => (
-              <QuietButton
-                key={alternative.label}
-                label={alternative.label}
-                onPress={() => void ask(alternativeMessage(alternative))}
-                disabled={busy}
-              />
+              <View key={alternative.label} style={{ gap: 2 }}>
+                <QuietButton
+                  label={alternative.label}
+                  onPress={() => void ask(alternativeMessage(alternative))}
+                  disabled={busy}
+                />
+                <Text style={[textStyle("footnote"), { color: t.colors.textTertiary, textAlign: "center" }]}>
+                  {alternative.summary}
+                </Text>
+              </View>
             ))}
-            {pending.alternatives.length ? (
-              <Text style={[textStyle("footnote"), { color: t.colors.textTertiary }]}>
-                {pending.alternatives.map((a) => `${a.label}: ${a.summary}`).join("\n")}
-              </Text>
-            ) : null}
             <Text style={[textStyle("footnote"), { color: t.colors.textTertiary }]}>
               Saving keeps the version you have now in the recipe's history, so you can go back to it.
             </Text>
@@ -372,6 +381,7 @@ export function RecipeHelperScreen() {
 
       <View style={{ gap: t.space.xs }}>
         <TextInput
+          ref={input}
           value={draft}
           onChangeText={setDraft}
           editable={!busy}

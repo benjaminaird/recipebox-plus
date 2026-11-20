@@ -21,8 +21,8 @@ import { buildSearchText, byNewest, type LibraryFilters } from "./query";
 import { SAMPLE_RECIPES } from "./sampleRecipes";
 import { ADDED_COLUMNS, SCHEMA_SQL, SCHEMA_VERSION } from "./schema.ts";
 import {
-  appendVersion, countVersions, getVersion, listVersions, originalVersion,
-  recordArrival, revertNote, revertedContent,
+  countVersions, getVersion, listVersions, originalVersion,
+  recordArrival, recordChange, revertNote, revertedContent,
   type RecipeVersion, type VersionCause, type VersionDb, type VersionSummary,
 } from "./versions.ts";
 
@@ -332,8 +332,11 @@ export async function saveRecipe(
     updatedAt: recipe.updatedAt || Date.now(),
   };
   await db.withTransactionAsync(async () => {
-    const existing = await db.getFirstAsync<{ id: string }>(
-      `SELECT id FROM recipes WHERE id = ?`, [saved.id],
+    // The body as well as the id: when this recipe has no history yet, what it
+    // says RIGHT NOW is the only copy of the version the cook is about to
+    // replace, and recordChange writes it down before the change lands.
+    const existing = await db.getFirstAsync<{ id: string; json: string }>(
+      `SELECT id, json FROM recipes WHERE id = ?`, [saved.id],
     );
     await upsert(db, saved);
     // Saving a recipe that was in the Trash brings it back. Editing is a
@@ -348,7 +351,11 @@ export async function saveRecipe(
     // the change: version 1 is the answer to "what did the source say?", and
     // there is no earlier state for it to be a change from.
     if (existing) {
-      await appendVersion(db as unknown as VersionDb, { recipe: saved, cause: history.cause ?? "edited", note: history.note ?? "" });
+      let previous: Recipe | null = null;
+      try { previous = JSON.parse(existing.json) as Recipe; } catch { previous = null; }
+      await recordChange(db as unknown as VersionDb, {
+        previous, next: saved, cause: history.cause ?? "edited", note: history.note ?? "",
+      });
     } else {
       await recordArrival(db as unknown as VersionDb, saved, history.note || "As it arrived");
     }

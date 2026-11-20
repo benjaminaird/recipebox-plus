@@ -165,6 +165,39 @@ export async function recordArrival(
   await appendVersion(db, { recipe, cause: "imported", note, at });
 }
 
+/**
+ * Record a change, and make sure there is something to go back TO.
+ *
+ * The bug this exists for was invisible in every test and obvious the first
+ * time the app ran. A version holds the recipe AFTER the change, and
+ * recordArrival only fires when a recipe is created — so the first change to a
+ * recipe that was already on the phone wrote exactly one row, holding the new
+ * content, and the history screen offered nothing to revert to. Every recipe
+ * that predates this table, every recipe pulled from the account, and every
+ * recipe shared into the library was in that position: one change, and what it
+ * used to say was gone.
+ *
+ * So a change to a recipe with no history records the PREVIOUS content first.
+ * It is dated at that content's own `updatedAt` rather than now, because that
+ * is when it was last true, and a history that lies about when is worse than
+ * one that is short.
+ */
+export async function recordChange(
+  db: VersionDb,
+  input: { previous: Recipe | null; next: Recipe; cause: VersionCause; note?: string; at?: number },
+): Promise<VersionSummary> {
+  const at = input.at ?? Date.now();
+  if (input.previous && (await countVersions(db, input.next.id)) === 0) {
+    await appendVersion(db, {
+      recipe: input.previous,
+      cause: "imported",
+      note: "As it was before the first change this phone recorded",
+      at: input.previous.updatedAt || at,
+    });
+  }
+  return appendVersion(db, { recipe: input.next, cause: input.cause, note: input.note, at });
+}
+
 /** The history, newest first. Bodies left behind: a history list shows lines. */
 export async function listVersions(db: VersionDb, recipeId: string, limit = 100): Promise<VersionSummary[]> {
   const rows = await db.getAllAsync<Row>(
