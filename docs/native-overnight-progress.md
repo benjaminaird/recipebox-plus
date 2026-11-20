@@ -1049,3 +1049,75 @@ bytes this app holds, so there is nothing local to remove today. That changes
 the moment uploads exist.
 
 Large text has not been walked through for the photo controls.
+
+---
+
+## Milestone C — the AI Recipe Helper
+
+Branch `feature/recipebox-2.0`, commits `b13acd7`, `ccdca24`, `e589723`,
+`b9e7c43`, `dec9f8f`, `72c923f`. `main` untouched at `7d70c20`. No deployment,
+no EAS build, no production data touched, and no paid AI call made.
+
+### What the audit found
+
+[docs/native-ai-helper-architecture.md](native-ai-helper-architecture.md) has it
+in full. The short version: the web app's Recipe Adjustment is the shape ADR
+0016 rejects — one field, one Apply, the model returns a whole rewritten recipe,
+nothing is validated, and "Save as new version" writes a **separate recipe with
+a new id**, so ADR 0015 is not involved at all. The valuable parts that were
+already here and are now reused rather than rebuilt: the whole metering
+apparatus around `/api/ai`, and the validator that was written for ADR 0016 step
+6 and sat under `scripts/` where only the harness could reach it.
+
+### What works
+
+- **A proposal is a patch, not a recipe.** The model returns operations over an
+  allowlist, and applying one is deterministic code in `packages/recipe-core`.
+  The diff is the proposal, the declaration and the change are one object, and
+  anything no operation names is out of reach — attribution, media, ids,
+  createdAt — because no operation can express it.
+- **The server owns the prompt, the schema, the parse and the validation.** A
+  proposal that fails goes back to the model once with the codes that rejected
+  it; twice invalid is a 422 and the cook is offered nothing.
+- **Billing follows the ADR**: an exchange that reaches a proposal spends an AI
+  Assist, a clarifying question spends nothing.
+- **Recipe history exists on the device at last** (ADR 0015), append-only, with
+  a cause on every row and a revert that appends rather than deletes.
+- **The Helper screen**: conversation, plain-English proposal first, the diff
+  below it, tradeoffs and uncertainties as the Helper's own words, accept /
+  reject / alternatives / refine, and a saved change that is revertible from the
+  history screen. On somebody else's recipe it saves the cook's own copy.
+- **The evaluation harness** gained adjustment tasks, scored at $0 in CI.
+
+### What is blocked, and on what
+
+**No model has been measured.** `scripts/recipe-model/bakeoff.js` is written and
+runs against the real server prompt, and with no arguments it prints the plan
+and spends nothing. The whole bake-off is about **$0.75** at list price, $1.25
+at five repeats, ~$15 for a corpus of a dozen tasks. The money is not the point;
+the instruction is not to spend without approval.
+[docs/ai-helper-evaluation-plan.md](ai-helper-evaluation-plan.md) has the exact
+tests, metrics, candidates, cost and credentials. **Awaiting a yes.**
+
+Until then the production model is whatever `DEFAULT_AI_MODEL` says, which is
+`claude-sonnet-5` — a previous-generation id that ADR 0017 includes only as the
+baseline to beat. `ALLOWED_AI_MODELS` holds three previous-generation ids, so a
+winning model does nothing until that list changes, which is a production
+configuration change rather than part of a measurement.
+
+### Not done
+
+- The web app's Recipe Adjustment is unchanged. It now has one place to call
+  when it is replaced; replacing it was not in this milestone.
+- A Helper conversation survives navigation but not a relaunch. Deliberate: a
+  half-finished negotiation is not something to still be holding next week.
+- Versions do not sync. ADR 0015 says they sync lazily; the device and the
+  server each keep their own history and neither reads the other's.
+- A pulled change to an existing recipe writes no local version. The server has
+  that history; the phone does not mirror it.
+- A fractional amount on a metric ingredient renders as a decimal in Recipe
+  Detail ("1/4" against grams shows as "0.25 g") while the Helper's diff shows
+  it as written. Pre-existing behaviour of the metric presenter, surfaced by a
+  nonsense value from the test stub rather than introduced here — but it does
+  mean a review row and the saved recipe can read differently.
+
