@@ -38,6 +38,17 @@ export type Draft = {
   sourceUrl: string;
   sections: DraftSection[];
   createdAt: number;
+  /**
+   * The recipe's photograph, carried through the editor untouched.
+   *
+   * It is here only so that editing does not destroy it. The draft is the
+   * whole of what `recipeFromDraft` builds, so a field the draft does not
+   * carry is a field that silently disappears the first time somebody fixes a
+   * typo — and this one had been disappearing since the extractor started
+   * finding images. There is no control for it in the editor's form; it is
+   * changed through the photo actions on Recipe Detail.
+   */
+  heroImage: string;
   /** High-water marks. They only ever go up, so an id is never handed out
    *  twice even after the ingredient that held it is deleted. */
   nextIngredient: number;
@@ -61,6 +72,7 @@ export function emptyDraft(id: string, now = Date.now()): Draft {
     // recipe to serve a minority of them.
     sections: [{ name: "", ingredients: [], steps: [] }],
     createdAt: now,
+    heroImage: "",
     nextIngredient: 1,
     nextStep: 1,
   };
@@ -92,6 +104,7 @@ export function draftFromRecipe(recipe: Recipe): Draft {
       steps: s.steps.map((st) => ({ ...st, ingredientRefs: [...(st.ingredientRefs ?? [])] })),
     })),
     createdAt: recipe.createdAt,
+    heroImage: recipe.heroImage ?? "",
     nextIngredient:
       highest((recipe.sections ?? []).flatMap((s) => s.ingredients.map((i) => i.id)), "i") + 1,
     nextStep:
@@ -332,6 +345,9 @@ export function recipeFromDraft(draft: Draft, now = Date.now()): Recipe {
     ...(Number.isFinite(servings) && servings > 0 ? { servings } : {}),
     ...(draft.totalTime.trim() ? { totalTime: draft.totalTime.trim() } : {}),
     ...(normalizeCategory(draft.category) ? { category: normalizeCategory(draft.category) } : {}),
+    // Carried, not edited. See Draft.heroImage: a field the draft drops is a
+    // field that disappears the first time somebody fixes a typo.
+    ...(draft.heroImage.trim() ? { heroImage: draft.heroImage.trim() } : {}),
     tags: normalizeRecipeTags(draft.tags),
     ...(source ? { source } : {}),
     sections: sections.length > 0 ? sections : [{ ingredients: [], steps: [] }],

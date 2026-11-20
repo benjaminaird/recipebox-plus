@@ -14,7 +14,7 @@ import { inputStyle, maxScale, textStyle } from "../theme/fonts";
 import { listRecipes } from "../data/db";
 import { matches } from "../data/query";
 import type { Recipe } from "../data/types";
-import { RecipeTile } from "./RecipeTile";
+import { RecipeThumb } from "./RecipeThumb";
 
 export function RecipePicker({
   visible, onClose, onPick, title = "Choose a recipe", subtitle,
@@ -125,7 +125,7 @@ export function RecipePicker({
                   ]}
                 >
                   {t.largeText ? null : (
-                    <RecipeTile title={recipe.title} category={recipe.category} size={44} />
+                    <RecipeThumb title={recipe.title} category={recipe.category} uri={recipe.heroImage} size={44} />
                   )}
                   <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
                     <Text style={[textStyle("cardTitle"), { color: c.text }]} numberOfLines={2}>

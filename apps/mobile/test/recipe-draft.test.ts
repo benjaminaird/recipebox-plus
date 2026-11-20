@@ -271,3 +271,31 @@ test("an existing recipe keeps its id through an edit", () => {
   assert.equal(edited.id, recipe.id);
   assert.equal(edited.title, "B");
 });
+
+test("editing a recipe does not destroy its photograph", () => {
+  // The draft is the whole of what recipeFromDraft builds, so a field the
+  // draft does not carry is a field that silently disappears the first time
+  // somebody fixes a typo. heroImage had been disappearing that way since the
+  // extractor started finding images: import a recipe with a photo, correct
+  // one word, and the photo reference was gone with nothing to say so.
+  const imported: Recipe = {
+    id: "r1", title: "Soda bread", heroImage: "https://example.test/bread.jpg",
+    createdAt: 1, updatedAt: 2,
+    sections: [{ ingredients: [{ id: "i1", name: "plain flour", amount: "250", unit: "g" }], steps: [{ id: "s1", text: "Mix." }] }],
+  } as Recipe;
+
+  const draft = draftFromRecipe(imported);
+  assert.equal(draft.heroImage, "https://example.test/bread.jpg");
+
+  const edited = recipeFromDraft({ ...draft, title: "Irish soda bread" }, 9_000);
+  assert.equal(edited.title, "Irish soda bread");
+  assert.equal(edited.heroImage, "https://example.test/bread.jpg", "the photo survives the edit");
+});
+
+test("a recipe with no photograph does not gain an empty one", () => {
+  // An empty string is not a photograph, and a field set to one would make
+  // every "does this have an image" check answer yes.
+  const draft = { ...emptyDraft("r2", 1), title: "Toast", heroImage: "   " };
+  const recipe = recipeFromDraft(draft, 9_000);
+  assert.equal("heroImage" in recipe, false);
+});

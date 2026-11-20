@@ -19,7 +19,7 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme/ThemeProvider";
 import { inputStyle, maxScale, textStyle } from "../theme/fonts";
-import { RecipeTile } from "../components/RecipeTile";
+import { RecipeThumb } from "../components/RecipeThumb";
 import { listRecipes } from "../data/db";
 import { collectCategories, collectTags, type Recipe } from "../data/types";
 import { matches } from "../data/query";
@@ -209,7 +209,7 @@ export function RecipesScreen() {
           >
             {/* See HomeScreen: the fixed tile yields to the text at
                 accessibility sizes rather than truncating it mid-word. */}
-            {t.largeText ? null : <RecipeTile title={item.title} category={item.category} />}
+            {t.largeText ? null : <RecipeThumb title={item.title} category={item.category} uri={item.heroImage} />}
             <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
               <Text
                 style={[textStyle("cardTitle"), { color: c.text }]}

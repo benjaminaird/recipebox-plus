@@ -15,7 +15,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme/ThemeProvider";
 import { maxScale, textStyle } from "../theme/fonts";
 import { BrandHeader } from "../components/BrandHeader";
-import { RecipeTile } from "../components/RecipeTile";
+import { RecipeThumb } from "../components/RecipeThumb";
 import {
   activeSessions, listPlannedMeals, listRecipes, listShoppingLists, shoppingListCounts,
 } from "../data/db";
@@ -381,7 +381,7 @@ export function HomeScreen() {
                   it starves the title, which then truncates mid-word; the text
                   is what the row is for, so the tile gives way. */}
               {t.largeText ? null : (
-                <RecipeTile title={recipe.title} category={recipe.category} size={64} />
+                <RecipeThumb title={recipe.title} category={recipe.category} uri={recipe.heroImage} size={64} />
               )}
               <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
                 <Text
