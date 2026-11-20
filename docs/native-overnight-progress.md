@@ -963,3 +963,87 @@ A shared recipe whose id collides with one of this cook's own is refused
 rather than reconciled. The cook keeps their recipe and does not see that one
 shared recipe. A namespaced local id would show both, and is the better answer
 if a collision ever actually happens.
+
+---
+
+# B — recipe photographs
+
+## What the audit found
+
+`heroImage` has been extracted from JSON-LD and microdata since the extractor
+was written, the Recipe type has always carried it, and the import save path
+passes it through untouched. **Nothing displayed it.** Every recipe imported
+from a website had its photograph in the database, unseen.
+
+**Editing destroyed it.** The draft is the whole of what `recipeFromDraft`
+builds, and `heroImage` was not on the draft: import a recipe with a photo,
+fix one word, and the reference was gone with nothing on screen to say so.
+
+The import path itself was sound — `fields.image` is set by the extractor and
+the save spreads the recipe through. The breakage was display and editing.
+
+## What is built
+
+**Photographs show.** `RecipeThumb` picks between a photograph and the recipe
+card, so both are the same size, corner and position everywhere. An image
+that will not load falls back rather than showing a broken frame.
+
+**The no-image tile is a recipe card**, not a monogram: a hairline where a
+card has its heading rule, the category where a card has its heading, ruled
+lines beneath. Deliberately not varied per recipe beyond the category.
+
+**Taking and choosing a photograph**, with permissions asked at the moment of
+use. The usage strings live in app.json; without them iOS terminates the app
+the instant it asks, which is what happened on the first run. `ios/` is
+gitignored and predates the change, so a local `expo prebuild` is needed
+before a dev-client rebuild picks them up.
+
+**Originals are kept whole.** The picker is asked for quality 1 with no
+editing, the bytes are copied into the store before any derivative is made,
+and the display and thumbnail are separate files. Measured on the simulator:
+2.7 MB original, 880 KB display, 49 KB thumbnail.
+
+**References, not paths.** iOS rewrites the container path on reinstall, so
+`recipebox://media/<id>` goes on the recipe and the path is computed from the
+id. Verified across a relaunch.
+
+**Nothing deletes the only copy.** `mayForget` refuses to discard a
+photograph that has not reached the account.
+
+**Only references this app understands reach an image loader** — https for a
+publisher's image, this app's own store for one it holds. A `file://` would
+read the device's own files into a view; an `http://` to a private address is
+a request from inside the cook's network. And a media id is validated before
+it becomes a directory name, because `forgetPhoto` deletes a tree.
+
+**`judgeImage`** rejects logos, favicons, sprites, avatars, tracking pixels,
+advertisements, banners, SVG and GIF, anything under 200px or wider than 3:1
+— matched against the path, so a host called `cdn.logos-example.com` does not
+disqualify a whole site. It does not try to pick a better image than the
+publisher named.
+
+## Blocked, and why
+
+**Nothing is uploaded.** ADR 0008's object-storage half needs endpoints that
+do not exist, and provisioning storage is a paid-infrastructure decision that
+has not been made. `docs/native-media-contract.md` specifies what the server
+must provide. Until then a photograph taken on the phone stays on that phone:
+it does not reach a second device, and a household member sees the recipe
+without its picture. That is a real limitation and the app should not imply
+otherwise.
+
+## Not done
+
+`judgeImage` is written and tested but not yet wired into the import review —
+the extractor's own choice is what gets saved, unfiltered, and there is no
+screen to review or replace the chosen image before saving.
+
+Cache eviction is handled by `repairDerivatives`, which is tested but not
+called from anywhere yet.
+
+Revoked household media is not purged: `revokeSharedRecipes` removes the
+recipe rows, and any cached media would be the owner's remote URL rather than
+bytes this app holds, so there is nothing local to remove today. That changes
+the moment uploads exist.
+
+Large text has not been walked through for the photo controls.
