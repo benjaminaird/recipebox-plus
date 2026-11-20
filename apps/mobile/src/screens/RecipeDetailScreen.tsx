@@ -28,7 +28,7 @@ import { OrganiseSheet } from "../components/OrganiseSheet";
 import { AddToListSheet } from "../components/AddToListSheet";
 import { displayTag } from "../domain/tags";
 import { collectCategories, collectTags } from "../data/types";
-import { deleteRecipe, listRecipes, saveRecipe } from "../data/db";
+import { deleteRecipe, listRecipes, recipeHistoryCount, saveRecipe } from "../data/db";
 import { RecipeThumb } from "../components/RecipeThumb";
 import { choosePhoto, deniedMessage, takePhoto } from "../media/photos";
 import { adoptPhoto } from "../media/store";
@@ -86,6 +86,9 @@ export function RecipeDetailScreen() {
   }>({ shared: false, ownerId: null, ownerName: null });
   const [copying, setCopying] = useState(false);
   const [workingOnPhoto, setWorkingOnPhoto] = useState(false);
+  // How many versions, so the row can say so. Null until it is known, and
+  // the row says just "History" rather than flashing a count in.
+  const [historyCount, setHistoryCount] = useState<number | null>(null);
 
   // On focus, not on mount. The editor is a modal over this screen, so
   // returning from it does not remount: loading once meant a saved edit was
@@ -97,6 +100,9 @@ export function RecipeDetailScreen() {
       listRecipes().then((all) => { if (live) setLibrary(all); }).catch(() => {});
       sync.provenance(params.recipeId)
         .then((p) => { if (live) setShared(p); })
+        .catch(() => {});
+      recipeHistoryCount(params.recipeId)
+        .then((n) => { if (live) setHistoryCount(n); })
         .catch(() => {});
       Promise.all([getRecipe(params.recipeId), getRecipeView(params.recipeId)])
         .then(([r, saved]) => {
@@ -391,6 +397,50 @@ export function RecipeDetailScreen() {
           {view.scale === 1 ? "Add to a shopping list" : `Add to a shopping list (${scaleLabel(view.scale)})`}
         </Text>
       </Pressable>
+
+      {/* The Helper and the history, in the same quiet row as the shopping
+          list rather than competing with Cook Mode. Cooking is what this
+          screen is for; changing the recipe and looking at what it used to be
+          are both things a cook goes looking for, which is a different kind of
+          button. */}
+      <View style={[styles.ctaRow, t.largeText && styles.ctaRowStacked]}>
+        <View style={t.largeText ? { alignSelf: "stretch" } : { flex: 1 }}>
+          <Pressable
+            onPress={() => navigation.navigate("RecipeHelper", { recipeId: recipe.id })}
+            accessibilityRole="button"
+            accessibilityLabel="Ask the Recipe Helper to change this recipe"
+            style={({ pressed }) => [
+              styles.listCta,
+              { borderColor: c.separatorStrong, borderRadius: t.radius.md, minHeight: t.minTouch, opacity: pressed ? 0.6 : 1 },
+            ]}
+          >
+            <Ionicons name="sparkles-outline" size={18} color={c.accentText} />
+            <Text style={[textStyle("footnote"), { color: c.accentText, fontWeight: "600" }]}>
+              Recipe Helper
+            </Text>
+          </Pressable>
+        </View>
+        <View style={t.largeText ? { alignSelf: "stretch" } : { flex: 1 }}>
+          <Pressable
+            onPress={() => navigation.navigate("RecipeHistory", { recipeId: recipe.id })}
+            accessibilityRole="button"
+            accessibilityLabel={
+              historyCount === null
+                ? "See this recipe's history"
+                : `See this recipe's history, ${historyCount} ${historyCount === 1 ? "version" : "versions"}`
+            }
+            style={({ pressed }) => [
+              styles.listCta,
+              { borderColor: c.separatorStrong, borderRadius: t.radius.md, minHeight: t.minTouch, opacity: pressed ? 0.6 : 1 },
+            ]}
+          >
+            <Ionicons name="time-outline" size={18} color={c.accentText} />
+            <Text style={[textStyle("footnote"), { color: c.accentText, fontWeight: "600" }]}>
+              {historyCount && historyCount > 1 ? `History (${historyCount})` : "History"}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
 
       {advisories.length > 0 ? (
         <View style={{ gap: t.space.sm }}>

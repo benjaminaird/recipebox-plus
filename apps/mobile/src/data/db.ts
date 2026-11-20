@@ -976,6 +976,14 @@ export async function clearFinishedTimers(): Promise<void> {
 /** Test and development helper. Not reachable from the UI. */
 export async function resetForTesting(): Promise<void> {
   const db = await open();
-  await db.execAsync(`DELETE FROM recipes; DELETE FROM cook_progress; DELETE FROM recipe_view; DELETE FROM timers; DELETE FROM planned_meals; DELETE FROM shopping_lists; DELETE FROM shopping_items; DELETE FROM meta;`);
+  // Every table, not the ones that existed when this was written: a reset that
+  // leaves rows behind makes one test's state another test's surprise. It was
+  // already missing the sync tables from schema 6 and 7.
+  await db.execAsync(
+    `DELETE FROM recipes; DELETE FROM cook_progress; DELETE FROM recipe_view; DELETE FROM timers;
+     DELETE FROM planned_meals; DELETE FROM shopping_lists; DELETE FROM shopping_items;
+     DELETE FROM recipe_versions; DELETE FROM recipe_origin; DELETE FROM sync_outbox;
+     DELETE FROM sync_conflicts; DELETE FROM meta;`,
+  );
   handle = null;
 }

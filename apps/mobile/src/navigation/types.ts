@@ -15,6 +15,10 @@ export type RootStackParamList = {
   Tabs: NavigatorScreenParams<TabParamList>;
   RecipeDetail: { recipeId: string };
   CookMode: { recipeId: string };
+  /** The AI Recipe Helper (ADR 0016). Proposes; the cook approves. */
+  RecipeHelper: { recipeId: string };
+  /** Every version of a recipe, and a way back to any of them (ADR 0015). */
+  RecipeHistory: { recipeId: string };
   Settings: undefined;
   AddRecipe: undefined;
   ShoppingList: { listId: string };

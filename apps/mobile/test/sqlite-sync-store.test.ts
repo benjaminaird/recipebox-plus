@@ -843,6 +843,15 @@ test("losing access removes the cached copy and nothing else", async () => {
   origin(raw, "written-here", "local", 1);
   put(raw, recipe("my-cloud", "Also mine"));
   origin(raw, "my-cloud", "cloud", 1, 4);
+  // History on both, so the assertions below can tell "deleted" from "never
+  // written". A shared recipe has none today, and the point of the revocation
+  // delete is that it must not matter whether some path ever gives it one.
+  for (const id of ["theirs", "written-here"]) {
+    await db.runAsync(
+      `INSERT INTO recipe_versions (id, recipe_id, seq, cause, note, created_at, json) VALUES (?,?,?,?,?,?,?)`,
+      [id + ":1", id, 1, "imported", "", 1_000, JSON.stringify(recipe(id, "Whole body"))],
+    );
+  }
 
   // A read in which the shared recipe no longer appears.
   const plan = planHouseholdRead([], await heldRecipes(db, ALICE));
@@ -856,6 +865,16 @@ test("losing access removes the cached copy and nothing else", async () => {
   assert.equal(
     (raw.prepare(`SELECT COUNT(*) AS n FROM recipe_origin WHERE recipe_id='theirs'`)
       .get() as { n: number }).n, 0, "and no provenance is left pointing at nothing",
+  );
+  // The body goes with the row. A version holds a whole recipe, so history
+  // left behind here would be the cached copy kept under another name.
+  assert.equal(
+    (raw.prepare(`SELECT COUNT(*) AS n FROM recipe_versions WHERE recipe_id='theirs'`)
+      .get() as { n: number }).n, 0, "no version of a recipe this cook may no longer read",
+  );
+  assert.equal(
+    (raw.prepare(`SELECT COUNT(*) AS n FROM recipe_versions WHERE recipe_id='written-here'`)
+      .get() as { n: number }).n, 1, "and this cook's own history is untouched",
   );
 
   // Hard, not soft: it is not in the cook's Trash, because it was never

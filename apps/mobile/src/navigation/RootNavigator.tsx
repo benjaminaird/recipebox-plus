@@ -21,6 +21,8 @@ import { ListsScreen } from "../screens/ListsScreen";
 import { ShoppingListScreen } from "../screens/ShoppingListScreen";
 import { RecipeEditorScreen } from "../screens/RecipeEditorScreen";
 import { ImportReviewScreen } from "../screens/ImportReviewScreen";
+import { RecipeHelperScreen } from "../screens/RecipeHelperScreen";
+import { RecipeHistoryScreen } from "../screens/RecipeHistoryScreen";
 import { AddTabButton } from "./AddTabButton";
 import { AccountScreen } from "../screens/auth/AccountScreen";
 import { ConflictsScreen } from "../screens/ConflictsScreen";
@@ -271,6 +273,33 @@ export function RootNavigator() {
             headerTintColor: c.accentText,
             headerRight: () => <EditRecipeButton recipeId={route.params.recipeId} />,
           })}
+        />
+        {/* The Helper is a conversation, so it pushes rather than presenting
+            as a modal: a cook needs to be able to leave it and come back, and
+            the back chevron is how they already know to do that. */}
+        <Stack.Screen
+          name="RecipeHelper"
+          component={RecipeHelperScreen}
+          options={{
+            headerShown: true,
+            title: "",
+            headerBackTitle: "Recipe",
+            headerStyle: { backgroundColor: c.canvas },
+            headerShadowVisible: false,
+            headerTintColor: c.accentText,
+          }}
+        />
+        <Stack.Screen
+          name="RecipeHistory"
+          component={RecipeHistoryScreen}
+          options={{
+            headerShown: true,
+            title: "",
+            headerBackTitle: "Recipe",
+            headerStyle: { backgroundColor: c.canvas },
+            headerShadowVisible: false,
+            headerTintColor: c.accentText,
+          }}
         />
         <Stack.Screen
           name="ImportReview"

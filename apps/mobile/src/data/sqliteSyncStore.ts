@@ -857,6 +857,18 @@ export async function revokeSharedRecipes(
       await db.runAsync(`DELETE FROM recipe_origin WHERE recipe_id = ?`, [id]);
       await db.runAsync(`DELETE FROM cook_progress WHERE recipe_id = ?`, [id]);
       await db.runAsync(`DELETE FROM recipe_view WHERE recipe_id = ?`, [id]);
+      // History goes too, and this is the one place in the app where it does.
+      //
+      // Two rules meet here. ADR 0015 says a recipe's history is never lost;
+      // A3 says a recipe shared with you stops being readable when the person
+      // who shared it stops sharing it. A version row holds the whole recipe,
+      // so keeping the history would mean keeping the recipe — deleting the
+      // row the cook can see and leaving the body behind for whatever reads
+      // history next. Revocation wins, because the history is of somebody
+      // else's recipe and was only ever a cached copy. Nothing of this
+      // account's own is touched: the WHERE clause above only matches a row
+      // marked shared.
+      await db.runAsync(`DELETE FROM recipe_versions WHERE recipe_id = ?`, [id]);
       gone += 1;
     });
   }
@@ -984,6 +996,11 @@ export async function fullResync(
       if (row.owed > 0) { outcome.keptPending += 1; continue; }
       await db.runAsync(`DELETE FROM recipes WHERE id = ?`, [row.recipe_id]);
       await db.runAsync(`DELETE FROM recipe_origin WHERE recipe_id = ?`, [row.recipe_id]);
+      // recipe_versions is deliberately left alone. These are the cook's OWN
+      // recipes, being fetched again under the same ids, so their history
+      // reattaches — and destroying somebody's history to fix a bookkeeping
+      // problem is exactly what ADR 0015 exists to prevent. The revocation
+      // path above is the opposite case and does delete it.
       outcome.cleared += 1;
     }
 
