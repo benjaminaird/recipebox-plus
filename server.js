@@ -3697,6 +3697,57 @@ async function helperRecipeAccess(userId, recipeId) {
   return { allowed: false, relation: 'none' };
 }
 
+/**
+ * How many Helper calls may end in nothing today.
+ *
+ * An exchange that reaches a proposal spends an AI Assist; a clarifying
+ * question spends none (ADR 0016), and neither does an answer we could not
+ * read or could not validate. That is the right billing rule — a cook should
+ * not pay for the Helper failing — and it leaves one asymmetry: an answer that
+ * comes back as prose costs us a provider call and the account nothing.
+ *
+ * The general limits already bound that. checkRateLimit increments on every
+ * call, before the provider is reached, so each attempt consumes the per-user
+ * daily adjust budget and the burst budget whether or not it is charged; the
+ * same has always been true of a timeout or a provider error. But 60 free
+ * paid calls a day is a worse ceiling than it needs to be when every one of
+ * them is failing, so failures get their own, much tighter budget.
+ *
+ * Counted, not charged. A proposal the model could not get right twice is
+ * usually the model's fault rather than the cook's, and billing them for it
+ * would be the wrong lesson; refusing further attempts for the day is not.
+ */
+function helperFailureMax() {
+  return Number(process.env.AI_HELPER_FAILURE_MAX || 8);
+}
+
+/** Pure, so the boundary is testable without a database. */
+function helperFailureVerdict(count, max) {
+  const used = Number(count) || 0;
+  const limit = Number(max) || 0;
+  return { allowed: used < limit, used, limit };
+}
+
+async function helperFailureBudget(userId) {
+  const db = await getPool();
+  const max = helperFailureMax();
+  if (!db || !userId || max <= 0) return helperFailureVerdict(0, max || 1);
+  // Read without incrementing — the dup-import guard reads the same table the
+  // same way. Only an actual failure increments it, below.
+  const result = await db.query(
+    `SELECT count FROM rate_limit_counters
+      WHERE key=$1 AND bucket LIKE 'ai:helperfail:%' AND reset_at > now() LIMIT 1`,
+    [`helperfail:${userId}`]
+  );
+  return helperFailureVerdict(result.rows[0] && result.rows[0].count, max);
+}
+
+/** Record one failed Helper exchange. The return is ignored; the write is the point. */
+async function recordHelperFailure(userId) {
+  try { await checkRateLimit(`helperfail:${userId}`, 'ai:helperfail', helperFailureMax(), 'day'); }
+  catch { /* a counter that cannot be written must not fail the response */ }
+}
+
 app.post('/api/v1/recipes/:recipeId/helper', requireDeviceAuth, async (req, res) => {
   const requestId = crypto.randomUUID();
   const feature = 'adjust';
@@ -3727,6 +3778,16 @@ app.post('/api/v1/recipes/:recipeId/helper', requireDeviceAuth, async (req, res)
     });
     if (allowance.refusal) return res.status(allowance.refusal.status).json(allowance.refusal.body);
     const { billable } = allowance;
+
+    // Before the provider, not after: the point is to stop paying for calls
+    // that keep coming back unusable.
+    const failures = await helperFailureBudget(user.user_id);
+    if (!failures.allowed) {
+      return res.status(429).json({
+        code: 'helper_failing',
+        message: 'The Helper has not managed a usable answer for this account today. Try again tomorrow, or ask for a smaller change on a simpler recipe.',
+      });
+    }
 
     const key = process.env.ANTHROPIC_API_KEY;
     if (!key) return res.status(503).json({ code: 'ai_unavailable', message: 'The Recipe Helper is not set up on this server.' });
@@ -3773,6 +3834,7 @@ app.post('/api/v1/recipes/:recipeId/helper', requireDeviceAuth, async (req, res)
       // Twice invalid. The cook gets nothing to accept, which is the point:
       // better no proposal than one that would leave the recipe inconsistent.
       await logAiUsageEvent({ requestId, user, feature, model, tier, inputTokens, outputTokens, success: false, errorMessage: 'proposal invalid after correction' });
+      await recordHelperFailure(user.user_id);
       return res.status(422).json({
         code: 'proposal_invalid',
         message: 'The Helper could not put together a change that holds together. Try asking for something smaller.',
@@ -3781,6 +3843,7 @@ app.post('/api/v1/recipes/:recipeId/helper', requireDeviceAuth, async (req, res)
     }
     if (outcome.kind === 'unreadable') {
       await logAiUsageEvent({ requestId, user, feature, model, tier, inputTokens, outputTokens, success: false, errorMessage: 'no tool call' });
+      await recordHelperFailure(user.user_id);
       return res.status(502).json({ code: 'helper_unreadable', message: 'The Helper did not answer in a form the app can use. Nothing was charged.' });
     }
 
@@ -5255,6 +5318,7 @@ module.exports._test = {
   // reach this, and production never calls it.
   useDeviceStore(store) { deviceStoreForTests = store; },
   trustedAppOrigin, sanitizeAiBody, ALLOWED_AI_MODELS, DEFAULT_AI_MODEL, MAX_AI_OUTPUT_TOKENS,
+  helperFailureVerdict, helperFailureMax,
 };
 
 if (require.main === module) {

@@ -285,6 +285,31 @@ async function call(path, body, options) {
   delete process.env.AI_ADJUST_ENABLED;
   answers = [];
 
+  // ── Failed exchanges have their own, much tighter budget ───────────────
+  //
+  // An answer we cannot read costs a provider call and the account nothing,
+  // which is the right billing rule and leaves one asymmetry. The general
+  // limits already bound it — checkRateLimit increments on every call, before
+  // the provider is reached — but a day of 60 free failing calls is a worse
+  // ceiling than it needs to be, so failures are counted separately.
+  //
+  // Only the boundary is unit-testable here: the counter lives in the database
+  // and this suite deliberately has none, so with no database every request is
+  // allowed, which is what the assertion below records.
+  const verdict = app._test.helperFailureVerdict;
+  eq(verdict(0, 8).allowed, true, 'a first failure is allowed');
+  eq(verdict(7, 8).allowed, true, 'the eighth is allowed');
+  eq(verdict(8, 8).allowed, false, 'the ninth is not: the budget is a count of failures, not of attempts left');
+  eq(verdict(99, 8).allowed, false, 'and it stays refused');
+  eq(verdict(undefined, 8).allowed, true, 'no row means no failures yet');
+  eq(verdict(3, 8), { allowed: true, used: 3, limit: 8 }, 'the verdict says where the account stands');
+  ok(app._test.helperFailureMax() > 0, 'the budget is on by default');
+
+  // With no database there is no counter, so the route must not refuse.
+  answers = [toolUse({ summary: 'x', operations: [{ kind: 'set-ingredient-amount', id: 'i3', amount: '1/4' }] })];
+  const noCounter = await call('/api/v1/recipes/recipe-1/helper', { recipe: recipe(), message: 'lower the sugar' });
+  eq(noCounter.status, 200, 'a missing counter is not a refusal');
+
   // ── The emergency switch stops everything ──────────────────────────────
   process.env.AI_FEATURES_ENABLED = 'false';
   const off = await call('/api/v1/recipes/recipe-1/helper', { recipe: recipe(), message: 'lower the sugar' });
